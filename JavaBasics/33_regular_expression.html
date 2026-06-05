@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>33_regular_expression.html</title>
+    <link rel="stylesheet" href="../css/js/00_nav.css">
+    <link rel="stylesheet" href="../css/JavaBasics/33_regular_expression.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Side Navigation -->
+        <nav class="side-nav" id="sideNav"></nav>
+
+        <!-- Main Page Content -->
+        <main class="page-content">
+            <header class="page-header regex-header">
+                <p class="chapter-label">Java Basic · Chapter 33</p>
+                <h1>33. 정규표현식 Regular Expression</h1>
+                <p class="header-description">
+                    정규표현식은 문자열이 특정한 패턴을 만족하는지 검사하거나,<br/>
+                    문자열 안에서 필요한 데이터를 찾아 추출하고 치환할 때 사용하는 표현식입니다.<br/>
+                    <code>Pattern</code>, <code>Matcher</code>, <code>matches()</code>, <code>find()</code>,
+                    <code>group()</code>, <code>replaceAll()</code>을 중심으로 공부합니다.
+                </p>
+            </header>
+
+            <main>
+                <section class="study-section intro-section">
+                    <article class="study-card">
+                        <h2>이번 페이지의 학습 목표</h2>
+                        <p>
+                            정규표현식은 회원가입, 로그인, 검색, 관리자 필터링, 로그 분석처럼
+                            <strong>문자열 형식을 검사하거나 특정 값을 추출해야 하는 상황</strong>에서 자주 사용됩니다.<br/>
+                            이번 단원에서는 정규표현식 기호를 단순 암기하는 것이 아니라,
+                            Java 코드에서 실제로 어떻게 읽고 적용하는지 이해하는 것을 목표로 합니다.
+                        </p>
+
+                        <div class="goal-grid">
+                            <div>
+                                <h3>Regex 개념</h3>
+                                <p>문자열이 특정 패턴을 만족하는지 검사하는 원리를 이해합니다.</p>
+                            </div>
+                            <div>
+                                <h3>기본 문법</h3>
+                                <p><code>.</code>, <code>*</code>, <code>+</code>, <code>?</code>, <code>^</code>, <code>$</code>, <code>[]</code>, <code>{}</code>를 익힙니다.</p>
+                            </div>
+                            <div>
+                                <h3>Java 적용</h3>
+                                <p><code>Pattern</code>, <code>Matcher</code>, <code>matches()</code>, <code>find()</code>, <code>group()</code>을 사용합니다.</p>
+                            </div>
+                            <div>
+                                <h3>실무 검증</h3>
+                                <p>아이디, 이메일, 휴대폰 번호, 비밀번호, 한글 이름 검증 예제를 익힙니다.</p>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">1. 정규표현식 기본 개념</h2>
+
+                    <article class="study-card">
+                        <h3>1-1. 정규표현식이란?</h3>
+                        <p>
+                            정규표현식, 또는 Regex는 문자열이 특정 규칙을 만족하는지 검사하기 위한
+                            <strong>문자열 패턴 표현 방법</strong>입니다.<br/>
+                            예를 들어 사용자가 입력한 값이 숫자인지, 이메일 형식인지, 휴대폰 번호 형식인지 확인할 때 사용할 수 있습니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+사용자 입력값
+    ↓
+정규표현식 패턴 검사
+    ↓
+규칙에 맞으면 true
+규칙에 맞지 않으면 false
+</pre>
+                        </div>
+
+                        <p>
+                            예를 들어 <code>"^\\d+$"</code>는 처음부터 끝까지 숫자만 있는 문자열인지 검사하는 정규표현식입니다.
+                        </p>
+
+<pre class="code-block"><code>String input = "12345";
+
+boolean result = input.matches("^\\d+$");
+
+System.out.println(result);</code></pre>
+
+<pre class="code-block"><code>true</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>1-2. 정규표현식이 필요한 이유</h3>
+                        <p>
+                            단순히 문자열에 <code>@</code>가 포함되어 있는지만 확인하면 이메일 검증이 정확하지 않습니다.
+                            예를 들어 <code>"abc@"</code>, <code>"@naver.com"</code>, <code>"abc@@naver.com"</code>처럼
+                            잘못된 값도 통과할 수 있습니다.
+                        </p>
+
+<pre class="code-block error-code"><code>String email = "abc@";
+
+if (email.contains("@")) {
+    System.out.println("이메일처럼 보임");
+}</code></pre>
+
+                        <p>
+                            그래서 문자열의 구조 전체를 검사할 수 있는 정규표현식이 필요합니다.
+                        </p>
+
+<pre class="code-block success-code"><code>String email = "test@naver.com";
+String regex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+
+System.out.println(email.matches(regex));</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>1-3. 실무에서 자주 쓰이는 곳</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>사용 위치</th>
+                                    <th>정규표현식 활용 예시</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>회원가입</td>
+                                    <td>아이디, 비밀번호, 이메일, 휴대폰 번호 형식 검사</td>
+                                </tr>
+                                <tr>
+                                    <td>로그인</td>
+                                    <td>아이디 또는 이메일 입력 형식 확인</td>
+                                </tr>
+                                <tr>
+                                    <td>관리자 검색</td>
+                                    <td>전화번호에서 하이픈 제거, 숫자만 추출</td>
+                                </tr>
+                                <tr>
+                                    <td>게시판 검색</td>
+                                    <td>특정 키워드 패턴 검색</td>
+                                </tr>
+                                <tr>
+                                    <td>로그 분석</td>
+                                    <td>로그 문자열에서 사용자 ID, 상태 코드, 에러 코드 추출</td>
+                                </tr>
+                                <tr>
+                                    <td>데이터 정리</td>
+                                    <td>여러 공백을 하나로 줄이거나 특수문자 제거</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">2. Java에서 정규표현식 사용하기</h2>
+
+                    <article class="study-card">
+                        <h3>2-1. String.matches() 사용</h3>
+                        <p>
+                            가장 간단한 정규표현식 검사는 <code>String.matches()</code>를 사용하는 방식입니다.
+                            이 메서드는 문자열 전체가 정규표현식과 일치하면 <code>true</code>, 아니면 <code>false</code>를 반환합니다.
+                        </p>
+
+<pre class="code-block"><code>public class RegexMatchesExample {
+
+    public static void main(String[] args) {
+
+        String input = "12345";
+        String regex = "^\\d+$";
+
+        boolean result = input.matches(regex);
+
+        System.out.println(result);
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>true</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>matches()</code>는 부분 검색이 아니라 <strong>전체 문자열 검사</strong>입니다.
+                                그래서 회원가입 입력값 검증처럼 전체 형식을 검사할 때 자주 사용합니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>2-2. Pattern과 Matcher 사용</h3>
+                        <p>
+                            정규표현식을 더 세밀하게 사용하려면 <code>Pattern</code>과 <code>Matcher</code> 클래스를 사용합니다.
+                        </p>
+
+<pre class="code-block"><code>import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
+public class RegexPatternExample {
+
+    public static void main(String[] args) {
+
+        Pattern pattern = Pattern.compile("^\\d{13}$");
+        Matcher matcher = pattern.matcher("1111112222222");
+
+        if (matcher.matches()) {
+            System.out.println("패턴 일치");
+        } else {
+            System.out.println("패턴 불일치");
+        }
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>패턴 일치</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+Pattern
+→ 정규표현식 규칙을 준비한다.
+
+Matcher
+→ 준비된 규칙을 실제 문자열에 적용한다.
+
+matches()
+→ 전체 문자열이 패턴과 일치하는지 검사한다.
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>2-3. Pattern과 Matcher 역할 비교</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>클래스 / 메서드</th>
+                                    <th>역할</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>Pattern</code></td>
+                                    <td>정규표현식 패턴 자체를 컴파일하여 준비합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>Pattern.compile()</code></td>
+                                    <td>문자열로 작성한 정규표현식을 Pattern 객체로 만듭니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>Matcher</code></td>
+                                    <td>패턴을 검사 대상 문자열에 적용합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>matcher.matches()</code></td>
+                                    <td>전체 문자열이 패턴과 일치하는지 검사합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>matcher.find()</code></td>
+                                    <td>문자열 안에서 패턴과 일치하는 부분을 찾습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>matcher.group()</code></td>
+                                    <td>찾은 문자열 또는 그룹으로 묶은 값을 가져옵니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">3. matches(), find(), group() 차이</h2>
+
+                    <article class="study-card">
+                        <h3>3-1. matches()는 전체 일치 검사</h3>
+
+<pre class="code-block"><code>import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
+public class MatchesExample {
+
+    public static void main(String[] args) {
+
+        Pattern pattern = Pattern.compile("\\d+");
+        Matcher matcher = pattern.matcher("12345");
+
+        System.out.println(matcher.matches());
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>true</code></pre>
+
+                        <p>
+                            <code>matches()</code>는 검사 대상 문자열 전체가 정규표현식과 일치해야 합니다.
+                        </p>
+
+<pre class="code-block error-code"><code>Pattern pattern = Pattern.compile("\\d+");
+Matcher matcher = pattern.matcher("abc123def");
+
+System.out.println(matcher.matches());</code></pre>
+
+            <pre class="code-block"><code>false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+검사 문자열: abc123def
+정규식: \d+
+
+질문:
+전체 문자열이 숫자로만 이루어져 있는가?
+
+결과:
+false
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-2. find()는 부분 검색</h3>
+
+<pre class="code-block success-code"><code>Pattern pattern = Pattern.compile("\\d+");
+Matcher matcher = pattern.matcher("abc123def");
+
+System.out.println(matcher.find());</code></pre>
+
+            <pre class="code-block"><code>true</code></pre>
+
+                        <p>
+                            <code>find()</code>는 전체 문자열이 일치하지 않아도,
+                            문자열 안에 패턴과 일치하는 부분이 있으면 <code>true</code>를 반환합니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+검사 문자열: abc123def
+정규식: \d+
+
+찾은 부분:
+123
+
+결과:
+true
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-3. group()은 찾은 값을 꺼낸다</h3>
+
+<pre class="code-block"><code>import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
+public class GroupExample {
+
+    public static void main(String[] args) {
+
+        String text = "상품 가격은 12000원이고 배송비는 3000원입니다.";
+
+        Pattern pattern = Pattern.compile("\\d+");
+        Matcher matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            System.out.println(matcher.group());
+        }
+    }
+}</code></pre>
+
+<pre class="code-block"><code>12000
+3000</code></pre>
+
+                        <p>
+                            <code>find()</code>가 패턴에 맞는 부분을 찾고,
+                            <code>group()</code>이 현재 찾은 값을 반환합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-4. 세 메서드 비교</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>메서드</th>
+                                    <th>검사 방식</th>
+                                    <th>주요 사용 상황</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>matches()</code></td>
+                                    <td>전체 문자열이 패턴과 일치해야 함</td>
+                                    <td>회원가입 입력값 검증</td>
+                                </tr>
+                                <tr>
+                                    <td><code>find()</code></td>
+                                    <td>문자열 안에서 패턴과 맞는 부분을 찾음</td>
+                                    <td>로그, 문장, 긴 텍스트에서 값 찾기</td>
+                                </tr>
+                                <tr>
+                                    <td><code>group()</code></td>
+                                    <td>찾은 값 또는 그룹 값을 가져옴</td>
+                                    <td>숫자, 이름, 코드, 날짜 추출</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">4. 기본 정규표현식 기호</h2>
+
+                    <article class="study-card">
+                        <h3>4-1. 기본 기호 한눈에 보기</h3>
+
+                        <table class="study-table regex-table">
+                            <thead>
+                                <tr>
+                                    <th>기호</th>
+                                    <th>의미</th>
+                                    <th>예시</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>.</code></td>
+                                    <td>임의의 한 글자</td>
+                                    <td><code>a.b</code> → aab, acb</td>
+                                </tr>
+                                <tr>
+                                    <td><code>*</code></td>
+                                    <td>앞 문자가 0개 이상</td>
+                                    <td><code>a*b</code> → b, ab, aaab</td>
+                                </tr>
+                                <tr>
+                                    <td><code>+</code></td>
+                                    <td>앞 문자가 1개 이상</td>
+                                    <td><code>a+b</code> → ab, aaab</td>
+                                </tr>
+                                <tr>
+                                    <td><code>?</code></td>
+                                    <td>앞 문자가 0개 또는 1개</td>
+                                    <td><code>a?b</code> → b, ab</td>
+                                </tr>
+                                <tr>
+                                    <td><code>^</code></td>
+                                    <td>문자열 시작</td>
+                                    <td><code>^ab</code> → ab로 시작</td>
+                                </tr>
+                                <tr>
+                                    <td><code>$</code></td>
+                                    <td>문자열 끝</td>
+                                    <td><code>ab$</code> → ab로 끝남</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[]</code></td>
+                                    <td>문자 집합</td>
+                                    <td><code>[abc]</code> → a, b, c 중 하나</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[^]</code></td>
+                                    <td>제외 문자 집합</td>
+                                    <td><code>[^0-9]</code> → 숫자가 아닌 문자</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{}</code></td>
+                                    <td>반복 횟수</td>
+                                    <td><code>a{3}</code> → aaa</td>
+                                </tr>
+                                <tr>
+                                    <td><code>()</code></td>
+                                    <td>그룹</td>
+                                    <td><code>a(bc){2}</code> → abcbc</td>
+                                </tr>
+                                <tr>
+                                    <td><code>|</code></td>
+                                    <td>OR</td>
+                                    <td><code>a(b|c)d</code> → abd, acd</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-2. <code>.</code> : 아무 문자 한 글자</h3>
+
+<pre class="code-block"><code>public class DotRegexExample {
+
+    public static void main(String[] args) {
+
+        System.out.println("aab".matches("a.b"));
+        System.out.println("acb".matches("a.b"));
+        System.out.println("a1b".matches("a.b"));
+        System.out.println("ab".matches("a.b"));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+true
+true
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+정규식: a.b
+
+a + 아무 문자 한 글자 + b
+
+aab → 통과
+acb → 통과
+a1b → 통과
+ab  → 실패
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-3. <code>*</code>, <code>+</code>, <code>?</code> 비교</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>표현</th>
+                                    <th>의미</th>
+                                    <th>가능한 값</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>a*b</code></td>
+                                    <td>a가 0개 이상 + b</td>
+                                    <td>b, ab, aab, aaab</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a+b</code></td>
+                                    <td>a가 1개 이상 + b</td>
+                                    <td>ab, aab, aaab</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a?b</code></td>
+                                    <td>a가 0개 또는 1개 + b</td>
+                                    <td>b, ab</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+<pre class="code-block"><code>public class RepeatRegexExample {
+
+    public static void main(String[] args) {
+
+        System.out.println("b".matches("a*b"));
+        System.out.println("b".matches("a+b"));
+        System.out.println("b".matches("a?b"));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+true</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-4. <code>{}</code> : 반복 횟수 지정</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>표현</th>
+                                    <th>의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>a{3}</code></td>
+                                    <td>a가 정확히 3개</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a{1,}</code></td>
+                                    <td>a가 1개 이상</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a{1,3}</code></td>
+                                    <td>a가 1개 이상 3개 이하</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a{0,}</code></td>
+                                    <td><code>a*</code>와 같음</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a{1,}</code></td>
+                                    <td><code>a+</code>와 같음</td>
+                                </tr>
+                                <tr>
+                                    <td><code>a{0,1}</code></td>
+                                    <td><code>a?</code>와 같음</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+<pre class="code-block"><code>public class CountRegexExample {
+
+    public static void main(String[] args) {
+
+        System.out.println("aaa".matches("a{3}"));
+        System.out.println("aa".matches("a{3}"));
+        System.out.println("aaaa".matches("a{1,3}"));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+false</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-5. <code>^</code>와 <code>$</code> : 시작과 끝</h3>
+                        <p>
+                            <code>^</code>는 문자열의 시작, <code>$</code>는 문자열의 끝을 의미합니다.
+                            입력값 전체를 검사할 때는 보통 둘을 함께 사용합니다.
+                        </p>
+
+<pre class="code-block"><code>public class StartEndRegexExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^\\d{3}$";
+
+        System.out.println("123".matches(regex));
+        System.out.println("1234".matches(regex));
+        System.out.println("abc123".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+^       \d{3}       $
+시작     숫자 3개      끝
+
+즉,
+처음부터 끝까지 숫자 3개여야 한다.
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-6. <code>[]</code>와 <code>[^]</code></h3>
+
+<pre class="code-block"><code>public class BracketRegexExample {
+
+    public static void main(String[] args) {
+
+        System.out.println("a".matches("[abc]"));
+        System.out.println("d".matches("[abc]"));
+
+        System.out.println("x".matches("[^0-9]"));
+        System.out.println("7".matches("[^0-9]"));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+true
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+[abc]
+→ a, b, c 중 한 글자
+
+[^0-9]
+→ 숫자가 아닌 한 글자
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-7. <code>()</code>와 <code>|</code></h3>
+                        <p>
+                            <code>()</code>는 여러 문자를 하나의 그룹으로 묶고,
+                            <code>|</code>는 OR 조건을 의미합니다.
+                        </p>
+
+<pre class="code-block"><code>public class GroupOrRegexExample {
+
+    public static void main(String[] args) {
+
+        System.out.println("abcbc".matches("a(bc){2}"));
+
+        System.out.println("abd".matches("a(b|c)d"));
+        System.out.println("acd".matches("a(b|c)d"));
+        System.out.println("aed".matches("a(b|c)d"));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+true
+true
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+a(bc){2}
+→ a + bc + bc
+→ abcbc
+
+a(b|c)d
+→ a + b 또는 c + d
+→ abd 또는 acd
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">5. 자주 쓰는 축약 표현</h2>
+
+                    <article class="study-card">
+                        <h3>5-1. 축약 표현 표</h3>
+
+                        <table class="study-table regex-table">
+                            <thead>
+                                <tr>
+                                    <th>의미</th>
+                                    <th>정규표현식</th>
+                                    <th>Java 문자열</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>숫자</td>
+                                    <td><code>\d</code></td>
+                                    <td><code>"\\d"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>숫자가 아닌 문자</td>
+                                    <td><code>\D</code></td>
+                                    <td><code>"\\D"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>공백 문자</td>
+                                    <td><code>\s</code></td>
+                                    <td><code>"\\s"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>공백이 아닌 문자</td>
+                                    <td><code>\S</code></td>
+                                    <td><code>"\\S"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>영문자, 숫자, 언더바</td>
+                                    <td><code>\w</code></td>
+                                    <td><code>"\\w"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>영문자, 숫자, 언더바가 아닌 문자</td>
+                                    <td><code>\W</code></td>
+                                    <td><code>"\\W"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>알파벳</td>
+                                    <td><code>\p{Alpha}</code></td>
+                                    <td><code>"\\p{Alpha}"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>숫자</td>
+                                    <td><code>\p{Digit}</code></td>
+                                    <td><code>"\\p{Digit}"</code></td>
+                                </tr>
+                                <tr>
+                                    <td>알파벳 또는 숫자</td>
+                                    <td><code>\p{Alnum}</code></td>
+                                    <td><code>"\\p{Alnum}"</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="summary-box">
+                            <p>
+                                Java 문자열 안에서는 백슬래시를 한 번 더 써야 합니다.
+                                정규식에서 <code>\d</code>라고 쓰는 표현은 Java 코드에서는 <code>"\\d"</code>가 됩니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-2. 숫자와 숫자가 아닌 문자</h3>
+
+<pre class="code-block"><code>public class DigitRegexExample {
+
+    public static void main(String[] args) {
+
+        System.out.println("7".matches("\\d"));
+        System.out.println("a".matches("\\d"));
+
+        System.out.println("a".matches("\\D"));
+        System.out.println("7".matches("\\D"));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+true
+false</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-3. 공백 정리하기</h3>
+                        <p>
+                            <code>\\s+</code>는 공백 문자가 1개 이상 연속된 부분을 의미합니다.
+                        </p>
+
+<pre class="code-block"><code>public class SpaceRegexExample {
+
+    public static void main(String[] args) {
+
+        String text = "Java     Regex      Study";
+
+        String result = text.replaceAll("\\s+", " ");
+
+        System.out.println(result);
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>Java Regex Study</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-4. 전화번호에서 숫자만 남기기</h3>
+                        <p>
+                            <code>\\D</code>는 숫자가 아닌 문자를 의미합니다.
+                            따라서 숫자가 아닌 문자를 빈 문자열로 바꾸면 숫자만 남습니다.
+                        </p>
+
+<pre class="code-block"><code>public class PhoneNormalizeExample {
+
+    public static void main(String[] args) {
+
+        String phone = "010-1234-5678";
+
+        String result = phone.replaceAll("\\D", "");
+
+        System.out.println(result);
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>01012345678</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">6. 실무 입력값 검증 예제</h2>
+
+                    <article class="study-card">
+                        <h3>6-1. 숫자만 허용</h3>
+
+<pre class="code-block"><code>public class OnlyNumberExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^\\d+$";
+
+        System.out.println("12345".matches(regex));
+        System.out.println("123a".matches(regex));
+        System.out.println("".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+^      \d      +      $
+시작   숫자   1개 이상   끝
+
+처음부터 끝까지 숫자만 있어야 한다.
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-2. 한글 이름 검사</h3>
+
+<pre class="code-block"><code>public class KoreanNameExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^[가-힣]{2,10}$";
+
+        System.out.println("홍길동".matches(regex));
+        System.out.println("김철수".matches(regex));
+        System.out.println("Hong".matches(regex));
+        System.out.println("홍1동".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+true
+false
+false</code></pre>
+
+                        <p>
+                            <code>[가-힣]</code>은 한글 음절 범위를 의미합니다.
+                            위 정규식은 한글 이름을 2글자 이상 10글자 이하로 제한합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-3. 아이디 검사</h3>
+                        <p>
+                            조건은 다음과 같습니다.
+                        </p>
+
+                        <ol class="summary-list">
+                            <li>영문 소문자로 시작해야 합니다.</li>
+                            <li>이후에는 영문 소문자와 숫자만 사용할 수 있습니다.</li>
+                            <li>전체 길이는 4자 이상 12자 이하입니다.</li>
+                        </ol>
+
+<pre class="code-block"><code>public class UserIdRegexExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^[a-z][a-z0-9]{3,11}$";
+
+        System.out.println("user1".matches(regex));
+        System.out.println("abc".matches(regex));
+        System.out.println("1user".matches(regex));
+        System.out.println("user_name".matches(regex));
+        System.out.println("verylonguserid123".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+false
+false
+false
+false</code></pre>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>부분</th>
+                                    <th>의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>^</code></td>
+                                    <td>문자열 시작</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[a-z]</code></td>
+                                    <td>첫 글자는 영문 소문자</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[a-z0-9]{3,11}</code></td>
+                                    <td>뒤에는 소문자 또는 숫자 3~11개</td>
+                                </tr>
+                                <tr>
+                                    <td><code>$</code></td>
+                                    <td>문자열 끝</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-4. 이메일 검사</h3>
+
+<pre class="code-block"><code>public class EmailRegexExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+
+        System.out.println("test@naver.com".matches(regex));
+        System.out.println("my.name@gmail.com".matches(regex));
+        System.out.println("user_01@company.co.kr".matches(regex));
+        System.out.println("test@naver".matches(regex));
+        System.out.println("testnaver.com".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+true
+true
+false
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+^[A-Za-z0-9._%+-]+
+→ 이메일 아이디 부분
+
+@
+→ 골뱅이 문자
+
+[A-Za-z0-9.-]+
+→ 도메인 이름
+
+\\.
+→ 실제 점 문자
+
+[A-Za-z]{2,}$
+→ com, kr, net 같은 마지막 도메인
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-5. 휴대폰 번호 검사</h3>
+                        <p>
+                            하이픈이 있는 번호와 없는 번호를 모두 허용하는 예제입니다.
+                        </p>
+
+<pre class="code-block"><code>public class PhoneRegexExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^01[016789]-?\\d{3,4}-?\\d{4}$";
+
+        System.out.println("01012345678".matches(regex));
+        System.out.println("010-1234-5678".matches(regex));
+        System.out.println("010-123-4567".matches(regex));
+        System.out.println("02-1234-5678".matches(regex));
+        System.out.println("010-12-5678".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>true
+true
+true
+false
+false</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+^01[016789]
+→ 010, 011, 016, 017, 018, 019 형태
+
+-?
+→ 하이픈은 있어도 되고 없어도 됨
+
+\d{3,4}
+→ 중간 번호 3~4자리
+
+-?
+→ 하이픈은 있어도 되고 없어도 됨
+
+\d{4}$
+→ 마지막 번호 4자리
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-6. 비밀번호 검사</h3>
+                        <p>
+                            조건은 다음과 같습니다.
+                        </p>
+
+                        <ol class="summary-list">
+                            <li>8자 이상 20자 이하입니다.</li>
+                            <li>영문 대소문자, 숫자, 특수문자 <code>!@#$%^&*</code>만 허용합니다.</li>
+                            <li>숫자를 최소 1개 포함해야 합니다.</li>
+                            <li>특수문자를 최소 1개 포함해야 합니다.</li>
+                        </ol>
+
+<pre class="code-block"><code>public class PasswordRegexExample {
+
+    public static void main(String[] args) {
+
+        String regex = "^(?=.*\\d)(?=.*[!@#$%^&*])[A-Za-z0-9!@#$%^&*]{8,20}$";
+
+        System.out.println("abc12345".matches(regex));
+        System.out.println("abcdefg!".matches(regex));
+        System.out.println("abc1234!".matches(regex));
+        System.out.println("ABC1234!".matches(regex));
+        System.out.println("abc 1234!".matches(regex));
+    }
+}</code></pre>
+
+<pre class="code-block"><code>false
+false
+true
+true
+false</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>(?=.*\\d)</code>는 문자열 어딘가에 숫자가 있어야 한다는 의미입니다.
+                                <code>(?=.*[!@#$%^&*])</code>는 문자열 어딘가에 특수문자가 있어야 한다는 의미입니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">7. 문자열 추출과 치환</h2>
+
+                    <article class="study-card">
+                        <h3>7-1. 문자열에서 숫자만 추출하기</h3>
+
+<pre class="code-block"><code>import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class NumberExtractExample {
+
+    public static void main(String[] args) {
+
+        String text = "상품 가격은 12000원이고 배송비는 3000원입니다.";
+
+        Pattern pattern = Pattern.compile("\\d+");
+        Matcher matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            System.out.println(matcher.group());
+        }
+    }
+}</code></pre>
+
+<pre class="code-block"><code>12000
+3000</code></pre>
+
+                        <p>
+                            <code>\\d+</code>는 숫자가 1개 이상 연속된 부분을 의미합니다.
+                            <code>while</code>과 <code>find()</code>를 함께 사용하면 문자열 안의 숫자를 순서대로 찾을 수 있습니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>7-2. 그룹으로 이름과 나이 추출하기</h3>
+
+<pre class="code-block"><code>import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class GroupExtractExample {
+
+    public static void main(String[] args) {
+
+        String text = "이름: 홍길동, 나이: 25";
+
+        Pattern pattern = Pattern.compile("이름: ([가-힣]+), 나이: (\\d+)");
+        Matcher matcher = pattern.matcher(text);
+
+        if (matcher.find()) {
+            System.out.println("이름 = " + matcher.group(1));
+            System.out.println("나이 = " + matcher.group(2));
+        }
+    }
+}</code></pre>
+
+<pre class="code-block"><code>이름 = 홍길동
+나이 = 25</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+정규식:
+이름: ([가-힣]+), 나이: (\d+)
+
+group(1)
+→ 첫 번째 괄호에 해당하는 값
+→ 홍길동
+
+group(2)
+→ 두 번째 괄호에 해당하는 값
+→ 25
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>7-3. 여러 공백을 하나로 줄이기</h3>
+
+<pre class="code-block"><code>public class ReplaceSpaceExample {
+
+    public static void main(String[] args) {
+
+        String text = "Java     Regex      Study";
+
+        String result = text.replaceAll("\\s+", " ");
+
+        System.out.println(result);
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>Java Regex Study</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>7-4. 숫자가 아닌 문자 제거하기</h3>
+
+<pre class="code-block"><code>public class RemoveNonDigitExample {
+
+    public static void main(String[] args) {
+
+        String phone = "010-1234-5678";
+
+        String result = phone.replaceAll("\\D", "");
+
+        System.out.println(result);
+    }
+}</code></pre>
+
+            <pre class="code-block"><code>01012345678</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">8. 정규표현식 읽는 방법</h2>
+
+                    <article class="study-card">
+                        <h3>8-1. 복잡한 정규식은 나누어서 읽는다</h3>
+                        <p>
+                            정규표현식은 한 번에 읽으려고 하면 어렵습니다.
+                            반드시 왼쪽에서 오른쪽으로 쪼개서 읽어야 합니다.
+                        </p>
+
+            <pre class="code-block"><code>String regex = "^01[016789]-?\\d{3,4}-?\\d{4}$";</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+^
+→ 문자열 시작
+
+01
+→ 01로 시작
+
+[016789]
+→ 0, 1, 6, 7, 8, 9 중 하나
+
+-?
+→ 하이픈이 0개 또는 1개
+
+\d{3,4}
+→ 숫자 3개 이상 4개 이하
+
+-?
+→ 하이픈이 0개 또는 1개
+
+\d{4}
+→ 숫자 4개
+
+$
+→ 문자열 끝
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>8-2. Java 문자열과 정규표현식을 구분한다</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>원하는 정규표현식</th>
+                                    <th>Java 코드에서 쓰는 문자열</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>\d</code></td>
+                                    <td><code>"\\d"</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>\D</code></td>
+                                    <td><code>"\\D"</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>\s</code></td>
+                                    <td><code>"\\s"</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>\.</code></td>
+                                    <td><code>"\\."</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="summary-box">
+                            <p>
+                                정규표현식에서 숫자를 의미하는 것은 <code>\d</code>지만,
+                                Java 문자열 안에서는 <code>"\\d"</code>로 작성해야 합니다.
+                                이것은 Java의 문자열 이스케이프 규칙 때문입니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">9. 자주 하는 실수</h2>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 1. 백슬래시를 하나만 작성함</h3>
+
+            <pre class="code-block error-code"><code>String regex = "\d+";</code></pre>
+
+            <pre class="code-block success-code"><code>String regex = "\\d+";</code></pre>
+
+                        <p>
+                            Java 문자열에서는 백슬래시 자체를 표현하기 위해 <code>\\</code>를 사용해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 2. 점을 진짜 점으로 착각함</h3>
+
+            <pre class="code-block error-code"><code>String regex = ".+@.+..+";</code></pre>
+
+            <pre class="code-block success-code"><code>String regex = ".+@.+\\..+";</code></pre>
+
+                        <p>
+                            정규표현식에서 <code>.</code>은 아무 문자 한 글자를 의미합니다.
+                            실제 점을 검사하려면 <code>\\.</code>를 사용해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 3. matches()와 find()를 혼동함</h3>
+
+<pre class="code-block error-code"><code>Pattern pattern = Pattern.compile("\\d+");
+Matcher matcher = pattern.matcher("abc123def");
+
+System.out.println(matcher.matches());</code></pre>
+
+            <pre class="code-block"><code>false</code></pre>
+
+<pre class="code-block success-code"><code>Pattern pattern = Pattern.compile("\\d+");
+Matcher matcher = pattern.matcher("abc123def");
+
+System.out.println(matcher.find());</code></pre>
+
+            <pre class="code-block"><code>true</code></pre>
+
+                        <p>
+                            <code>matches()</code>는 전체 일치 검사이고,
+                            <code>find()</code>는 부분 검색입니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 4. <code>^</code>와 <code>$</code>를 빼먹음</h3>
+
+            <pre class="code-block error-code"><code>String regex = "\\d{3}";</code></pre>
+
+            <pre class="code-block success-code"><code>String regex = "^\\d{3}$";</code></pre>
+
+                        <p>
+                            입력값 전체가 특정 형식인지 검사할 때는 시작과 끝을 명확하게 지정하는 것이 좋습니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 5. <code>[]</code>와 <code>()</code>를 혼동함</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>표현</th>
+                                    <th>의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>[abc]</code></td>
+                                    <td>a, b, c 중 한 글자</td>
+                                </tr>
+                                <tr>
+                                    <td><code>(abc)</code></td>
+                                    <td>abc라는 문자열 그룹</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+<pre class="code-block"><code>System.out.println("a".matches("[abc]"));
+System.out.println("abc".matches("[abc]"));
+System.out.println("abc".matches("(abc)"));</code></pre>
+
+<pre class="code-block"><code>true
+false
+true</code></pre>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 6. 정규표현식 하나에 모든 검증을 몰아넣음</h3>
+                        <p>
+                            비밀번호처럼 조건이 복잡한 경우, 모든 조건을 정규표현식 하나로 처리하면 가독성이 떨어질 수 있습니다.
+                            실무에서는 정규표현식과 일반 Java 조건문을 나누어 사용하는 것이 더 좋을 때도 많습니다.
+                        </p>
+
+<pre class="code-block success-code"><code>String password = "abc1234!";
+
+boolean lengthCheck = password.length() &gt;= 8 &amp;&amp; password.length() &lt;= 20;
+boolean hasNumber = password.matches(".*\\d.*");
+boolean hasSpecial = password.matches(".*[!@#$%^&amp;*].*");
+boolean noSpace = !password.matches(".*\\s.*");
+
+if (lengthCheck &amp;&amp; hasNumber &amp;&amp; hasSpecial &amp;&amp; noSpace) {
+    System.out.println("사용 가능한 비밀번호");
+} else {
+    System.out.println("사용 불가능한 비밀번호");
+}</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">10. 면접 포인트</h2>
+
+                    <article class="study-card interview-card">
+                        <h3>Q1. 정규표현식이란 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            정규표현식은 문자열이 특정한 패턴을 만족하는지 검사하거나,
+                            문자열 안에서 특정 패턴을 찾아 추출 또는 치환할 때 사용하는 표현식입니다.<br/>
+                            Java에서는 <code>Pattern</code>, <code>Matcher</code> 클래스를 사용하거나
+                            <code>String.matches()</code>, <code>replaceAll()</code>, <code>split()</code> 같은 메서드를 통해 사용할 수 있습니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q2. Java에서 Pattern과 Matcher의 역할은 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>Pattern</code>은 정규표현식 패턴을 컴파일해서 준비하는 클래스이고,
+                            <code>Matcher</code>는 준비된 패턴을 실제 문자열에 적용하는 클래스입니다.<br/>
+                            <code>Pattern.compile()</code>로 패턴을 만들고,
+                            <code>pattern.matcher()</code>로 검사 대상 문자열을 연결한 뒤
+                            <code>matches()</code>, <code>find()</code>, <code>group()</code> 등을 사용할 수 있습니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q3. matches()와 find()의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>matches()</code>는 문자열 전체가 정규표현식과 일치해야 <code>true</code>를 반환합니다.
+                            반면 <code>find()</code>는 문자열 중 일부라도 정규표현식과 일치하는 부분이 있으면 <code>true</code>를 반환합니다.<br/>
+                            입력값 전체 검증에는 <code>matches()</code>, 로그나 문장 안에서 특정 값을 찾을 때는 <code>find()</code>를 주로 사용합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q4. Java 정규표현식에서 <code>\\d</code>처럼 백슬래시를 두 번 쓰는 이유는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            정규표현식에서 <code>\d</code>는 숫자를 의미합니다.<br/>
+                            하지만 Java 문자열에서 백슬래시는 이스케이프 문자이기 때문에,
+                            실제 정규표현식 엔진에 <code>\d</code>를 전달하려면 Java 문자열 안에서는
+                            <code>"\\d"</code>처럼 백슬래시를 두 번 작성해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q5. <code>^</code>와 <code>$</code>는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>^</code>는 문자열의 시작을 의미하고,
+                            <code>$</code>는 문자열의 끝을 의미합니다.
+                            입력값 전체가 특정 형식과 일치하는지 검사할 때 두 기호를 함께 사용합니다.<br/>
+                            예를 들어 <code>"^\\d{3}$"</code>는 전체 문자열이 숫자 3개로만 이루어져 있는지 검사합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q6. <code>*</code>, <code>+</code>, <code>?</code>의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>*</code>는 바로 앞 문자가 0개 이상 반복되는 경우를 의미하고,
+                            <code>+</code>는 1개 이상 반복되는 경우를 의미합니다.
+                            <code>?</code>는 0개 또는 1개만 허용합니다.<br/>
+                            예를 들어 <code>a*b</code>는 <code>b</code>, <code>ab</code>, <code>aab</code>가 가능하지만,
+                            <code>a+b</code>는 <code>b</code>가 불가능합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q7. 정규표현식의 단점은 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            정규표현식은 짧은 코드로 강력한 문자열 검사를 할 수 있지만,
+                            복잡해질수록 가독성이 크게 떨어질 수 있습니다.<br/>
+                            그래서 복잡한 검증 정책은 정규표현식 하나에 모두 넣기보다,
+                            정규표현식과 Java 조건문을 적절히 나누어 작성하는 것이 유지보수에 좋습니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">11. 최종 정리</h2>
+
+                    <article class="study-card">
+                        <h3>11-1. 이번 단원 핵심 요약</h3>
+
+                        <ol class="summary-list">
+                            <li>정규표현식은 문자열 패턴을 검사하는 표현식입니다.</li>
+                            <li>회원가입, 이메일, 휴대폰 번호, 비밀번호 검증에 자주 사용됩니다.</li>
+                            <li>Java에서는 <code>String.matches()</code> 또는 <code>Pattern</code>, <code>Matcher</code>를 사용할 수 있습니다.</li>
+                            <li><code>matches()</code>는 전체 일치 검사입니다.</li>
+                            <li><code>find()</code>는 문자열 안에서 패턴에 맞는 부분을 찾습니다.</li>
+                            <li><code>group()</code>은 찾은 값 또는 그룹 값을 꺼냅니다.</li>
+                            <li>Java 문자열에서 정규식의 백슬래시는 <code>\\</code>로 작성해야 합니다.</li>
+                            <li>입력값 전체 검증에는 <code>^</code>와 <code>$</code>를 함께 사용하는 것이 좋습니다.</li>
+                            <li><code>[]</code>는 문자 집합이고, <code>()</code>는 그룹입니다.</li>
+                            <li>복잡한 검증은 정규표현식과 일반 Java 조건문을 나누어 작성하는 것이 좋습니다.</li>
+                        </ol>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>11-2. 정규표현식 읽는 순서</h3>
+
+                        <div class="diagram-box">
+<pre>
+1. ^와 $가 있는지 확인한다.
+→ 전체 문자열 검사인지 확인
+
+2. [] 문자 집합을 확인한다.
+→ 어떤 문자를 허용하는지 확인
+
+3. {}, *, +, ? 반복 조건을 확인한다.
+→ 몇 글자까지 허용하는지 확인
+
+4. () 그룹과 | OR 조건을 확인한다.
+→ 묶음과 선택 조건 확인
+
+5. Java 문자열의 \\를 정규식 \로 바꿔 생각한다.
+→ "\\d"는 정규식 \d
+
+6. 전체 정규식을 자연어 문장으로 번역한다.
+</pre>
+                        </div>
+                    </article>
+                </section>
+            </main>
+
+            <aside class="side-note regex-side-note">
+                <h2>학습 메모</h2>
+                <p>
+                    이 페이지는 Java 정규표현식 단원입니다.
+                    정규표현식은 문자열이 특정 패턴을 만족하는지 검사하거나,
+                    문자열 안에서 특정 값을 찾아 추출하고 치환할 때 사용합니다.<br/>
+                    Java에서는 간단한 검증에 <code>String.matches()</code>를 사용할 수 있고,
+                    반복 검색이나 그룹 추출이 필요할 때는 <code>Pattern</code>과 <code>Matcher</code>를 사용합니다.
+                </p>
+
+                <div class="mini-note-box">
+                    <h3>가장 중요한 구분</h3>
+                    <p>
+                        <code>matches()</code>는 전체 일치 검사이고,
+                        <code>find()</code>는 부분 검색입니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>Java 문자열 주의</h3>
+                    <p>
+                        정규식의 <code>\d</code>는 Java 코드에서 <code>"\\d"</code>로 작성해야 합니다.
+                        실제 점 문자는 <code>"\\."</code>로 작성합니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>실무 활용</h3>
+                    <p>
+                        아이디, 비밀번호, 이메일, 휴대폰 번호, 한글 이름 검증과
+                        로그 분석, 숫자 추출, 공백 정리에 자주 사용됩니다.
+                    </p>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <script src="../js/00_nav.js"></script>
+</body>
+</html>

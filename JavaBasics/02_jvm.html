@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>02_jvm.html</title>
+    <link rel="stylesheet" href="../css/js/00_nav.css">
+    <link rel="stylesheet" href="../css/JavaBasics/02_jvm.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Side Navigation -->
+        <nav class="side-nav" id="sideNav"></nav>
+
+        <!-- Main Page Content -->
+        <div class="page-content">
+            <header class="page-header">
+                <p class="chapter-label">Java Basic · Chapter 02</p>
+                <h1>02. JDK · JRE · JVM 실행 구조</h1>
+                <p class="header-description">
+                    Java 프로그램은 소스코드를 바로 실행하지 않습니다.<br/>
+                    <code>.java</code> 파일을 <code>javac</code>로 컴파일해 <code>.class</code> 바이트코드로 만들고,<br/>
+                    JVM이 Class Loader, Verification, Interpreter, JIT Compiler를 통해 실행합니다.
+                </p>
+            </header>
+
+        <main>
+            <!-- Intro -->
+            <section class="study-section intro-section">
+                <article class="study-card">
+                    <h2>이번 페이지의 학습 목표</h2>
+                    <p>
+                        이 페이지에서는 Java 프로그램이 실제로 실행되는 흐름을 공부합니다.<br/>
+                        Java는 <code>.java</code> 파일을 바로 실행하지 않고, <code>javac</code> 컴파일러를 통해<br/>
+                        <code>.class</code> 바이트코드로 변환한 뒤 JVM 위에서 실행합니다.
+                    </p>
+
+                    <div class="goal-grid">
+                        <div>
+                            <h3>실행 흐름 이해</h3>
+                            <p><code>.java</code> 파일이 <code>.class</code> 파일로 바뀌고<br/>실행되는 과정을 이해합니다.</p>
+                        </div>
+                        <div>
+                            <h3>JVM 구성 이해</h3>
+                            <p>Class Loader, Verification, Interpreter, JIT Compiler의<br/>역할을 구분합니다.</p>
+                        </div>
+                        <div>
+                            <h3>메모리 구조 기초</h3>
+                            <p>Method Area, Heap, Stack의<br/>기본 역할을 이해합니다.</p>
+                        </div>
+                        <div>
+                            <h3>실무 연결</h3>
+                            <p>Spring Boot, Tomcat, Gradle, Maven이<br/>JVM과 어떻게 연결되는지 이해합니다.</p>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- Core Concept -->
+            <section class="study-section">
+                <h2 class="section-title">1. 핵심 개념 설명</h2>
+
+                <article class="study-card">
+                    <h3>1-1. Java 실행 구조의 핵심</h3>
+                    <p>
+                        Java는 사람이 작성한 소스코드 파일을 바로 실행하지 않습니다.<br/>
+                        먼저 <code>.java</code> 파일을 <code>javac</code> 컴파일러로 컴파일해서
+                        JVM이 읽을 수 있는 <code>.class</code> 바이트코드 파일로 변환합니다.
+                    </p>
+
+                    <div class="flow-box">
+        <pre>
+        Hello.java
+        ↓ javac 컴파일
+        Hello.class
+        ↓ java Hello 실행
+        JVM 실행
+        ↓
+        결과 출력
+        </pre>
+                    </div>
+
+                    <p>
+                        핵심은 <strong>JVM은 .java 파일이 아니라 .class 파일을 실행한다</strong>는 점입니다.<br/>
+                        따라서 Java 실행 과정을 이해하려면 소스코드, 컴파일, 바이트코드, JVM 실행의 관계를 함께 이해해야 합니다.
+                    </p>
+                </article>
+
+                <article class="study-card">
+                    <h3>1-2. .java와 .class의 차이</h3>
+                    <p>
+                        <code>.java</code> 파일은 개발자가 직접 작성하는 Java 소스 파일입니다.
+                        사람이 읽고 수정할 수 있는 코드입니다.
+                    </p>
+
+        <pre class="code-block"><code>public class Hello {
+            public static void main(String[] args) {
+                System.out.println("Hello JVM");
+            }
+        }</code></pre>
+
+                    <p>
+                        반면 <code>.class</code> 파일은 <code>javac</code>가 만들어내는 바이트코드 파일입니다.<br/>
+                        사람이 직접 읽기 위한 파일이 아니라 JVM이 읽고 실행하기 위한 파일입니다.
+                    </p>
+
+                    <div class="summary-box">
+                        <p>
+                            <strong>정리:</strong>
+                            <code>.java</code>는 사람이 읽는 소스코드이고,
+                            <code>.class</code>는 JVM이 읽는 바이트코드입니다.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="study-card">
+                    <h3>1-3. javac와 java 명령어</h3>
+                    <p>
+                        <code>javac</code>는 Java Compiler입니다.
+                        Java 소스파일을 JVM이 실행할 수 있는 바이트코드로 변환합니다.
+                    </p>
+
+        <pre class="code-block"><code>javac Hello.java</code></pre>
+
+                    <p>
+                        <code>java</code>는 Java Application Launcher입니다.
+                        컴파일된 class 파일을 JVM 위에서 실행합니다.
+                    </p>
+
+        <pre class="code-block"><code>java Hello</code></pre>
+
+                    <p>
+                        실행할 때는 <code>Hello.class</code>가 아니라 <code>Hello</code>라고 입력합니다.<br/>
+                        <code>java</code> 명령어는 파일명을 직접 실행하는 것이 아니라 클래스 이름을 기준으로 JVM을 실행하기 때문입니다.
+                    </p>
+                </article>
+
+                <article class="study-card">
+                    <h3>1-4. Class Loader</h3>
+                    <p>
+                        JVM이 프로그램을 실행하려면 먼저 필요한 class 파일을 메모리로 불러와야 합니다.<br/>
+                        이 역할을 담당하는 것이 <strong>Class Loader</strong>입니다.
+                    </p>
+
+                    <div class="diagram-box">
+        <pre>
+        Hello.class
+        ↓
+        Class Loader
+        ↓
+        JVM 메모리 영역
+        </pre>
+                    </div>
+
+                    <p>
+                        Class Loader는 사용자가 작성한 클래스뿐 아니라,<br/>
+                        <code>String</code>, <code>System</code>, <code>Scanner</code> 같은 Java 표준 라이브러리 클래스도 필요할 때 로드합니다.
+                    </p>
+                </article>
+
+                <article class="study-card">
+                    <h3>1-5. Verification</h3>
+                    <p>
+                        JVM은 class 파일을 로드한 뒤 바로 실행하지 않습니다.<br/>
+                        먼저 이 바이트코드가 JVM 규칙에 맞는지, 안전한지, 올바른 형식인지 검사합니다.
+                        이 과정을 <strong>Verification</strong>이라고 합니다.
+                    </p>
+
+                    <ul class="check-list">
+                        <li>class 파일 형식이 올바른가?</li>
+                        <li>JVM 규칙을 어기지 않았는가?</li>
+                        <li>잘못된 메모리 접근을 하지 않는가?</li>
+                        <li>실행 중 위험한 구조를 만들 가능성은 없는가?</li>
+                    </ul>
+
+                    <p>
+                        이 검증 과정 덕분에 Java는 비교적 안전한 실행 환경을 제공합니다.
+                    </p>
+                </article>
+
+                <article class="study-card">
+                    <h3>1-6. Interpreter와 JIT Compiler</h3>
+                    <p>
+                        검증이 끝난 바이트코드는 JVM에서 실행됩니다.<br/>
+                        JVM의 기본 실행 방식 중 하나는 <strong>Interpreter</strong>입니다.
+                        Interpreter는 바이트코드를 한 줄씩 읽고 해석하며 실행합니다.
+                    </p>
+
+                    <div class="flow-box">
+        <pre>
+        바이트코드 한 줄 읽기
+        ↓
+        해석
+        ↓
+        실행
+        ↓
+        다음 줄 읽기
+        </pre>
+                    </div>
+
+                    <p>
+                        하지만 반복해서 자주 실행되는 코드는 매번 한 줄씩 해석하면 비효율적입니다.<br/>
+                        그래서 JVM은 <strong>JIT Compiler</strong>를 사용합니다.<br/>
+                        JIT는 Just-In-Time Compiler의 줄임말로, 자주 실행되는 바이트코드를 실행 중에 기계어로 변환해 성능을 높입니다.
+                    </p>
+
+                    <div class="flow-box">
+        <pre>
+        자주 실행되는 바이트코드
+        ↓
+        JIT Compiler
+        ↓
+        기계어 코드
+        ↓
+        빠르게 실행
+        </pre>
+                    </div>
+                </article>
+
+                <article class="study-card">
+                    <h3>1-7. JVM 메모리 구조 기초</h3>
+                    <p>
+                        JVM은 프로그램을 실행하면서 데이터를 여러 메모리 영역에 나누어 관리합니다.<br/>
+                        초급 단계에서는 먼저 <strong>Method Area</strong>, <strong>Heap</strong>, <strong>Stack</strong> 세 가지를 중심으로 이해하면 좋습니다.
+                    </p>
+
+                    <table class="study-table">
+                        <thead>
+                            <tr>
+                                <th>영역</th>
+                                <th>역할</th>
+                                <th>예시</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Method Area</td>
+                                <td>클래스 정보, 메서드 정보, static 변수 저장</td>
+                                <td><code>static int count</code></td>
+                            </tr>
+                            <tr>
+                                <td>Heap</td>
+                                <td>new로 생성된 객체 저장</td>
+                                <td><code>new Person()</code></td>
+                            </tr>
+                            <tr>
+                                <td>Stack</td>
+                                <td>메서드 호출, 지역변수, 매개변수 저장</td>
+                                <td><code>int num = 10</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="diagram-box">
+        <pre>
+        JVM Memory
+        ┌─────────────────────────┐
+        │ Method Area             │
+        │ 클래스 정보, static 정보 │
+        ├─────────────────────────┤
+        │ Heap                    │
+        │ new로 생성한 객체       │
+        ├─────────────────────────┤
+        │ Stack                   │
+        │ 메서드 호출, 지역변수   │
+        └─────────────────────────┘
+        </pre>
+                    </div>
+                </article>
+            </section>
+
+            <!-- Diagram -->
+            <section class="study-section">
+                <h2 class="section-title">2. 그림처럼 이해하기</h2>
+
+                <article class="study-card">
+                    <h3>2-1. 전체 실행 흐름</h3>
+
+                    <div class="flow-box">
+        <pre>
+        [개발자]
+        ↓
+        Hello.java 작성
+        ↓
+        [javac 컴파일러]
+        ↓
+        Hello.class 생성
+        ↓
+        [java 실행 명령어]
+        ↓
+        [JVM 시작]
+        ↓
+        Class Loader가 class 파일 로드
+        ↓
+        Verification으로 코드 검증
+        ↓
+        Interpreter / JIT Compiler 실행
+        ↓
+        결과 출력
+        </pre>
+                    </div>
+                </article>
+
+                <article class="study-card">
+                    <h3>2-2. JDK 포함 관계</h3>
+
+                    <div class="diagram-box">
+        <pre>
+        JDK
+        ├─ 개발 도구
+        │   ├─ javac
+        │   ├─ java
+        │   ├─ javadoc
+        │   └─ jar
+        │
+        └─ JRE
+            ├─ JVM
+            │   ├─ Class Loader
+            │   ├─ Verification
+            │   ├─ Interpreter
+            │   ├─ JIT Compiler
+            │   └─ Garbage Collector
+            │
+            └─ 표준 클래스 라이브러리
+        </pre>
+                    </div>
+                </article>
+
+                <article class="study-card">
+                    <h3>2-3. 플랫폼 독립성</h3>
+                    <p>
+                        Java는 운영체제에 직접 맞는 실행 파일을 만드는 것이 아니라,
+                        JVM이 실행할 수 있는 바이트코드를 만듭니다.<br/>
+                        따라서 같은 <code>Hello.class</code> 파일을 운영체제별 JVM이 각각 실행할 수 있습니다.
+                    </p>
+
+                    <div class="diagram-box">
+        <pre>
+        Hello.java
+        ↓
+        javac
+        ↓
+        Hello.class
+
+                ┌→ Windows JVM → Windows에서 실행
+        같은 파일 ├→ Linux JVM   → Linux에서 실행
+                └→ macOS JVM   → macOS에서 실행
+        </pre>
+                    </div>
+                </article>
+            </section>
+
+            <!-- Code -->
+            <section class="study-section">
+                <h2 class="section-title">3. 코드 예제</h2>
+
+                <article class="study-card">
+                    <h3>3-1. Hello.java</h3>
+
+<pre class="code-block"><code>public class Hello {
+
+    public static void main(String[] args) {
+
+        System.out.println("Hello JVM");
+
+    }
+
+}</code></pre>
+                </article>
+
+                <article class="study-card">
+                    <h3>3-2. 컴파일과 실행</h3>
+
+        <pre class="code-block"><code>javac Hello.java
+        java Hello</code></pre>
+
+                    <p>출력 결과는 다음과 같습니다.</p>
+
+        <pre class="code-block"><code>Hello JVM</code></pre>
+                </article>
+
+                <article class="study-card">
+                    <h3>3-3. JVM 메모리 구조와 연결해 보는 예제</h3>
+
+<pre class="code-block"><code>public class ExecutionFlow {
+
+    static int staticNumber = 100;
+
+    public static void main(String[] args) {
+
+        int localNumber = 10;
+
+        String message = "JVM 실행 구조";
+
+        System.out.println(staticNumber);
+        System.out.println(localNumber);
+        System.out.println(message);
+
+    }
+
+}</code></pre>
+
+                    <ul class="check-list">
+                        <li><code>staticNumber</code>는 Method Area와 관련이 있습니다.</li>
+                        <li><code>localNumber</code>는 main 메서드 안의 지역변수이므로 Stack과 관련이 있습니다.</li>
+                        <li><code>message</code> 참조변수는 Stack에 있고, 문자열 객체는 Heap 또는 String Pool과 관련이 있습니다.</li>
+                    </ul>
+                </article>
+            </section>
+
+            <!-- Work Connection -->
+            <section class="study-section">
+                <h2 class="section-title">4. 실무 연결</h2>
+
+                <article class="study-card">
+                    <h3>4-1. Spring Boot도 JVM 위에서 실행된다</h3>
+                    <p>
+                        Spring Boot 프로젝트도 결국 Java 코드입니다.<br/>
+                        Controller, Service, Repository, Entity 같은 클래스들은 컴파일 후 class 파일이 되고,<br/>
+                        최종적으로 jar 파일로 묶여 JVM 위에서 실행됩니다.
+                    </p>
+
+                    <div class="flow-box">
+        <pre>
+        Spring Boot 프로젝트
+        ↓
+        Gradle 또는 Maven 빌드
+        ↓
+        Java 코드 컴파일
+        ↓
+        .class 파일 생성
+        ↓
+        .jar 파일 생성
+        ↓
+        java -jar app.jar
+        ↓
+        JVM 위에서 서버 실행
+        </pre>
+                    </div>
+                </article>
+
+                <article class="study-card">
+                    <h3>4-2. Gradle, Maven, Tomcat도 JDK 설정에 영향을 받는다</h3>
+                    <p>
+                        Gradle과 Maven은 Java 프로젝트를 빌드하는 도구입니다.<br/>
+                        이 도구들은 프로젝트를 컴파일할 때 어떤 JDK를 사용할지 확인합니다.<br/>
+                        Tomcat도 Java 기반 웹 서버이기 때문에 JVM 실행 환경이 필요합니다.
+                    </p>
+
+                    <ul class="check-list">
+                        <li>프로젝트 요구 JDK 버전과 내 PC의 JDK 버전이 다르면 빌드 실패가 발생할 수 있습니다.</li>
+                        <li>JAVA_HOME이 잘못 잡혀 있으면 Gradle이나 Maven이 다른 Java 버전을 사용할 수 있습니다.</li>
+                        <li>서버 배포 시에도 <code>java -jar</code> 명령어는 JVM 실행 구조를 기반으로 합니다.</li>
+                    </ul>
+                </article>
+
+                <article class="study-card">
+                    <h3>4-3. Classpath 문제는 나중에 패키지와 라이브러리 문제로 이어진다</h3>
+                    <p>
+                        JVM은 실행할 class 파일을 찾아야 합니다.<br/>
+                        패키지나 외부 라이브러리를 사용하면 class 파일의 위치와 경로가 중요해집니다.<br/>
+                        초급 단계에서는 단순히 <strong>JVM은 실행에 필요한 class 파일을 찾아야 한다</strong>고 이해하면 됩니다.
+                    </p>
+
+<pre class="code-block"><code>package basic;
+
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello Package");
+    }
+}</code></pre>
+
+                    <p>패키지가 있는 클래스는 실행할 때 패키지명을 포함해야 합니다.</p>
+
+        <pre class="code-block"><code>java basic.Hello</code></pre>
+                </article>
+            </section>
+
+            <!-- Mistakes -->
+            <section class="study-section">
+                <h2 class="section-title">5. 자주 하는 실수</h2>
+
+                <article class="study-card mistake-card">
+                    <h3>실수 1. java 실행 시 .class 확장자를 붙이는 경우</h3>
+
+        <pre class="code-block error-code"><code>java Hello.class</code></pre>
+
+                    <p>올바른 실행은 다음과 같습니다.</p>
+
+        <pre class="code-block success-code"><code>java Hello</code></pre>
+                </article>
+
+                <article class="study-card mistake-card">
+                    <h3>실수 2. 컴파일 없이 실행하는 경우</h3>
+                    <p>
+                        <code>Hello.class</code> 파일이 없는데 <code>java Hello</code>를 실행하면 JVM이 실행할 대상을 찾지 못합니다.
+                        먼저 컴파일해야 합니다.
+                    </p>
+
+        <pre class="code-block success-code"><code>javac Hello.java
+        java Hello</code></pre>
+                </article>
+
+                <article class="study-card mistake-card">
+                    <h3>실수 3. 파일명과 public class 이름이 다른 경우</h3>
+
+        <pre class="code-block error-code"><code>// 파일명: Test.java
+
+        public class Hello {
+        }</code></pre>
+
+                    <p>올바른 형태는 다음과 같습니다.</p>
+
+        <pre class="code-block success-code"><code>// 파일명: Hello.java
+
+        public class Hello {
+        }</code></pre>
+                </article>
+
+                <article class="study-card mistake-card">
+                    <h3>실수 4. 현재 폴더 위치를 잘못 잡고 실행하는 경우</h3>
+                    <p>
+                        명령 프롬프트가 <code>Hello.class</code> 파일이 있는 위치가 아닌 다른 위치에 있으면
+                        JVM이 class 파일을 찾지 못할 수 있습니다.
+                    </p>
+
+        <pre class="code-block"><code>cd C:\java-study
+        java Hello</code></pre>
+                </article>
+
+                <article class="study-card mistake-card">
+                    <h3>실수 5. 패키지가 있는 파일을 그냥 실행하는 경우</h3>
+
+        <pre class="code-block error-code"><code>java Hello</code></pre>
+
+                    <p>패키지가 <code>basic</code>이라면 다음처럼 실행해야 합니다.</p>
+
+        <pre class="code-block success-code"><code>java basic.Hello</code></pre>
+                </article>
+
+                <article class="study-card mistake-card">
+                    <h3>실수 6. 인코딩 문제</h3>
+                    <p>
+                        한글이 포함된 Java 파일에서 인코딩이 맞지 않으면 컴파일 오류가 발생할 수 있습니다.
+                    </p>
+
+        <pre class="code-block"><code>unmappable character for encoding UTF-8</code></pre>
+
+                    <p>이 경우 파일을 UTF-8로 저장하거나 컴파일 옵션을 지정합니다.</p>
+
+        <pre class="code-block success-code"><code>javac -encoding UTF-8 Hello.java</code></pre>
+                </article>
+            </section>
+
+            <!-- Interview -->
+            <section class="study-section">
+                <h2 class="section-title">6. 면접 포인트</h2>
+
+                <article class="study-card interview-card">
+                    <h3>Q1. Java 실행 과정을 설명해보세요.</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        Java 소스코드인 <code>.java</code> 파일은 <code>javac</code> 컴파일러를 통해
+                        <code>.class</code> 바이트코드로 변환됩니다.<br/>
+                        이후 <code>java</code> 명령어로 실행하면 JVM이 시작되고,
+                        Class Loader가 필요한 class 파일을 메모리에 로드합니다.<br/>
+                        로드된 바이트코드는 Verification 과정을 통해 검증된 뒤 Interpreter 또는 JIT Compiler를 통해 실행됩니다.
+                    </p>
+                </article>
+
+                <article class="study-card interview-card">
+                    <h3>Q2. JVM은 무엇인가요?</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        JVM은 Java Virtual Machine으로, Java 바이트코드를 실행하는 가상 머신입니다.<br/>
+                        운영체제와 Java 프로그램 사이에서 동작하며<br/>
+                        class 파일 로딩, 코드 검증, 실행, 메모리 관리, Garbage Collection 등을 담당합니다.
+                    </p>
+                </article>
+
+                <article class="study-card interview-card">
+                    <h3>Q3. Java가 플랫폼 독립적인 이유는 무엇인가요?</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        Java는 운영체제별 실행 파일을 직접 만드는 것이 아니라 JVM이 실행할 수 있는 바이트코드를 생성합니다.<br/>
+                        각 운영체제에 맞는 JVM이 바이트코드를 실행하기 때문에 같은 <code>.class</code> 파일을 여러 운영체제에서 실행할 수 있습니다.
+                    </p>
+                </article>
+
+                <article class="study-card interview-card">
+                    <h3>Q4. javac와 java의 차이는 무엇인가요?</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        <code>javac</code>는 Java 소스 파일을 컴파일해서 <code>.class</code> 바이트코드 파일을 생성하는 컴파일러입니다.<br/>
+                        <code>java</code>는 생성된 class 파일을 JVM 위에서 실행하는 명령어입니다.
+                    </p>
+                </article>
+
+                <article class="study-card interview-card">
+                    <h3>Q5. Class Loader는 무엇인가요?</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        Class Loader는 JVM이 실행에 필요한 class 파일을 찾아 메모리에 로드하는 구성 요소입니다.<br/>
+                        사용자가 작성한 클래스뿐 아니라 Java 표준 라이브러리나 외부 라이브러리 클래스도 필요할 때 로드합니다.
+                    </p>
+                </article>
+
+                <article class="study-card interview-card">
+                    <h3>Q6. Interpreter와 JIT Compiler의 차이는 무엇인가요?</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        Interpreter는 바이트코드를 한 줄씩 해석하며 실행하는 방식입니다.<br/>
+                        JIT Compiler는 자주 실행되는 바이트코드를 실행 중에 기계어로 변환해 성능을 높이는 방식입니다.
+                    </p>
+                </article>
+
+                <article class="study-card interview-card">
+                    <h3>Q7. JVM 메모리에서 Heap과 Stack의 차이는 무엇인가요?</h3>
+                    <p>
+                        <strong>답변:</strong>
+                        Heap은 <code>new</code> 키워드로 생성된 객체가 저장되는 영역이고,<br/>
+                        Stack은 메서드 호출 정보, 지역변수, 매개변수 등이 저장되는 영역입니다.
+                    </p>
+                </article>
+            </section>
+
+            <!-- Final Summary -->
+            <section class="study-section">
+                <h2 class="section-title">7. 오늘의 핵심 정리</h2>
+
+                <article class="study-card final-summary">
+                    <ol class="summary-list">
+                        <li>Java는 <code>.java</code> 파일을 바로 실행하지 않는다.</li>
+                        <li><code>javac</code>는 <code>.java</code> 파일을 <code>.class</code> 바이트코드로 컴파일한다.</li>
+                        <li><code>java</code> 명령어는 class 파일을 JVM 위에서 실행한다.</li>
+                        <li>JVM은 Class Loader로 class 파일을 메모리에 로드한다.</li>
+                        <li>JVM은 Verification으로 바이트코드를 검증한다.</li>
+                        <li>Interpreter는 바이트코드를 한 줄씩 해석하고 실행한다.</li>
+                        <li>JIT Compiler는 자주 실행되는 코드를 기계어로 바꿔 성능을 높인다.</li>
+                        <li>JVM 메모리는 Method Area, Heap, Stack 등으로 나뉜다.</li>
+                        <li>Java의 플랫폼 독립성은 JVM과 바이트코드 구조 덕분이다.</li>
+                        <li>Spring Boot, Tomcat, Gradle, Maven도 JVM 실행 구조와 연결된다.</li>
+                    </ol>
+                </article>
+            </section>
+        </main>
+
+        <aside class="side-note">
+            <h2>학습 메모</h2>
+            <p>
+                이 페이지는 Java 실행 구조를 이해하기 위한 핵심 페이지입니다.<br/>
+                <code>.java</code> 파일이 <code>.class</code> 바이트코드가 되고,<br/>
+                JVM이 Class Loader, Verification, Interpreter, JIT Compiler를 통해 실행한다는 흐름을 이해하면<br/>
+                이후 객체지향, 패키지, 컬렉션, 예외처리, Spring Boot 실행 구조까지 훨씬 쉽게 연결할 수 있습니다.
+            </p>
+        </aside>
+
+            <footer>
+                수업해주신 최철환 교수님께 감사드립니다.
+            </footer>
+        </div>
+    </div>
+    <script src="../js/00_nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>32_stream.html</title>
+    <link rel="stylesheet" href="../css/js/00_nav.css">
+    <link rel="stylesheet" href="../css/JavaBasics/32_stream.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Side Navigation -->
+        <nav class="side-nav" id="sideNav"></nav>
+
+        <!-- Main Page Content -->
+        <main class="page-content">
+            <header class="page-header">
+                <p class="chapter-label">Java Basic · Chapter 32</p>
+                <h1>32. Stream API</h1>
+                <p class="header-description">
+                    Stream API는 배열과 컬렉션 데이터를 원본은 유지한 채 흐름처럼 처리하는 도구입니다.<br/>
+                    <code>stream()</code>, 중간 연산, 최종 연산, <code>filter()</code>, <code>map()</code>, <code>flatMap()</code>,<br/>
+                    <code>reduce()</code>, <code>Optional</code>, 메서드 참조까지 공부합니다.
+                </p>
+            </header>
+
+            <main>
+                <section class="study-section intro-section">
+                    <article class="study-card">
+                        <h2>이번 페이지의 학습 목표</h2>
+                        <p>
+                            Stream API는 반복문을 직접 작성하지 않고 배열이나 컬렉션 데이터를 처리하는 기능입니다.<br/>
+                            데이터 원본을 직접 바꾸지 않고, <strong>생성 → 중간 연산 → 최종 연산</strong>의 흐름으로 데이터를 걸러내고,
+                            변환하고, 집계하고, 출력할 수 있습니다.
+                        </p>
+
+                        <div class="goal-grid">
+                            <div>
+                                <h3>Stream 개념</h3>
+                                <p>배열과 컬렉션 데이터를 흐름처럼 처리하는 구조를 이해합니다.</p>
+                            </div>
+                            <div>
+                                <h3>중간 연산</h3>
+                                <p><code>filter</code>, <code>map</code>, <code>flatMap</code>, <code>sorted</code>를 익힙니다.</p>
+                            </div>
+                            <div>
+                                <h3>최종 연산</h3>
+                                <p><code>forEach</code>, <code>count</code>, <code>reduce</code>, <code>max</code>, <code>findFirst</code>를 익힙니다.</p>
+                            </div>
+                            <div>
+                                <h3>실무 감각</h3>
+                                <p>Stream 재사용 불가, Optional 처리, 메서드 참조를 이해합니다.</p>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">1. Stream API 기본 개념</h2>
+
+                    <article class="study-card">
+                        <h3>1-1. Stream API란?</h3>
+                        <p>
+                            Stream API는 배열이나 컬렉션에 저장된 데이터를 반복문 없이 처리할 수 있게 해주는 Java의 데이터 처리 도구입니다.
+                            JDK 8부터 지원되며, 람다식과 함께 자주 사용됩니다.
+                        </p>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle");
+
+names.stream()
+    .filter(name -> name.length() &gt;= 5)
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Spring
+Oracle</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+names를 Stream으로 만들고
+→ 길이가 5 이상인 값만 남기고
+→ 하나씩 출력한다.
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>1-2. Stream의 핵심 특징</h3>
+
+                        <ol class="summary-list">
+                            <li>배열이나 컬렉션 데이터를 처리합니다.</li>
+                            <li>원본 데이터를 직접 변경하지 않습니다.</li>
+                            <li>반복문을 직접 작성하지 않고 내부 반복으로 처리합니다.</li>
+                            <li>람다식과 함께 자주 사용합니다.</li>
+                            <li>중간 연산과 최종 연산으로 구성됩니다.</li>
+                            <li>최종 연산이 실행되면 Stream은 닫힙니다.</li>
+                            <li>한 번 닫힌 Stream은 다시 사용할 수 없습니다.</li>
+                        </ol>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>1-3. Stream 처리 흐름</h3>
+
+                        <div class="diagram-box">
+<pre>
+데이터 원본
+[Java, Spring, Oracle, HTML]
+
+        ↓ stream()
+
+Stream 생성
+Java → Spring → Oracle → HTML
+
+        ↓ filter(name -> name.length() >= 5)
+
+중간 연산
+Spring → Oracle
+
+        ↓ forEach(System.out::println)
+
+최종 연산
+Spring 출력
+Oracle 출력
+
+        ↓
+
+Stream 닫힘
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">2. Stream과 반복문 비교</h2>
+
+                    <article class="study-card">
+                        <h3>2-1. 반복문 방식</h3>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle");
+
+for (String name : names) {
+    if (name.length() &gt;= 5) {
+        System.out.println(name);
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>2-2. Stream 방식</h3>
+
+<pre class="code-block success-code"><code>names.stream()
+    .filter(name -> name.length() &gt;= 5)
+    .forEach(System.out::println);</code></pre>
+
+                        <p>
+                            Stream은 “어떻게 반복할지”보다 “무엇을 처리할지”를 중심으로 코드를 작성합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>2-3. 비교 표</h3>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>반복문</th>
+                                    <th>Stream</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>처리 방식</td>
+                                    <td>외부 반복</td>
+                                    <td>내부 반복</td>
+                                </tr>
+                                <tr>
+                                    <td>작성 방식</td>
+                                    <td>개발자가 반복 흐름 직접 작성</td>
+                                    <td>Stream이 내부적으로 반복 처리</td>
+                                </tr>
+                                <tr>
+                                    <td>주요 문법</td>
+                                    <td><code>for</code>, <code>while</code></td>
+                                    <td><code>filter</code>, <code>map</code>, <code>forEach</code></td>
+                                </tr>
+                                <tr>
+                                    <td>람다식 활용</td>
+                                    <td>필수 아님</td>
+                                    <td>자주 사용</td>
+                                </tr>
+                                <tr>
+                                    <td>가독성</td>
+                                    <td>조건이 많아지면 길어짐</td>
+                                    <td>처리 흐름을 체인으로 표현</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">3. Stream 생성 방법</h2>
+
+                    <article class="study-card">
+                        <h3>3-1. 컬렉션에서 Stream 생성</h3>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle");
+
+Stream&lt;String&gt; stream = names.stream();</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-2. 배열에서 Stream 생성</h3>
+
+<pre class="code-block"><code>String[] names = {"Java", "Spring", "Oracle"};
+
+Stream&lt;String&gt; stream1 = Stream.of(names);
+Stream&lt;String&gt; stream2 = Arrays.stream(names);</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-3. 배열 일부만 Stream으로 만들기</h3>
+
+<pre class="code-block"><code>String[] names = {"Java", "Spring", "Oracle"};
+
+Arrays.stream(names, 1, 3)
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Spring
+Oracle</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>Arrays.stream(array, start, end)</code>에서 시작 인덱스는 포함하고,
+                                끝 인덱스는 포함하지 않습니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-4. 기본 자료형 Stream</h3>
+
+<pre class="code-block"><code>int[] numbers = {1, 2, 3, 4, 5};
+
+IntStream stream = Arrays.stream(numbers);</code></pre>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>Stream</th>
+                                    <th>대상</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>IntStream</code></td>
+                                    <td><code>int</code> 데이터 처리</td>
+                                </tr>
+                                <tr>
+                                    <td><code>LongStream</code></td>
+                                    <td><code>long</code> 데이터 처리</td>
+                                </tr>
+                                <tr>
+                                    <td><code>DoubleStream</code></td>
+                                    <td><code>double</code> 데이터 처리</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-5. range()와 rangeClosed()</h3>
+
+<pre class="code-block"><code>IntStream.range(1, 5)
+        .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>1
+2
+3
+4</code></pre>
+
+<pre class="code-block"><code>IntStream.rangeClosed(1, 5)
+        .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>1
+2
+3
+4
+5</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+range(1, 5)
+→ 1 이상 5 미만
+
+rangeClosed(1, 5)
+→ 1 이상 5 이하
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">4. 중간 연산과 최종 연산</h2>
+
+                    <article class="study-card">
+                        <h3>4-1. 중간 연산</h3>
+                        <p>
+                            중간 연산은 Stream을 다시 반환하는 연산입니다.
+                            여러 개를 연결할 수 있고, 최종 연산이 실행되기 전까지 실제 처리가 지연될 수 있습니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+중간 연산
+→ 데이터를 걸러내거나 변환
+→ Stream 반환
+→ 계속 연결 가능
+
+대표:
+filter()
+map()
+flatMap()
+distinct()
+sorted()
+limit()
+skip()
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-2. 최종 연산</h3>
+                        <p>
+                            최종 연산은 Stream을 실제로 소비하거나 결과를 만드는 연산입니다.
+                            최종 연산 후 Stream은 닫히므로 다시 사용할 수 없습니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+최종 연산
+→ 출력, 집계, 검색, 결과 생성
+→ Stream 닫힘
+→ 재사용 불가
+
+대표:
+forEach()
+count()
+reduce()
+max()
+min()
+findFirst()
+findAny()
+collect()
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">5. 주요 중간 연산</h2>
+
+                    <article class="study-card">
+                        <h3>5-1. filter()</h3>
+                        <p>
+                            <code>filter()</code>는 조건에 맞는 요소만 통과시키는 연산입니다.
+                        </p>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle");
+
+names.stream()
+    .filter(name -> name.length() &gt;= 5)
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Spring
+Oracle</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-2. map()</h3>
+                        <p>
+                            <code>map()</code>은 요소를 1:1로 다른 값으로 변환합니다.
+                        </p>
+
+<pre class="code-block"><code>names.stream()
+    .map(name -> name.length())
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>4
+6
+6</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+Java   → 4
+Spring → 6
+Oracle → 6
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-3. flatMap()</h3>
+                        <p>
+                            <code>flatMap()</code>은 중첩된 데이터를 풀어서 하나의 Stream으로 만듭니다.
+                        </p>
+
+<pre class="code-block"><code>List&lt;List&lt;String&gt;&gt; listOfLists = Arrays.asList(
+    Arrays.asList("북한산", "관악산", "도봉산"),
+    Arrays.asList("일본", "베트남", "태국"),
+    Arrays.asList("자바", "파이썬")
+);
+
+listOfLists.stream()
+        .flatMap(List::stream)
+        .forEach(System.out::println);</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+map()
+→ 요소 하나를 다른 값 하나로 변환
+
+flatMap()
+→ 요소 안의 여러 값을 풀어서 하나의 Stream으로 합침
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-4. distinct()</h3>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Java", "Oracle");
+
+names.stream()
+    .distinct()
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Java
+Spring
+Oracle</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-5. sorted()</h3>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Spring", "Java", "Oracle");
+
+names.stream()
+    .sorted()
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Java
+Oracle
+Spring</code></pre>
+
+<pre class="code-block"><code>names.stream()
+    .sorted((a, b) -> b.compareTo(a))
+    .forEach(System.out::println);</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-6. limit()과 skip()</h3>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle", "HTML");
+
+names.stream()
+    .limit(2)
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Java
+Spring</code></pre>
+
+<pre class="code-block"><code>names.stream()
+    .skip(2)
+    .forEach(System.out::println);</code></pre>
+
+<pre class="code-block"><code>Oracle
+HTML</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">6. 주요 최종 연산</h2>
+
+                    <article class="study-card">
+                        <h3>6-1. forEach()</h3>
+
+<pre class="code-block"><code>names.stream()
+    .forEach(name -> System.out.println(name));</code></pre>
+
+<pre class="code-block success-code"><code>names.stream()
+    .forEach(System.out::println);</code></pre>
+        </article>
+
+        <article class="study-card">
+            <h3>6-2. count()</h3>
+
+<pre class="code-block"><code>long count = names.stream()
+                .filter(name -> name.length() &gt;= 5)
+                .count();
+
+System.out.println(count);</code></pre>
+
+            <pre class="code-block"><code>2</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-3. reduce()</h3>
+
+<pre class="code-block"><code>List&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3, 4, 5);
+
+int sum = numbers.stream()
+                .reduce(0, (a, b) -> a + b);
+
+System.out.println(sum);</code></pre>
+
+            <pre class="code-block"><code>15</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+초기값 0
+0 + 1 = 1
+1 + 2 = 3
+3 + 3 = 6
+6 + 4 = 10
+10 + 5 = 15
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-4. max(), min()</h3>
+
+<pre class="code-block"><code>List&lt;Integer&gt; numbers = Arrays.asList(10, 30, 20);
+
+Integer max = numbers.stream()
+                    .max((a, b) -> a - b)
+                    .orElse(0);
+
+Integer min = numbers.stream()
+                    .min((a, b) -> a - b)
+                    .orElse(0);</code></pre>
+
+                        <p>
+                            <code>max()</code>와 <code>min()</code>은 결과가 없을 수도 있으므로 <code>Optional</code>을 반환합니다.
+                            그래서 <code>orElse()</code> 같은 처리가 필요합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-5. findFirst(), findAny()</h3>
+
+<pre class="code-block"><code>String first = names.stream()
+                    .filter(name -> name.length() &gt;= 5)
+                    .findFirst()
+                    .orElse("없음");</code></pre>
+
+<pre class="code-block"><code>String any = names.stream()
+                .filter(name -> name.length() &gt;= 5)
+                .findAny()
+                .orElse("없음");</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>findFirst()</code>는 첫 번째 요소를 찾고,
+                                <code>findAny()</code>는 조건에 맞는 아무 요소 하나를 찾습니다.
+                                병렬 Stream에서는 <code>findAny()</code>의 순서가 보장되지 않을 수 있습니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">7. Stream 재사용 불가</h2>
+
+                    <article class="study-card mistake-card">
+                        <h3>7-1. 한 번 사용한 Stream은 다시 사용할 수 없다</h3>
+
+<pre class="code-block error-code"><code>Stream&lt;String&gt; stream = names.stream();
+
+stream.forEach(System.out::println);
+
+stream.count(); // 오류</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+forEach()
+→ 최종 연산
+→ Stream 닫힘
+
+닫힌 Stream에 count() 다시 호출
+→ 오류
+</pre>
+                        </div>
+
+<pre class="code-block success-code"><code>names.stream().forEach(System.out::println);
+
+long count = names.stream().count();</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">8. 메서드 참조 ::</h2>
+
+                    <article class="study-card">
+                        <h3>8-1. 메서드 참조란?</h3>
+                        <p>
+                            <code>::</code>는 메서드 참조 연산자입니다.
+                            람다식을 더 짧고 읽기 쉽게 표현할 때 사용합니다.
+                        </p>
+
+            <pre class="code-block"><code>value -> System.out.println(value)</code></pre>
+
+            <pre class="code-block success-code"><code>System.out::println</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>8-2. 정적 메서드 참조</h3>
+
+<pre class="code-block"><code>DoubleUnaryOperator sqrtFunction = Math::sqrt;
+
+double result = sqrtFunction.applyAsDouble(16);
+
+System.out.println(result);</code></pre>
+
+            <pre class="code-block"><code>4.0</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>8-3. 생성자 참조</h3>
+
+<pre class="code-block"><code>String[] names = {"가길동", "나길동"};
+
+Stream&lt;String&gt; namesStream = Arrays.stream(names);
+
+String[] result = namesStream.toArray(String[]::new);</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+String[]::new
+
+의미:
+length -> new String[length]
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">9. 실무 연결</h2>
+
+                    <article class="study-card">
+                        <h3>9-1. 회원 목록에서 성인 이름만 출력</h3>
+
+<pre class="code-block"><code>List&lt;User&gt; users = Arrays.asList(
+    new User("kim", 20),
+    new User("lee", 17),
+    new User("park", 30)
+);
+
+users.stream()
+    .filter(user -> user.getAge() &gt;= 20)
+    .map(user -> user.getName())
+    .forEach(System.out::println);</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+users에서
+→ 나이가 20 이상인 사용자만 남기고
+→ 이름만 추출해서
+→ 출력한다.
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>9-2. 실무에서 자주 쓰는 상황</h3>
+
+                        <ol class="summary-list">
+                            <li>리스트에서 조건에 맞는 데이터만 찾기</li>
+                            <li>객체 리스트에서 특정 필드만 추출하기</li>
+                            <li>중복 제거하기</li>
+                            <li>정렬하기</li>
+                            <li>상위 N개만 가져오기</li>
+                            <li>앞의 N개를 건너뛰기</li>
+                            <li>합계, 개수, 최댓값, 최솟값 구하기</li>
+                            <li>중첩 리스트를 평탄화하기</li>
+                            <li>배열과 컬렉션 변환하기</li>
+                            <li>반복문을 줄이고 처리 흐름을 명확하게 표현하기</li>
+                        </ol>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">10. 코드 예제</h2>
+
+                    <article class="study-card">
+                        <h3>10-1. filter + forEach</h3>
+
+<pre class="code-block"><code>import java.util.Arrays;
+import java.util.List;
+
+public class StreamBasicExample {
+
+    public static void main(String[] args) {
+
+        List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle");
+
+        names.stream()
+            .filter(name -> name.length() &gt;= 5)
+            .forEach(System.out::println);
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>10-2. map</h3>
+
+<pre class="code-block"><code>import java.util.Arrays;
+import java.util.List;
+
+public class StreamMapExample {
+
+    public static void main(String[] args) {
+
+        List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Oracle");
+
+        names.stream()
+            .map(name -> name.length())
+            .forEach(System.out::println);
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>10-3. flatMap</h3>
+
+<pre class="code-block"><code>import java.util.Arrays;
+import java.util.List;
+
+public class StreamFlatMapExample {
+
+    public static void main(String[] args) {
+
+        List&lt;List&lt;String&gt;&gt; listOfLists = Arrays.asList(
+            Arrays.asList("북한산", "관악산", "도봉산"),
+            Arrays.asList("일본", "베트남", "태국"),
+            Arrays.asList("자바", "파이썬")
+        );
+
+        listOfLists.stream()
+                .flatMap(List::stream)
+                .forEach(System.out::println);
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>10-4. distinct, sorted, skip, limit</h3>
+
+<pre class="code-block"><code>import java.util.Arrays;
+import java.util.List;
+
+public class StreamMiddleExample {
+
+    public static void main(String[] args) {
+
+        List&lt;String&gt; names = Arrays.asList("Java", "Spring", "Java", "Oracle", "HTML");
+
+        names.stream()
+            .distinct()
+            .sorted()
+            .skip(1)
+            .limit(2)
+            .forEach(System.out::println);
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>10-5. reduce</h3>
+
+<pre class="code-block"><code>import java.util.Arrays;
+import java.util.List;
+
+public class StreamReduceExample {
+
+    public static void main(String[] args) {
+
+        List&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3, 4, 5);
+
+        int sum = numbers.stream()
+                        .reduce(0, (a, b) -> a + b);
+
+        System.out.println(sum);
+    }
+}</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">11. 자주 하는 실수</h2>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 1. Stream을 재사용하려 함</h3>
+
+<pre class="code-block error-code"><code>Stream&lt;String&gt; stream = names.stream();
+
+stream.forEach(System.out::println);
+
+stream.count(); // 오류</code></pre>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 2. 중간 연산만 쓰고 최종 연산을 안 함</h3>
+
+<pre class="code-block error-code"><code>names.stream()
+    .filter(name -> name.length() &gt;= 5);</code></pre>
+
+<pre class="code-block success-code"><code>names.stream()
+    .filter(name -> name.length() &gt;= 5)
+    .forEach(System.out::println);</code></pre>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 3. map()과 flatMap()을 혼동함</h3>
+
+                        <div class="diagram-box">
+<pre>
+map()
+→ 요소 하나를 다른 값 하나로 변환
+
+flatMap()
+→ 요소 안의 여러 값을 풀어서 하나의 Stream으로 합침
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 4. 원본 데이터가 바뀐다고 생각함</h3>
+
+<pre class="code-block"><code>List&lt;String&gt; names = Arrays.asList("b", "a", "c");
+
+names.stream()
+    .sorted()
+    .forEach(System.out::println);
+
+System.out.println(names);</code></pre>
+
+<pre class="code-block"><code>a
+b
+c
+[b, a, c]</code></pre>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 5. Optional 처리를 안 함</h3>
+
+<pre class="code-block error-code"><code>Integer max = numbers.stream()
+                    .max((a, b) -> a - b)
+                    .get();</code></pre>
+
+<pre class="code-block success-code"><code>Integer max = numbers.stream()
+                    .max((a, b) -> a - b)
+                    .orElse(0);</code></pre>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 6. forEach 안에서 외부 지역변수를 변경하려 함</h3>
+
+<pre class="code-block error-code"><code>int sum = 0;
+
+numbers.stream()
+    .forEach(num -> sum += num); // 오류 가능</code></pre>
+
+<pre class="code-block success-code"><code>int sum = numbers.stream()
+                .reduce(0, (a, b) -> a + b);</code></pre>
+
+<pre class="code-block success-code"><code>int sum = numbers.stream()
+                .mapToInt(num -> num)
+                .sum();</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">12. 면접 포인트</h2>
+
+                    <article class="study-card interview-card">
+                        <h3>Q1. Stream API란 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            Stream API는 배열이나 컬렉션의 데이터를 반복문 없이 처리할 수 있게 해주는 Java의 데이터 처리 라이브러리입니다.<br/>
+                            원본 데이터를 직접 변경하지 않고, 중간 연산과 최종 연산을 연결해 데이터를 처리합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q2. 중간 연산과 최종 연산의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            중간 연산은 Stream을 반환하며 여러 개를 연결할 수 있습니다.
+                            최종 연산은 Stream을 소비해 결과를 만들거나 출력하며, 최종 연산 후 Stream은 닫힙니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q3. Stream은 재사용할 수 있나요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            아니요. Stream은 최종 연산을 수행하면 닫히기 때문에 다시 사용할 수 없습니다.
+                            다시 처리하려면 <code>stream()</code>을 호출해서 새로운 Stream을 생성해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q4. filter()와 map()의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>filter()</code>는 조건에 맞는 요소만 통과시키는 연산입니다.
+                            <code>map()</code>은 각 요소를 다른 값으로 1:1 변환하는 연산입니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q5. map()과 flatMap()의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>map()</code>은 요소 하나를 다른 값 하나로 변환합니다.
+                            <code>flatMap()</code>은 요소 안에 들어 있는 여러 값을 풀어서 하나의 Stream으로 합칩니다.
+                        </p>
+                    </article>
+                </section>
+            </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+                <p>
+                    이 페이지는 Java Stream API 단원입니다.
+                    Stream은 배열과 컬렉션 데이터를 원본은 유지한 채 처리하는 흐름입니다.<br/>
+                    Stream은 <code>생성 → 중간 연산 → 최종 연산</code> 순서로 사용하며,
+                    최종 연산이 실행되면 닫혀서 다시 사용할 수 없습니다.<br/>
+                    <code>filter()</code>는 조건 필터링, <code>map()</code>은 1:1 변환,
+                    <code>flatMap()</code>은 중첩 데이터 평탄화에 사용합니다.
+                </p>
+            </aside>
+        </main>
+    </div>
+    <script src="../js/00_nav.js"></script>
+</body>
+</html>

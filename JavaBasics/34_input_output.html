@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>34_input_output.html</title>
+    <link rel="stylesheet" href="../css/js/00_nav.css">
+    <link rel="stylesheet" href="../css/JavaBasics/34_input_output.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Side Navigation -->
+        <nav class="side-nav" id="sideNav"></nav>
+
+        <!-- Main Page Content -->
+        <main class="page-content">
+            <header class="page-header io-header">
+                <p class="chapter-label">Java Basic · Chapter 34</p>
+                <h1>34. Java IO Input / Output Stream</h1>
+                <p class="header-description">
+                    Java IO는 프로그램이 파일, 키보드, 콘솔, 네트워크 같은 외부 대상과<br/>
+                    데이터를 읽고 쓰기 위해 사용하는 입출력 기능입니다. 
+                    이번 단원에서는<br/><code>InputStream</code>, <code>OutputStream</code>,
+                    <code>Reader</code>, <code>Writer</code>, <code>File</code>,
+                    <code>BufferedReader</code>, <code>ObjectStream</code>을 중심으로 공부합니다.
+                </p>
+            </header>
+
+            <main>
+                <section class="study-section intro-section">
+                    <article class="study-card">
+                        <h2>이번 페이지의 학습 목표</h2>
+                        <p>
+                            Java IO는 단순히 콘솔에 값을 출력하거나 키보드 입력을 받는 기능만 의미하지 않습니다.<br/>
+                            실제 개발에서는 <strong>파일 업로드, 파일 다운로드, 로그 분석, CSV 처리, 이미지 저장,
+                            설정 파일 읽기, 객체 저장, 네트워크 데이터 송수신</strong>처럼 다양한 상황에서 사용됩니다.<br/>
+                            이번 페이지에서는 IO 클래스를 무작정 외우는 것이 아니라,
+                            <strong>데이터가 어디서 들어오고, 어디로 나가며, 어떤 스트림 조합을 선택해야 하는지</strong>를
+                            이해하는 것을 목표로 합니다.
+                        </p>
+
+                        <div class="goal-grid">
+                            <div>
+                                <h3>IO 개념</h3>
+                                <p>입력과 출력, 데이터 소스와<br/>데이터 목적지의 의미를 이해합니다.</p>
+                            </div>
+                            <div>
+                                <h3>Stream 구조</h3>
+                                <p>스트림이 단방향 데이터 흐름이며<br/>FIFO 구조라는 점을 이해합니다.</p>
+                            </div>
+                            <div>
+                                <h3>분류 기준</h3>
+                                <p>바이트 스트림, 문자 스트림,<br/>노드 스트림, 필터 스트림,<br/>브릿지 스트림을 구분합니다.</p>
+                            </div>
+                            <div>
+                                <h3>실무 활용</h3>
+                                <p>텍스트 파일, 이미지 파일, 객체 저장,<br/>로그 분석 상황에 맞는<br/>스트림 조합을 익힙니다.</p>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">1. IO 기본 개념</h2>
+
+                    <article class="study-card">
+                        <h3>1-1. IO란?</h3>
+                        <p>
+                            IO는 <strong>Input / Output</strong>의 줄임말입니다.
+                            Java 프로그램이 외부에서 데이터를 읽어오거나, 프로그램 안의 데이터를 외부로 내보내는 작업을 의미합니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+Input
+외부 데이터 → Java 프로그램
+
+Output
+Java 프로그램 → 외부 대상
+</pre>
+                        </div>
+
+                        <p>
+                            예를 들어 사용자가 키보드로 값을 입력하면 데이터가 프로그램 안으로 들어오기 때문에 입력입니다.<br/>
+                            반대로 프로그램이 콘솔에 문장을 출력하거나 파일에 내용을 저장하면 출력입니다.
+                        </p>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>의미</th>
+                                    <th>예시</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Input</td>
+                                    <td>외부 데이터가 프로그램 안으로 들어옴</td>
+                                    <td>키보드 입력, 파일 읽기, 네트워크 수신</td>
+                                </tr>
+                                <tr>
+                                    <td>Output</td>
+                                    <td>프로그램 안의 데이터가 외부로 나감</td>
+                                    <td>콘솔 출력, 파일 저장, 네트워크 전송</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>1-2. 데이터 소스와 데이터 목적지</h3>
+                        <p>
+                            IO를 이해할 때는 데이터가 <strong>어디서 출발하는지</strong>와
+                            <strong>어디로 도착하는지</strong>를 먼저 생각해야 합니다.
+                        </p>
+
+                        <div class="io-flow-grid">
+                            <div class="flow-card">
+                                <h4>Data Source</h4>
+                                <p>데이터가 시작되는 곳입니다.</p>
+                                <ul>
+                                    <li>파일</li>
+                                    <li>키보드</li>
+                                    <li>네트워크</li>
+                                    <li>메모리</li>
+                                    <li>데이터베이스</li>
+                                </ul>
+                            </div>
+                            <div class="flow-card">
+                                <h4>Data Destination</h4>
+                                <p>데이터가 최종적으로 도착하는 곳입니다.</p>
+                                <ul>
+                                    <li>파일</li>
+                                    <li>콘솔 화면</li>
+                                    <li>프린터</li>
+                                    <li>네트워크</li>
+                                    <li>메모리</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <p>
+                                파일을 읽는 상황에서는 파일이 <strong>Data Source</strong>입니다.
+                                파일에 저장하는 상황에서는 파일이 <strong>Data Destination</strong>입니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>1-3. 스트림이란?</h3>
+                        <p>
+                            스트림은 <strong>데이터가 한 방향으로 흐르는 통로</strong>입니다.
+                            물이 수도관을 따라 흐르듯이, 데이터도 스트림을 따라 순서대로 이동합니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+파일
+↓
+입력 스트림
+↓
+Java 프로그램
+
+Java 프로그램
+↓
+출력 스트림
+↓
+파일
+</pre>
+                        </div>
+
+                        <p>
+                            스트림은 데이터를 한 번에 통째로 순간이동시키는 것이 아니라,
+                            순서대로 흘려보냅니다. 그래서 스트림은 기본적으로
+                            <strong>FIFO</strong>, 즉 먼저 들어간 데이터가 먼저 나오는 구조를 가집니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">2. 스트림의 특징</h2>
+
+                    <article class="study-card">
+                        <h3>2-1. FIFO 구조</h3>
+                        <p>
+                            FIFO는 <strong>First In First Out</strong>의 줄임말입니다.
+                            먼저 들어간 데이터가 먼저 나오는 구조입니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+입력 순서
+A → B → C
+
+처리 순서
+A → B → C
+</pre>
+                        </div>
+
+                        <p>
+                            스트림에 들어간 데이터는 중간 데이터를 마음대로 먼저 꺼내는 구조가 아니라,
+                            들어온 순서대로 처리됩니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>2-2. 단방향 구조</h3>
+                        <p>
+                            스트림은 기본적으로 <strong>단방향</strong>입니다.
+                            읽기용 스트림과 쓰기용 스트림이 구분됩니다.
+                        </p>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>방향</th>
+                                    <th>대표 클래스</th>
+                                    <th>역할</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>입력</td>
+                                    <td><code>InputStream</code>, <code>Reader</code></td>
+                                    <td>외부 데이터를 Java 프로그램 안으로 읽어옵니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>출력</td>
+                                    <td><code>OutputStream</code>, <code>Writer</code></td>
+                                    <td>Java 프로그램의 데이터를 외부로 내보냅니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="warning-box">
+                            <p>
+                                <code>FileInputStream</code>은 읽기 전용이고,
+                                <code>FileOutputStream</code>은 쓰기 전용입니다.
+                                하나의 스트림이 읽기와 쓰기를 동시에 담당하지 않습니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>2-3. Blocking</h3>
+                        <p>
+                            스트림은 데이터가 준비될 때까지 기다리는 경우가 있습니다.
+                            이 상태를 <strong>Blocking</strong>이라고 합니다.
+                        </p>
+
+            <pre class="code-block"><code>int data = System.in.read();</code></pre>
+
+                        <p>
+                            위 코드는 사용자가 키보드로 값을 입력할 때까지 다음 코드로 넘어가지 않습니다.
+                            프로그램이 멈춘 것처럼 보이지만, 실제로는 입력을 기다리는 상태입니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+System.in.read()
+↓
+사용자 입력 대기
+↓
+입력 발생
+↓
+다음 코드 실행
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">3. Java IO의 큰 분류</h2>
+
+                    <article class="study-card">
+                        <h3>3-1. 데이터 단위에 따른 분류</h3>
+                        <p>
+                            Java IO는 데이터를 어떤 단위로 처리하느냐에 따라
+                            <strong>바이트 스트림</strong>과 <strong>문자 스트림</strong>으로 나뉩니다.
+                        </p>
+
+                        <table class="study-table io-table">
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>바이트 스트림</th>
+                                    <th>문자 스트림</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>처리 단위</td>
+                                    <td>1바이트</td>
+                                    <td>문자</td>
+                                </tr>
+                                <tr>
+                                    <td>최상위 클래스</td>
+                                    <td><code>InputStream</code>, <code>OutputStream</code></td>
+                                    <td><code>Reader</code>, <code>Writer</code></td>
+                                </tr>
+                                <tr>
+                                    <td>주 사용 대상</td>
+                                    <td>이미지, PDF, 동영상, ZIP, 바이너리 파일</td>
+                                    <td>txt, csv, json, xml, html, log 파일</td>
+                                </tr>
+                                <tr>
+                                    <td>대표 클래스</td>
+                                    <td><code>FileInputStream</code>, <code>FileOutputStream</code></td>
+                                    <td><code>FileReader</code>, <code>FileWriter</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-2. 연결 방식에 따른 분류</h3>
+                        <p>
+                            스트림은 실제 데이터 대상과 직접 연결할 수 있는지에 따라
+                            <strong>노드 스트림</strong>과 <strong>필터 스트림</strong>으로 나뉩니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+노드 스트림
+파일, 키보드, 콘솔과 직접 연결
+
+필터 스트림
+노드 스트림에 연결해서 부가 기능 제공
+</pre>
+                        </div>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>설명</th>
+                                    <th>대표 클래스</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Node Stream</td>
+                                    <td>데이터 소스나 목적지에 직접 연결됩니다.</td>
+                                    <td><code>FileInputStream</code>, <code>FileReader</code>, <code>System.in</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Filter Stream</td>
+                                    <td>노드 스트림에 붙어서 성능이나 편의 기능을 제공합니다.</td>
+                                    <td><code>BufferedReader</code>, <code>DataInputStream</code>, <code>ObjectInputStream</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>3-3. 브릿지 스트림</h3>
+                        <p>
+                            브릿지 스트림은 <strong>바이트 스트림과 문자 스트림을 연결하는 변환 스트림</strong>입니다.
+                            대표 클래스는 <code>InputStreamReader</code>와 <code>OutputStreamWriter</code>입니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+System.in
+바이트 입력 스트림
+↓
+InputStreamReader
+문자 입력 스트림으로 변환
+↓
+BufferedReader
+줄 단위 입력 가능
+</pre>
+                        </div>
+
+<pre class="code-block"><code>BufferedReader br =
+        new BufferedReader(new InputStreamReader(System.in));</code></pre>
+
+                        <p>
+                            위 코드는 키보드 입력을 문자열 단위로 편하게 받기 위해 자주 사용하는 조합입니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">4. System.in과 System.out</h2>
+
+                    <article class="study-card">
+                        <h3>4-1. System.in</h3>
+                        <p>
+                            <code>System.in</code>은 키보드와 연결된 표준 입력 스트림입니다.
+                            타입은 <code>InputStream</code>이므로 바이트 기반 입력 스트림입니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.IOException;
+
+public class SystemInExample {
+
+    public static void main(String[] args) {
+        try {
+            System.out.print("문자 하나 입력: ");
+
+            int data = System.in.read();
+
+            System.out.println("입력된 정수 코드: " + data);
+            System.out.println("입력된 문자: " + (char) data);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>System.in.read()</code>는 사용자가 입력할 때까지 기다립니다.
+                                그리고 입력된 값을 1바이트 단위로 읽어서 <code>int</code>로 반환합니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>4-2. System.out</h3>
+                        <p>
+                            <code>System.out</code>은 콘솔 화면과 연결된 표준 출력 스트림입니다.
+                            타입은 <code>PrintStream</code>입니다.
+                        </p>
+
+<pre class="code-block"><code>public class SystemOutExample {
+
+    public static void main(String[] args) {
+
+        System.out.print("줄바꿈 없음");
+        System.out.println("줄바꿈 있음");
+        System.out.printf("이름: %s, 나이: %d%n", "홍길동", 25);
+    }
+}</code></pre>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>메서드</th>
+                                    <th>설명</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>print()</code></td>
+                                    <td>출력 후 줄바꿈을 하지 않습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>println()</code></td>
+                                    <td>출력 후 줄바꿈을 합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>printf()</code></td>
+                                    <td>형식 문자열을 사용하여 출력합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>write()</code></td>
+                                    <td>바이트 기반으로 출력합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>flush()</code></td>
+                                    <td>버퍼에 남아 있는 데이터를 강제로 내보냅니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">5. FileInputStream과 FileOutputStream</h2>
+
+                    <article class="study-card">
+                        <h3>5-1. FileInputStream</h3>
+                        <p>
+                            <code>FileInputStream</code>은 파일을 읽기 위한
+                            <strong>바이트 기반 노드 스트림</strong>입니다.
+                            이미지, PDF, ZIP 같은 바이너리 파일을 읽을 때 사용할 수 있습니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.FileInputStream;
+import java.io.IOException;
+
+public class FileInputStreamExample {
+
+    public static void main(String[] args) {
+        try (FileInputStream fis = new FileInputStream("sample.txt")) {
+
+            int data;
+
+            while ((data = fis.read()) != -1) {
+                System.out.print((char) data);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+sample.txt
+↓
+FileInputStream
+↓
+read()
+↓
+Java 프로그램
+</pre>
+                        </div>
+
+                        <p>
+                            <code>read()</code>는 파일의 끝에 도달하면 <code>-1</code>을 반환합니다.
+                            그래서 파일을 끝까지 읽을 때는 <code>while ((data = read()) != -1)</code> 패턴을 사용합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-2. FileOutputStream</h3>
+                        <p>
+                            <code>FileOutputStream</code>은 파일에 데이터를 쓰기 위한
+                            <strong>바이트 기반 노드 스트림</strong>입니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class FileOutputStreamExample {
+
+    public static void main(String[] args) {
+        String text = "Hello Java IO";
+
+        try (FileOutputStream fos = new FileOutputStream("result.txt")) {
+
+            fos.write(text.getBytes());
+
+            System.out.println("파일 저장 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="warning-box">
+                            <p>
+                                <code>new FileOutputStream("result.txt")</code>는 기존 파일 내용이 있으면 지우고 새로 씁니다.
+                                기존 내용 뒤에 추가하려면 생성자의 두 번째 인자로 <code>true</code>를 넣어야 합니다.
+                            </p>
+                        </div>
+
+            <pre class="code-block"><code>FileOutputStream fos = new FileOutputStream("result.txt", true);</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>5-3. 바이트 배열을 사용한 파일 복사</h3>
+                        <p>
+                            파일을 1바이트씩 읽고 쓰면 큰 파일에서는 비효율적입니다.
+                            그래서 보통 <code>byte[]</code> 배열을 버퍼처럼 사용합니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class ByteArrayCopyExample {
+
+    public static void main(String[] args) {
+        try (
+            FileInputStream fis = new FileInputStream("source.pdf");
+            FileOutputStream fos = new FileOutputStream("copy.pdf")
+        ) {
+            byte[] buffer = new byte[1024];
+            int length;
+
+            while ((length = fis.read(buffer)) != -1) {
+                fos.write(buffer, 0, length);
+            }
+
+            System.out.println("파일 복사 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                마지막 반복에서는 버퍼가 꽉 차지 않을 수 있습니다.
+                                그래서 반드시 <code>fos.write(buffer, 0, length)</code>처럼
+                                실제로 읽은 길이만큼만 써야 합니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">6. BufferedInputStream과 BufferedOutputStream</h2>
+
+                    <article class="study-card">
+                        <h3>6-1. Buffered 계열을 사용하는 이유</h3>
+                        <p>
+                            <code>BufferedInputStream</code>과 <code>BufferedOutputStream</code>은
+                            바이트 기반 스트림에 버퍼 기능을 추가하는 필터 스트림입니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+버퍼 없음
+파일 → 1바이트 → 프로그램
+파일 → 1바이트 → 프로그램
+파일 → 1바이트 → 프로그램
+
+버퍼 있음
+파일 → 여러 바이트를 버퍼에 모음 → 프로그램
+</pre>
+                        </div>
+
+                        <p>
+                            버퍼를 사용하면 디스크 접근 횟수를 줄일 수 있기 때문에 파일 복사 성능이 좋아집니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>6-2. Buffered 스트림으로 이미지 복사하기</h3>
+
+<pre class="code-block"><code>import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class BufferedBinaryCopyExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedInputStream bis =
+                    new BufferedInputStream(new FileInputStream("source.png"));
+            BufferedOutputStream bos =
+                    new BufferedOutputStream(new FileOutputStream("copy.png"))
+        ) {
+            byte[] buffer = new byte[1024];
+            int length;
+
+            while ((length = bis.read(buffer)) != -1) {
+                bos.write(buffer, 0, length);
+            }
+
+            System.out.println("이미지 파일 복사 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <p>
+                            이미지, PDF, ZIP처럼 문자로 해석하면 안 되는 파일은
+                            문자 스트림이 아니라 바이트 스트림으로 복사해야 합니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">7. Reader와 Writer</h2>
+
+                    <article class="study-card">
+                        <h3>7-1. 문자 스트림이 필요한 이유</h3>
+                        <p>
+                            텍스트 파일은 단순한 바이트 덩어리가 아니라 문자 데이터입니다.
+                            특히 한글은 여러 바이트로 표현되므로, 문자 단위로 처리하는 스트림이 필요합니다.
+                        </p>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>사용 대상</th>
+                                    <th>대표 클래스</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>바이트 스트림</td>
+                                    <td>이미지, PDF, ZIP, 동영상</td>
+                                    <td><code>FileInputStream</code>, <code>FileOutputStream</code></td>
+                                </tr>
+                                <tr>
+                                    <td>문자 스트림</td>
+                                    <td>txt, csv, json, xml, html, log</td>
+                                    <td><code>FileReader</code>, <code>FileWriter</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>7-2. FileReader</h3>
+
+<pre class="code-block"><code>import java.io.FileReader;
+import java.io.IOException;
+
+public class FileReaderExample {
+
+    public static void main(String[] args) {
+        try (FileReader fr = new FileReader("sample.txt")) {
+
+            int data;
+
+            while ((data = fr.read()) != -1) {
+                System.out.print((char) data);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <p>
+                            <code>FileReader</code>는 문자 단위로 파일을 읽습니다.
+                            텍스트 파일을 처리할 때 <code>FileInputStream</code>보다 자연스럽습니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>7-3. FileWriter</h3>
+
+<pre class="code-block"><code>import java.io.FileWriter;
+import java.io.IOException;
+
+public class FileWriterExample {
+
+    public static void main(String[] args) {
+        try (FileWriter fw = new FileWriter("text_result.txt")) {
+
+            fw.write("FileWriter로 문자열을 저장합니다.");
+
+            System.out.println("텍스트 파일 저장 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="warning-box">
+                            <p>
+                                <code>FileWriter</code>도 기본적으로 기존 파일 내용을 지우고 새로 씁니다.
+                                기존 내용 뒤에 추가하려면 <code>new FileWriter("text_result.txt", true)</code>를 사용합니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">8. BufferedReader와 BufferedWriter</h2>
+
+                    <article class="study-card">
+                        <h3>8-1. BufferedReader</h3>
+                        <p>
+                            <code>BufferedReader</code>는 문자 입력 스트림에 버퍼 기능을 추가하는 필터 스트림입니다.
+                            가장 중요한 메서드는 <code>readLine()</code>입니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class BufferedReaderExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedReader br =
+                    new BufferedReader(new FileReader("sample.txt"))
+        ) {
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>readLine()</code>은 한 줄을 읽지만 줄바꿈 문자는 포함하지 않습니다.
+                                파일 끝에 도달하면 <code>null</code>을 반환합니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>8-2. BufferedWriter</h3>
+                        <p>
+                            <code>BufferedWriter</code>는 문자 출력 스트림에 버퍼 기능을 추가하는 필터 스트림입니다.
+                            문자열을 출력할 때는 <code>write()</code>, 줄바꿈에는 <code>newLine()</code>을 사용합니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class BufferedWriterExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedWriter bw =
+                    new BufferedWriter(new FileWriter("result.txt"))
+        ) {
+            bw.write("첫 번째 줄");
+            bw.newLine();
+            bw.write("두 번째 줄");
+
+            System.out.println("파일 저장 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>8-3. 텍스트 파일 복사하기</h3>
+
+<pre class="code-block"><code>import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class TextFileCopyExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedReader br =
+                    new BufferedReader(new FileReader("source.txt"));
+            BufferedWriter bw =
+                    new BufferedWriter(new FileWriter("target.txt"))
+        ) {
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                bw.write(line);
+                bw.newLine();
+            }
+
+            System.out.println("텍스트 파일 복사 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+source.txt
+↓
+FileReader
+↓
+BufferedReader
+↓
+readLine()
+
+write()
+↓
+BufferedWriter
+↓
+FileWriter
+↓
+target.txt
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">9. InputStreamReader와 OutputStreamWriter</h2>
+
+                    <article class="study-card">
+                        <h3>9-1. InputStreamReader</h3>
+                        <p>
+                            <code>InputStreamReader</code>는 바이트 입력 스트림을 문자 입력 스트림으로 변환하는
+                            브릿지 스트림입니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class KeyboardInputExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedReader br =
+                    new BufferedReader(new InputStreamReader(System.in))
+        ) {
+            System.out.print("이름 입력: ");
+            String name = br.readLine();
+
+            System.out.println("입력한 이름: " + name);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+키보드
+↓
+System.in
+바이트 스트림
+↓
+InputStreamReader
+문자 스트림 변환
+↓
+BufferedReader
+readLine() 사용
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>9-2. 인코딩을 지정해서 파일 읽기</h3>
+                        <p>
+                            <code>FileReader</code>는 기본 문자셋을 사용합니다.
+                            파일 인코딩을 명확하게 지정하고 싶다면
+                            <code>FileInputStream</code>과 <code>InputStreamReader</code>를 함께 사용합니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
+public class Utf8FileReadExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(
+                            new FileInputStream("korean.txt"),
+                            StandardCharsets.UTF_8
+                    )
+            )
+        ) {
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                한글이 깨지는 문제를 줄이려면 파일의 실제 인코딩과 코드에서 지정한 인코딩이 일치해야 합니다.
+                                실무에서는 UTF-8을 기준으로 맞추는 경우가 많습니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>9-3. OutputStreamWriter</h3>
+                        <p>
+                            <code>OutputStreamWriter</code>는 문자 출력 스트림을 바이트 출력 스트림 쪽으로 연결하는
+                            브릿지 스트림입니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+
+public class ConsoleWriterExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedWriter bw =
+                    new BufferedWriter(new OutputStreamWriter(System.out))
+        ) {
+            bw.write("OutputStreamWriter 예제입니다.");
+            bw.newLine();
+            bw.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">10. DataInputStream과 DataOutputStream</h2>
+
+                    <article class="study-card">
+                        <h3>10-1. Data 계열 스트림의 목적</h3>
+                        <p>
+                            <code>DataInputStream</code>과 <code>DataOutputStream</code>은
+                            Java의 기본 자료형을 바이트 형태로 저장하고 다시 읽기 위한 필터 스트림입니다.
+                        </p>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>출력 메서드</th>
+                                    <th>입력 메서드</th>
+                                    <th>자료형</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>writeInt()</code></td>
+                                    <td><code>readInt()</code></td>
+                                    <td><code>int</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>writeDouble()</code></td>
+                                    <td><code>readDouble()</code></td>
+                                    <td><code>double</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>writeBoolean()</code></td>
+                                    <td><code>readBoolean()</code></td>
+                                    <td><code>boolean</code></td>
+                                </tr>
+                                <tr>
+                                    <td><code>writeUTF()</code></td>
+                                    <td><code>readUTF()</code></td>
+                                    <td><code>String</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>10-2. 자료형 저장하기</h3>
+
+<pre class="code-block"><code>import java.io.DataOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class DataWriteExample {
+
+    public static void main(String[] args) {
+        try (
+            DataOutputStream dos =
+                    new DataOutputStream(new FileOutputStream("student.dat"))
+        ) {
+            dos.writeInt(1);
+            dos.writeUTF("홍길동");
+            dos.writeInt(90);
+            dos.writeDouble(175.5);
+            dos.writeBoolean(true);
+
+            System.out.println("학생 데이터 저장 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>10-3. 자료형 읽기</h3>
+
+<pre class="code-block"><code>import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class DataReadExample {
+
+    public static void main(String[] args) {
+        try (
+            DataInputStream dis =
+                    new DataInputStream(new FileInputStream("student.dat"))
+        ) {
+            int id = dis.readInt();
+            String name = dis.readUTF();
+            int score = dis.readInt();
+            double height = dis.readDouble();
+            boolean active = dis.readBoolean();
+
+            System.out.println("번호: " + id);
+            System.out.println("이름: " + name);
+            System.out.println("점수: " + score);
+            System.out.println("키: " + height);
+            System.out.println("활성 여부: " + active);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="warning-box">
+                            <p>
+                                <code>DataOutputStream</code>으로 쓴 데이터는
+                                <code>DataInputStream</code>으로 읽어야 합니다.
+                                또한 쓴 순서와 읽는 순서가 반드시 같아야 합니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">11. ObjectInputStream과 ObjectOutputStream</h2>
+
+                    <article class="study-card">
+                        <h3>11-1. 객체 직렬화</h3>
+                        <p>
+                            <code>ObjectOutputStream</code>과 <code>ObjectInputStream</code>은 객체를 저장하고 읽기 위한 스트림입니다.
+                            객체를 파일이나 네트워크로 보내려면 객체를 바이트 형태로 바꾸어야 합니다.
+                            이 과정을 <strong>직렬화 Serialization</strong>라고 합니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+직렬화
+객체 → 바이트 데이터
+
+역직렬화
+바이트 데이터 → 객체
+</pre>
+                        </div>
+
+                        <p>
+                            직렬화할 클래스는 반드시 <code>Serializable</code> 인터페이스를 구현해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>11-2. 직렬화 대상 클래스</h3>
+
+<pre class="code-block"><code>import java.io.Serializable;
+
+public class Member implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private String name;
+    private int age;
+
+    public Member(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return "Member{name='" + name + "', age=" + age + "}";
+    }
+}</code></pre>
+
+                        <div class="summary-box">
+                            <p>
+                                <code>Serializable</code>은 메서드가 없는 마커 인터페이스입니다.
+                                JVM에게 이 클래스의 객체는 직렬화할 수 있다는 표시를 해주는 역할입니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>11-3. 객체 저장하기</h3>
+
+<pre class="code-block"><code>import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+
+public class ObjectWriteExample {
+
+    public static void main(String[] args) {
+        Member member = new Member("홍길동", 25);
+
+        try (
+            ObjectOutputStream oos =
+                    new ObjectOutputStream(new FileOutputStream("member.obj"))
+        ) {
+            oos.writeObject(member);
+
+            System.out.println("객체 저장 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>11-4. 객체 읽기</h3>
+
+<pre class="code-block"><code>import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
+public class ObjectReadExample {
+
+    public static void main(String[] args) {
+        try (
+            ObjectInputStream ois =
+                    new ObjectInputStream(new FileInputStream("member.obj"))
+        ) {
+            Member member = (Member) ois.readObject();
+
+            System.out.println(member);
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="warning-box">
+                            <p>
+                                <code>readObject()</code>는 <code>Object</code> 타입으로 반환되므로
+                                원래 클래스 타입으로 형변환해야 합니다.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">12. PrintWriter</h2>
+
+                    <article class="study-card">
+                        <h3>12-1. PrintWriter의 특징</h3>
+                        <p>
+                            <code>PrintWriter</code>는 문자 출력에 편리한 기능을 제공하는 스트림입니다.
+                            <code>print()</code>, <code>println()</code>, <code>printf()</code>를 사용할 수 있습니다.
+                        </p>
+
+<pre class="code-block"><code>import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+public class PrintWriterExample {
+
+    public static void main(String[] args) {
+        try (
+            PrintWriter pw =
+                    new PrintWriter(new FileWriter("print.txt"))
+        ) {
+            pw.println("첫 번째 줄");
+            pw.println("두 번째 줄");
+            pw.printf("이름: %s, 나이: %d%n", "홍길동", 25);
+
+            System.out.println("PrintWriter 저장 완료");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <p>
+                            <code>BufferedWriter</code>는 줄바꿈을 위해 <code>newLine()</code>을 사용하지만,
+                            <code>PrintWriter</code>는 <code>println()</code>을 사용할 수 있어 더 편리합니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">13. File 클래스</h2>
+
+                    <article class="study-card">
+                        <h3>13-1. File 클래스의 역할</h3>
+                        <p>
+                            <code>File</code> 클래스는 파일의 내용을 읽거나 쓰는 클래스가 아닙니다.
+                            파일이나 디렉토리의 이름, 경로, 존재 여부, 크기, 삭제, 목록 조회 같은
+                            <strong>파일 시스템 정보</strong>를 다루는 클래스입니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+File 클래스
+파일 내용 처리 X
+
+가능한 작업
+- 파일명 확인
+- 경로 확인
+- 존재 여부 확인
+- 파일/디렉토리 구분
+- 크기 확인
+- 삭제
+- 디렉토리 생성
+- 목록 조회
+</pre>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>13-2. 파일 정보 확인</h3>
+
+<pre class="code-block"><code>import java.io.File;
+
+public class FileInfoExample {
+
+    public static void main(String[] args) {
+        File file = new File("sample.txt");
+
+        System.out.println("파일명: " + file.getName());
+        System.out.println("경로: " + file.getPath());
+        System.out.println("절대 경로: " + file.getAbsolutePath());
+        System.out.println("존재 여부: " + file.exists());
+        System.out.println("파일 여부: " + file.isFile());
+        System.out.println("디렉토리 여부: " + file.isDirectory());
+        System.out.println("파일 크기: " + file.length() + " bytes");
+    }
+}</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>13-3. 디렉토리 생성</h3>
+
+<pre class="code-block"><code>import java.io.File;
+
+public class DirectoryCreateExample {
+
+    public static void main(String[] args) {
+        File dir = new File("upload/images/profile");
+
+        if (!dir.exists()) {
+            boolean result = dir.mkdirs();
+
+            if (result) {
+                System.out.println("디렉토리 생성 성공");
+            } else {
+                System.out.println("디렉토리 생성 실패");
+            }
+        } else {
+            System.out.println("이미 존재하는 디렉토리입니다.");
+        }
+    }
+}</code></pre>
+
+                        <table class="study-table">
+                            <thead>
+                                <tr>
+                                    <th>메서드</th>
+                                    <th>설명</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>mkdir()</code></td>
+                                    <td>부모 디렉토리가 이미 있을 때 현재 디렉토리 하나를 생성합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>mkdirs()</code></td>
+                                    <td>부모 디렉토리가 없어도 필요한 상위 디렉토리까지 함께 생성합니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>13-4. 디렉토리 목록 조회</h3>
+
+<pre class="code-block"><code>import java.io.File;
+
+public class DirectoryListExample {
+
+    public static void main(String[] args) {
+        File dir = new File(".");
+
+        File[] files = dir.listFiles();
+
+        if (files == null) {
+            System.out.println("목록을 가져올 수 없습니다.");
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                System.out.println("[DIR]  " + file.getName());
+            } else {
+                System.out.println("[FILE] " + file.getName());
+            }
+        }
+    }
+}</code></pre>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">14. try-with-resources</h2>
+
+                    <article class="study-card">
+                        <h3>14-1. 스트림은 반드시 닫아야 한다</h3>
+                        <p>
+                            IO 스트림은 파일, 네트워크, 콘솔 같은 외부 자원과 연결됩니다.
+                            사용 후 닫지 않으면 자원 누수가 발생할 수 있습니다.
+                        </p>
+
+                        <div class="warning-box">
+                            <p>
+                                IO 작업이 끝난 뒤에는 <code>close()</code>를 호출해야 합니다.
+                                그러나 직접 닫는 방식은 코드가 복잡하고 실수하기 쉽기 때문에
+                                <strong>try-with-resources</strong>를 권장합니다.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>14-2. try-with-resources 예제</h3>
+
+<pre class="code-block"><code>import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class TryWithResourcesExample {
+
+    public static void main(String[] args) {
+        try (
+            BufferedReader br =
+                    new BufferedReader(new FileReader("sample.txt"))
+        ) {
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+
+                        <div class="diagram-box">
+<pre>
+try 시작
+↓
+스트림 열기
+↓
+파일 읽기
+↓
+try 종료
+↓
+자동 close()
+</pre>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">15. 실무에서 어떤 스트림을 선택할까?</h2>
+
+                    <article class="study-card">
+                        <h3>15-1. 상황별 스트림 선택표</h3>
+
+                        <table class="study-table choice-table">
+                            <thead>
+                                <tr>
+                                    <th>상황</th>
+                                    <th>추천 조합</th>
+                                    <th>이유</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>텍스트 파일 읽기</td>
+                                    <td><code>BufferedReader + FileReader</code></td>
+                                    <td>줄 단위로 읽기 편합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>텍스트 파일 쓰기</td>
+                                    <td><code>BufferedWriter + FileWriter</code></td>
+                                    <td>문자열 출력과 줄바꿈 처리가 편합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>인코딩 지정 텍스트 읽기</td>
+                                    <td><code>BufferedReader + InputStreamReader + FileInputStream</code></td>
+                                    <td>UTF-8 같은 문자셋을 명확하게 지정할 수 있습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>이미지, PDF, ZIP 복사</td>
+                                    <td><code>BufferedInputStream + BufferedOutputStream</code></td>
+                                    <td>바이너리 데이터를 원본 그대로 처리합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>키보드 문자열 입력</td>
+                                    <td><code>BufferedReader + InputStreamReader + System.in</code></td>
+                                    <td>바이트 입력을 문자 입력으로 바꾸고 줄 단위로 읽습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>기본 자료형 저장</td>
+                                    <td><code>DataOutputStream</code></td>
+                                    <td>int, double, boolean, UTF 문자열을 자료형 단위로 저장합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>객체 저장</td>
+                                    <td><code>ObjectOutputStream</code></td>
+                                    <td>Serializable 객체를 직렬화합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>파일 정보 확인</td>
+                                    <td><code>File</code></td>
+                                    <td>파일명, 경로, 존재 여부, 크기, 디렉토리 목록을 확인합니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>15-2. Spring Boot 프로젝트와 연결해서 보기</h3>
+                        <p>
+                            웹 프로젝트에서 파일 업로드 기능을 만들면 사용자가 보낸 파일을 서버에 저장해야 합니다.
+                            이때 내부적으로는 파일의 바이트 데이터를 읽고, 서버의 특정 경로에 쓰는 과정이 필요합니다.
+                        </p>
+
+                        <div class="diagram-box">
+<pre>
+사용자 이미지 업로드
+↓
+서버가 파일 바이트 수신
+↓
+저장 폴더 존재 여부 확인
+↓
+파일명 생성
+↓
+서버 디스크에 저장
+↓
+DB에는 파일 경로 저장
+</pre>
+                        </div>
+
+                        <p>
+                            즉, Java IO는 콘솔 예제에서 끝나는 개념이 아니라
+                            실제 웹 서비스의 파일 처리 기능과 직접 연결됩니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">16. 자주 하는 실수</h2>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 1. 스트림을 닫지 않음</h3>
+
+<pre class="code-block error-code"><code>FileInputStream fis = new FileInputStream("sample.txt");
+
+int data = fis.read();</code></pre>
+
+<pre class="code-block success-code"><code>try (FileInputStream fis = new FileInputStream("sample.txt")) {
+    int data = fis.read();
+}</code></pre>
+
+                        <p>
+                            IO 스트림은 외부 자원과 연결되므로 작업 후 반드시 닫아야 합니다.
+                            가장 안전한 방법은 try-with-resources를 사용하는 것입니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 2. 이미지 파일을 문자 스트림으로 복사함</h3>
+
+<pre class="code-block error-code"><code>FileReader fr = new FileReader("image.png");
+FileWriter fw = new FileWriter("copy.png");</code></pre>
+
+<pre class="code-block success-code"><code>FileInputStream fis = new FileInputStream("image.png");
+FileOutputStream fos = new FileOutputStream("copy.png");</code></pre>
+
+                        <p>
+                            이미지, PDF, ZIP 같은 파일은 문자 데이터가 아니므로 바이트 스트림으로 처리해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 3. 마지막 버퍼 길이를 무시함</h3>
+
+<pre class="code-block error-code"><code>while ((length = fis.read(buffer)) != -1) {
+    fos.write(buffer);
+}</code></pre>
+
+<pre class="code-block success-code"><code>while ((length = fis.read(buffer)) != -1) {
+    fos.write(buffer, 0, length);
+}</code></pre>
+
+                        <p>
+                            마지막 반복에서는 버퍼 전체가 채워지지 않을 수 있습니다.
+                            그래서 실제로 읽은 바이트 수인 <code>length</code>만큼만 써야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 4. readLine()이 줄바꿈까지 읽는다고 생각함</h3>
+
+<pre class="code-block error-code"><code>while ((line = br.readLine()) != null) {
+    bw.write(line);
+}</code></pre>
+
+<pre class="code-block success-code"><code>while ((line = br.readLine()) != null) {
+    bw.write(line);
+    bw.newLine();
+}</code></pre>
+
+                        <p>
+                            <code>readLine()</code>은 줄바꿈 문자를 포함하지 않습니다.
+                            파일 복사 시 줄바꿈을 유지하려면 <code>newLine()</code>을 직접 호출해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 5. DataInputStream 읽는 순서를 틀림</h3>
+
+<pre class="code-block error-code"><code>// 저장 순서
+dos.writeInt(1);
+dos.writeUTF("홍길동");
+
+// 잘못된 읽기 순서
+String name = dis.readUTF();
+int id = dis.readInt();</code></pre>
+
+<pre class="code-block success-code"><code>// 올바른 읽기 순서
+int id = dis.readInt();
+String name = dis.readUTF();</code></pre>
+
+                        <p>
+                            Data 계열 스트림은 저장한 순서와 읽는 순서가 반드시 같아야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card mistake-card">
+                        <h3>실수 6. Serializable을 구현하지 않고 객체를 저장함</h3>
+
+<pre class="code-block error-code"><code>public class Member {
+    private String name;
+    private int age;
+}</code></pre>
+
+<pre class="code-block success-code"><code>import java.io.Serializable;
+
+public class Member implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private String name;
+    private int age;
+}</code></pre>
+
+                        <p>
+                            객체를 <code>ObjectOutputStream</code>으로 저장하려면 클래스가
+                            <code>Serializable</code>을 구현해야 합니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">17. 면접 포인트</h2>
+
+                    <article class="study-card interview-card">
+                        <h3>Q1. Java IO란 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            Java IO는 프로그램이 외부 데이터와 입력 및 출력을 수행하기 위한 기능입니다.
+                            파일, 키보드, 콘솔, 네트워크 등과 데이터를 주고받기 위해 스트림을 사용합니다.<br/>
+                            입력 스트림은 외부 데이터를 프로그램으로 읽어오고,
+                            출력 스트림은 프로그램의 데이터를 외부로 내보냅니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q2. Stream이란 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            Stream은 데이터가 이동하는 단방향 통로입니다.
+                            데이터는 스트림을 따라 순서대로 이동하며 FIFO 구조를 가집니다.<br/>
+                            Java에서는 입력 스트림과 출력 스트림을 구분해서 사용합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q3. 바이트 스트림과 문자 스트림의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            바이트 스트림은 데이터를 1바이트 단위로 처리하며
+                            <code>InputStream</code>, <code>OutputStream</code> 계열을 사용합니다.
+                            이미지, PDF, ZIP 같은 바이너리 파일 처리에 적합합니다.<br/>
+                            문자 스트림은 데이터를 문자 단위로 처리하며
+                            <code>Reader</code>, <code>Writer</code> 계열을 사용합니다.
+                            텍스트 파일, CSV, 로그 파일 처리에 적합합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q4. 노드 스트림과 필터 스트림의 차이는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            노드 스트림은 파일, 키보드, 콘솔 같은 실제 데이터 소스나 목적지에 직접 연결되는 스트림입니다.<br/>
+                            반면 필터 스트림은 노드 스트림에 연결되어 버퍼링, 자료형 처리, 객체 처리 같은 부가 기능을 제공합니다.<br/>
+                            예를 들어 <code>FileReader</code>는 노드 스트림이고,
+                            <code>BufferedReader</code>는 필터 스트림입니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q5. BufferedReader를 사용하는 이유는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>BufferedReader</code>는 문자 입력 스트림에 버퍼 기능을 추가해 성능을 높이고,<br/>
+                            <code>readLine()</code> 메서드를 제공하여 텍스트 데이터를 줄 단위로 편리하게 읽을 수 있게 해줍니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q6. InputStreamReader는 어떤 역할을 하나요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            <code>InputStreamReader</code>는 바이트 기반 입력 스트림을 문자 기반 입력 스트림으로 변환하는
+                            브릿지 스트림입니다.<br/>
+                            대표적으로 <code>System.in</code>을 문자열로 처리하거나,
+                            파일을 특정 인코딩으로 읽을 때 사용합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q7. File 클래스는 파일 내용을 읽고 쓰는 클래스인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            아닙니다. <code>File</code> 클래스는 파일이나 디렉토리의 이름, 경로, 존재 여부, 크기,
+                            삭제, 목록 조회 같은 파일 시스템 정보를 다루는 클래스입니다.<br/>
+                            파일 내용을 읽거나 쓰려면 <code>FileInputStream</code>, <code>FileReader</code>,
+                            <code>FileWriter</code> 같은 스트림 클래스를 사용해야 합니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q8. try-with-resources를 사용하는 이유는 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            IO 스트림은 파일이나 네트워크 같은 외부 자원과 연결되므로 사용 후 반드시 닫아야 합니다.<br/>
+                            try-with-resources를 사용하면 <code>AutoCloseable</code>을 구현한 자원을
+                            try 블록이 끝날 때 자동으로 닫아주기 때문에 자원 누수를 방지하고 코드도 간결해집니다.
+                        </p>
+                    </article>
+
+                    <article class="study-card interview-card">
+                        <h3>Q9. 직렬화란 무엇인가요?</h3>
+                        <p>
+                            <strong>답변:</strong>
+                            직렬화는 메모리에 있는 객체를 파일 저장이나 네트워크 전송이 가능한 바이트 형태로 변환하는 과정입니다.<br/>
+                            Java에서는 <code>ObjectOutputStream</code>으로 직렬화하고,
+                            <code>ObjectInputStream</code>으로 역직렬화할 수 있습니다.
+                            직렬화 대상 클래스는 <code>Serializable</code>을 구현해야 합니다.
+                        </p>
+                    </article>
+                </section>
+
+                <section class="study-section">
+                    <h2 class="section-title">18. 최종 정리</h2>
+
+                    <article class="study-card">
+                        <h3>18-1. 이번 단원 핵심 요약</h3>
+
+                        <ol class="summary-list">
+                            <li>IO는 프로그램이 외부와 데이터를 주고받는 기능입니다.</li>
+                            <li>Stream은 데이터가 한 방향으로 흐르는 통로입니다.</li>
+                            <li>입력 스트림은 외부 데이터를 프로그램으로 읽어옵니다.</li>
+                            <li>출력 스트림은 프로그램 데이터를 외부로 내보냅니다.</li>
+                            <li>바이트 스트림은 1바이트 단위로 데이터를 처리합니다.</li>
+                            <li>문자 스트림은 문자 단위로 데이터를 처리합니다.</li>
+                            <li>노드 스트림은 파일, 키보드, 콘솔에 직접 연결됩니다.</li>
+                            <li>필터 스트림은 노드 스트림에 부가 기능을 제공합니다.</li>
+                            <li>브릿지 스트림은 바이트 스트림과 문자 스트림을 연결합니다.</li>
+                            <li>Buffered 계열은 성능과 편의 기능을 제공합니다.</li>
+                            <li>Data 계열은 Java 기본 자료형을 저장하고 읽습니다.</li>
+                            <li>Object 계열은 객체를 직렬화하고 역직렬화합니다.</li>
+                            <li>File 클래스는 파일 내용이 아니라 파일과 디렉토리 정보를 다룹니다.</li>
+                            <li>IO 자원은 반드시 닫아야 하며, try-with-resources를 권장합니다.</li>
+                        </ol>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>18-2. 반드시 외워야 할 기본 조합</h3>
+
+<pre class="code-block"><code>// 텍스트 파일 읽기
+BufferedReader br =
+        new BufferedReader(new FileReader("sample.txt"));
+
+// 텍스트 파일 쓰기
+BufferedWriter bw =
+        new BufferedWriter(new FileWriter("result.txt"));
+
+// 키보드 입력
+BufferedReader br =
+        new BufferedReader(new InputStreamReader(System.in));
+
+// 바이트 파일 복사
+BufferedInputStream bis =
+        new BufferedInputStream(new FileInputStream("source.bin"));
+
+BufferedOutputStream bos =
+        new BufferedOutputStream(new FileOutputStream("target.bin"));
+
+// 인코딩 지정 텍스트 읽기
+BufferedReader br =
+        new BufferedReader(
+                new InputStreamReader(
+                        new FileInputStream("korean.txt"),
+                        StandardCharsets.UTF_8
+                )
+        );</code></pre>
+                    </article>
+
+                    <article class="study-card">
+                        <h3>18-3. 공부 순서</h3>
+
+                        <div class="diagram-box">
+<pre>
+1단계
+Input / Output 개념 이해
+
+2단계
+Stream이 단방향 데이터 흐름이라는 점 이해
+
+3단계
+바이트 스트림과 문자 스트림 구분
+
+4단계
+노드 스트림과 필터 스트림 구분
+
+5단계
+BufferedReader / BufferedWriter 패턴 익히기
+
+6단계
+FileInputStream / FileOutputStream으로 바이너리 복사하기
+
+7단계
+InputStreamReader로 인코딩과 키보드 입력 이해
+
+8단계
+DataStream, ObjectStream, File 클래스 정리
+</pre>
+                        </div>
+                    </article>
+                </section>
+            </main>
+
+            <aside class="side-note io-side-note">
+                <h2>학습 메모</h2>
+                <p>
+                    이 페이지는 Java IO 단원입니다.
+                    IO는 프로그램이 외부 데이터와 입력 및 출력을 수행하는 기능이며,
+                    Java에서는 스트림을 통해 데이터를 읽고 씁니다.
+                </p>
+
+                <div class="mini-note-box">
+                    <h3>가장 중요한 구분</h3>
+                    <p>
+                        <code>InputStream</code> / <code>OutputStream</code>은 바이트 기반이고,
+                        <code>Reader</code> / <code>Writer</code>는 문자 기반입니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>노드와 필터</h3>
+                    <p>
+                        노드 스트림은 파일이나 키보드에 직접 연결됩니다.
+                        필터 스트림은 노드 스트림에 연결되어 버퍼링, 자료형 처리, 객체 처리 같은 기능을 추가합니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>브릿지 스트림</h3>
+                    <p>
+                        <code>InputStreamReader</code>는 바이트 입력을 문자 입력으로 바꿉니다.
+                        <code>OutputStreamWriter</code>는 문자 출력을 바이트 출력 쪽으로 연결합니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>실무 선택 기준</h3>
+                    <p>
+                        텍스트 파일은 <code>Reader</code> / <code>Writer</code>,
+                        이미지와 PDF는 <code>InputStream</code> / <code>OutputStream</code> 계열을 사용합니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>필수 패턴</h3>
+                    <p>
+                        텍스트 파일을 줄 단위로 읽을 때는
+                        <code>BufferedReader</code>와 <code>readLine()</code> 패턴을 먼저 익히는 것이 좋습니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>주의할 점</h3>
+                    <p>
+                        IO 스트림은 사용 후 반드시 닫아야 합니다.
+                        실무와 학습 코드 모두 <code>try-with-resources</code> 방식을 권장합니다.
+                    </p>
+                </div>
+
+                <div class="mini-note-box">
+                    <h3>면접 핵심</h3>
+                    <p>
+                        바이트 스트림과 문자 스트림의 차이,
+                        노드 스트림과 필터 스트림의 차이,
+                        직렬화와 <code>Serializable</code>,
+                        <code>File</code> 클래스의 역할은 자주 질문됩니다.
+                    </p>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <script src="../js/00_nav.js"></script>
+</body>
+</html>
