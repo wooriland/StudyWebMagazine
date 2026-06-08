@@ -19,41 +19,1047 @@
                 <p class="chapter-label">Oracle SQL Developer - Chapter 13</p>
                 <h1>OUTER JOIN과 SELF JOIN</h1>
                 <p class="chapter-description">
-                    OUTER JOIN과 SELF JOIN의 차이와 활용 상황을 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    OUTER JOIN은 INNER JOIN으로는 보이지 않는 연결되지 않은 데이터를 조회할 때 사용합니다.<br/>
+                    SELF JOIN은 같은 테이블을 서로 다른 역할로 나누어 자기 자신과 연결하는 방식입니다.<br/>
+                    이번 단원에서는 LEFT, RIGHT, FULL OUTER JOIN과 OUTER JOIN + IS NULL,<br/>
+                    그리고 EMP 테이블의 사원과 매니저 관계를 SELF JOIN으로 정리합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>INNER JOIN에서 제외되는 미연결 데이터를<br/>OUTER JOIN으로 조회한다.</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>DEPT와 EMP, HR의 DEPARTMENTS와 EMPLOYEES로<br/>미충원 부서를 찾는다.</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>댓글 없는 게시글, 문의 없는 매물,<br/>매니저 없는 사원 같은 구조를 조회한다.</span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 이번 단원에서 배우는 것</h2>
+                    </div>
+
+                    <p>
+                        이전 단원에서 배운 INNER JOIN은 두 테이블의 조인 조건이 일치하는 행만 출력했습니다.<br/>
+                        하지만 실무에서는 연결된 데이터뿐 아니라 <strong>연결되지 않은 데이터</strong>를 찾아야 하는 경우가 많습니다.<br/>
+                        예를 들어 아직 사원이 배치되지 않은 부서, 댓글이 없는 게시글, 문의가 없는 매물처럼
+                        “없다”는 사실 자체가 중요한 데이터가 됩니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>INNER JOIN</strong>
+                            <span>양쪽 테이블에서 조건이 일치하는 행만 출력합니다.</span>
+                        </div>
+                        <div>
+                            <strong>OUTER JOIN</strong>
+                            <span>기준 테이블의 행을 유지하면서<br/>연결되지 않은 데이터도 확인합니다.</span>
+                        </div>
+                        <div>
+                            <strong>SELF JOIN</strong>
+                            <span>같은 테이블을 두 역할로 나누어<br/>자기 자신과 연결합니다.</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            OUTER JOIN은 <strong>매칭되지 않은 데이터까지 확인하는 JOIN</strong>이고,
+                            SELF JOIN은 <strong>같은 테이블 안의 관계를 자기 자신과 연결하는 JOIN</strong>입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card inner-limit-card" id="inner-limit">
+                    <div class="section-title-area">
+                        <span class="section-badge">Review</span>
+                        <h2>2. INNER JOIN의 한계</h2>
+                    </div>
+
+                    <p>
+                        INNER JOIN은 두 테이블에서 연결 조건이 일치하는 행만 결과로 보여줍니다.
+                        따라서 한쪽 테이블에는 존재하지만 다른 테이블과 연결되지 않는 데이터는 결과에서 제외됩니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>DEPT 테이블</h3>
+                            <pre><code>DEPTNO   DNAME
+------   ----------
+10       ACCOUNTING
+20       RESEARCH
+30       SALES
+40       OPERATIONS</code></pre>
+                            <p>
+                                DEPT에는 40번 부서가 존재합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>EMP 테이블</h3>
+                            <pre><code>ENAME   DEPTNO
+------  ------
+KING    10
+SMITH   20
+ALLEN   30</code></pre>
+                            <p>
+                                EMP에는 40번 부서에 속한 사원이 없습니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="sql-example">
+                        <h3>INNER JOIN 결과</h3>
+                        <pre><code>SELECT E.ENAME,
+       D.DEPTNO,
+       D.DNAME
+FROM EMP E INNER JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO;</code></pre>
+                        <p>
+                            40번 부서 OPERATIONS는 EMP와 연결되는 사원이 없으므로 INNER JOIN 결과에서 제외됩니다.
+                        </p>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>실무에서 필요한 질문</h3>
+                        <p>
+                            “사원이 있는 부서”가 아니라 “사원이 없는 부서”를 찾아야 할 때는 INNER JOIN만으로는 부족합니다.
+                            이때 OUTER JOIN이 필요합니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card outer-card" id="outer-join">
+                    <div class="section-title-area">
+                        <span class="section-badge">OUTER JOIN</span>
+                        <h2>3. OUTER JOIN이란?</h2>
+                    </div>
+
+                    <p>
+                        OUTER JOIN은 조인 조건이 일치하지 않더라도 기준이 되는 테이블의 행을 결과에 포함시키는 JOIN입니다.<br/>
+                        기준 테이블의 행은 유지되고, 상대 테이블에 연결되는 데이터가 없으면 상대 테이블의 컬럼은 NULL로 표시됩니다.
+                    </p>
+
+                    <div class="outer-type-grid">
+                        <article>
+                            <h3>LEFT OUTER JOIN</h3>
+                            <p>왼쪽 테이블의 모든 행을 유지합니다.</p>
+                            <pre><code>FROM 기준테이블
+LEFT OUTER JOIN 상대테이블
+ON 조인조건</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>RIGHT OUTER JOIN</h3>
+                            <p>오른쪽 테이블의 모든 행을 유지합니다.</p>
+                            <pre><code>FROM 상대테이블
+RIGHT OUTER JOIN 기준테이블
+ON 조인조건</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>FULL OUTER JOIN</h3>
+                            <p>양쪽 테이블의 모든 행을 유지합니다.</p>
+                            <pre><code>FROM 테이블1
+FULL OUTER JOIN 테이블2
+ON 조인조건</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>기준 테이블이 핵심</h3>
+                        <p>
+                            LEFT, RIGHT라는 방향보다 중요한 것은 <strong>어느 테이블의 데이터를 모두 보고 싶은가</strong>입니다.<br/>
+                            사원이 없는 부서를 찾고 싶다면 부서 테이블인 DEPT가 기준 테이블이 되어야 합니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>4. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <p>
+                        OUTER JOIN은 기준 테이블을 보존합니다.<br/>
+                        DEPT를 기준으로 LEFT OUTER JOIN하면 사원이 없는 40번 부서도 결과에 남고,
+                        연결되는 EMP 데이터가 없으므로 EMP 쪽 컬럼은 NULL로 표시됩니다.
+                    </p>
+
+                    <div class="join-visual-grid">
+                        <article>
+                            <h3>DEPT 기준 테이블</h3>
+                            <div class="mini-table">
+                                <div class="mini-row mini-head">
+                                    <span>DEPTNO</span>
+                                    <span>DNAME</span>
+                                </div>
+                                <div class="mini-row">
+                                    <span>10</span>
+                                    <span>ACCOUNTING</span>
+                                </div>
+                                <div class="mini-row">
+                                    <span>20</span>
+                                    <span>RESEARCH</span>
+                                </div>
+                                <div class="mini-row">
+                                    <span>30</span>
+                                    <span>SALES</span>
+                                </div>
+                                <div class="mini-row highlight-row">
+                                    <span>40</span>
+                                    <span>OPERATIONS</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article>
+                            <h3>EMP 상대 테이블</h3>
+                            <div class="mini-table">
+                                <div class="mini-row mini-head">
+                                    <span>ENAME</span>
+                                    <span>DEPTNO</span>
+                                </div>
+                                <div class="mini-row">
+                                    <span>KING</span>
+                                    <span>10</span>
+                                </div>
+                                <div class="mini-row">
+                                    <span>SMITH</span>
+                                    <span>20</span>
+                                </div>
+                                <div class="mini-row">
+                                    <span>ALLEN</span>
+                                    <span>30</span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="join-arrow-box">
+                        <strong>DEPT D LEFT OUTER JOIN EMP E</strong>
+                        <span>DEPT의 모든 행을 유지하고, 연결되지 않은 EMP 컬럼은 NULL로 표시</span>
+                    </div>
+
+                    <div class="result-table">
+                        <div class="result-row result-head">
+                            <span>DEPTNO</span>
+                            <span>DNAME</span>
+                            <span>ENAME</span>
+                        </div>
+                        <div class="result-row">
+                            <span>10</span>
+                            <span>ACCOUNTING</span>
+                            <span>KING</span>
+                        </div>
+                        <div class="result-row">
+                            <span>20</span>
+                            <span>RESEARCH</span>
+                            <span>SMITH</span>
+                        </div>
+                        <div class="result-row">
+                            <span>30</span>
+                            <span>SALES</span>
+                            <span>ALLEN</span>
+                        </div>
+                        <div class="result-row highlight-row">
+                            <span>40</span>
+                            <span>OPERATIONS</span>
+                            <span>NULL</span>
+                        </div>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card left-card" id="left-outer">
+                    <div class="section-title-area">
+                        <span class="section-badge">LEFT OUTER JOIN</span>
+                        <h2>5. LEFT OUTER JOIN</h2>
+                    </div>
+
+                    <p>
+                        LEFT OUTER JOIN은 왼쪽 테이블을 기준으로 모든 행을 출력합니다.
+                        오른쪽 테이블에 매칭되는 행이 있으면 연결하고, 없으면 오른쪽 테이블 컬럼이 NULL로 표시됩니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. 모든 부서와 사원 연결</h3>
+                            <pre><code>SELECT D.DEPTNO,
+       D.DNAME,
+       E.ENAME
+FROM DEPT D LEFT OUTER JOIN EMP E
+ON D.DEPTNO = E.DEPTNO;</code></pre>
+                            <p>
+                                DEPT의 모든 부서를 출력하고, 해당 부서에 사원이 있으면 ENAME을 함께 보여줍니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 사원이 없는 부서만 찾기</h3>
+                            <pre><code>SELECT D.DEPTNO,
+       D.DNAME
+FROM DEPT D LEFT OUTER JOIN EMP E
+ON D.DEPTNO = E.DEPTNO
+WHERE E.EMPNO IS NULL;</code></pre>
+                            <p>
+                                연결되는 사원이 없는 부서는 EMP 쪽 PK인 E.EMPNO가 NULL이 됩니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="diagram-box">
+                        <h3>OUTER JOIN + IS NULL 공식</h3>
+                        <pre><code>SELECT 기준테이블.컬럼
+FROM 기준테이블 LEFT OUTER JOIN 상대테이블
+ON 기준테이블.공통컬럼 = 상대테이블.공통컬럼
+WHERE 상대테이블.PK컬럼 IS NULL;</code></pre>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card right-card" id="right-outer">
+                    <div class="section-title-area">
+                        <span class="section-badge">RIGHT OUTER JOIN</span>
+                        <h2>6. RIGHT OUTER JOIN</h2>
+                    </div>
+
+                    <p>
+                        RIGHT OUTER JOIN은 오른쪽 테이블을 기준으로 모든 행을 출력합니다.
+                        왼쪽 테이블에 매칭되는 행이 없으면 왼쪽 테이블 컬럼이 NULL로 표시됩니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>DEPT 기준 LEFT OUTER JOIN</h3>
+                            <pre><code>SELECT D.DEPTNO,
+       D.DNAME
+FROM DEPT D LEFT OUTER JOIN EMP E
+ON D.DEPTNO = E.DEPTNO
+WHERE E.EMPNO IS NULL;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>DEPT 기준 RIGHT OUTER JOIN</h3>
+                            <pre><code>SELECT D.DEPTNO,
+       D.DNAME
+FROM EMP E RIGHT OUTER JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO
+WHERE E.EMPNO IS NULL;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>두 SQL의 공통점</h3>
+                        <p>
+                            첫 번째 SQL은 DEPT가 왼쪽에 있어서 LEFT OUTER JOIN을 사용하고,<br/>
+                            두 번째 SQL은 DEPT가 오른쪽에 있어서 RIGHT OUTER JOIN을 사용합니다.
+                            둘 다 기준 테이블은 DEPT입니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card full-card" id="full-outer">
+                    <div class="section-title-area">
+                        <span class="section-badge">FULL OUTER JOIN</span>
+                        <h2>7. FULL OUTER JOIN</h2>
+                    </div>
+
+                    <p>
+                        FULL OUTER JOIN은 양쪽 테이블의 행을 모두 유지합니다.
+                        왼쪽에만 있는 데이터, 오른쪽에만 있는 데이터, 양쪽에 연결되는 데이터를 모두 출력합니다.<br/>
+                        다만 전형적인 PK/FK 관계에서는 기준 테이블이 명확한 경우가 많아 LEFT 또는 RIGHT OUTER JOIN을 더 자주 사용합니다.
+                    </p>
+
+                    <div class="sql-example">
+                        <h3>FULL OUTER JOIN 예제</h3>
+                        <pre><code>SELECT D.DEPTNO,
+       D.DNAME,
+       E.ENAME
+FROM EMP E FULL OUTER JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO;</code></pre>
+                        <p>
+                            EMP에만 있는 행, DEPT에만 있는 행, 양쪽에 연결되는 행을 모두 표시할 수 있습니다.
+                        </p>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>실무 감각</h3>
+                        <p>
+                            정상적인 부모-자식 관계에서는 “모든 부서”, “모든 회원”, “모든 게시글”처럼 기준 테이블이 정해진 경우가 많습니다.<br/>
+                            그래서 FULL OUTER JOIN보다 LEFT OUTER JOIN을 더 자주 사용하게 됩니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card parent-card" id="parent-child">
+                    <div class="section-title-area">
+                        <span class="section-badge">Parent Table</span>
+                        <h2>8. 왜 보통 부모 테이블을 기준으로 OUTER JOIN할까?</h2>
+                    </div>
+
+                    <p>
+                        교안에서는 자식을 기준으로 OUTER JOIN하면 INNER JOIN과 비슷해질 수 있으므로,
+                        보통 부모를 기준으로 OUTER JOIN한다고 설명합니다.<br/>
+                        부모 테이블은 기준 정보를 가진 테이블이고, 자식 테이블은 그 기준을 참조하는 데이터를 가진 테이블입니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>부모 테이블</h3>
+                            <pre><code>DEPT
+→ 부서 기준 정보
+→ DEPTNO, DNAME, LOC</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>자식 테이블</h3>
+                            <pre><code>EMP
+→ 사원 정보
+→ 각 사원이 DEPTNO로 DEPT를 참조</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>부모 기준 OUTER JOIN</h3>
+                            <pre><code>FROM DEPT D LEFT OUTER JOIN EMP E
+ON D.DEPTNO = E.DEPTNO</code></pre>
+                            <p>
+                                모든 부서를 유지하므로 사원이 없는 부서도 찾을 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>프로젝트 예시</h3>
+                            <pre><code>FROM BOARD B LEFT OUTER JOIN COMMENTS C
+ON B.BOARD_ID = C.BOARD_ID</code></pre>
+                            <p>
+                                모든 게시글을 기준으로 댓글이 없는 게시글을 찾을 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card hr-card" id="hr-outer">
+                    <div class="section-title-area">
+                        <span class="section-badge">HR Examples</span>
+                        <h2>9. HR 계정 OUTER JOIN 예제</h2>
+                    </div>
+
+                    <p>
+                        HR 계정에서는 직원이 없는 부서, 부서 배치가 안 된 직원, 부서의 도시와 국가 정보를 함께 조회하는 실습을 할 수 있습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>9-1. 부서 배치가 안 된 직원</h3>
+                            <pre><code>SELECT LAST_NAME || ' ' || FIRST_NAME AS "이름",
+       SALARY,
+       HIRE_DATE
+FROM EMPLOYEES
+WHERE DEPARTMENT_ID IS NULL;</code></pre>
+                            <p>
+                                EMPLOYEES에서 DEPARTMENT_ID가 NULL인 직원은 아직 부서가 배치되지 않은 직원입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. 충원이 안 된 부서</h3>
+                            <pre><code>SELECT D.DEPARTMENT_ID,
+       D.DEPARTMENT_NAME
+FROM DEPARTMENTS D LEFT OUTER JOIN EMPLOYEES E
+ON D.DEPARTMENT_ID = E.DEPARTMENT_ID
+WHERE E.EMPLOYEE_ID IS NULL;</code></pre>
+                            <p>
+                                DEPARTMENTS를 기준으로 모든 부서를 유지하고, 직원이 없는 부서만 찾습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-3. 충원이 안 된 부서 + 도시명 + 국가명</h3>
+                            <pre><code>SELECT D.DEPARTMENT_ID,
+       D.DEPARTMENT_NAME,
+       L.CITY,
+       C.COUNTRY_NAME
+FROM DEPARTMENTS D LEFT OUTER JOIN EMPLOYEES E
+ON D.DEPARTMENT_ID = E.DEPARTMENT_ID
+INNER JOIN LOCATIONS L
+ON D.LOCATION_ID = L.LOCATION_ID
+INNER JOIN COUNTRIES C
+ON C.COUNTRY_ID = L.COUNTRY_ID
+WHERE E.EMPLOYEE_ID IS NULL;</code></pre>
+                            <p>
+                                직원이 없는 부서를 찾은 뒤, 부서의 도시명과 국가명까지 연결해서 출력합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card self-card" id="self-join">
+                    <div class="section-title-area">
+                        <span class="section-badge">SELF JOIN</span>
+                        <h2>10. SELF JOIN이란?</h2>
+                    </div>
+
+                    <p>
+                        SELF JOIN은 같은 테이블을 자기 자신과 조인하는 방식입니다.
+                        별도의 SELF JOIN 키워드가 있는 것이 아니라, 같은 테이블에 서로 다른 별칭을 붙여 두 역할로 나누어 사용합니다.
+                    </p>
+
+                    <div class="diagram-box">
+                        <h3>EMP 테이블의 사원과 매니저 관계</h3>
+                        <pre><code>EMPNO   ENAME   MGR
+-----   ------  ----
+7369    SMITH   7902
+7902    FORD    7566
+7566    JONES   7839
+7839    KING    NULL
+
+SMITH의 MGR = 7902
+7902는 FORD의 EMPNO
+따라서 SMITH의 매니저는 FORD</code></pre>
+                    </div>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>EMP E1</h3>
+                            <p>사원 역할입니다.</p>
+                            <pre><code>E1.ENAME
+E1.MGR</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>EMP E2</h3>
+                            <p>매니저 역할입니다.</p>
+                            <pre><code>E2.EMPNO
+E2.ENAME</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>SELF JOIN 핵심 조건</h3>
+                        <pre><code>ON E1.MGR = E2.EMPNO</code></pre>
+                        <p>
+                            사원 E1의 매니저 번호가 매니저 E2의 사원번호와 같을 때 연결합니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card self-example-card" id="self-examples">
+                    <div class="section-title-area">
+                        <span class="section-badge">SELF JOIN Examples</span>
+                        <h2>11. SELF JOIN 예제</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>11-1. 사원명과 매니저명 표 형태 조회</h3>
+                            <pre><code>SELECT E1.EMPNO AS "사원번호",
+       E1.ENAME AS "사원명",
+       E2.EMPNO AS "매니저번호",
+       E2.ENAME AS "매니저명"
+FROM EMP E1 JOIN EMP E2
+ON E1.MGR = E2.EMPNO;</code></pre>
+                            <p>
+                                사원과 매니저를 같은 EMP 테이블에서 연결합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-2. 문장 형태로 출력</h3>
+                            <pre><code>SELECT E1.ENAME || '의 매니저는 ' || E2.ENAME || '입니다' AS "매니저 정보"
+FROM EMP E1 JOIN EMP E2
+ON E1.MGR = E2.EMPNO;</code></pre>
+                            <p>
+                                실습 문제 교안에서 제시된 SELF JOIN 예제입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-3. 매니저 없는 사원까지 포함</h3>
+                            <pre><code>SELECT E1.ENAME AS "사원명",
+       E2.ENAME AS "매니저명"
+FROM EMP E1 LEFT OUTER JOIN EMP E2
+ON E1.MGR = E2.EMPNO;</code></pre>
+                            <p>
+                                KING처럼 MGR이 NULL인 사원도 출력됩니다. 매니저명은 NULL로 표시됩니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-4. 서브쿼리 방식 비교</h3>
+                            <pre><code>SELECT ENAME || '의 매니저는 ' ||
+       (SELECT ENAME
+        FROM EMP
+        WHERE EMPNO = E1.MGR) || '입니다.' AS "매니저 정보"
+FROM EMP E1
+WHERE MGR IS NOT NULL;</code></pre>
+                            <p>
+                                SELF JOIN 대신 각 행마다 서브쿼리로 매니저 이름을 찾는 방식입니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>12. 실습 문제 연결</h2>
+                    </div>
+
+                    <p>
+                        실습 문제 교안의 OUTER JOIN과 SELF JOIN 문제는 미연결 데이터 찾기와 자기 참조 관계를 확인하는 데 좋습니다.<br/>
+                        문제를 읽을 때는 기준 테이블, 상대 테이블, 연결 조건, NULL 조건을 분리해서 확인해야 합니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 1. SCOTT 계정에서 충원이 안 된 부서 찾기</h3>
+                            <pre><code>SELECT DNAME
+FROM EMP E RIGHT OUTER JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO
+WHERE E.ENAME IS NULL;</code></pre>
+                            <p>
+                                오른쪽 테이블 DEPT를 기준으로 모든 부서를 유지하고,<br/>사원이 없는 부서만 찾습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>문제 1 보완. LEFT OUTER JOIN 방식</h3>
+                            <pre><code>SELECT D.DNAME
+FROM DEPT D LEFT OUTER JOIN EMP E
+ON D.DEPTNO = E.DEPTNO
+WHERE E.EMPNO IS NULL;</code></pre>
+                            <p>
+                                같은 의도를 DEPT 기준 LEFT OUTER JOIN으로 표현한 방식입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>문제 2. 부서 배치가 안 된 직원</h3>
+                            <pre><code>SELECT LAST_NAME || ' ' || FIRST_NAME AS "이름",
+       SALARY,
+       HIRE_DATE
+FROM EMPLOYEES
+WHERE DEPARTMENT_ID IS NULL;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 3. 충원이 안 된 부서</h3>
+                            <pre><code>SELECT D.DEPARTMENT_ID,
+       D.DEPARTMENT_NAME
+FROM DEPARTMENTS D LEFT OUTER JOIN EMPLOYEES E
+ON D.DEPARTMENT_ID = E.DEPARTMENT_ID
+WHERE E.EMPLOYEE_ID IS NULL;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 4. 충원이 안 된 부서 + 도시명 + 국가명</h3>
+                            <pre><code>SELECT D.DEPARTMENT_ID,
+       D.DEPARTMENT_NAME,
+       L.CITY,
+       C.COUNTRY_NAME
+FROM DEPARTMENTS D LEFT OUTER JOIN EMPLOYEES E
+ON D.DEPARTMENT_ID = E.DEPARTMENT_ID
+INNER JOIN LOCATIONS L
+ON D.LOCATION_ID = L.LOCATION_ID
+INNER JOIN COUNTRIES C
+ON C.COUNTRY_ID = L.COUNTRY_ID
+WHERE E.EMPLOYEE_ID IS NULL;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 5. SELF JOIN으로 매니저 찾기</h3>
+                            <pre><code>SELECT E1.ENAME || '의 매니저는 ' || E2.ENAME || '입니다' AS "매니저 정보"
+FROM EMP E1 JOIN EMP E2
+ON E1.MGR = E2.EMPNO;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 읽는 순서</h3>
+                            <pre><code>1. 기준 테이블은 무엇인가?
+   → DEPT 또는 DEPARTMENTS
+
+2. 상대 테이블은 무엇인가?
+   → EMP 또는 EMPLOYEES
+
+3. 연결 조건은 무엇인가?
+   → D.DEPTNO = E.DEPTNO
+   → D.DEPARTMENT_ID = E.DEPARTMENT_ID
+
+4. 매칭되지 않은 데이터 조건은?
+   → E.EMPNO IS NULL
+   → E.EMPLOYEE_ID IS NULL
+
+5. SELF JOIN의 역할 구분은?
+   → E1은 사원, E2는 매니저</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>13. Java / Spring / Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        OUTER JOIN은 “없는 데이터”를 찾는 관리자 기능과 통계 기능에서 자주 사용됩니다.<br/>
+                        SELF JOIN은 조직도, 카테고리 계층, 댓글과 대댓글처럼 같은 테이블 안에 부모-자식 관계가 있는 구조에서 자주 사용됩니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>댓글이 없는 게시글 찾기</h3>
+                            <pre><code>SELECT B.BOARD_ID,
+       B.TITLE
+FROM BOARD B LEFT OUTER JOIN COMMENTS C
+ON B.BOARD_ID = C.BOARD_ID
+WHERE C.COMMENT_ID IS NULL;</code></pre>
+                            <p>
+                                모든 게시글을 기준으로 댓글이 없는 게시글만 찾습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>문의가 없는 매물 찾기</h3>
+                            <pre><code>SELECT P.PROPERTY_ID,
+       P.TITLE
+FROM PROPERTY P LEFT OUTER JOIN INQUIRY I
+ON P.PROPERTY_ID = I.PROPERTY_ID
+WHERE I.INQUIRY_ID IS NULL;</code></pre>
+                            <p>
+                                모든 매물을 기준으로 문의가 없는 매물을 찾습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>좋아요가 없는 매물 찾기</h3>
+                            <pre><code>SELECT P.PROPERTY_ID,
+       P.TITLE
+FROM PROPERTY P LEFT OUTER JOIN PROPERTY_LIKE L
+ON P.PROPERTY_ID = L.PROPERTY_ID
+WHERE L.LIKE_ID IS NULL;</code></pre>
+                            <p>
+                                추천 품질 점검이나 매물 노출 개선 분석에 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>주문이 없는 회원 찾기</h3>
+                            <pre><code>SELECT U.USER_ID,
+       U.LOGIN_ID
+FROM USERS U LEFT OUTER JOIN ORDERS O
+ON U.USER_ID = O.USER_ID
+WHERE O.ORDER_ID IS NULL;</code></pre>
+                            <p>
+                                가입은 했지만 주문하지 않은 회원을 마케팅 대상으로 추출할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>조직도 SELF JOIN</h3>
+                            <pre><code>SELECT E.EMPLOYEE_NAME AS EMPLOYEE_NAME,
+       M.EMPLOYEE_NAME AS MANAGER_NAME
+FROM EMPLOYEE E LEFT OUTER JOIN EMPLOYEE M
+ON E.MANAGER_ID = M.EMPLOYEE_ID;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>카테고리 SELF JOIN</h3>
+                            <pre><code>SELECT C.CATEGORY_NAME AS CHILD_CATEGORY,
+       P.CATEGORY_NAME AS PARENT_CATEGORY
+FROM CATEGORY C LEFT OUTER JOIN CATEGORY P
+ON C.PARENT_CATEGORY_ID = P.CATEGORY_ID;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>댓글 대댓글 SELF JOIN</h3>
+                            <pre><code>SELECT C.COMMENT_ID,
+       C.CONTENT AS COMMENT_CONTENT,
+       P.CONTENT AS PARENT_CONTENT
+FROM COMMENTS C LEFT OUTER JOIN COMMENTS P
+ON C.PARENT_COMMENT_ID = P.COMMENT_ID;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>Spring JPQL OUTER JOIN</h3>
+                            <pre><code>@Query("""
+    SELECT new com.example.BoardNoCommentDto(
+        b.boardId,
+        b.title
+    )
+    FROM BoardEntity b
+    LEFT JOIN CommentEntity c
+      ON b.boardId = c.boardId
+    WHERE c.commentId IS NULL
+""")
+List&lt;BoardNoCommentDto&gt; findBoardsWithoutComments();</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>JPA 자기 참조 관계</h3>
+                            <pre><code>@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "PARENT_CATEGORY_ID")
+private CategoryEntity parent;</code></pre>
+                            <p>
+                                엔티티에서 자기 자신을 참조하는 구조는 SQL의 SELF JOIN과 연결됩니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>14. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. OUTER JOIN의 기준 테이블을 잘못 둔다.</strong>
+                            <span>사원이 없는 부서를 찾고 싶다면 기준 테이블은 EMP가 아니라 DEPT입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. OUTER JOIN 후 NULL 조건을 잘못 건다.</strong>
+                            <span>매칭되지 않은 데이터를 찾으려면 상대 테이블의 PK 또는 주요 컬럼에 IS NULL을 걸어야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. LEFT OUTER JOIN 후 WHERE 조건으로 NULL 행을 제거한다.</strong>
+                            <span>오른쪽 테이블의 일반 조건을 WHERE에 걸면 미매칭 NULL 행이 제거되어 INNER JOIN처럼 보일 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. LEFT와 RIGHT를 방향으로만 외운다.</strong>
+                            <span>더 중요한 것은 어느 테이블의 모든 데이터를 보존할 것인지입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. SELF JOIN에서 별칭을 안 붙인다.</strong>
+                            <span>같은 테이블을 두 번 사용하므로 E1, E2처럼 역할별 별칭이 반드시 필요합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. SELF JOIN의 역할을 헷갈린다.</strong>
+                            <span>E1은 사원 역할, E2는 매니저 역할처럼 역할을 분리해서 읽어야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. 매니저 없는 사원이 INNER SELF JOIN에서 빠지는 이유를 모른다.</strong>
+                            <span>MGR이 NULL인 사원은 INNER SELF JOIN 조건을 만족하지 못하므로 제외됩니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 8. FULL OUTER JOIN을 아무 때나 사용한다.</strong>
+                            <span>대부분의 실무 요구사항은 기준 테이블이 명확하므로 LEFT OUTER JOIN으로 충분한 경우가 많습니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>15. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. OUTER JOIN이란 무엇인가요?</h3>
+                            <p>
+                                OUTER JOIN은 두 테이블을 조인할 때 조인 조건이 일치하지 않는 행도 기준 테이블에 따라 결과에 포함시키는 조인입니다.<br/>
+                                INNER JOIN은 조건이 일치하는 행만 출력하지만, OUTER JOIN은 왼쪽, 오른쪽 또는 양쪽 테이블의 데이터를 보존할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. LEFT OUTER JOIN과 RIGHT OUTER JOIN의 차이는 무엇인가요?</h3>
+                            <p>
+                                LEFT OUTER JOIN은 왼쪽 테이블의 모든 행을 유지하고, RIGHT OUTER JOIN은 오른쪽 테이블의 모든 행을 유지합니다.<br/>
+                                중요한 것은 방향 자체보다 어느 테이블을 기준으로 보존할 것인지입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. INNER JOIN과 OUTER JOIN의 차이는 무엇인가요?</h3>
+                            <p>
+                                INNER JOIN은 양쪽 테이블에서 조인 조건이 일치하는 행만 출력합니다.
+                                OUTER JOIN은 조인 조건이 일치하지 않아도 기준 테이블의 행을 출력할 수 있습니다.<br/>
+                                예를 들어 사원이 없는 부서도 조회하려면 DEPT를 기준으로 OUTER JOIN을 사용해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. OUTER JOIN으로 매칭되지 않은 데이터를 어떻게 찾나요?</h3>
+                            <p>
+                                기준 테이블을 OUTER JOIN으로 모두 유지한 뒤, 상대 테이블의 PK 또는 주요 컬럼이 NULL인 행을 찾으면 됩니다.<br/>
+                                예를 들어 사원이 없는 부서를 찾으려면 DEPT LEFT OUTER JOIN EMP를 사용하고 WHERE EMP.EMPNO IS NULL 조건을 줄 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. SELF JOIN이란 무엇인가요?</h3>
+                            <p>
+                                SELF JOIN은 같은 테이블을 자기 자신과 조인하는 방식입니다.
+                                같은 테이블 안에 부모-자식 관계나 계층 관계가 있을 때 사용합니다.<br/>
+                                예를 들어 EMP 테이블에서 EMPNO와 MGR을 이용해 사원과 매니저를 연결할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. SELF JOIN에서 왜 별칭이 필요한가요?</h3>
+                            <p>
+                                SELF JOIN은 같은 테이블을 두 번 사용하기 때문에 각각의 역할을 구분해야 합니다.<br/>
+                                예를 들어 EMP 테이블을 사원 역할의 E1, 매니저 역할의 E2로 나누고 E1.MGR = E2.EMPNO 조건으로 연결합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. SELF JOIN에서 매니저가 없는 사원까지 출력하려면 어떻게 하나요?</h3>
+                            <p>
+                                일반 INNER SELF JOIN은 MGR이 NULL인 사원을 제외합니다.
+                                매니저가 없는 사원까지 출력하려면 사원 역할의 테이블을 기준으로 LEFT OUTER JOIN을 사용하면 됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. OUTER JOIN에서 WHERE 조건을 사용할 때 주의할 점은 무엇인가요?</h3>
+                            <p>
+                                OUTER JOIN 후 상대 테이블 컬럼에 일반 조건을 WHERE에 걸면 NULL로 유지되던 미매칭 행이 제거되어 결과가 INNER JOIN처럼 줄어들 수 있습니다.<br/>
+                                미매칭 데이터를 찾을 때는 보통 상대 테이블의 PK 컬럼에 IS NULL 조건을 사용합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>16. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>OUTER JOIN
+→ 조인 조건이 일치하지 않아도 기준 테이블의 행을 출력하는 JOIN
+
+LEFT OUTER JOIN
+→ 왼쪽 테이블의 데이터를 모두 보존
+
+RIGHT OUTER JOIN
+→ 오른쪽 테이블의 데이터를 모두 보존
+
+FULL OUTER JOIN
+→ 양쪽 테이블의 데이터를 모두 보존
+
+보통 부모 기준 OUTER JOIN
+→ 사원이 없는 부서, 주문 없는 회원, 댓글 없는 게시글처럼 미연결 데이터 찾기에 사용
+
+OUTER JOIN + IS NULL
+→ 매칭되지 않은 데이터 찾기
+
+SELF JOIN
+→ 같은 테이블을 서로 다른 별칭으로 나누어 자기 자신과 JOIN
+
+SELF JOIN 대표 조건
+→ E1.MGR = E2.EMPNO
+
+INNER SELF JOIN
+→ 매니저가 있는 사원만 조회
+
+LEFT OUTER SELF JOIN
+→ 매니저가 없는 사원까지 포함</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>읽는 순서</h3>
+                        <pre><code>1. 기준 테이블이 무엇인지 확인한다.
+2. LEFT / RIGHT / FULL 중 어떤 OUTER JOIN인지 확인한다.
+3. ON에서 연결 조건을 확인한다.
+4. 매칭되지 않은 데이터를 찾는다면 상대 테이블의 IS NULL 조건을 확인한다.
+5. SELF JOIN이면 같은 테이블이 어떤 역할로 나뉘었는지 확인한다.
+6. E1.MGR = E2.EMPNO처럼 자기 참조 조건을 해석한다.</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        OUTER JOIN은 연결되지 않은 데이터를 찾는 데 중요합니다.
+                        SELF JOIN은 같은 테이블 안에 있는 부모-자식 관계를 조회할 때 사용합니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>OUTER JOIN 기본 문법</h3>
+                    <pre><code>SELECT 기준테이블.컬럼,
+       상대테이블.컬럼
+FROM 기준테이블 LEFT OUTER JOIN 상대테이블
+ON 기준테이블.공통컬럼 = 상대테이블.공통컬럼;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>미매칭 데이터 찾기</h3>
+                    <pre><code>SELECT 기준테이블.컬럼
+FROM 기준테이블 LEFT OUTER JOIN 상대테이블
+ON 기준테이블.공통컬럼 = 상대테이블.공통컬럼
+WHERE 상대테이블.PK컬럼 IS NULL;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>SELF JOIN 기본 문법</h3>
+                    <pre><code>SELECT E1.컬럼 AS "현재 데이터",
+       E2.컬럼 AS "연결된 상위 데이터"
+FROM 테이블 E1 JOIN 테이블 E2
+ON E1.상위ID = E2.ID;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>암기 포인트</h3>
+                    <ul>
+                        <li><strong>INNER JOIN</strong> : 조건이 맞는 행만 출력</li>
+                        <li><strong>LEFT OUTER JOIN</strong> : 왼쪽 기준 전체 유지</li>
+                        <li><strong>RIGHT OUTER JOIN</strong> : 오른쪽 기준 전체 유지</li>
+                        <li><strong>FULL OUTER JOIN</strong> : 양쪽 전체 유지</li>
+                        <li><strong>OUTER JOIN + IS NULL</strong> : 연결 안 된 데이터 찾기</li>
+                        <li><strong>SELF JOIN</strong> : 같은 테이블을 역할별 별칭으로 나누어 연결</li>
+                    </ul>
+                </div>
+
+                <div class="note-card">
+                    <h3>실습 확인 순서</h3>
+                    <ol>
+                        <li>INNER JOIN으로 연결되는 데이터만 먼저 확인</li>
+                        <li>DEPT 기준 LEFT OUTER JOIN 실행</li>
+                        <li>EMP 쪽 컬럼이 NULL인 부서 찾기</li>
+                        <li>RIGHT OUTER JOIN으로 같은 결과 비교</li>
+                        <li>HR 계정에서 직원이 없는 부서 찾기</li>
+                        <li>EMP 테이블에서 EMPNO, ENAME, MGR 확인</li>
+                        <li>SELF JOIN으로 사원과 매니저 연결</li>
+                        <li>LEFT OUTER SELF JOIN으로 매니저 없는 사원까지 확인</li>
+                    </ol>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        OUTER JOIN에서는 기준 테이블을 잘못 잡으면 원하는 미매칭 데이터를 찾지 못합니다.
+                        SELF JOIN에서는 같은 테이블을 두 번 사용하므로 반드시 별칭을 붙이고 역할을 구분해야 합니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        댓글 없는 게시글, 문의 없는 매물, 좋아요 없는 매물은 OUTER JOIN + IS NULL로 찾을 수 있습니다.
+                        카테고리 계층, 조직도, 댓글 대댓글 구조는 SELF JOIN과 연결됩니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>
