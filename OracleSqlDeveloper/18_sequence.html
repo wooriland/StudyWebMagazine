@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oracle SQL Developer 학습 매거진 - SEQUENCE</title>
+    <title>Oracle SQL Developer 학습 매거진 - 시퀀스</title>
 
     <link rel="stylesheet" href="../css/00_nav.css">
     <link rel="stylesheet" href="../css/OracleSqlDeveloper/18_sequence.css">
@@ -17,43 +17,1174 @@
         <div class="page-content">
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 18</p>
-                <h1>SEQUENCE</h1>
+                <h1>시퀀스 SEQUENCE</h1>
+
                 <p class="chapter-description">
-                    시퀀스를 이용해 자동 증가 값을 생성하고 사용하는 방법을 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    시퀀스는 Oracle에서 자동으로 증가하는 일련번호를 만들어주는 데이터베이스 객체입니다.<br/>
+                    회원번호, 게시글번호, 댓글번호, 매물번호, 로그번호처럼 중복되면 안 되는 PK 값을 자동으로 발급할 때 사용합니다.<br/>
+                    이번 단원에서는 CREATE SEQUENCE, NEXTVAL, CURRVAL, ALTER SEQUENCE, DROP SEQUENCE,
+                    USER_SEQUENCES 조회 방법을<br/>SQL Developer에서 직접 실행하며 학습합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            시퀀스가 왜 필요한지 이해하고<br/>
+                            PK 자동 채번 구조를 설명할 수 있다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            테이블 생성 → 시퀀스 생성 → NEXTVAL 사용 →<br/>
+                            INSERT → USER_SEQUENCES 확인
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>
+                            JPA @SequenceGenerator,<br/>
+                            MyBatis INSERT, 게시판·매물·로그 PK 생성과 연결한다.
+                        </span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 시퀀스란?</h2>
+                    </div>
+
+                    <p>
+                        시퀀스는 Oracle에서 자동으로 숫자를 발급해주는 데이터베이스 객체입니다.
+                        테이블의 컬럼 그 자체는 아니고, 테이블과 별도로 만들어서 INSERT할 때 가져다 쓰는 객체입니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>SEQUENCE</strong>
+                            <span>자동 증가 번호를 만들어주는 Oracle 객체</span>
+                        </div>
+                        <div>
+                            <strong>NEXTVAL</strong>
+                            <span>다음 번호를 새로 발급하는 키워드</span>
+                        </div>
+                        <div>
+                            <strong>CURRVAL</strong>
+                            <span>현재 세션에서 마지막으로 발급받은 번호 확인</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>시퀀스</strong>는 회원번호, 게시글번호, 매물번호처럼
+                            중복되면 안 되는 일련번호를 Oracle이 자동으로 발급해주는 객체입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 핵심 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. 왜 시퀀스를 쓰는가?</h3>
+                    <p>
+                        테이블의 PK 값은 중복되면 안 됩니다.
+                        회원번호, 게시글번호, 댓글번호, 주문번호, 로그번호는 각 데이터 한 건을 식별하는 값이기 때문에
+                        안전하게 자동으로 발급되어야 합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>회원가입</h3>
+                            <p>새 회원이 가입할 때마다 USER_ID를 자동으로 발급합니다.</p>
+                            <pre><code>users_seq.NEXTVAL</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>게시글 작성</h3>
+                            <p>새 게시글이 작성될 때마다 BOARD_ID를 자동으로 발급합니다.</p>
+                            <pre><code>board_seq.NEXTVAL</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>조회 로그 저장</h3>
+                            <p>사용자가 매물을 볼 때마다 VIEW_ID를 자동으로 발급합니다.</p>
+                            <pre><code>property_view_log_seq.NEXTVAL</code></pre>
+                        </article>
+                    </div>
+
+                    <h3>2-2. MAX(id) + 1 방식의 한계</h3>
+                    <p>
+                        시퀀스를 모른다면 마지막 번호를 조회한 뒤 1을 더해서 새 번호로 사용하는 방식을 떠올릴 수 있습니다.<br/>
+                        교안에서도 시퀀스를 모른다고 가정했을 때 `MAX(일련번호컬럼)+1` 방식으로 입력할 수 있다고 소개합니다.<br/>
+                        하지만 이 방식은 테이블이 비어 있을 때 NULL 문제가 생기고, 여러 사용자가 동시에 INSERT하면 중복 번호가 발생할 수 있습니다.
+                    </p>
+
+                    <pre><code>INSERT INTO board (
+    board_id,
+    title
+) VALUES (
+    (SELECT MAX(board_id) + 1 FROM board),
+    '새 게시글'
+);</code></pre>
+
+                    <div class="warning-box">
+                        <h3>MAX + 1 방식의 문제</h3>
+                        <ul>
+                            <li>테이블이 비어 있으면 MAX 값이 NULL이 될 수 있습니다.</li>
+                            <li>동시에 여러 사용자가 INSERT하면 같은 번호를 계산할 수 있습니다.</li>
+                            <li>매번 테이블에서 최대값을 조회해야 하므로 안정성과 성능 면에서 좋지 않습니다.</li>
+                        </ul>
+                    </div>
+
+                    <h3>2-3. 시퀀스가 해결하는 문제</h3>
+                    <p>
+                        시퀀스는 Oracle이 번호를 전용 객체로 관리합니다.
+                        여러 사용자가 동시에 `NEXTVAL`을 호출해도 서로 다른 번호를 발급받습니다.
+                    </p>
+
+                    <div class="sequence-flow">
+                        <div>
+                            <span>사용자 A</span>
+                            <strong>board_seq.NEXTVAL → 101</strong>
+                        </div>
+                        <div>
+                            <span>사용자 B</span>
+                            <strong>board_seq.NEXTVAL → 102</strong>
+                        </div>
+                        <div>
+                            <span>사용자 C</span>
+                            <strong>board_seq.NEXTVAL → 103</strong>
+                        </div>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>3-1. 시퀀스는 번호표 발급기</h3>
+                    <p>
+                        시퀀스는 은행이나 병원의 번호표 발급기처럼 이해하면 쉽습니다.
+                        `NEXTVAL`을 호출할 때마다 새로운 번호표가 하나씩 발급됩니다.
+                    </p>
+
+                    <div class="ticket-machine">
+                        <div class="machine-box">
+                            <strong>SEQUENCE</strong>
+                            <p>번호표 발급기</p>
+                        </div>
+
+                        <div class="ticket-list">
+                            <div>
+                                <span>1회 호출</span>
+                                <strong>NEXTVAL → 1</strong>
+                            </div>
+                            <div>
+                                <span>2회 호출</span>
+                                <strong>NEXTVAL → 2</strong>
+                            </div>
+                            <div>
+                                <span>3회 호출</span>
+                                <strong>NEXTVAL → 3</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>3-2. INSERT에서 시퀀스가 사용되는 흐름</h3>
+                    <p>
+                        사용자가 회원가입이나 게시글 작성을 요청하면, INSERT 문 안에서 시퀀스의 NEXTVAL을 호출해
+                        PK 값을 자동으로 채운 뒤 데이터가 저장됩니다.
+                    </p>
+
+                    <div class="command-sequence">
+                        <div>
+                            <span>1</span>
+                            <strong>사용자 요청</strong>
+                            <p>회원가입 또는 게시글 작성</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>NEXTVAL 호출</strong>
+                            <p>시퀀스가 다음 번호 발급</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>INSERT 저장</strong>
+                            <p>PK 컬럼에 발급된 번호 저장</p>
+                        </div>
+                    </div>
+
+                    <h3>3-3. 번호가 건너뛰어도 정상</h3>
+                    <p>
+                        시퀀스 번호는 항상 1, 2, 3, 4처럼 연속되어야 하는 것이 아닙니다.
+                        NEXTVAL을 조회만 해도 번호가 소비되고, INSERT 실패나 CACHE 사용으로 번호가 건너뛸 수 있습니다.
+                    </p>
+
+                    <div class="gap-visual">
+                        <div class="number-card used">1<br/><span>저장</span></div>
+                        <div class="number-card skipped">2<br/><span>실패</span></div>
+                        <div class="number-card skipped">3<br/><span>테스트</span></div>
+                        <div class="number-card used">4<br/><span>저장</span></div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>핵심 이해</h3>
+                        <p>
+                            시퀀스의 목적은 번호를 빠짐없이 연속으로 만드는 것이 아니라,
+                            중복되지 않는 고유 번호를 안전하게 발급하는 것입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>4. 시퀀스 기본 문법</h2>
+                    </div>
+
+                    <p>
+                        교안의 시퀀스 생성 문법은 `CREATE SEQUENCE 시퀀스명` 뒤에<br/>
+                        `INCREMENT BY`, `START WITH`, `MAXVALUE`, `MINVALUE`, `CYCLE`, `NOCYCLE`,
+                        `CACHE`, `NOCACHE` 옵션을 붙이는 구조입니다.
+                    </p>
+
+                    <pre><code>CREATE SEQUENCE 시퀀스명
+[INCREMENT BY 증가값]
+[START WITH 시작값]
+[MAXVALUE 최대값 | MINVALUE 최소값]
+[CYCLE | NOCYCLE]
+[CACHE 숫자 | NOCACHE];</code></pre>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>옵션</th>
+                                    <th>의미</th>
+                                    <th>예시</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>START WITH</td>
+                                    <td>처음 발급할 값</td>
+                                    <td>START WITH 1</td>
+                                </tr>
+                                <tr>
+                                    <td>INCREMENT BY</td>
+                                    <td>몇씩 증가할지</td>
+                                    <td>INCREMENT BY 1</td>
+                                </tr>
+                                <tr>
+                                    <td>MINVALUE</td>
+                                    <td>시퀀스 최소값</td>
+                                    <td>MINVALUE 1</td>
+                                </tr>
+                                <tr>
+                                    <td>MAXVALUE</td>
+                                    <td>시퀀스 최대값</td>
+                                    <td>MAXVALUE 9999</td>
+                                </tr>
+                                <tr>
+                                    <td>CYCLE</td>
+                                    <td>최대값 이후 다시 반복</td>
+                                    <td>CYCLE</td>
+                                </tr>
+                                <tr>
+                                    <td>NOCYCLE</td>
+                                    <td>최대값 이후 반복하지 않음</td>
+                                    <td>NOCYCLE</td>
+                                </tr>
+                                <tr>
+                                    <td>CACHE</td>
+                                    <td>번호를 메모리에 미리 확보</td>
+                                    <td>CACHE 20</td>
+                                </tr>
+                                <tr>
+                                    <td>NOCACHE</td>
+                                    <td>번호를 미리 확보하지 않음</td>
+                                    <td>NOCACHE</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>교안 기준 주의점</h3>
+                        <ul>
+                            <li>START WITH 값은 MINVALUE보다 작을 수 없습니다.</li>
+                            <li>NOCYCLE 상태에서 MAXVALUE를 초과하면 오류가 발생합니다.</li>
+                            <li>PRIMARY KEY용 시퀀스에는 CYCLE 옵션을 지정하면 안 됩니다.</li>
+                            <li>START WITH는 ALTER SEQUENCE로 수정할 수 없습니다.</li>
+                        </ul>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card setup-card" id="setup">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Developer</span>
+                        <h2>5. SQL Developer 실습 준비</h2>
+                    </div>
+
+                    <p>
+                        이번 단원은 SQL Developer에서 직접 시퀀스를 만들고,
+                        NEXTVAL과 CURRVAL을 확인한 뒤 INSERT에 사용하는 흐름으로 실습합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. 기존 실습 객체 정리</h3>
+                            <pre><code>DROP TABLE seq_member PURGE;
+DROP SEQUENCE seq_member_no;</code></pre>
+                            <p>
+                                처음 실행하면 ORA-00942 또는 ORA-02289 오류가 날 수 있습니다.<br/>
+                                삭제할 테이블이나 시퀀스가 없다는 뜻이므로 첫 실습에서는 괜찮습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 실습 테이블 생성</h3>
+                            <pre><code>CREATE TABLE seq_member (
+    member_no NUMBER,
+    login_id VARCHAR2(30) NOT NULL,
+    member_name VARCHAR2(50) NOT NULL,
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT pk_seq_member PRIMARY KEY (member_no),
+    CONSTRAINT uk_seq_member_login UNIQUE (login_id)
+);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-3. 테이블 구조 확인</h3>
+                            <pre><code>DESC seq_member;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-4. 시퀀스 생성</h3>
+                            <pre><code>CREATE SEQUENCE seq_member_no
+INCREMENT BY 1
+START WITH 1
+NOCACHE
+NOCYCLE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-5. 시퀀스 정보 확인</h3>
+                            <pre><code>SELECT sequence_name,
+       min_value,
+       max_value,
+       increment_by,
+       cycle_flag,
+       cache_size,
+       last_number
+FROM user_sequences
+WHERE sequence_name = 'SEQ_MEMBER_NO';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-6. NEXTVAL과 CURRVAL 확인</h3>
+                            <pre><code>SELECT seq_member_no.NEXTVAL
+FROM dual;
+
+SELECT seq_member_no.CURRVAL
+FROM dual;</code></pre>
+                            <p>
+                                CURRVAL은 같은 세션에서 NEXTVAL을 먼저 실행한 뒤에 사용할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card insert-card" id="insert">
+                    <div class="section-title-area">
+                        <span class="section-badge">INSERT</span>
+                        <h2>6. INSERT에서 시퀀스 사용하기</h2>
+                    </div>
+
+                    <p>
+                        시퀀스는 보통 INSERT 문에서 PK 컬럼 값을 자동으로 채우는 데 사용합니다.
+                        `시퀀스명.NEXTVAL`을 VALUES절에 작성하면 INSERT할 때마다 새 번호가 발급됩니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. 회원 데이터 입력</h3>
+                            <pre><code>INSERT INTO seq_member (
+    member_no,
+    login_id,
+    member_name
+) VALUES (
+    seq_member_no.NEXTVAL,
+    'hong',
+    '홍길동'
+);
+
+INSERT INTO seq_member (
+    member_no,
+    login_id,
+    member_name
+) VALUES (
+    seq_member_no.NEXTVAL,
+    'kim',
+    '김철수'
+);
+
+INSERT INTO seq_member (
+    member_no,
+    login_id,
+    member_name
+) VALUES (
+    seq_member_no.NEXTVAL,
+    'lee',
+    '이영희'
+);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. 입력 결과 확인</h3>
+                            <pre><code>SELECT *
+FROM seq_member
+ORDER BY member_no;</code></pre>
+                            <p>
+                                앞에서 NEXTVAL을 테스트했다면 MEMBER_NO가 1, 2, 3으로 시작하지 않을 수 있습니다.
+                                NEXTVAL은 SELECT로 확인만 해도 번호가 소비됩니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. 현재 시퀀스 값 확인</h3>
+                            <pre><code>SELECT seq_member_no.CURRVAL
+FROM dual;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card rule-card" id="rules">
+                    <div class="section-title-area">
+                        <span class="section-badge">Rules</span>
+                        <h2>7. NEXTVAL과 CURRVAL 사용 규칙</h2>
+                    </div>
+
+                    <p>
+                        교안에서는 NEXTVAL과 CURRVAL을 사용할 수 있는 구문과 사용할 수 없는 구문을 구분해서 설명합니다.<br/>
+                        시퀀스는 INSERT에서 PK 값을 생성할 때 사용하는 것이 가장 안전하고 명확합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>사용 가능한 곳</h3>
+                            <ul>
+                                <li>서브쿼리가 아닌 SELECT문</li>
+                                <li>INSERT문의 VALUES절</li>
+                                <li>UPDATE문의 SET절</li>
+                            </ul>
+                            <pre><code>SELECT seq_member_no.NEXTVAL
+FROM dual;
+
+INSERT INTO seq_member(member_no, login_id, member_name)
+VALUES (seq_member_no.NEXTVAL, 'park', '박민수');</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>사용할 수 없는 곳</h3>
+                            <ul>
+                                <li>VIEW문의 SELECT문</li>
+                                <li>DISTINCT를 사용한 SELECT문</li>
+                                <li>GROUP BY, HAVING, ORDER BY를 이용한 SELECT문</li>
+                            </ul>
+                            <pre><code>-- 피해야 할 예
+SELECT DISTINCT seq_member_no.NEXTVAL
+FROM seq_member;
+
+SELECT seq_member_no.NEXTVAL
+FROM seq_member
+ORDER BY login_id;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>같은 절에서 NEXTVAL을 여러 번 쓰면?</h3>
+                        <p>
+                            교안에서는 같은 절 안에서 NEXTVAL을 여러 번 사용해도 값은 같다고 설명합니다.<br/>
+                            다만 실무에서는 혼동을 줄이기 위해 보통 한 INSERT에서 하나의 PK 컬럼에만 NEXTVAL을 사용합니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card alter-card" id="alter">
+                    <div class="section-title-area">
+                        <span class="section-badge">ALTER / DROP</span>
+                        <h2>8. 시퀀스 수정과 삭제</h2>
+                    </div>
+
+                    <p>
+                        시퀀스는 생성 후 일부 옵션을 수정할 수 있습니다.
+                        하지만 START WITH는 ALTER SEQUENCE로 수정할 수 없습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>8-1. ALTER SEQUENCE 기본 문법</h3>
+                            <pre><code>ALTER SEQUENCE 시퀀스명
+[INCREMENT BY 증가값]
+[MAXVALUE n | MINVALUE n]
+[CYCLE | NOCYCLE]
+[CACHE n | NOCACHE];</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-2. 증가값 변경</h3>
+                            <pre><code>ALTER SEQUENCE seq_member_no
+INCREMENT BY 10;
+
+SELECT seq_member_no.NEXTVAL
+FROM dual;
+
+ALTER SEQUENCE seq_member_no
+INCREMENT BY 1;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-3. START WITH는 수정 불가</h3>
+                            <pre><code>-- 불가능한 예
+ALTER SEQUENCE seq_member_no
+START WITH 100;</code></pre>
+                            <p>
+                                시작값을 다시 잡으려면 시퀀스를 DROP 후 CREATE 해야 합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-4. 시퀀스 삭제</h3>
+                            <pre><code>DROP SEQUENCE seq_member_no;
+
+SELECT sequence_name
+FROM user_sequences
+WHERE sequence_name = 'SEQ_MEMBER_NO';</code></pre>
+                            <p>
+                                시퀀스를 삭제해도 이미 테이블에 들어간 데이터는 삭제되지 않습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card option-card" id="options">
+                    <div class="section-title-area">
+                        <span class="section-badge">Options</span>
+                        <h2>9. MAXVALUE, CYCLE, CACHE 실습</h2>
+                    </div>
+
+                    <p>
+                        MAXVALUE, CYCLE, CACHE는 시퀀스의 동작 범위와 성능에 영향을 줍니다.
+                        학습 단계에서는 먼저 NOCACHE, NOCYCLE의 의미를 명확히 이해하는 것이 좋습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>9-1. NOCYCLE 시퀀스</h3>
+                            <pre><code>DROP SEQUENCE small_seq;
+
+CREATE SEQUENCE small_seq
+START WITH 1
+INCREMENT BY 1
+MAXVALUE 3
+NOCACHE
+NOCYCLE;
+
+SELECT small_seq.NEXTVAL FROM dual;
+SELECT small_seq.NEXTVAL FROM dual;
+SELECT small_seq.NEXTVAL FROM dual;
+
+-- 한 번 더 실행하면 MAXVALUE 초과 오류 발생
+SELECT small_seq.NEXTVAL FROM dual;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. CYCLE 시퀀스</h3>
+                            <pre><code>DROP SEQUENCE cycle_seq;
+
+CREATE SEQUENCE cycle_seq
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 3
+NOCACHE
+CYCLE;
+
+SELECT cycle_seq.NEXTVAL FROM dual;
+SELECT cycle_seq.NEXTVAL FROM dual;
+SELECT cycle_seq.NEXTVAL FROM dual;
+SELECT cycle_seq.NEXTVAL FROM dual;</code></pre>
+                            <p>
+                                결과가 1, 2, 3, 1처럼 반복될 수 있으므로 PK용 시퀀스에는 적합하지 않습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-3. CACHE 오류와 해결</h3>
+                            <pre><code>-- MAXVALUE 10에 CYCLE을 사용하는데 기본 CACHE가 더 크면 오류 가능
+CREATE SEQUENCE cycle_cache_seq
+MAXVALUE 10
+CACHE 9
+CYCLE;
+
+-- 또는 NOCACHE 사용
+CREATE SEQUENCE cycle_nocache_seq
+MAXVALUE 10
+NOCACHE
+CYCLE;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>PK용 시퀀스 원칙</h3>
+                        <p>
+                            PK 값을 만들기 위한 시퀀스는 보통 START WITH 1, INCREMENT BY 1, NOCYCLE 형태로 만듭니다.
+                            CYCLE을 사용하면 기존 PK와 중복될 수 있으므로 피해야 합니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card result-card" id="result">
+                    <div class="section-title-area">
+                        <span class="section-badge">Result Check</span>
+                        <h2>10. 결과 화면 확인</h2>
+                    </div>
+
+                    <p>
+                        시퀀스 실습 후에는 USER_SEQUENCES와 DUAL, 실제 테이블 데이터를 함께 확인해야 합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>10-1. 시퀀스 목록 확인</h3>
+                            <pre><code>SELECT sequence_name
+FROM user_sequences
+ORDER BY sequence_name;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-2. 특정 시퀀스 정보 확인</h3>
+                            <pre><code>SELECT sequence_name,
+       min_value,
+       max_value,
+       increment_by,
+       cycle_flag,
+       cache_size,
+       last_number
+FROM user_sequences
+WHERE sequence_name = 'SEQ_MEMBER_NO';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-3. NEXTVAL 확인</h3>
+                            <pre><code>SELECT seq_member_no.NEXTVAL
+FROM dual;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-4. CURRVAL 확인</h3>
+                            <pre><code>SELECT seq_member_no.CURRVAL
+FROM dual;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-5. 테이블 데이터 확인</h3>
+                            <pre><code>SELECT *
+FROM seq_member
+ORDER BY member_no;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>11. 실습 문제 카드</h2>
+                    </div>
+
+                    <p>
+                        첨부된 실습 문제 PDF는 주로 SELECT, JOIN, SUBQUERY, TOP-N, 함수, PL/SQL 중심이지만,
+                        시퀀스는 이후 INSERT 실습과 테이블 설계 실습에 직접 연결됩니다.<br/>
+                        게시판, 댓글, 로그 테이블을 직접 만들어 시퀀스와 함께 연습하면 좋습니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 1. 회원 테이블과 시퀀스 만들기</h3>
+                            <pre><code>CREATE TABLE study_member (
+    member_id NUMBER,
+    login_id VARCHAR2(30) NOT NULL,
+    member_name VARCHAR2(50) NOT NULL,
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT pk_study_member PRIMARY KEY (member_id),
+    CONSTRAINT uk_study_member_login UNIQUE (login_id)
+);
+
+CREATE SEQUENCE study_member_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 2. 시퀀스로 데이터 입력</h3>
+                            <pre><code>INSERT INTO study_member (
+    member_id,
+    login_id,
+    member_name
+) VALUES (
+    study_member_seq.NEXTVAL,
+    'hong',
+    '홍길동'
+);
+
+INSERT INTO study_member (
+    member_id,
+    login_id,
+    member_name
+) VALUES (
+    study_member_seq.NEXTVAL,
+    'kim',
+    '김철수'
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 3. CURRVAL 확인</h3>
+                            <pre><code>SELECT study_member_seq.CURRVAL
+FROM dual;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 4. USER_SEQUENCES 조회</h3>
+                            <pre><code>SELECT sequence_name,
+       increment_by,
+       cycle_flag,
+       cache_size,
+       last_number
+FROM user_sequences
+WHERE sequence_name = 'STUDY_MEMBER_SEQ';</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 5. 게시판 테이블 + 시퀀스</h3>
+                            <pre><code>CREATE TABLE seq_board (
+    board_no NUMBER,
+    title VARCHAR2(200) NOT NULL,
+    content VARCHAR2(1000),
+    writer VARCHAR2(50) NOT NULL,
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT pk_seq_board PRIMARY KEY (board_no)
+);
+
+CREATE SEQUENCE seq_board_no
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 6. 댓글 테이블 + 시퀀스</h3>
+                            <pre><code>CREATE TABLE seq_comment (
+    comment_no NUMBER,
+    board_no NUMBER NOT NULL,
+    comment_content VARCHAR2(500) NOT NULL,
+    writer VARCHAR2(50) NOT NULL,
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT pk_seq_comment PRIMARY KEY (comment_no),
+    CONSTRAINT fk_seq_comment_board
+        FOREIGN KEY (board_no)
+        REFERENCES seq_board(board_no)
+);
+
+CREATE SEQUENCE seq_comment_no
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>12. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. CURRVAL을 NEXTVAL보다 먼저 실행함</strong>
+                            <span>CURRVAL은 현재 세션에서 NEXTVAL을 한 번 이상 실행한 뒤에만 사용할 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. NEXTVAL을 조회만 해도 번호가 소비된다는 것을 모름</strong>
+                            <span>SELECT로 NEXTVAL을 확인하는 것도 번호를 하나 발급하는 동작입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. 시퀀스 번호가 반드시 연속되어야 한다고 생각함</strong>
+                            <span>시퀀스의 목적은 연속성이 아니라 중복 없는 고유 번호 발급입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. PK용 시퀀스에 CYCLE을 사용함</strong>
+                            <span>CYCLE은 번호가 반복될 수 있으므로 기존 PK와 중복될 위험이 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. START WITH를 ALTER로 바꾸려고 함</strong>
+                            <span>START WITH는 ALTER SEQUENCE로 수정할 수 없고, 필요하면 DROP 후 CREATE 해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 테이블을 삭제하면 시퀀스도 같이 삭제된다고 생각함</strong>
+                            <span>시퀀스는 테이블과 별도 객체이므로 DROP SEQUENCE로 따로 삭제해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. 기존 데이터보다 작은 값으로 시퀀스를 다시 만듦</strong>
+                            <span>기존 PK 최대값보다 작은 값부터 시작하면 PK 중복 오류가 발생할 수 있습니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>13. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. 시퀀스란 무엇인가요?</h3>
+                            <p>
+                                시퀀스는 Oracle에서 자동으로 증가하는 숫자 값을 생성하는 데이터베이스 객체입니다.<br/>
+                                주로 회원번호, 게시글번호, 댓글번호처럼 테이블의 기본키 값을 자동으로 생성할 때 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. NEXTVAL과 CURRVAL의 차이는 무엇인가요?</h3>
+                            <p>
+                                NEXTVAL은 시퀀스의 다음 값을 새로 발급합니다.
+                                CURRVAL은 현재 세션에서 마지막으로 발급받은 값을 확인합니다.<br/>
+                                단, CURRVAL은 같은 세션에서 NEXTVAL을 한 번 이상 실행한 뒤에만 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. 시퀀스를 사용하는 이유는 무엇인가요?</h3>
+                            <p>
+                                시퀀스는 중복되지 않는 번호를 안전하게 발급하기 위해 사용합니다.<br/>
+                                MAX(id)+1 방식은 동시 INSERT 상황에서 같은 번호를 계산할 수 있지만,
+                                시퀀스는 여러 사용자가 동시에 요청해도 서로 다른 값을 발급합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. 시퀀스 번호가 중간에 비어 있어도 문제가 없나요?</h3>
+                            <p>
+                                문제가 없습니다. 시퀀스의 목적은 연속 번호 보장이 아니라 고유 번호 발급입니다.<br/>
+                                NEXTVAL 테스트, INSERT 실패, ROLLBACK, CACHE, DB 재시작 등으로 번호가 건너뛸 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. CYCLE과 NOCYCLE의 차이는 무엇인가요?</h3>
+                            <p>
+                                CYCLE은 최대값에 도달한 뒤 다시 최소값부터 번호를 발급합니다.
+                                NOCYCLE은 최대값에 도달하면 오류가 발생합니다.<br/>
+                                PK용 시퀀스에는 번호 중복 위험 때문에 보통 NOCYCLE을 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. CACHE와 NOCACHE의 차이는 무엇인가요?</h3>
+                            <p>
+                                CACHE는 성능 향상을 위해 시퀀스 번호를 메모리에 미리 확보합니다.
+                                NOCACHE는 미리 확보하지 않습니다.
+                                CACHE를 사용하면 DB 재시작 등으로 번호가 건너뛸 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. START WITH를 ALTER SEQUENCE로 변경할 수 있나요?</h3>
+                            <p>
+                                변경할 수 없습니다.<br/>
+                                ALTER SEQUENCE로는 INCREMENT BY, MAXVALUE, MINVALUE, CYCLE, NOCYCLE, CACHE, NOCACHE 등을 변경할 수 있지만
+                                START WITH는 수정할 수 없습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. 테이블을 삭제하면 시퀀스도 같이 삭제되나요?</h3>
+                            <p>
+                                아닙니다. 시퀀스는 테이블과 별도로 존재하는 객체입니다.
+                                테이블을 삭제해도 시퀀스는 남아 있으므로 필요하다면 DROP SEQUENCE로 별도 삭제해야 합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>14. Java·Spring·Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        Oracle 시퀀스는 Java/Spring 프로젝트에서 Entity의 ID 생성 전략, MyBatis INSERT,
+                        게시판 CRUD, 회원가입, 매물 등록, 로그 저장과 직접 연결됩니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>JPA Entity 연결</h3>
+                            <pre><code>@Entity
+@Table(name = "MEMBER")
+@SequenceGenerator(
+    name = "memberSeqGenerator",
+    sequenceName = "MEMBER_SEQ",
+    allocationSize = 1
+)
+public class Member {
+
+    @Id
+    @GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "memberSeqGenerator"
+    )
+    @Column(name = "MEMBER_ID")
+    private Long memberId;
+}</code></pre>
+                            <p>
+                                sequenceName은 Oracle의 실제 시퀀스 이름과 일치해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>allocationSize 주의</h3>
+                            <pre><code>@SequenceGenerator(
+    name = "memberSeqGenerator",
+    sequenceName = "MEMBER_SEQ",
+    allocationSize = 1
+)</code></pre>
+                            <p>
+                                학습 단계에서는 Oracle 시퀀스 증가값과 JPA allocationSize를<br/>1로 맞추는 것이 이해하기 쉽습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>MyBatis INSERT</h3>
+                            <pre><code>&lt;insert id="insertMember"&gt;
+    INSERT INTO member (
+        member_id,
+        login_id,
+        member_name
+    ) VALUES (
+        member_seq.NEXTVAL,
+        #{loginId},
+        #{memberName}
+    )
+&lt;/insert&gt;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>게시판 CRUD 연결</h3>
+                            <pre><code>CREATE SEQUENCE board_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+
+INSERT INTO board (
+    board_id,
+    title,
+    content,
+    writer_id
+) VALUES (
+    board_seq.NEXTVAL,
+    '제목',
+    '내용',
+    1
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>내집마련 매물 등록</h3>
+                            <pre><code>CREATE SEQUENCE property_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+
+INSERT INTO property (
+    property_id,
+    title,
+    deal_amount,
+    publisher_id
+) VALUES (
+    property_seq.NEXTVAL,
+    '성남시 아파트 매물',
+    500000000,
+    10
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>조회 로그 저장</h3>
+                            <pre><code>CREATE SEQUENCE property_view_log_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+
+INSERT INTO property_view_log (
+    view_id,
+    property_id,
+    user_id,
+    viewed_at
+) VALUES (
+    property_view_log_seq.NEXTVAL,
+    100,
+    1,
+    SYSDATE
+);</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>15. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>SEQUENCE
+→ Oracle에서 자동 증가 번호를 만들어주는 객체
+
+NEXTVAL
+→ 다음 번호 발급
+
+CURRVAL
+→ 현재 세션에서 마지막으로 발급받은 번호 확인
+
+CREATE SEQUENCE
+→ 시퀀스 생성
+
+ALTER SEQUENCE
+→ 증가값, 최대값, 최소값, CYCLE, CACHE 옵션 수정
+
+DROP SEQUENCE
+→ 시퀀스 삭제
+
+USER_SEQUENCES
+→ 시퀀스 정보 조회
+
+DUAL
+→ 시퀀스 값이나 함수 결과를 단독으로 확인할 때 사용하는 임시 테이블
+
+PK용 시퀀스
+→ 보통 START WITH 1, INCREMENT BY 1, NOCYCLE 사용
+
+주의
+→ 시퀀스는 연속 번호 보장이 아니라 고유 번호 발급이 목적</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원 실습 순서</h3>
+                        <pre><code>1. 개념 읽기
+2. 실습 테이블 생성
+3. 시퀀스 생성
+4. USER_SEQUENCES로 시퀀스 확인
+5. NEXTVAL 실행
+6. CURRVAL 실행
+7. INSERT에서 NEXTVAL 사용
+8. 테이블 데이터 확인
+9. ALTER SEQUENCE로 증가값 변경
+10. CYCLE / NOCYCLE 차이 확인
+11. DROP SEQUENCE로 삭제
+12. Java / Spring / Oracle 프로젝트의 PK 자동 생성과 연결</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        시퀀스는 Oracle에서 자동 증가 번호를 발급하는 객체입니다.
+                        주로 테이블의 PK 값을 자동으로 만들 때 사용합니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>암기 문법</h3>
+                    <pre><code>CREATE SEQUENCE 시퀀스명
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+
+SELECT 시퀀스명.NEXTVAL FROM dual;
+
+SELECT 시퀀스명.CURRVAL FROM dual;
+
+DROP SEQUENCE 시퀀스명;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>NEXTVAL / CURRVAL</h3>
+                    <ul>
+                        <li><strong>NEXTVAL</strong> : 다음 번호를 발급한다.</li>
+                        <li><strong>CURRVAL</strong> : 현재 세션에서 마지막 번호를 확인한다.</li>
+                        <li><strong>CURRVAL</strong>은 NEXTVAL을 먼저 실행한 뒤 사용할 수 있다.</li>
+                    </ul>
+                </div>
+
+                <div class="note-card">
+                    <h3>옵션 정리</h3>
+                    <ul>
+                        <li><strong>START WITH</strong> : 시작값</li>
+                        <li><strong>INCREMENT BY</strong> : 증가값</li>
+                        <li><strong>MAXVALUE</strong> : 최대값</li>
+                        <li><strong>MINVALUE</strong> : 최소값</li>
+                        <li><strong>CYCLE</strong> : 반복 허용</li>
+                        <li><strong>NOCYCLE</strong> : 반복 금지</li>
+                        <li><strong>CACHE</strong> : 번호 미리 확보</li>
+                        <li><strong>NOCACHE</strong> : 번호 미리 확보하지 않음</li>
+                    </ul>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        PK용 시퀀스에는 CYCLE을 사용하지 않습니다.
+                        번호가 반복되면 기존 PK와 중복될 수 있기 때문입니다.
+                        또한 NEXTVAL을 조회만 해도 번호는 소비됩니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        Oracle 시퀀스는 JPA의 @SequenceGenerator,
+                        MyBatis의 INSERT문, 게시판·댓글·매물·로그 테이블의 PK 자동 생성과 연결됩니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>

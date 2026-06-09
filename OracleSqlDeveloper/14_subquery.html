@@ -19,41 +19,1091 @@
                 <p class="chapter-label">Oracle SQL Developer - Chapter 14</p>
                 <h1>SUBQUERY</h1>
                 <p class="chapter-description">
-                    서브쿼리의 위치와 결과 형태에 따른 사용 방법을 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    서브쿼리는 SQL문 안에 포함된 또 다른 SELECT문입니다.<br/>
+                    이번 단원에서는 WHERE절 서브쿼리, SELECT절 서브쿼리, FROM절 서브쿼리,
+                    단일행 서브쿼리, 다중행 서브쿼리,<br/>다중 컬럼 서브쿼리, 상관 서브쿼리를
+                    SQL Developer에서 직접 실행하며 이해할 수 있도록 정리합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>SQL 안에서 먼저 조회한 결과를<br/>바깥 SQL의 조건, 컬럼, 임시 테이블로 활용한다.</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>EMP와 DEPT를 이용해 최소 연봉자, 평균 이하 연봉자,<br/>직무별 최고 연봉자를 조회한다.</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>평균 가격 이하 매물, 게시글별 댓글 수,<br/>지역별 최고가 매물 조회와 연결한다.</span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 서브쿼리란?</h2>
+                    </div>
+
+                    <p>
+                        서브쿼리는 하나의 SQL문 안에 포함된 또 다른 SELECT문입니다.<br/>
+                        바깥 SQL이 직접 값을 알 수 없을 때, 안쪽 SELECT문이 먼저 값을 구하고
+                        바깥 SQL은 그 결과를 조건값, 출력 컬럼, 임시 테이블처럼 사용합니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>외부 쿼리</strong>
+                            <span>최종적으로 사용자가 보고 싶은 데이터를 조회합니다.</span>
+                        </div>
+                        <div>
+                            <strong>서브쿼리</strong>
+                            <span>외부 쿼리에서 사용할 값을 먼저 계산합니다.</span>
+                        </div>
+                        <div>
+                            <strong>결과 활용</strong>
+                            <span>조건, 컬럼, 임시 테이블 형태로<br/>서브쿼리 결과를 사용합니다.</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            서브쿼리는 <strong>바깥 쿼리가 사용할 값을 안쪽 쿼리가 먼저 구해주는 구조</strong>입니다.<br/>
+                            “최저 연봉이 얼마인지 먼저 구하고, 그 연봉을 받는 직원을 찾는다”처럼 생각하면 이해하기 쉽습니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card need-card" id="why">
+                    <div class="section-title-area">
+                        <span class="section-badge">Why Subquery?</span>
+                        <h2>2. 서브쿼리가 필요한 이유</h2>
+                    </div>
+
+                    <p>
+                        조건값을 사람이 직접 알고 있을 때는 WHERE절에 값을 바로 넣을 수 있습니다.
+                        하지만 실무에서는 조건값이 데이터에 따라 계속 바뀌거나, 먼저 계산해야 하는 경우가 많습니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article class="warning-example">
+                            <h3>직접 값을 넣는 방식</h3>
+                            <pre><code>SELECT ENAME, SAL, JOB
+FROM EMP
+WHERE SAL = 800;</code></pre>
+                            <p>
+                                최저 연봉이 800이라는 사실을 사람이 미리 알고 있어야 합니다.<br/>
+                                데이터가 바뀌면 SQL도 직접 수정해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>서브쿼리 방식</h3>
+                            <pre><code>SELECT ENAME, SAL, JOB
+FROM EMP
+WHERE SAL = (
+    SELECT MIN(SAL)
+    FROM EMP
+);</code></pre>
+                            <p>
+                                DB가 먼저 최저 연봉을 계산하고, 바깥 쿼리가 그 값을 조건으로 사용합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="diagram-box">
+                        <h3>서브쿼리 실행 흐름</h3>
+                        <pre><code>1. 안쪽 SELECT 실행
+   SELECT MIN(SAL) FROM EMP
+
+2. 결과값 반환
+   예: 800
+
+3. 바깥 SELECT 실행
+   WHERE SAL = 800
+
+4. 최저 연봉자 출력</code></pre>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <p>
+                        서브쿼리는 바깥 쿼리의 조건을 완성하기 위해 먼저 실행되는 작은 SQL입니다.
+                        특히 평균, 최댓값, 최솟값처럼 먼저 계산해야 하는 값이 있을 때 자주 사용합니다.
+                    </p>
+
+                    <div class="flow-board">
+                        <div class="flow-step">
+                            <span>1</span>
+                            <strong>EMP 전체 급여 확인</strong>
+                            <p>800, 1600, 1250, 2975, 5000...</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span>2</span>
+                            <strong>서브쿼리 실행</strong>
+                            <p>SELECT AVG(SAL) FROM EMP</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span>3</span>
+                            <strong>평균값 반환</strong>
+                            <p>예: 2073.21</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span>4</span>
+                            <strong>바깥 쿼리 실행</strong>
+                            <p>WHERE SAL &lt;= 2073.21</p>
+                        </div>
+                    </div>
+
+                    <div class="sql-example">
+                        <h3>평균 이하 연봉자 조회</h3>
+                        <pre><code>SELECT ENAME, SAL, DEPTNO, HIREDATE
+FROM EMP
+WHERE SAL &lt;= (
+    SELECT AVG(SAL)
+    FROM EMP
+);</code></pre>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card position-card" id="position">
+                    <div class="section-title-area">
+                        <span class="section-badge">Position</span>
+                        <h2>4. 서브쿼리의 위치</h2>
+                    </div>
+
+                    <p>
+                        서브쿼리는 WHERE절, SELECT절, FROM절 등에 위치할 수 있습니다.
+                        위치에 따라 역할이 달라지므로, 먼저 “서브쿼리가 어디에 있는가?”를 확인해야 합니다.
+                    </p>
+
+                    <div class="position-grid">
+                        <article>
+                            <h3>WHERE절 서브쿼리</h3>
+                            <p>조건값으로 사용합니다.</p>
+                            <pre><code>SELECT ENAME, SAL
+FROM EMP
+WHERE SAL &gt; (
+    SELECT AVG(SAL)
+    FROM EMP
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>SELECT절 서브쿼리</h3>
+                            <p>결과 컬럼으로 사용합니다.</p>
+                            <pre><code>SELECT E.ENAME,
+       (
+           SELECT D.DNAME
+           FROM DEPT D
+           WHERE D.DEPTNO = E.DEPTNO
+       ) AS DNAME
+FROM EMP E;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>FROM절 서브쿼리</h3>
+                            <p>임시 테이블처럼 사용합니다.</p>
+                            <pre><code>SELECT E.ENAME, E.SAL
+FROM (
+    SELECT ENAME, SAL
+    FROM EMP
+    WHERE SAL &gt;= 3000
+) E;</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>5. 서브쿼리 기본 문법과 작성 규칙</h2>
+                    </div>
+
+                    <p>
+                        서브쿼리는 괄호로 감싸고, 보통 연산자의 오른쪽에 작성합니다.
+                        가장 중요한 것은 서브쿼리 결과가 하나인지 여러 개인지 판단하고 그에 맞는 연산자를 사용하는 것입니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>기본 구조</h3>
+                            <pre><code>SELECT 컬럼명
+FROM 테이블명
+WHERE 컬럼명 연산자 (
+    SELECT 컬럼명
+    FROM 테이블명
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>작성 규칙</h3>
+                            <pre><code>1. 서브쿼리는 괄호로 감싼다.
+2. 서브쿼리는 보통 연산자의 오른쪽에 작성한다.
+3. 단일행 결과에는 단일행 연산자를 사용한다.
+4. 다중행 결과에는 IN, NOT IN을 사용한다.
+5. SELECT절 서브쿼리는 한 행당 한 값만 반환해야 한다.</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card single-card" id="single-row">
+                    <div class="section-title-area">
+                        <span class="section-badge">Single Row</span>
+                        <h2>6. 단일행 서브쿼리</h2>
+                    </div>
+
+                    <p>
+                        단일행 서브쿼리는 결과가 한 행, 한 값으로 나오는 서브쿼리입니다.
+                        `MIN`, `MAX`, `AVG`, `COUNT`처럼 하나의 집계값을 반환하는 경우가 많습니다.
+                    </p>
+
+                    <div class="operator-box">
+                        <strong>사용 연산자</strong>
+                        <span>=</span>
+                        <span>&gt;</span>
+                        <span>&gt;=</span>
+                        <span>&lt;</span>
+                        <span>&lt;=</span>
+                        <span>&lt;&gt;</span>
+                        <span>!=</span>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. 최저 연봉자 조회</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       JOB,
+       SAL * 1.5 AS "150% 인상 연봉"
+FROM EMP
+WHERE SAL = (
+    SELECT MIN(SAL)
+    FROM EMP
+);</code></pre>
+                            <p>
+                                EMP 전체 최저 연봉을 먼저 구하고, 그 연봉을 받는 직원을 조회합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. 평균 이하 연봉자 조회</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       DEPTNO,
+       HIREDATE
+FROM EMP
+WHERE SAL &lt;= (
+    SELECT AVG(SAL)
+    FROM EMP
+);</code></pre>
+                            <p>
+                                전체 평균 연봉 이하의 직원을 조회합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. 평균보다 많이 받는 직원 조회</h3>
+                            <pre><code>SELECT ENAME,
+       SAL
+FROM EMP
+WHERE SAL &gt; (
+    SELECT AVG(SAL)
+    FROM EMP
+);</code></pre>
+                            <p>
+                                교안의 평균 급여보다 많이 받는 사람 예제와 같은 구조입니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card multi-card" id="multi-row">
+                    <div class="section-title-area">
+                        <span class="section-badge">Multi Row</span>
+                        <h2>7. 다중행 서브쿼리</h2>
+                    </div>
+
+                    <p>
+                        다중행 서브쿼리는 결과가 여러 행으로 나오는 서브쿼리입니다.
+                        여러 행을 반환하는 서브쿼리에는 `=`, `>` 같은 단일행 연산자를 사용하면 안 되고,
+                        `IN`, `NOT IN` 같은 복수행 연산자를 사용해야 합니다.
+                    </p>
+
+                    <div class="operator-box">
+                        <strong>대표 연산자</strong>
+                        <span>IN</span>
+                        <span>NOT IN</span>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>7-1. 최대/최소 연봉자 조회</h3>
+                            <pre><code>SELECT SAL,
+       ENAME,
+       JOB
+FROM EMP
+WHERE SAL IN (
+    (SELECT MAX(SAL) FROM EMP),
+    (SELECT MIN(SAL) FROM EMP)
+)
+ORDER BY SAL;</code></pre>
+                            <p>
+                                전체 최고 연봉과 최저 연봉을 먼저 구하고, 그 둘 중 하나에 해당하는 직원을 조회합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-2. 직무별 최고 연봉 값 목록</h3>
+                            <pre><code>SELECT JOB, MAX(SAL)
+FROM EMP
+GROUP BY JOB;</code></pre>
+                            <p>
+                                JOB별 최고 연봉을 구하면 직무 개수만큼 여러 행이 반환됩니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card multi-column-card" id="multi-column">
+                    <div class="section-title-area">
+                        <span class="section-badge">Multi Column</span>
+                        <h2>8. 다중 컬럼 서브쿼리</h2>
+                    </div>
+
+                    <p>
+                        다중 컬럼 서브쿼리는 하나의 컬럼이 아니라 여러 컬럼 조합을 비교하는 서브쿼리입니다.<br/>
+                        직무별 최고 연봉자를 정확히 찾으려면 `SAL`만 비교하는 것보다 `(JOB, SAL)` 조합을 비교하는 것이 좋습니다.
+                    </p>
+
+                    <div class="diagram-box">
+                        <h3>조합 비교 구조</h3>
+                        <pre><code>바깥 쿼리의 (JOB, SAL)
+
+예:
+('CLERK', 1300)
+('SALESMAN', 1600)
+
+서브쿼리 결과:
+('CLERK', 1300)
+('SALESMAN', 1600)
+('MANAGER', 2975)
+
+목록에 조합이 있으면 출력</code></pre>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>8-1. 직무별 최고 연봉자 조회</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       JOB,
+       DEPTNO,
+       HIREDATE
+FROM EMP
+WHERE (JOB, SAL) IN (
+    SELECT JOB, MAX(SAL)
+    FROM EMP
+    GROUP BY JOB
+);</code></pre>
+                        </article>
+
+                        <article class="sql-example warning-example">
+                            <h3>8-2. 컬럼 개수 불일치 예</h3>
+                            <pre><code>-- 잘못된 예
+SELECT ENAME, JOB, SAL
+FROM EMP
+WHERE (JOB, SAL) IN (
+    SELECT MAX(SAL)
+    FROM EMP
+    GROUP BY JOB
+);</code></pre>
+                            <p>
+                                바깥 조건은 두 컬럼 `(JOB, SAL)`을 비교하는데, 서브쿼리는 한 컬럼만 반환하므로 잘못된 구조입니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card select-sub-card" id="select-subquery">
+                    <div class="section-title-area">
+                        <span class="section-badge">SELECT Subquery</span>
+                        <h2>9. SELECT절 서브쿼리</h2>
+                    </div>
+
+                    <p>
+                        SELECT절 서브쿼리는 결과 컬럼 중 하나로 서브쿼리 결과를 표시하는 방식입니다.
+                        바깥 쿼리의 각 행마다 하나의 값을 계산해서 붙이는 느낌으로 이해하면 됩니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>9-1. 부서명 가져오기</h3>
+                            <pre><code>SELECT E.ENAME,
+       E.SAL,
+       E.DEPTNO,
+       (
+           SELECT D.DNAME
+           FROM DEPT D
+           WHERE D.DEPTNO = E.DEPTNO
+       ) AS DNAME
+FROM EMP E;</code></pre>
+                            <p>
+                                각 사원의 DEPTNO를 기준으로 DEPT에서 부서명을 찾아 결과 컬럼으로 붙입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. 게시글별 댓글 수 예시</h3>
+                            <pre><code>SELECT B.BOARD_ID,
+       B.TITLE,
+       B.WRITER_ID,
+       (
+           SELECT COUNT(*)
+           FROM COMMENTS C
+           WHERE C.BOARD_ID = B.BOARD_ID
+       ) AS COMMENT_COUNT
+FROM BOARD B;</code></pre>
+                            <p>
+                                교안의 메모글별 댓글 수 예제를 게시판 프로젝트 형태로 바꾼 예시입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example warning-example">
+                            <h3>9-3. SELECT절 서브쿼리 주의</h3>
+                            <pre><code>-- 잘못된 예
+SELECT ENAME,
+       (
+           SELECT DNAME
+           FROM DEPT
+       ) AS DNAME
+FROM EMP;</code></pre>
+                            <p>
+                                SELECT절 서브쿼리는 각 행마다 하나의 값만 반환해야 합니다.
+                                DEPT 전체를 조회하면 여러 행이 반환되어 오류가 발생할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card from-sub-card" id="from-subquery">
+                    <div class="section-title-area">
+                        <span class="section-badge">FROM Subquery</span>
+                        <h2>10. FROM절 서브쿼리, 인라인 뷰</h2>
+                    </div>
+
+                    <p>
+                        FROM절 서브쿼리는 서브쿼리 결과를 하나의 임시 테이블처럼 사용하는 방식입니다.<br/>
+                        먼저 복잡한 결과를 만들고, 그 결과에 별칭을 붙여 바깥 쿼리에서 다시 조회하거나 JOIN할 수 있습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>10-1. 기본 구조</h3>
+                            <pre><code>SELECT 컬럼명
+FROM (
+    SELECT 컬럼명
+    FROM 테이블명
+    WHERE 조건
+) 별칭;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-2. 직무별 최고 연봉자 결과를 임시 테이블로 사용</h3>
+                            <pre><code>SELECT E.ENAME,
+       E.SAL,
+       D.DEPTNO,
+       E.HIREDATE,
+       D.DNAME
+FROM (
+    SELECT ENAME,
+           SAL,
+           DEPTNO,
+           HIREDATE
+    FROM EMP
+    WHERE (JOB, SAL) IN (
+        SELECT JOB, MAX(SAL)
+        FROM EMP
+        GROUP BY JOB
+    )
+) E
+JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO;</code></pre>
+                            <p>
+                                FROM절 서브쿼리 E에서 먼저 직무별 최고 연봉자를 만들고, 그 결과를 DEPT와 JOIN합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card correlated-card" id="correlated">
+                    <div class="section-title-area">
+                        <span class="section-badge">Correlated</span>
+                        <h2>11. 상관 서브쿼리</h2>
+                    </div>
+
+                    <p>
+                        상관 서브쿼리는 서브쿼리가 바깥 쿼리의 컬럼을 참조하는 구조입니다.
+                        바깥 쿼리의 각 행마다 서브쿼리가 그 행의 값을 참고해서 실행되는 형태로 이해하면 됩니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>게시글별 댓글 수</h3>
+                            <pre><code>SELECT B.BOARD_ID,
+       B.TITLE,
+       (
+           SELECT COUNT(*)
+           FROM COMMENTS C
+           WHERE C.BOARD_ID = B.BOARD_ID
+       ) AS COMMENT_COUNT
+FROM BOARD B;</code></pre>
+                            <p>
+                                서브쿼리 안의 B.BOARD_ID는 바깥 쿼리의 게시글 ID입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>사원별 매니저 이름</h3>
+                            <pre><code>SELECT ENAME || '의 매니저는 ' ||
+       (
+           SELECT ENAME
+           FROM EMP
+           WHERE EMPNO = E1.MGR
+       ) || '입니다.' AS "매니저 정보"
+FROM EMP E1
+WHERE MGR IS NOT NULL;</code></pre>
+                            <p>
+                                서브쿼리 안에서 바깥 쿼리의 E1.MGR 값을 참조합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card join-compare-card" id="join-compare">
+                    <div class="section-title-area">
+                        <span class="section-badge">Subquery vs Join</span>
+                        <h2>12. 서브쿼리와 JOIN 비교</h2>
+                    </div>
+
+                    <p>
+                        서브쿼리와 JOIN은 비슷한 결과를 만들 수 있지만 목적이 다릅니다.
+                        JOIN은 여러 테이블의 컬럼을 함께 출력할 때 유리하고,
+                        서브쿼리는 먼저 계산한 값을 조건이나 보조 컬럼으로 사용할 때 유리합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>JOIN으로 부서명 출력</h3>
+                            <pre><code>SELECT E.ENAME,
+       E.SAL,
+       D.DNAME
+FROM EMP E JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO;</code></pre>
+                            <p>
+                                여러 테이블의 컬럼을 함께 가져올 때 자연스럽습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>SELECT절 서브쿼리로 부서명 출력</h3>
+                            <pre><code>SELECT E.ENAME,
+       E.SAL,
+       (
+           SELECT D.DNAME
+           FROM DEPT D
+           WHERE D.DEPTNO = E.DEPTNO
+       ) AS DNAME
+FROM EMP E;</code></pre>
+                            <p>
+                                각 사원 행마다 부서명을 하나씩 계산해서 붙입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>서브쿼리가 자연스러운 경우</h3>
+                            <pre><code>SELECT ENAME, SAL
+FROM EMP
+WHERE SAL &gt; (
+    SELECT AVG(SAL)
+    FROM EMP
+);</code></pre>
+                            <p>
+                                평균처럼 먼저 계산해야 하는 값을 조건으로 사용할 때 적합합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>13. 실습 문제 연결</h2>
+                    </div>
+
+                    <p>
+                        실습 문제 교안의 SUBQUERY 문제는 최소 연봉자, 최대·최소 연봉자,
+                        평균 이하 연봉자, 직무별 최고 연봉자, 서브쿼리와 JOIN 결합 문제로 구성되어 있습니다.<br/>
+                        문제를 읽을 때는 서브쿼리가 “무엇을 먼저 구하는지”를 먼저 파악해야 합니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 1. 최소 연봉자 조회</h3>
+                            <pre><code>SELECT ENAME, SAL, JOB, SAL * 1.5
+FROM EMP
+WHERE SAL = (
+    SELECT MIN(SAL)
+    FROM EMP
+);</code></pre>
+                            <p>최소 연봉을 먼저 구하고, 그 연봉을 받는 직원을 조회합니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>문제 2. 최대/최소 연봉자 조회</h3>
+                            <pre><code>SELECT SAL, ENAME, JOB
+FROM EMP
+WHERE SAL IN (
+    (SELECT MAX(SAL) FROM EMP),
+    (SELECT MIN(SAL) FROM EMP)
+)
+ORDER BY SAL;</code></pre>
+                            <p>최고 연봉과 최저 연봉 중 하나에 해당하는 직원을 조회합니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>문제 3. 평균 이하 연봉자 조회</h3>
+                            <pre><code>SELECT ENAME, SAL, DEPTNO, HIREDATE
+FROM EMP
+WHERE SAL &lt;= (
+    SELECT AVG(SAL)
+    FROM EMP
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 4. 직무별 최고 연봉자 조회</h3>
+                            <pre><code>SELECT ENAME, SAL, DEPTNO, HIREDATE
+FROM EMP E
+WHERE (JOB, SAL) IN (
+    SELECT JOB, MAX(SAL)
+    FROM EMP
+    GROUP BY JOB
+);</code></pre>
+                            <p>
+                                해답 SQL 기준으로는 JOB별 최고 연봉자를 찾는 구조입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>문제 5. 직무별 최고 연봉자 + 부서명</h3>
+                            <pre><code>SELECT E.ENAME,
+       E.SAL,
+       D.DEPTNO,
+       E.HIREDATE,
+       D.DNAME
+FROM EMP E JOIN DEPT D
+ON E.DEPTNO = D.DEPTNO
+WHERE (E.JOB, E.SAL) IN (
+    SELECT JOB, MAX(SAL)
+    FROM EMP
+    GROUP BY JOB
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 읽는 순서</h3>
+                            <pre><code>1. 바깥 쿼리는 무엇을 출력하는가?
+2. 서브쿼리는 무엇을 먼저 계산하는가?
+3. 서브쿼리 결과는 한 값인가, 여러 행인가?
+4. 단일행이면 =, &gt;, &lt; 계열을 확인한다.
+5. 다중행이면 IN, NOT IN을 확인한다.
+6. 다중 컬럼이면 비교 컬럼 개수가 맞는지 확인한다.</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>14. Java / Spring / Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        서브쿼리는 실무 프로젝트에서 평균값 기준 필터링, 최고값/최저값 찾기,
+                        게시글별 댓글 수 계산, 사용자별 최근 로그 조회, 추천 후보 추출 등에 자주 사용됩니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>평균 가격 이하 매물 조회</h3>
+                            <pre><code>SELECT PROPERTY_ID,
+       TITLE,
+       DEAL_AMOUNT
+FROM PROPERTY
+WHERE DEAL_AMOUNT &lt;= (
+    SELECT AVG(DEAL_AMOUNT)
+    FROM PROPERTY
+);</code></pre>
+                            <p>전체 평균 가격 이하의 매물을 조회합니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>최고가 매물 조회</h3>
+                            <pre><code>SELECT PROPERTY_ID,
+       TITLE,
+       DEAL_AMOUNT
+FROM PROPERTY
+WHERE DEAL_AMOUNT = (
+    SELECT MAX(DEAL_AMOUNT)
+    FROM PROPERTY
+);</code></pre>
+                            <p>관리자 대시보드의 최고가 매물 카드에 사용할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>지역별 최고가 매물 조회</h3>
+                            <pre><code>SELECT PROPERTY_ID,
+       TITLE,
+       REGION_ID,
+       DEAL_AMOUNT
+FROM PROPERTY
+WHERE (REGION_ID, DEAL_AMOUNT) IN (
+    SELECT REGION_ID, MAX(DEAL_AMOUNT)
+    FROM PROPERTY
+    GROUP BY REGION_ID
+);</code></pre>
+                            <p>REGION_ID와 DEAL_AMOUNT의 조합을 비교하는 다중 컬럼 서브쿼리입니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>게시글별 댓글 수</h3>
+                            <pre><code>SELECT B.BOARD_ID,
+       B.TITLE,
+       B.WRITER_ID,
+       (
+           SELECT COUNT(*)
+           FROM COMMENTS C
+           WHERE C.BOARD_ID = B.BOARD_ID
+       ) AS COMMENT_COUNT
+FROM BOARD B;</code></pre>
+                            <p>게시판 목록에서 댓글 수를 함께 표시할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>사용자별 최근 조회 로그</h3>
+                            <pre><code>SELECT USER_ID,
+       PROPERTY_ID,
+       VIEWED_AT
+FROM PROPERTY_VIEW_LOG
+WHERE USER_ID = ?
+  AND VIEWED_AT = (
+      SELECT MAX(VIEWED_AT)
+      FROM PROPERTY_VIEW_LOG
+      WHERE USER_ID = ?
+  );</code></pre>
+                            <p>특정 사용자의 가장 최근 조회 이력을 찾습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>평균 체류시간 이상 매물</h3>
+                            <pre><code>SELECT PROPERTY_ID,
+       AVG(STAY_SECONDS) AS AVG_STAY_SECONDS
+FROM PROPERTY_VIEW_LOG
+GROUP BY PROPERTY_ID
+HAVING AVG(STAY_SECONDS) &gt;= (
+    SELECT AVG(STAY_SECONDS)
+    FROM PROPERTY_VIEW_LOG
+);</code></pre>
+                            <p>추천 후보 추출이나 관심도 분석에 활용할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>Spring Native Query</h3>
+                            <pre><code>@Query(value = """
+    SELECT PROPERTY_ID,
+           TITLE,
+           DEAL_AMOUNT
+    FROM PROPERTY
+    WHERE DEAL_AMOUNT &lt;= (
+        SELECT AVG(DEAL_AMOUNT)
+        FROM PROPERTY
+    )
+""", nativeQuery = true)
+List&lt;PropertySummaryDto&gt; findPropertiesBelowAveragePrice();</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>Spring JPQL DTO 예시</h3>
+                            <pre><code>@Query("""
+    SELECT new com.example.BoardListDto(
+        b.boardId,
+        b.title,
+        b.writerId,
+        (
+            SELECT COUNT(c)
+            FROM CommentEntity c
+            WHERE c.boardId = b.boardId
+        )
+    )
+    FROM BoardEntity b
+""")
+List&lt;BoardListDto&gt; findBoardListWithCommentCount();</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>15. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. 단일행 연산자에 다중행 서브쿼리를 사용한다.</strong>
+                            <span>GROUP BY가 있는 서브쿼리는 여러 행을 반환할 수 있으므로 = 대신 IN을 검토해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. 다중행 서브쿼리에 = 를 사용한다.</strong>
+                            <span>여러 행을 반환하는 서브쿼리에는 IN, NOT IN 같은 다중행 연산자를 사용해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. 서브쿼리를 괄호로 감싸지 않는다.</strong>
+                            <span>서브쿼리는 WHERE SAL = (SELECT MIN(SAL) FROM EMP)처럼 괄호로 감싸야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. SELECT절 서브쿼리가 여러 행을 반환한다.</strong>
+                            <span>SELECT절 서브쿼리는 바깥 쿼리의 각 행마다 하나의 값만 반환해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. 다중 컬럼 서브쿼리의 컬럼 개수를 맞추지 않는다.</strong>
+                            <span>(JOB, SAL)을 비교한다면 서브쿼리도 JOB, MAX(SAL)처럼 두 컬럼을 반환해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 서브쿼리와 JOIN을 무조건 같은 것으로 생각한다.</strong>
+                            <span>JOIN은 여러 테이블 컬럼을 함께 출력할 때, 서브쿼리는 먼저 계산한 값을 조건이나 컬럼으로 사용할 때 유리합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. NOT IN과 NULL 문제를 모른다.</strong>
+                            <span>NOT IN 서브쿼리 결과에 NULL이 포함되면 의도와 다른 결과가 나올 수 있으므로 NULL을 제거하는 조건을 고려해야 합니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>16. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. 서브쿼리란 무엇인가요?</h3>
+                            <p>
+                                서브쿼리는 SQL문 안에 포함된 또 다른 SELECT문입니다.
+                                보통 괄호로 감싸서 작성하며, 바깥 쿼리에서 사용할 조건값, 결과 컬럼,
+                                임시 테이블을 만들 때 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. 단일행 서브쿼리와 다중행 서브쿼리의 차이는 무엇인가요?</h3>
+                            <p>
+                                단일행 서브쿼리는 결과가 한 값으로 나오며 =, &gt;, &lt;, &gt;=, &lt;= 같은 단일행 연산자를 사용합니다.<br/>
+                                다중행 서브쿼리는 여러 행을 반환하며 IN, NOT IN 같은 다중행 연산자를 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. 서브쿼리는 어디에 사용할 수 있나요?</h3>
+                            <p>
+                                서브쿼리는 WHERE절, SELECT절, FROM절 등에 사용할 수 있습니다.
+                                WHERE절에서는 조건값, SELECT절에서는 보조 컬럼, FROM절에서는 임시 테이블처럼 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. 다중행 서브쿼리에 = 를 사용하면 어떤 문제가 생기나요?</h3>
+                            <p>
+                                = 연산자는 하나의 값과 비교하는 단일행 연산자입니다.
+                                서브쿼리가 여러 행을 반환하면 어떤 값과 비교해야 할지 알 수 없으므로 오류가 발생할 수 있습니다.<br/>
+                                이런 경우 IN 같은 다중행 연산자를 사용해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. 다중 컬럼 서브쿼리는 무엇인가요?</h3>
+                            <p>
+                                다중 컬럼 서브쿼리는 여러 컬럼의 조합을 비교하는 서브쿼리입니다.<br/>
+                                예를 들어 직무별 최고 연봉자를 찾을 때
+                                (JOB, SAL) IN (SELECT JOB, MAX(SAL) FROM EMP GROUP BY JOB)처럼 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. SELECT절 서브쿼리는 어떤 경우에 사용하나요?</h3>
+                            <p>
+                                SELECT절 서브쿼리는 각 행에 추가로 계산된 단일 값을 붙이고 싶을 때 사용합니다.
+                                예를 들어 게시글 목록에서 각 게시글의 댓글 수를 함께 보여줄 때 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. FROM절 서브쿼리는 무엇인가요?</h3>
+                            <p>
+                                FROM절 서브쿼리는 서브쿼리 결과를 하나의 임시 테이블처럼 사용하는 방식입니다.<br/>
+                                복잡한 조건으로 먼저 결과 집합을 만든 뒤, 그 결과를 다시 조인하거나 필터링할 때 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. 상관 서브쿼리란 무엇인가요?</h3>
+                            <p>
+                                상관 서브쿼리는 서브쿼리가 바깥 쿼리의 컬럼을 참조하는 구조입니다.<br/>
+                                예를 들어 게시글별 댓글 수를 구할 때 서브쿼리 안에서
+                                C.BOARD_ID = B.BOARD_ID처럼 바깥 쿼리의 게시글 ID를 참조하면 상관 서브쿼리입니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>17. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>서브쿼리
+→ SQL문 안에 포함된 SELECT문
+
+괄호
+→ 서브쿼리는 괄호로 감싼다
+
+WHERE절 서브쿼리
+→ 조건값으로 사용
+
+SELECT절 서브쿼리
+→ 결과 컬럼으로 사용
+
+FROM절 서브쿼리
+→ 임시 테이블처럼 사용
+
+단일행 서브쿼리
+→ 결과가 하나의 값
+→ =, &gt;, &gt;=, &lt;, &lt;=, &lt;&gt;, != 사용
+
+다중행 서브쿼리
+→ 결과가 여러 행
+→ IN, NOT IN 사용
+
+다중 컬럼 서브쿼리
+→ (컬럼1, 컬럼2) IN (SELECT 컬럼1, 컬럼2 ...)
+
+상관 서브쿼리
+→ 서브쿼리가 바깥 쿼리의 컬럼을 참조
+
+JOIN과 서브쿼리
+→ JOIN은 여러 테이블 컬럼을 함께 출력할 때 유리
+→ 서브쿼리는 먼저 계산한 값을 조건이나 컬럼으로 사용할 때 유리</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>읽는 순서</h3>
+                        <pre><code>1. 바깥 쿼리가 무엇을 출력하려는지 본다.
+2. 서브쿼리가 무엇을 먼저 계산하는지 본다.
+3. 서브쿼리 결과가 단일 값인지 여러 행인지 판단한다.
+4. 단일 값이면 =, &gt;, &lt; 같은 연산자를 확인한다.
+5. 여러 행이면 IN, NOT IN을 확인한다.
+6. SELECT절 서브쿼리라면 각 행마다 하나의 값을 반환하는지 본다.
+7. FROM절 서브쿼리라면 임시 테이블처럼 사용되는지 본다.</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        서브쿼리는 SQL 안에 들어가는 또 다른 SELECT문입니다.
+                        바깥 쿼리에서 필요한 값을 안쪽 쿼리가 먼저 계산해준다고 이해하면 됩니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>기본 문법</h3>
+                    <pre><code>SELECT 컬럼명
+FROM 테이블명
+WHERE 컬럼명 연산자 (
+    SELECT 컬럼명
+    FROM 테이블명
+);</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>서브쿼리 위치</h3>
+                    <ul>
+                        <li><strong>WHERE절</strong> : 조건값으로 사용</li>
+                        <li><strong>SELECT절</strong> : 결과 컬럼으로 사용</li>
+                        <li><strong>FROM절</strong> : 임시 테이블처럼 사용</li>
+                    </ul>
+                </div>
+
+                <div class="note-card">
+                    <h3>연산자 선택</h3>
+                    <ul>
+                        <li><strong>단일행</strong> : =, &gt;, &gt;=, &lt;, &lt;=, &lt;&gt;, !=</li>
+                        <li><strong>다중행</strong> : IN, NOT IN</li>
+                        <li><strong>다중 컬럼</strong> : (JOB, SAL) IN (...)</li>
+                    </ul>
+                </div>
+
+                <div class="note-card">
+                    <h3>실습 확인 순서</h3>
+                    <ol>
+                        <li>MIN(SAL) 단독 실행</li>
+                        <li>최저 연봉자 서브쿼리 실행</li>
+                        <li>AVG(SAL)로 평균 이하 연봉자 조회</li>
+                        <li>MAX/MIN을 IN으로 연결</li>
+                        <li>JOB별 MAX(SAL) 결과 확인</li>
+                        <li>(JOB, SAL) IN 다중 컬럼 서브쿼리 실행</li>
+                        <li>SELECT절 서브쿼리로 부서명 또는 댓글 수 조회</li>
+                        <li>FROM절 서브쿼리와 JOIN 결합 확인</li>
+                    </ol>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        서브쿼리 결과가 여러 행인데 = 연산자를 사용하면 오류가 날 수 있습니다.<br/>
+                        SELECT절 서브쿼리는 각 행마다 하나의 값만 반환해야 하며,
+                        다중 컬럼 비교는 바깥 컬럼 수와 서브쿼리 컬럼 수가 일치해야 합니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        평균 가격 이하 매물, 최고가 매물, 지역별 최고가 매물,
+                        게시글별 댓글 수, 사용자별 최근 조회 로그 같은 기능은 서브쿼리와 자연스럽게 연결됩니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>

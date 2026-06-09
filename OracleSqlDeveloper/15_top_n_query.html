@@ -18,42 +18,733 @@
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 15</p>
                 <h1>TOP-N 쿼리와 페이징</h1>
+
                 <p class="chapter-description">
-                    상위 N개 데이터 조회와 페이지 단위 조회 흐름을 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    TOP-N 쿼리는 정렬된 결과 중 상위 N개 데이터만 가져오는 SQL 기법이고,<br/>
+                    페이징은 정렬된 결과 중 특정 구간만 잘라서 가져오는 SQL 기법입니다.<br/>
+                    이 단원은 게시판 목록, 매물 목록, 관리자 통계, 추천 결과, 검색 결과 페이지 구현에 직접 연결됩니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>핵심 공식</strong>
+                        <span>offset = (page - 1) × size</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>핵심 흐름</strong>
+                        <span>조건 필터링 → 정렬 → 일부 행만 조회</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>게시판, 매물 목록, 관리자 TOP 통계와 연결한다.</span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. TOP-N 쿼리와 페이징이란?</h2>
+                    </div>
+
+                    <p>
+                        TOP-N 쿼리는 전체 데이터 중에서 조건에 맞는 모든 데이터를 가져오는 것이 아니라,
+                        특정 기준으로 정렬한 뒤 위에서 몇 개만 가져오는 쿼리입니다.
+                        페이징은 정렬된 결과 중 앞의 일부를 건너뛰고, 현재 페이지에 필요한 개수만 가져오는 방식입니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>TOP-N</strong>
+                            <span>정렬된 결과 중 위에서 N개만 조회</span>
+                        </div>
+                        <div>
+                            <strong>페이징</strong>
+                            <span>정렬된 결과 중 특정 구간만 조회</span>
+                        </div>
+                        <div>
+                            <strong>실무 연결</strong>
+                            <span>게시판, 매물 목록, 검색 결과, 관리자 통계</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>TOP-N</strong>은 “위에서 N개만 가져오기”이고,
+                            <strong>페이징</strong>은 “앞에서 일부를 건너뛰고 필요한 개수만 가져오기”입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 핵심 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. TOP-N 쿼리란?</h3>
+                    <p>
+                        TOP-N 쿼리는 반드시 정렬 기준이 있어야 의미가 있습니다.
+                        단순히 3개를 가져오는 것이 아니라, 무엇을 기준으로 상위 3개인지가 중요합니다.
+                    </p>
+
+                    <div class="example-list">
+                        <p>다음 요구사항은 모두 TOP-N 쿼리입니다.</p>
+                        <ul>
+                            <li>연봉이 높은 직원 상위 3명 조회</li>
+                            <li>최근 등록된 게시글 10개 조회</li>
+                            <li>조회수가 높은 매물 TOP 5 조회</li>
+                            <li>가격이 낮은 상품 20개 조회</li>
+                            <li>위험도 점수가 높은 매물 TOP 10 조회</li>
+                        </ul>
+                    </div>
+
+                    <div class="formula-box">
+                        <span>TOP-N 쿼리</span>
+                        <strong>정렬 기준 + 행 개수 제한</strong>
+                    </div>
+
+                    <h3>2-2. 페이징이란?</h3>
+                    <p>
+                        페이징은 전체 조회 결과를 한 번에 모두 출력하지 않고 일정 개수씩 나누어 보여주는 방식입니다.
+                        게시판, 검색 결과, 상품 목록, 매물 목록에서 거의 필수적으로 사용됩니다.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>페이지</th>
+                                    <th>한 페이지 크기</th>
+                                    <th>조회 구간</th>
+                                    <th>OFFSET 값</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1페이지</td>
+                                    <td>10개</td>
+                                    <td>1번 ~ 10번</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <td>2페이지</td>
+                                    <td>10개</td>
+                                    <td>11번 ~ 20번</td>
+                                    <td>10</td>
+                                </tr>
+                                <tr>
+                                    <td>3페이지</td>
+                                    <td>10개</td>
+                                    <td>21번 ~ 30번</td>
+                                    <td>20</td>
+                                </tr>
+                                <tr>
+                                    <td>4페이지</td>
+                                    <td>10개</td>
+                                    <td>31번 ~ 40번</td>
+                                    <td>30</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>2-3. 페이징 공식</h3>
+
+                    <div class="formula-box strong">
+                        <span>페이징 공식</span>
+                        <strong>offset = (page - 1) × size</strong>
+                    </div>
+
+                    <pre><code>-- page = 현재 페이지 번호
+-- size = 한 페이지에 보여줄 데이터 개수
+
+offset = (page - 1) * size</code></pre>
+
+                    <h3>2-4. Oracle에서 TOP-N과 페이징을 구현하는 방식</h3>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>ROWNUM 방식</h3>
+                            <p>Oracle 구버전에서도 사용 가능하지만, 정렬 후 자르려면 인라인 뷰가 필요합니다.</p>
+                        </article>
+                        <article>
+                            <h3>OFFSET / FETCH 방식</h3>
+                            <p>Oracle 12c 이상에서 지원하며, 문법이 직관적이고 실무 페이징에 적합합니다.</p>
+                        </article>
+                        <article>
+                            <h3>분석 함수 방식</h3>
+                            <p>ROW_NUMBER(), RANK(), DENSE_RANK()를 사용하며 그룹별 TOP-N에 강합니다.</p>
+                        </article>
+                        <article>
+                            <h3>WITH절 방식</h3>
+                            <p>복잡한 서브쿼리에 이름을 붙여 가독성을 높이는 방식입니다.</p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>3-1. TOP-N 쿼리 흐름</h3>
+                    <p>
+                        연봉이 높은 직원 상위 3명을 가져온다고 생각해 봅시다.
+                        먼저 전체 데이터를 가져온 뒤, 연봉 기준으로 정렬하고, 그중 위에서 3명만 남깁니다.
+                    </p>
+
+                    <div class="flow-diagram">
+                        <div class="flow-step">
+                            <span>1단계</span>
+                            <strong>전체 데이터</strong>
+                            <p>EMP 테이블 전체 직원 조회</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span>2단계</span>
+                            <strong>정렬</strong>
+                            <p>SAL DESC 기준 정렬</p>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <span>3단계</span>
+                            <strong>행 제한</strong>
+                            <p>위에서 3개만 조회</p>
+                        </div>
+                    </div>
+
+                    <div class="rank-board">
+                        <div class="rank-column">
+                            <h3>정렬 전</h3>
+                            <ol>
+                                <li>SMITH - 800</li>
+                                <li>ALLEN - 1600</li>
+                                <li>WARD - 1250</li>
+                                <li>JONES - 2975</li>
+                                <li>KING - 5000</li>
+                            </ol>
+                        </div>
+                        <div class="rank-column highlight">
+                            <h3>연봉 내림차순 정렬 후</h3>
+                            <ol>
+                                <li>KING - 5000</li>
+                                <li>SCOTT - 3000</li>
+                                <li>FORD - 3000</li>
+                                <li>JONES - 2975</li>
+                                <li>BLAKE - 2850</li>
+                            </ol>
+                        </div>
+                        <div class="rank-column top">
+                            <h3>TOP 3 결과</h3>
+                            <ol>
+                                <li>KING - 5000</li>
+                                <li>SCOTT - 3000</li>
+                                <li>FORD - 3000</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <h3>3-2. 페이징 흐름</h3>
+                    <p>
+                        페이징은 정렬된 결과에서 앞의 일부를 건너뛰고,
+                        현재 페이지에 필요한 개수만 가져오는 방식입니다.
+                    </p>
+
+                    <div class="paging-visual">
+                        <div class="page-block active">
+                            <span>1페이지</span>
+                            <strong>1 ~ 10</strong>
+                            <p>OFFSET 0</p>
+                        </div>
+                        <div class="page-block">
+                            <span>2페이지</span>
+                            <strong>11 ~ 20</strong>
+                            <p>OFFSET 10</p>
+                        </div>
+                        <div class="page-block">
+                            <span>3페이지</span>
+                            <strong>21 ~ 30</strong>
+                            <p>OFFSET 20</p>
+                        </div>
+                        <div class="page-block">
+                            <span>4페이지</span>
+                            <strong>31 ~ 40</strong>
+                            <p>OFFSET 30</p>
+                        </div>
+                    </div>
+
+                    <h3>3-3. ROWNUM 방식의 3단계 구조</h3>
+                    <p>
+                        ROWNUM으로 구간 조회를 할 때는 한 번에 처리하지 않고,
+                        정렬 → 번호 부여 → 구간 필터링의 3단계로 나누어 생각해야 합니다.
+                    </p>
+
+                    <div class="stack-diagram">
+                        <div>
+                            <span>가장 안쪽 쿼리</span>
+                            <strong>ORDER BY로 먼저 정렬</strong>
+                            <code>SELECT * FROM emp ORDER BY sal DESC</code>
+                        </div>
+                        <div>
+                            <span>중간 쿼리</span>
+                            <strong>ROWNUM에 별칭 부여</strong>
+                            <code>SELECT sorted_emp.*, ROWNUM rnum FROM (...)</code>
+                        </div>
+                        <div>
+                            <span>가장 바깥 쿼리</span>
+                            <strong>BETWEEN으로 구간 조회</strong>
+                            <code>WHERE rnum BETWEEN 6 AND 10</code>
+                        </div>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card sql-card" id="sql">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Examples</span>
+                        <h2>4. SQL 예제</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>4-1. Oracle 12c 이상: 연봉 상위 3명</h3>
+                            <pre><code>SELECT empno, ename, job, sal
+FROM emp
+ORDER BY sal DESC
+FETCH FIRST 3 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-2. OFFSET을 명시한 TOP-N</h3>
+                            <pre><code>SELECT empno, ename, job, sal
+FROM emp
+ORDER BY sal DESC
+OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-3. 조건이 있는 TOP-N</h3>
+                            <pre><code>SELECT ename, sal, job, deptno
+FROM emp
+WHERE deptno = 30
+ORDER BY sal DESC
+OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-4. JOIN이 있는 TOP-N</h3>
+                            <pre><code>SELECT e.ename,
+       e.sal,
+       e.job,
+       e.deptno,
+       d.dname
+FROM emp e
+JOIN dept d
+  ON e.deptno = d.deptno
+WHERE e.deptno = 30
+ORDER BY e.sal DESC
+OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-5. 입사일 기준 최근 직원 5명</h3>
+                            <pre><code>SELECT first_name,
+       salary,
+       hire_date,
+       department_name,
+       city
+FROM employees e
+JOIN departments d
+  ON e.department_id = d.department_id
+JOIN locations l
+  ON d.location_id = l.location_id
+ORDER BY hire_date DESC
+OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-6. 특정 구간 조회: 6번째부터 10번째까지</h3>
+                            <pre><code>SELECT *
+FROM emp
+ORDER BY sal DESC
+OFFSET 5 ROWS FETCH NEXT 5 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-7. ROWNUM 방식 TOP-N</h3>
+                            <pre><code>SELECT empno, ename, job, sal
+FROM (
+    SELECT empno, ename, job, sal
+    FROM emp
+    ORDER BY sal DESC
+)
+WHERE ROWNUM &lt;= 3;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-8. ROWNUM 방식 페이징</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT sorted_emp.*, ROWNUM rnum
+    FROM (
+        SELECT *
+        FROM emp
+        ORDER BY sal DESC
+    ) sorted_emp
+)
+WHERE rnum BETWEEN 6 AND 10;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-9. ROW_NUMBER() 분석 함수 방식</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT empno,
+           ename,
+           job,
+           sal,
+           ROW_NUMBER() OVER (ORDER BY sal DESC) AS rn
+    FROM emp
+)
+WHERE rn BETWEEN 6 AND 10;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-10. 부서별 TOP-N</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT empno,
+           ename,
+           deptno,
+           sal,
+           ROW_NUMBER() OVER (
+               PARTITION BY deptno
+               ORDER BY sal DESC
+           ) AS rn
+    FROM emp
+)
+WHERE rn &lt;= 3
+ORDER BY deptno, rn;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-11. 게시판 페이징</h3>
+                            <pre><code>SELECT board_id,
+       title,
+       writer,
+       created_at,
+       view_count
+FROM board
+ORDER BY board_id DESC
+OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-12. 내집마련 매물 목록 페이징</h3>
+                            <pre><code>SELECT property_id,
+       title,
+       deal_amount,
+       area_sqm,
+       property_type,
+       created_at
+FROM property
+WHERE listing_status = 'ACTIVE'
+ORDER BY created_at DESC, property_id DESC
+OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>WITH TIES 주의</h3>
+                        <p>
+                            WITH TIES는 동점자를 함께 가져올 수 있기 때문에 결과 행 수가 고정되지 않습니다.
+                            따라서 일반적인 게시판이나 매물 목록 페이징에서는 사용하지 않는 것이 좋습니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>5. 실습 문제 연결</h2>
+                    </div>
+
+                    <p>
+                        이번 단원은 실습 문제에서 TOP-N 쿼리와 특정 구간 조회 문제로 직접 연결됩니다.
+                        특히 EMP, DEPT, HR 계정의 EMPLOYEES, DEPARTMENTS, LOCATIONS 테이블을 활용한 문제가 중요합니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 28. 부서 코드가 30인 직원 중 연봉 상위 3명</h3>
+                            <pre><code>SELECT ename, sal, job, deptno
+FROM emp
+WHERE deptno = 30
+ORDER BY sal DESC
+OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 29. 부서명까지 포함한 연봉 상위 3명</h3>
+                            <pre><code>SELECT e.ename, e.sal, e.job, e.deptno, d.dname
+FROM emp e
+JOIN dept d
+  ON e.deptno = d.deptno
+WHERE e.deptno = 30
+ORDER BY e.sal DESC
+OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 30. 입사일 기준 최근 직원 5명</h3>
+                            <pre><code>SELECT first_name,
+       salary,
+       hire_date,
+       department_name,
+       city
+FROM employees e
+JOIN departments d
+  ON e.department_id = d.department_id
+JOIN locations l
+  ON l.location_id = d.location_id
+ORDER BY hire_date DESC
+OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 31. 연봉순 6번째부터 10번째까지</h3>
+                            <pre><code>SELECT *
+FROM emp
+ORDER BY sal DESC
+OFFSET 5 ROWS FETCH NEXT 5 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 32. HR employees 연봉순 11번째부터 20번째까지</h3>
+                            <pre><code>SELECT *
+FROM employees
+ORDER BY salary DESC
+OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 33. EMP와 DEPT 조인 결과의 6번째부터 10번째까지</h3>
+                            <pre><code>SELECT e.ename,
+       e.sal,
+       d.deptno,
+       d.dname,
+       e.hiredate
+FROM emp e
+JOIN dept d
+  ON e.deptno = d.deptno
+ORDER BY e.sal DESC
+OFFSET 5 ROWS FETCH NEXT 5 ROWS ONLY;</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>6. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. ORDER BY 없이 TOP-N을 사용함</strong>
+                            <span>정렬 기준이 없으면 “상위”라는 의미가 사라집니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. ROWNUM을 먼저 자르고 나중에 정렬함</strong>
+                            <span>전체 연봉 상위 3명이 아니라 먼저 선택된 3명을 정렬한 결과가 될 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. ROWNUM BETWEEN을 바로 사용함</strong>
+                            <span>ROWNUM은 결과에 포함되는 행에 붙는 번호이므로 별칭을 만든 뒤 BETWEEN을 적용해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. OFFSET 계산을 잘못함</strong>
+                            <span>2페이지에서 10개씩 보여줄 때 OFFSET은 2가 아니라 10입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. 정렬 기준이 불안정함</strong>
+                            <span>같은 값이 있는 컬럼만 정렬하면 페이지 결과가 흔들릴 수 있으므로 PK를 보조 정렬 기준으로 추가합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. WHERE 조건 위치를 잘못 둠</strong>
+                            <span>“30번 부서 안에서 상위 3명”이면 부서 조건을 먼저 적용한 뒤 정렬해야 합니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>7. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. TOP-N 쿼리란 무엇인가요?</h3>
+                            <p>
+                                TOP-N 쿼리는 정렬된 결과에서 상위 N개의 행만 조회하는 쿼리입니다.
+                                예를 들어 연봉 상위 3명, 최근 게시글 10개, 조회수 높은 상품 5개를 조회할 때 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. Oracle에서 ROWNUM을 사용할 때 주의할 점은 무엇인가요?</h3>
+                            <p>
+                                ROWNUM은 ORDER BY 결과에 최종적으로 붙는 번호가 아니라,
+                                Oracle이 행을 읽어오는 과정에서 부여하는 가상의 번호입니다.
+                                따라서 정렬 기준이 있는 TOP-N 쿼리에서는 인라인 뷰 안에서 먼저 ORDER BY를 수행하고,
+                                바깥 쿼리에서 ROWNUM 조건을 적용해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. Oracle 12c 이상에서 페이징 쿼리는 어떻게 작성하나요?</h3>
+                            <p>
+                                Oracle 12c 이상에서는 OFFSET과 FETCH를 사용합니다.
+                                OFFSET은 앞에서 건너뛸 행 수이고, FETCH NEXT는 가져올 행 수입니다.
+                            </p>
+
+                            <pre><code>SELECT *
+FROM board
+ORDER BY board_id DESC
+OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>Q4. ROWNUM 방식과 OFFSET/FETCH 방식의 차이는 무엇인가요?</h3>
+                            <p>
+                                ROWNUM 방식은 Oracle 구버전에서도 사용할 수 있지만,
+                                정렬 후 구간 조회를 하려면 인라인 뷰를 여러 번 감싸야 해서 쿼리가 복잡해질 수 있습니다.
+                                OFFSET/FETCH 방식은 Oracle 12c 이상에서 지원되며, ORDER BY 뒤에 바로 작성할 수 있어 더 직관적입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. ROW_NUMBER()와 ROWNUM의 차이는 무엇인가요?</h3>
+                            <p>
+                                ROWNUM은 Oracle이 조회 과정에서 부여하는 가상의 번호입니다.
+                                ROW_NUMBER()는 분석 함수로, OVER(ORDER BY ...)에 지정한 정렬 기준에 따라 명확하게 순번을 계산합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. RANK()와 DENSE_RANK()의 차이는 무엇인가요?</h3>
+                            <p>
+                                둘 다 같은 값에는 같은 순위를 부여합니다.
+                                RANK()는 동점자가 있으면 다음 순위를 건너뛰고,
+                                DENSE_RANK()는 다음 순위를 건너뛰지 않습니다.
+                            </p>
+
+                            <div class="rank-compare">
+                                <div>
+                                    <strong>RANK()</strong>
+                                    <p>1, 2, 2, 4</p>
+                                </div>
+                                <div>
+                                    <strong>DENSE_RANK()</strong>
+                                    <p>1, 2, 2, 3</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>8. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>TOP-N 쿼리
+→ 정렬된 결과 중 위에서 N개만 조회
+
+페이징
+→ 정렬된 결과 중 앞에서 일부를 건너뛰고 N개 조회
+
+OFFSET 공식
+→ offset = (page - 1) × size
+
+ROWNUM 방식
+→ 정렬을 인라인 뷰에서 먼저 수행해야 함
+
+OFFSET / FETCH 방식
+→ Oracle 12c 이상에서 사용하는 직관적인 페이징 문법
+
+ROW_NUMBER()
+→ 정렬 기준에 따라 명확한 순번을 부여하는 분석 함수
+
+PARTITION BY
+→ 그룹별 TOP-N을 구할 때 사용</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        TOP-N은 정렬된 결과에서 위에서 N개만 가져오고,
+                        페이징은 정렬된 결과에서 특정 구간만 가져오는 쿼리입니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>페이징 공식</h3>
+                    <pre><code>offset = (page - 1) × size</code></pre>
+                    <p>
+                        page가 1이고 size가 10이면 offset은 0입니다.<br/>
+                        page가 2이고 size가 10이면 offset은 10입니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>암기 SQL</h3>
+                    <pre><code>SELECT *
+FROM board
+ORDER BY board_id DESC
+OFFSET :offset ROWS
+FETCH NEXT :size ROWS ONLY;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>학습 순서</h3>
+                    <ol>
+                        <li>TOP-N의 의미 이해</li>
+                        <li>ROWNUM의 동작 순서 이해</li>
+                        <li>OFFSET/FETCH 문법 익히기</li>
+                        <li>ROW_NUMBER() 분석 함수 비교</li>
+                        <li>게시판/매물 목록 페이징으로 연결</li>
+                    </ol>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        TOP-N은 반드시 정렬 기준이 필요합니다.
+                        ROWNUM은 ORDER BY보다 먼저 붙을 수 있으므로,
+                        정렬이 필요한 경우 인라인 뷰를 먼저 사용해야 합니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        게시판 목록, 검색 결과, 매물 목록, 관리자 TOP 통계,
+                        추천 결과 페이지는 모두 TOP-N과 페이징 쿼리로 연결됩니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>
