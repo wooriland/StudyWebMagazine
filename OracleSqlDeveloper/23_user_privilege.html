@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oracle SQL Developer 학습 매거진 - 사용자 생성과 권한</title>
+    <title>Oracle SQL Developer 학습 매거진 - 사용자 생성 및 권한</title>
 
     <link rel="stylesheet" href="../css/00_nav.css">
     <link rel="stylesheet" href="../css/OracleSqlDeveloper/23_user_privilege.css">
@@ -17,43 +17,1274 @@
         <div class="page-content">
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 23</p>
-                <h1>사용자 생성과 권한</h1>
+                <h1>사용자 생성 및 권한</h1>
+
                 <p class="chapter-description">
-                    Oracle 사용자 생성과 권한 부여, 회수 절차를 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    Oracle에서 사용자는 단순한 로그인 ID가 아니라, 데이터베이스에 접속하고,<br/>
+                    테이블·VIEW·시퀀스 같은 객체를 소유하며, 권한에 따라 작업을 수행하는 주체입니다.<br/>
+                    이번 단원에서는 CDB와 PDB 사용자, CREATE USER, GRANT, REVOKE, ROLE,
+                    시스템 권한, 객체 권한, QUOTA, 계정 잠금 해제, 사용자 삭제,<br/>
+                    그리고 Java·Spring 프로젝트의 DB 계정 분리까지 학습합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            사용자를 만들고 필요한 권한을<br/>
+                            안전하게 부여하는 흐름을 이해한다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            SYSTEM 접속 → PDB 확인 → 사용자 생성 →<br/>
+                            권한 부여 → 일반 사용자 접속 확인
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>
+                            Spring Boot datasource 계정,<br/>
+                            읽기 전용 계정, 쓰기 계정 분리와 연결한다.
+                        </span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 사용자 생성과 권한이란?</h2>
+                    </div>
+
+                    <p>
+                        Oracle에서 사용자는 데이터베이스에 접속하는 계정이면서,
+                        테이블이나 VIEW 같은 객체를 소유하는 스키마 역할도 합니다.<br/>
+                        하지만 사용자를 만들었다고 해서 바로 접속하거나 테이블을 만들 수 있는 것은 아닙니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>CREATE USER</strong>
+                            <span>사용자 계정 생성</span>
+                        </div>
+                        <div>
+                            <strong>GRANT</strong>
+                            <span>사용자에게 권한 또는 역할 부여</span>
+                        </div>
+                        <div>
+                            <strong>REVOKE</strong>
+                            <span>부여된 권한 또는 역할 회수</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>사용자 생성</strong>은 계정을 만드는 것이고,
+                            <strong>권한 부여</strong>는 그 계정이 무엇을 할 수 있는지 정하는 과정입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 단원 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. Oracle 사용자란?</h3>
+                    <p>
+                        Oracle에서 사용자는 단순한 로그인 ID가 아닙니다.
+                        사용자는 데이터베이스에 접속하는 계정이면서, 객체를 소유하는 스키마이며,
+                        권한을 부여받아 작업을 수행하는 주체입니다.
+                    </p>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>접속 계정</strong>
+                            <span>Login Account</span>
+                            <p>SQL Developer, SQL*Plus, Spring Boot에서 DB에 접속할 때 사용하는 계정입니다.</p>
+                        </article>
+                        <article>
+                            <strong>스키마</strong>
+                            <span>Schema Owner</span>
+                            <p>테이블, VIEW, 시퀀스, 인덱스 같은 객체를 소유하는 공간입니다.</p>
+                        </article>
+                        <article>
+                            <strong>권한 주체</strong>
+                            <span>Privilege Target</span>
+                            <p>GRANT와 REVOKE의 대상이 되는 사용자 또는 역할입니다.</p>
+                        </article>
+                        <article>
+                            <strong>프로젝트 계정</strong>
+                            <span>Application User</span>
+                            <p>Spring Boot 애플리케이션이 접속하는 전용 DB 계정으로 사용됩니다.</p>
+                        </article>
+                    </div>
+
+                    <h3>2-2. 사용자는 생성 직후 아무 권한도 없다</h3>
+                    <p>
+                        사용자를 생성해도 바로 접속할 수 없습니다.<br/>
+                        접속하려면 CREATE SESSION 권한이 필요하고,
+                        테이블을 만들려면 CREATE TABLE 권한이 필요하며,
+                        VIEW를 만들려면 CREATE VIEW 권한이 필요합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>사용자 생성</h3>
+                            <pre><code>CREATE USER study_user IDENTIFIED BY Study1234;</code></pre>
+                            <p>계정만 생성된 상태입니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>접속 권한 부여</h3>
+                            <pre><code>GRANT CREATE SESSION TO study_user;</code></pre>
+                            <p>이제 DB에 접속할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>테이블 생성 권한</h3>
+                            <pre><code>GRANT CREATE TABLE TO study_user;
+ALTER USER study_user QUOTA UNLIMITED ON users;</code></pre>
+                            <p>테이블 생성 권한과 테이블스페이스 할당량이 필요할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>VIEW 생성 권한</h3>
+                            <pre><code>GRANT CREATE VIEW TO study_user;</code></pre>
+                            <p>VIEW를 만들 수 있습니다.</p>
+                        </article>
+                    </div>
+
+                    <h3>2-3. CDB 사용자와 PDB 사용자</h3>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>CDB 사용자</th>
+                                    <th>PDB 사용자</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>의미</td>
+                                    <td>Container Database 전체에서 사용할 수 있는 공통 사용자</td>
+                                    <td>특정 PDB 안에서 사용하는 로컬 사용자</td>
+                                </tr>
+                                <tr>
+                                    <td>계정명</td>
+                                    <td>C## 접두사를 사용하는 경우가 있음</td>
+                                    <td>보통 C##을 붙이지 않음</td>
+                                </tr>
+                                <tr>
+                                    <td>사용 목적</td>
+                                    <td>관리자 또는 공통 관리용</td>
+                                    <td>실습, 프로젝트, 애플리케이션 작업용</td>
+                                </tr>
+                                <tr>
+                                    <td>예시</td>
+                                    <td>C##ICT</td>
+                                    <td>study_user, myhouse_app</td>
+                                </tr>
+                                <tr>
+                                    <td>실습 권장</td>
+                                    <td>일반 실습에서는 거의 사용하지 않음</td>
+                                    <td>XEPDB1에 로컬 사용자 생성</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>3-1. 사용자 생성과 권한 부여 흐름</h3>
+                    <p>
+                        사용자 생성은 사람을 등록하는 것이고, 권한 부여는 그 사람이 할 수 있는 일을 정하는 과정입니다.
+                    </p>
+
+                    <div class="flow-steps">
+                        <div>
+                            <span>1</span>
+                            <strong>SYSTEM 접속</strong>
+                            <p>관리자 계정으로<br/>XEPDB1에 접속</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>CREATE USER</strong>
+                            <p>일반 사용자 계정 생성</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>GRANT</strong>
+                            <p>접속, 테이블 생성,<br/>VIEW 생성 권한 부여</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>QUOTA</strong>
+                            <p>테이블스페이스<br/>사용량 부여</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>일반 사용자 접속</strong>
+                            <p>테이블과 VIEW 생성 실습</p>
+                        </div>
+                    </div>
+
+                    <h3>3-2. 시스템 권한과 객체 권한</h3>
+
+                    <div class="permission-map">
+                        <div class="permission-box">
+                            <h3>시스템 권한</h3>
+                            <p>데이터베이스 차원에서 무엇을 할 수 있는가?</p>
+                            <ul>
+                                <li>CREATE SESSION</li>
+                                <li>CREATE TABLE</li>
+                                <li>CREATE VIEW</li>
+                                <li>CREATE USER</li>
+                                <li>DROP USER</li>
+                            </ul>
+                        </div>
+
+                        <div class="visual-arrow">↔</div>
+
+                        <div class="permission-box">
+                            <h3>객체 권한</h3>
+                            <p>특정 객체에 대해 무엇을 할 수 있는가?</p>
+                            <ul>
+                                <li>SELECT ON SCOTT.EMP</li>
+                                <li>INSERT ON APP_OWNER.BOARD</li>
+                                <li>UPDATE ON APP_OWNER.PROPERTY</li>
+                                <li>DELETE ON APP_OWNER.LIKE</li>
+                                <li>EXECUTE ON PROCEDURE</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h3>3-3. ROLE은 권한 꾸러미다</h3>
+
+                    <div class="role-visual">
+                        <div class="role-source">
+                            <span>CREATE TABLE</span>
+                            <span>CREATE VIEW</span>
+                            <span>CREATE SESSION</span>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div class="role-box">
+                            <strong>STAFF ROLE</strong>
+                            <p>여러 권한을 묶은 권한 꾸러미</p>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div class="role-user">
+                            <strong>study_user</strong>
+                            <p>역할을 부여받은 사용자</p>
+                        </div>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>4. 기본 문법 카드</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>4-1. 사용자 생성</h3>
+                            <pre><code>CREATE USER 사용자아이디 IDENTIFIED BY 암호;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-2. 테이블스페이스 지정 사용자 생성</h3>
+                            <pre><code>CREATE USER study_user IDENTIFIED BY Study1234
+DEFAULT TABLESPACE users
+TEMPORARY TABLESPACE temp;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-3. 접속 권한</h3>
+                            <pre><code>GRANT CREATE SESSION TO study_user;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-4. 테이블 생성 권한</h3>
+                            <pre><code>GRANT CREATE TABLE TO study_user;
+ALTER USER study_user QUOTA UNLIMITED ON users;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-5. VIEW 생성 권한</h3>
+                            <pre><code>GRANT CREATE VIEW TO study_user;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-6. 여러 권한 한 번에 부여</h3>
+                            <pre><code>GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW
+TO study_user;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-7. 객체 권한 부여</h3>
+                            <pre><code>GRANT SELECT ON SCOTT.EMP TO CHOI;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-8. 권한 회수</h3>
+                            <pre><code>REVOKE SELECT ON owner_notice FROM app_reader;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-9. 암호 변경</h3>
+                            <pre><code>ALTER USER study_user IDENTIFIED BY NewPass1234;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-10. 계정 잠금 해제</h3>
+                            <pre><code>ALTER USER study_user ACCOUNT UNLOCK;
+
+ALTER USER study_user
+ACCOUNT UNLOCK IDENTIFIED BY NewPass1234;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-11. 사용자 삭제</h3>
+                            <pre><code>DROP USER study_user CASCADE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-12. ROLE 생성과 부여</h3>
+                            <pre><code>CREATE ROLE staff;
+
+GRANT CREATE TABLE, CREATE VIEW TO staff;
+
+GRANT staff TO study_user;</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card setup-card" id="setup">
+                    <div class="section-title-area">
+                        <span class="section-badge">Setup</span>
+                        <h2>5. SQL Developer 실습 준비</h2>
+                    </div>
+
+                    <p>
+                        사용자 생성과 권한 부여는 일반적으로 관리자 계정에서 수행합니다.
+                        SQL Developer에서는 접속 설정에서 서비스 이름을 XEPDB1로 지정하고 SYSTEM 계정으로 접속합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. SYSTEM으로 PDB 접속</h3>
+                            <pre><code>sqlplus system/비밀번호@localhost:1521/XEPDB1</code></pre>
+                            <p>
+                                SQL Developer에서는 호스트 이름 localhost, 포트 1521,
+                                서비스 이름 XEPDB1을 사용합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 현재 컨테이너 확인</h3>
+                            <pre><code>SHOW CON_NAME;</code></pre>
+                            <p>
+                                결과가 XEPDB1인지 확인합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-3. PDB 목록 확인</h3>
+                            <pre><code>SELECT name
+FROM v$pdbs;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-4. CDB에서 PDB로 이동</h3>
+                            <pre><code>ALTER SESSION SET CONTAINER = XEPDB1;
+
+SHOW CON_NAME;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>실습 전 주의</h3>
+                        <p>
+                            사용자 생성, 권한 부여, 사용자 삭제는 관리자 계정에서 실행해야 합니다.<br/>
+                            실습 계정을 삭제할 때 DROP USER ... CASCADE는 해당 사용자의 객체까지 삭제할 수 있으므로 주의해야 합니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card user-card" id="user-basic">
+                    <div class="section-title-area">
+                        <span class="section-badge">User Practice</span>
+                        <h2>6. SQL 예제 카드 - 기본 사용자 생성</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. 기존 실습 사용자 정리</h3>
+                            <pre><code>DROP USER study_user CASCADE;
+DROP USER app_owner CASCADE;
+DROP USER app_reader CASCADE;
+DROP ROLE staff;</code></pre>
+                            <p>
+                                처음 실행하면 사용자가 없어서 오류가 날 수 있습니다.<br/>
+                                첫 실습에서는 괜찮습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. 사용자 생성</h3>
+                            <pre><code>CREATE USER study_user IDENTIFIED BY Study1234
+DEFAULT TABLESPACE users
+TEMPORARY TABLESPACE temp;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. 권한 부여</h3>
+                            <pre><code>GRANT CREATE SESSION TO study_user;
+GRANT CREATE TABLE TO study_user;
+GRANT CREATE VIEW TO study_user;
+ALTER USER study_user QUOTA UNLIMITED ON users;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-4. 일반 사용자 접속</h3>
+                            <pre><code>CONN study_user/Study1234@localhost:1521/XEPDB1;
+
+SHOW USER;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-5. 테이블 생성</h3>
+                            <pre><code>CREATE TABLE user_priv_test (
+    id NUMBER,
+    name VARCHAR2(30),
+    CONSTRAINT pk_user_priv_test PRIMARY KEY (id)
+);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-6. 데이터 입력과 조회</h3>
+                            <pre><code>INSERT INTO user_priv_test VALUES (1, '권한 실습');
+COMMIT;
+
+SELECT *
+FROM user_priv_test;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-7. VIEW 생성</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_user_priv_test AS
+SELECT id,
+       name
+FROM user_priv_test;
+
+SELECT *
+FROM v_user_priv_test;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-8. VIEW 목록 확인</h3>
+                            <pre><code>SELECT view_name
+FROM user_views
+WHERE view_name = 'V_USER_PRIV_TEST';</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card role-card" id="role">
+                    <div class="section-title-area">
+                        <span class="section-badge">ROLE</span>
+                        <h2>7. ROLE 실습 카드</h2>
+                    </div>
+
+                    <p>
+                        ROLE은 여러 권한을 묶어놓은 권한 꾸러미입니다.
+                        여러 사용자에게 같은 권한 세트를 부여해야 할 때 역할을 만들어 관리하면 편리합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>7-1. 관리자 계정으로 접속</h3>
+                            <pre><code>CONN system/비밀번호@localhost:1521/XEPDB1;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-2. ROLE 생성</h3>
+                            <pre><code>CREATE ROLE staff;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-3. ROLE에 권한 부여</h3>
+                            <pre><code>GRANT CREATE TABLE, CREATE VIEW TO staff;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-4. 사용자에게 ROLE 부여</h3>
+                            <pre><code>GRANT staff TO study_user;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-5. ROLE 확인</h3>
+                            <pre><code>SELECT granted_role
+FROM dba_role_privs
+WHERE grantee = 'STUDY_USER';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-6. 대표 역할</h3>
+                            <pre><code>CONNECT
+→ DB에 접속할 수 있는 역할
+
+RESOURCE
+→ 객체를 생성할 수 있는 역할
+
+DBA
+→ 최고 권한 역할</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card object-card" id="object-privilege">
+                    <div class="section-title-area">
+                        <span class="section-badge">Object Privilege</span>
+                        <h2>8. 객체 권한 실습 카드</h2>
+                    </div>
+
+                    <p>
+                        다른 사용자의 테이블을 조회하려면 객체 권한이 필요합니다.
+                        권한이 없으면 실제 테이블이 존재해도 ORA-00942 오류가 발생할 수 있습니다.
+                    </p>
+
+                    <div class="owner-reader-diagram">
+                        <div>
+                            <strong>APP_OWNER</strong>
+                            <span>테이블 소유자</span>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <strong>GRANT SELECT</strong>
+                            <span>조회 권한 부여</span>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <strong>APP_READER</strong>
+                            <span>조회 전용 사용자</span>
+                        </div>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>8-1. 사용자 생성</h3>
+                            <pre><code>CREATE USER app_owner IDENTIFIED BY Owner1234
+DEFAULT TABLESPACE users
+TEMPORARY TABLESPACE temp;
+
+CREATE USER app_reader IDENTIFIED BY Reader1234
+DEFAULT TABLESPACE users
+TEMPORARY TABLESPACE temp;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-2. 권한 부여</h3>
+                            <pre><code>GRANT CREATE SESSION, CREATE TABLE TO app_owner;
+ALTER USER app_owner QUOTA UNLIMITED ON users;
+
+GRANT CREATE SESSION TO app_reader;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-3. APP_OWNER로 테이블 생성</h3>
+                            <pre><code>CONN app_owner/Owner1234@localhost:1521/XEPDB1;
+
+CREATE TABLE owner_notice (
+    notice_id NUMBER,
+    title VARCHAR2(100),
+    CONSTRAINT pk_owner_notice PRIMARY KEY (notice_id)
+);
+
+INSERT INTO owner_notice VALUES (1, '첫 번째 공지');
+INSERT INTO owner_notice VALUES (2, '두 번째 공지');
+COMMIT;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>8-4. APP_READER로 권한 없이 조회</h3>
+                            <pre><code>CONN app_reader/Reader1234@localhost:1521/XEPDB1;
+
+SELECT *
+FROM app_owner.owner_notice;</code></pre>
+                            <p>
+                                권한이 없으면 ORA-00942 오류가 발생할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-5. SELECT 권한 부여</h3>
+                            <pre><code>CONN app_owner/Owner1234@localhost:1521/XEPDB1;
+
+GRANT SELECT ON owner_notice TO app_reader;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-6. APP_READER로 다시 조회</h3>
+                            <pre><code>CONN app_reader/Reader1234@localhost:1521/XEPDB1;
+
+SELECT *
+FROM app_owner.owner_notice;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-7. 권한 회수</h3>
+                            <pre><code>CONN app_owner/Owner1234@localhost:1521/XEPDB1;
+
+REVOKE SELECT ON owner_notice FROM app_reader;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card check-card" id="check">
+                    <div class="section-title-area">
+                        <span class="section-badge">Check</span>
+                        <h2>9. 사용자와 권한 확인 쿼리</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>9-1. 사용자 목록 확인</h3>
+                            <pre><code>SELECT username
+FROM dba_users
+ORDER BY username;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. 시스템 권한 확인</h3>
+                            <pre><code>SELECT privilege
+FROM dba_sys_privs
+WHERE grantee = 'STUDY_USER';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-3. 역할 확인</h3>
+                            <pre><code>SELECT granted_role
+FROM dba_role_privs
+WHERE grantee = 'STUDY_USER';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-4. 객체 권한 확인</h3>
+                            <pre><code>SELECT owner,
+       table_name,
+       privilege,
+       grantee
+FROM dba_tab_privs
+WHERE grantee = 'APP_READER';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-5. 현재 사용자의 객체 권한</h3>
+                            <pre><code>SELECT *
+FROM user_tab_privs;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-6. 시스템 권한 종류 확인</h3>
+                            <pre><code>SELECT *
+FROM system_privilege_map;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-7. 객체 권한 종류 확인</h3>
+                            <pre><code>SELECT *
+FROM table_privilege_map;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card option-card" id="admin-option">
+                    <div class="section-title-area">
+                        <span class="section-badge">Admin Option</span>
+                        <h2>10. WITH ADMIN OPTION</h2>
+                    </div>
+
+                    <p>
+                        WITH ADMIN OPTION은 권한을 받은 사용자가 그 시스템 권한을 다른 사용자에게 다시 부여할 수 있도록 하는 옵션입니다.<br/>
+                        권한이 확산될 수 있으므로 실무에서는 매우 신중하게 사용해야 합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>10-1. WITH ADMIN OPTION 부여</h3>
+                            <pre><code>GRANT CREATE TABLE TO study_user WITH ADMIN OPTION;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-2. 의미</h3>
+                            <pre><code>SYSTEM
+→ study_user에게 CREATE TABLE 권한 부여
+→ study_user가 다른 사용자에게 CREATE TABLE 권한 부여 가능</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>주의</h3>
+                        <p>
+                            WITH ADMIN OPTION은 권한 위임을 가능하게 하므로,
+                            일반 개발자 계정이나 애플리케이션 계정에는 보통 부여하지 않는 것이 안전합니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card account-card" id="account">
+                    <div class="section-title-area">
+                        <span class="section-badge">Account</span>
+                        <h2>11. 암호 변경, 잠금 해제, 사용자 삭제</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>11-1. 암호 변경</h3>
+                            <pre><code>ALTER USER study_user IDENTIFIED BY NewPass1234;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-2. 계정 잠금 해제</h3>
+                            <pre><code>ALTER USER study_user ACCOUNT UNLOCK;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-3. 잠금 해제와 암호 변경 동시 처리</h3>
+                            <pre><code>ALTER USER study_user
+ACCOUNT UNLOCK IDENTIFIED BY NewPass1234;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>11-4. 사용자 삭제</h3>
+                            <pre><code>DROP USER study_user CASCADE;</code></pre>
+                            <p>
+                                CASCADE를 붙이면 해당 사용자가 소유한 객체까지 삭제될 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>12. 실습 문제 카드</h2>
+                    </div>
+
+                    <p>
+                        실습 문제의 SCOTT.EMP, HR.EMPLOYEES, DEPARTMENTS, LOCATIONS 조회는
+                        객체 권한과 연결해서 이해할 수 있습니다.<br/>
+                        다른 사용자의 테이블을 조회하려면 해당 객체에 대한 SELECT 권한이 필요합니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 1. 실습 사용자 생성</h3>
+                            <pre><code>CREATE USER study_user IDENTIFIED BY Study1234
+DEFAULT TABLESPACE users
+TEMPORARY TABLESPACE temp;
+
+GRANT CREATE SESSION, CREATE TABLE, CREATE VIEW TO study_user;
+ALTER USER study_user QUOTA UNLIMITED ON users;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 2. 일반 사용자 접속 확인</h3>
+                            <pre><code>CONN study_user/Study1234@localhost:1521/XEPDB1;
+
+SHOW USER;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 3. 테이블과 VIEW 생성</h3>
+                            <pre><code>CREATE TABLE user_priv_test (
+    id NUMBER,
+    name VARCHAR2(30),
+    CONSTRAINT pk_user_priv_test PRIMARY KEY (id)
+);
+
+CREATE OR REPLACE VIEW v_user_priv_test AS
+SELECT id, name
+FROM user_priv_test;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 4. ROLE 생성과 부여</h3>
+                            <pre><code>CREATE ROLE staff;
+GRANT CREATE TABLE, CREATE VIEW TO staff;
+GRANT staff TO study_user;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 5. SCOTT.EMP 조회 권한</h3>
+                            <pre><code>GRANT SELECT ON SCOTT.EMP TO CHOI;
+
+CONN CHOI/비밀번호@localhost:1521/XEPDB1;
+
+SELECT *
+FROM SCOTT.EMP;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 6. HR 테이블 조회 권한</h3>
+                            <pre><code>GRANT SELECT ON HR.EMPLOYEES TO APP_READER;
+GRANT SELECT ON HR.DEPARTMENTS TO APP_READER;
+GRANT SELECT ON HR.LOCATIONS TO APP_READER;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 7. HR JOIN 조회</h3>
+                            <pre><code>SELECT e.last_name,
+       e.salary,
+       d.department_name,
+       l.city
+FROM hr.employees e
+JOIN hr.departments d
+  ON e.department_id = d.department_id
+JOIN hr.locations l
+  ON d.location_id = l.location_id;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 8. 권한 회수</h3>
+                            <pre><code>REVOKE SELECT ON owner_notice FROM app_reader;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 9. 실습 사용자 정리</h3>
+                            <pre><code>DROP USER study_user CASCADE;
+DROP USER app_owner CASCADE;
+DROP USER app_reader CASCADE;
+DROP ROLE staff;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card error-card" id="errors">
+                    <div class="section-title-area">
+                        <span class="section-badge">Errors</span>
+                        <h2>13. 자주 만나는 오류</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example danger-example">
+                            <h3>ORA-01045</h3>
+                            <pre><code>ORA-01045: user lacks CREATE SESSION privilege; logon denied</code></pre>
+                            <p>
+                                사용자는 생성되었지만 CREATE SESSION 권한이 없는 경우입니다.
+                            </p>
+                            <pre><code>GRANT CREATE SESSION TO 사용자;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-00942</h3>
+                            <pre><code>ORA-00942: table or view does not exist</code></pre>
+                            <p>
+                                테이블이 없거나, 다른 사용자 객체에 대한 SELECT 권한이 없거나,<br/>
+                                소유자명을 붙이지 않은 경우 발생할 수 있습니다.
+                            </p>
+                            <pre><code>GRANT SELECT ON app_owner.property TO app_user;
+
+SELECT *
+FROM app_owner.property;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-01950</h3>
+                            <pre><code>ORA-01950: no privileges on tablespace 'USERS'</code></pre>
+                            <p>
+                                CREATE TABLE 권한은 있지만 USERS 테이블스페이스 할당량이 없는 경우입니다.
+                            </p>
+                            <pre><code>ALTER USER 사용자 QUOTA UNLIMITED ON users;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>14. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. 사용자만 만들면 접속할 수 있다고 생각함</strong>
+                            <span>CREATE SESSION 권한을 별도로 부여해야 접속할 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. CREATE TABLE 권한만 주고 QUOTA를 주지 않음</strong>
+                            <span>테이블 생성에는 테이블스페이스 할당량이 필요할 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. PDB 사용자에 C##을 붙임</strong>
+                            <span>PDB 실습용 로컬 사용자는 보통 C## 접두사를 사용하지 않습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. 현재 컨테이너를 확인하지 않음</strong>
+                            <span>SHOW CON_NAME으로 XEPDB1에 접속했는지 확인해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. 다른 사용자 테이블을 소유자명 없이 조회함</strong>
+                            <span>다른 사용자 테이블은 app_owner.owner_notice처럼 소유자명을 붙여야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 객체 권한 없이 조회하려고 함</strong>
+                            <span>다른 사용자 객체를 조회하려면 SELECT 객체 권한이 필요합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. CONNECT, RESOURCE만 주면 VIEW도 만들 수 있다고 생각함</strong>
+                            <span>VIEW 생성에는 CREATE VIEW 권한을 따로 부여해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 8. ANY 권한을 쉽게 부여함</strong>
+                            <span>CREATE ANY TABLE 같은 권한은 매우 강력하므로 일반 사용자에게는 신중해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 9. DROP USER CASCADE를 가볍게 사용함</strong>
+                            <span>해당 사용자가 소유한 객체까지 삭제될 수 있으므로 실무에서는 매우 주의해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 10. Spring에서 SYSTEM 계정을 사용함</strong>
+                            <span>애플리케이션은 전용 DB 계정을 만들고 최소 권한만 부여하는 것이 안전합니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>15. 면접 질문 카드</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. Oracle에서 사용자란 무엇인가요?</h3>
+                            <p>
+                                Oracle의 사용자는 데이터베이스에 접속하는 계정이면서,
+                                테이블이나 VIEW 같은 객체를 소유하는 스키마 역할도 합니다.<br/>
+                                사용자는 생성 직후 권한이 없기 때문에 필요한 권한을 별도로 부여해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. CREATE USER만 하면 바로 접속할 수 있나요?</h3>
+                            <p>
+                                아닙니다. 사용자를 생성한 후 CREATE SESSION 권한을 부여해야 접속할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. CDB 사용자와 PDB 사용자의 차이는 무엇인가요?</h3>
+                            <p>
+                                CDB 사용자는 컨테이너 데이터베이스 전체에서 사용할 수 있는 공통 사용자이며,
+                                보통 C## 접두사를 사용합니다. PDB 사용자는 특정 PDB 안에서 사용하는 로컬 사용자입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. 시스템 권한과 객체 권한의 차이는 무엇인가요?</h3>
+                            <p>
+                                시스템 권한은 CREATE SESSION, CREATE TABLE처럼 데이터베이스 차원의 작업 권한입니다.<br/>
+                                객체 권한은 특정 테이블이나 VIEW에 대한 SELECT, INSERT, UPDATE, DELETE 같은 권한입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. CREATE TABLE 권한만 있으면 테이블을 만들 수 있나요?</h3>
+                            <p>
+                                항상 그렇지는 않습니다. CREATE TABLE 권한과 함께 테이블스페이스 할당량이 필요할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. CONNECT와 RESOURCE 역할은 무엇인가요?</h3>
+                            <p>
+                                CONNECT는 DB 접속과 관련된 역할이고, RESOURCE는 객체 생성과 관련된 역할입니다.
+                                다만 VIEW 생성은 CREATE VIEW 권한을 따로 부여해야 할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. 다른 사용자의 테이블을 조회하려면 어떻게 해야 하나요?</h3>
+                            <p>
+                                테이블 소유자 또는 관리자가 SELECT 객체 권한을 부여해야 합니다.
+                                조회할 때는 SCOTT.EMP처럼 소유자명을 붙여 조회합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. REVOKE는 무엇인가요?</h3>
+                            <p>
+                                REVOKE는 사용자에게 부여된 권한이나 역할을 회수하는 명령입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. ROLE은 무엇인가요?</h3>
+                            <p>
+                                ROLE은 여러 권한을 묶어놓은 권한 꾸러미입니다.
+                                여러 사용자에게 동일한 권한 세트를 부여할 때 관리가 편리합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. WITH ADMIN OPTION은 무엇인가요?</h3>
+                            <p>
+                                권한을 받은 사용자가 그 시스템 권한을 다른 사용자에게 다시 부여할 수 있도록 하는 옵션입니다.
+                                권한이 확산될 수 있으므로 실무에서는 신중하게 사용해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q11. Spring 프로젝트에서 DB 계정을 왜 분리해야 하나요?</h3>
+                            <p>
+                                관리자 계정으로 애플리케이션을 운영하면 보안상 위험합니다.
+                                Spring 프로젝트에서는 애플리케이션 전용 계정을 만들고 필요한 권한만 부여하는 것이 좋습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q12. ORA-00942가 발생하면 무엇을 확인해야 하나요?</h3>
+                            <p>
+                                실제 테이블 존재 여부, 현재 접속 계정, 테이블 소유자, 객체 권한,
+                                소유자명 prefix 사용 여부를 확인해야 합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>16. Java·Spring·Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        실제 프로젝트에서는 SYSTEM 계정으로 Spring Boot 애플리케이션을 운영하지 않습니다.
+                        애플리케이션 전용 계정을 만들고, 필요한 권한만 부여하는 것이 안전합니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>Spring Boot용 계정 생성</h3>
+                            <pre><code>CREATE USER myhouse_app IDENTIFIED BY Myhouse1234
+DEFAULT TABLESPACE users
+TEMPORARY TABLESPACE temp;
+
+GRANT CREATE SESSION TO myhouse_app;
+GRANT CREATE TABLE TO myhouse_app;
+GRANT CREATE VIEW TO myhouse_app;
+ALTER USER myhouse_app QUOTA UNLIMITED ON users;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>application.yml 연결</h3>
+                            <pre><code>spring:
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
+    username: myhouse_app
+    password: Myhouse1234</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>읽기 전용 계정</h3>
+                            <pre><code>CREATE USER app_read IDENTIFIED BY Read1234;
+
+GRANT CREATE SESSION TO app_read;
+
+GRANT SELECT ON app_owner.property TO app_read;
+GRANT SELECT ON app_owner.notice TO app_read;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>쓰기 계정</h3>
+                            <pre><code>CREATE USER app_write IDENTIFIED BY Write1234;
+
+GRANT CREATE SESSION TO app_write;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON app_owner.property
+TO app_write;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>프로젝트 권한 분리</h3>
+                            <pre><code>SYSTEM
+→ 사용자 생성, 권한 부여, DB 관리
+
+APP_OWNER
+→ 테이블 소유
+
+APP_READ
+→ SELECT 전용
+
+APP_WRITE
+→ SELECT, INSERT, UPDATE, DELETE
+
+SPRING_APP
+→ Spring Boot가 접속하는 애플리케이션 계정</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>최소 권한 원칙</h3>
+                            <p>
+                                필요한 권한만 부여하고,<br/>관리자 권한이나 ANY 권한은<br/>일반 애플리케이션 계정에 주지 않는 것이 안전합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>17. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>사용자
+→ DB 접속 계정
+→ 객체 소유자
+→ 권한을 부여받는 대상
+
+CREATE USER
+→ 사용자 생성
+
+CREATE SESSION
+→ 접속 권한
+
+CREATE TABLE
+→ 테이블 생성 권한
+
+CREATE VIEW
+→ VIEW 생성 권한
+
+QUOTA
+→ 테이블스페이스 사용 가능 용량
+
+GRANT
+→ 권한 부여
+
+REVOKE
+→ 권한 회수
+
+ROLE
+→ 여러 권한을 묶은 권한 꾸러미
+
+시스템 권한
+→ DB 차원의 작업 권한
+
+객체 권한
+→ 특정 테이블, VIEW, 프로시저에 대한 권한
+
+CDB 사용자
+→ 공통 사용자, C## 접두사 사용 가능
+
+PDB 사용자
+→ 실제 작업용 로컬 사용자, 보통 C## 사용하지 않음</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원 실습 순서</h3>
+                        <pre><code>1. SYSTEM으로 XEPDB1에 접속
+2. SHOW CON_NAME으로 PDB 확인
+3. CREATE USER로 사용자 생성
+4. CREATE SESSION 권한 부여
+5. CREATE TABLE 권한 부여
+6. QUOTA 부여
+7. CREATE VIEW 권한 부여
+8. 일반 사용자로 접속
+9. 테이블 생성 및 조회
+10. VIEW 생성 및 조회
+11. ROLE 생성
+12. ROLE에 권한 부여
+13. 사용자에게 ROLE 부여
+14. 다른 사용자 테이블에 SELECT 권한 부여
+15. REVOKE로 권한 회수
+16. ALTER USER로 암호 변경 및 계정 잠금 해제
+17. DROP USER CASCADE로 실습 계정 정리</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        Oracle 사용자는 생성만으로는 아무 작업도 할 수 없습니다.
+                        접속, 테이블 생성, VIEW 생성, 다른 사용자 객체 조회는 모두 권한이 필요합니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>암기 문법</h3>
+                    <pre><code>CREATE USER 사용자 IDENTIFIED BY 암호;
+
+GRANT CREATE SESSION TO 사용자;
+GRANT CREATE TABLE TO 사용자;
+GRANT CREATE VIEW TO 사용자;
+
+ALTER USER 사용자 QUOTA UNLIMITED ON users;
+
+REVOKE 권한 FROM 사용자;
+
+DROP USER 사용자 CASCADE;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>객체 권한</h3>
+                    <pre><code>GRANT SELECT ON 소유자.테이블 TO 사용자;
+
+SELECT *
+FROM 소유자.테이블;
+
+REVOKE SELECT ON 소유자.테이블 FROM 사용자;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>ROLE</h3>
+                    <pre><code>CREATE ROLE staff;
+
+GRANT CREATE TABLE, CREATE VIEW TO staff;
+
+GRANT staff TO study_user;</code></pre>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        DROP USER ... CASCADE는 해당 사용자가 소유한 객체까지 삭제할 수 있습니다.
+                        실무에서는 반드시 영향 범위를 확인한 뒤 실행해야 합니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        Spring Boot 프로젝트에서는 SYSTEM이 아니라 애플리케이션 전용 DB 계정을 사용하고,
+                        필요한 권한만 부여하는 최소 권한 원칙을 지키는 것이 좋습니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>

@@ -18,42 +18,1403 @@
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 21</p>
                 <h1>VIEW</h1>
+
                 <p class="chapter-description">
-                    뷰의 개념과 생성, 조회, 관리 기준을 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    VIEW는 하나 이상의 테이블 또는 SELECT 결과를 바탕으로 만든 가상의 테이블입니다.<br/>
+                    실제 데이터를 별도로 저장하는 것이 아니라, SELECT문에 이름을 붙여 테이블처럼 조회할 수 있게 만든 객체입니다.<br/>
+                    이번 단원에서는 VIEW의 개념, 보안성, 편의성, 간결성,<br/>
+                    CREATE VIEW, CREATE OR REPLACE VIEW, WITH READ ONLY, USER_VIEWS, VIEW DML 제한,<br/>
+                    Java·Spring 프로젝트의 조회 API 연결까지 학습합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            VIEW가 무엇인지 이해하고<br/>
+                            TABLE과의 차이를 설명할 수 있다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            실습 테이블 생성 → VIEW 생성 → 조회 →<br/>
+                            READ ONLY 확인 → USER_VIEWS 확인
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>
+                            게시판 목록, 매물 카드, 관리자 대시보드,<br/>
+                            조회 전용 DTO / Entity와 연결한다.
+                        </span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. VIEW란?</h2>
+                    </div>
+
+                    <p>
+                        VIEW는 기존 테이블이나 SELECT 결과를 바탕으로 만든 가상의 테이블입니다.<br/>
+                        실제 데이터를 새로 저장하는 것이 아니라, SELECT문에 이름을 붙여서
+                        테이블처럼 조회할 수 있도록 만든 데이터베이스 객체입니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>VIEW</strong>
+                            <span>SELECT 결과를 테이블처럼 보여주는 가상 객체</span>
+                        </div>
+                        <div>
+                            <strong>원본 테이블</strong>
+                            <span>실제 데이터가 저장되어 있는 테이블</span>
+                        </div>
+                        <div>
+                            <strong>USER_VIEWS</strong>
+                            <span>생성된 VIEW와 정의 SQL을 확인하는 데이터 딕셔너리</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>VIEW</strong>는 원본 테이블을 직접 보여주지 않고,
+                            필요한 컬럼과 행만 선택해서 보여주는 <strong>가상의 조회 창구</strong>입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 단원 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. VIEW를 왜 사용하는가?</h3>
+                    <p>
+                        VIEW는 단순히 SELECT문을 줄이기 위한 도구가 아닙니다.
+                        보안성, 편의성, 간결성 측면에서 실무에서 많이 사용됩니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>보안성</h3>
+                            <p>
+                                원본 테이블의 비밀번호, 전화번호, 내부 코드 같은 민감한 컬럼을 숨기고<br/>
+                                필요한 컬럼만 공개할 수 있습니다.
+                            </p>
+                            <pre><code>CREATE OR REPLACE VIEW v_member_safe AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email
+FROM view_member;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>편의성</h3>
+                            <p>
+                                복잡한 JOIN 결과에 이름을 붙여두면 매번 긴 SQL을 작성하지 않고<br/>
+                                VIEW를 테이블처럼 조회할 수 있습니다.
+                            </p>
+                            <pre><code>SELECT *
+FROM v_board_list
+ORDER BY board_id DESC;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>간결성</h3>
+                            <p>
+                                MyBatis Mapper나 Repository SQL에서 복잡한 조인을 줄이고,<br/>
+                                화면이나 API에서 필요한 형태로 데이터를 쉽게 조회할 수 있습니다.
+                            </p>
+                            <pre><code>SELECT *
+FROM v_property_card
+WHERE listing_status = 'ACTIVE';</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>재사용성</h3>
+                            <p>
+                                여러 화면에서 같은 조회 결과가 필요할 때 VIEW를 만들어 재사용할 수 있습니다.
+                            </p>
+                            <pre><code>SELECT *
+FROM v_member_board_count;</code></pre>
+                        </article>
+                    </div>
+
+                    <h3>2-2. VIEW와 TABLE의 차이</h3>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>TABLE</th>
+                                    <th>VIEW</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>의미</td>
+                                    <td>실제 데이터를 저장하는 객체</td>
+                                    <td>SELECT 결과를 테이블처럼 보여주는 가상 객체</td>
+                                </tr>
+                                <tr>
+                                    <td>데이터 저장</td>
+                                    <td>실제 저장함</td>
+                                    <td>일반적으로 저장하지 않음</td>
+                                </tr>
+                                <tr>
+                                    <td>생성 방식</td>
+                                    <td>컬럼명과 자료형을 직접 정의</td>
+                                    <td>SELECT문으로 정의</td>
+                                </tr>
+                                <tr>
+                                    <td>주요 목적</td>
+                                    <td>업무 데이터 저장</td>
+                                    <td>조회 구조 제공, 보안, SQL 간소화</td>
+                                </tr>
+                                <tr>
+                                    <td>DML</td>
+                                    <td>INSERT, UPDATE, DELETE 가능</td>
+                                    <td>구조에 따라 가능 또는 제한</td>
+                                </tr>
+                                <tr>
+                                    <td>삭제 명령</td>
+                                    <td>DROP TABLE</td>
+                                    <td>DROP VIEW</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>2-3. VIEW의 핵심 특징</h3>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>가상 테이블</strong>
+                            <span>Virtual Table</span>
+                            <p>일반 VIEW는 데이터를 직접 저장하지 않고 SELECT 정의를 저장합니다.</p>
+                        </article>
+                        <article>
+                            <strong>원본 참조</strong>
+                            <span>Source Table</span>
+                            <p>VIEW 조회 결과는 원본 테이블의 현재 데이터에 따라 달라집니다.</p>
+                        </article>
+                        <article>
+                            <strong>DML 주의</strong>
+                            <span>Updatable View</span>
+                            <p>단순 VIEW에 대한 DML은 원본 테이블에 반영될 수 있습니다.</p>
+                        </article>
+                        <article>
+                            <strong>읽기 전용</strong>
+                            <span>WITH READ ONLY</span>
+                            <p>조회 전용 VIEW는 WITH READ ONLY로 원본 테이블 변경을 막을 수 있습니다.</p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 실행 순서 그림 카드</h2>
+                    </div>
+
+                    <h3>3-1. VIEW는 창문이다</h3>
+                    <p>
+                        VIEW는 원본 테이블 전체를 직접 보여주는 것이 아니라,
+                        필요한 컬럼만 골라 보여주는 창문처럼 이해하면 쉽습니다.
+                    </p>
+
+                    <div class="window-diagram">
+                        <div class="source-table-box">
+                            <h3>원본 테이블 VIEW_MEMBER</h3>
+                            <div class="column-list full">
+                                <span>MEMBER_ID</span>
+                                <span>LOGIN_ID</span>
+                                <span>PASSWORD_HASH</span>
+                                <span>MEMBER_NAME</span>
+                                <span>EMAIL</span>
+                                <span>PHONE</span>
+                                <span>ACTIVE</span>
+                                <span>CREATED_AT</span>
+                            </div>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div class="view-table-box">
+                            <h3>VIEW V_MEMBER_PUBLIC</h3>
+                            <div class="column-list selected">
+                                <span>MEMBER_ID</span>
+                                <span>LOGIN_ID</span>
+                                <span>MEMBER_NAME</span>
+                                <span>EMAIL</span>
+                                <span>ACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>3-2. 복잡한 SELECT에 이름 붙이기</h3>
+                    <p>
+                        VIEW는 복잡한 SELECT문에 이름을 붙여서 테이블처럼 조회할 수 있게 합니다.
+                    </p>
+
+                    <div class="view-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>복잡한 SELECT 작성</strong>
+                            <p>JOIN, WHERE, GROUP BY 등을 포함한 조회문</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>CREATE VIEW</strong>
+                            <p>SELECT문에 VIEW 이름 부여</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>VIEW 조회</strong>
+                            <p>SELECT * FROM view_name</p>
+                        </div>
+                    </div>
+
+                    <h3>3-3. VIEW DML은 원본에 반영될 수 있다</h3>
+                    <p>
+                        단순 VIEW에 UPDATE를 실행하면 VIEW만 바뀌는 것이 아니라
+                        원본 테이블이 바뀔 수 있습니다.
+                    </p>
+
+                    <div class="dml-flow">
+                        <div>
+                            <strong>UPDATE v_member_simple</strong>
+                            <p>VIEW에 UPDATE 실행</p>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div class="danger-box">
+                            <strong>VIEW_MEMBER 변경</strong>
+                            <p>원본 테이블에 반영될 수 있음</p>
+                        </div>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>중요</h3>
+                        <p>
+                            조회용 VIEW라면 <strong>WITH READ ONLY</strong> 옵션을 붙여
+                            VIEW를 통한 INSERT, UPDATE, DELETE를 막는 것이 안전합니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>4. VIEW 기본 문법</h2>
+                    </div>
+
+                    <p>
+                        교안의 VIEW 생성 문법은 다음과 같습니다.
+                        기존 VIEW를 수정할 때는 <strong>OR REPLACE</strong>를 사용하고,
+                        조회 전용 VIEW를 만들 때는 <strong>WITH READ ONLY</strong>를 붙입니다.
+                    </p>
+
+                    <pre><code>CREATE [OR REPLACE] VIEW 뷰명 [(컬럼별칭1, 컬럼별칭2, ...)]
+AS
+SELECT 구문
+[WITH READ ONLY];</code></pre>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>4-1. 기본 VIEW 생성</h3>
+                            <pre><code>CREATE VIEW v_emp_basic AS
+SELECT empno,
+       ename,
+       job,
+       sal,
+       deptno
+FROM emp;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-2. CREATE OR REPLACE VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_emp_basic AS
+SELECT empno,
+       ename,
+       job,
+       sal,
+       deptno,
+       hiredate
+FROM emp;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-3. 컬럼 별칭 지정</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_emp_summary (
+    emp_no,
+    emp_name,
+    job_name,
+    salary
+) AS
+SELECT empno,
+       ename,
+       job,
+       sal
+FROM emp;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-4. 읽기 전용 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_emp_readonly AS
+SELECT empno,
+       ename,
+       job,
+       sal,
+       deptno
+FROM emp
+WITH READ ONLY;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-5. VIEW 삭제</h3>
+                            <pre><code>DROP VIEW v_emp_basic;</code></pre>
+                            <p>
+                                VIEW를 삭제해도 원본 테이블과 데이터는 삭제되지 않습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-6. USER_VIEWS 확인</h3>
+                            <pre><code>SELECT view_name,
+       text
+FROM user_views
+WHERE view_name = 'V_EMP_BASIC';</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card setup-card" id="setup">
+                    <div class="section-title-area">
+                        <span class="section-badge">Setup</span>
+                        <h2>5. SQL Developer 실습 준비</h2>
+                    </div>
+
+                    <p>
+                        원본 EMP, DEPT 테이블을 직접 수정하지 않고, 실습용 회원 테이블과 게시글 테이블을 만들어 VIEW를 연습합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. 기존 실습 객체 정리</h3>
+                            <pre><code>DROP VIEW v_view_member_public;
+DROP VIEW v_view_member_readonly;
+DROP VIEW v_view_board_list;
+DROP VIEW v_view_member_board_count;
+DROP VIEW v_view_member_simple;
+DROP TABLE view_board PURGE;
+DROP TABLE view_member PURGE;
+DROP SEQUENCE view_member_seq;
+DROP SEQUENCE view_board_seq;</code></pre>
+                            <p>
+                                처음 실행하면 ORA-00942 또는 ORA-02289 오류가 날 수 있습니다.
+                                삭제할 객체가 없다는 뜻이므로 첫 실습에서는 괜찮습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 회원 테이블 생성</h3>
+                            <pre><code>CREATE TABLE view_member (
+    member_id NUMBER,
+    login_id VARCHAR2(30) NOT NULL,
+    password_hash VARCHAR2(100) NOT NULL,
+    member_name VARCHAR2(50) NOT NULL,
+    email VARCHAR2(100),
+    phone VARCHAR2(20),
+    active CHAR(1) DEFAULT 'Y',
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT pk_view_member PRIMARY KEY (member_id),
+    CONSTRAINT uk_view_member_login UNIQUE (login_id),
+    CONSTRAINT chk_view_member_active CHECK (active IN ('Y', 'N'))
+);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-3. 게시글 테이블 생성</h3>
+                            <pre><code>CREATE TABLE view_board (
+    board_id NUMBER,
+    title VARCHAR2(200) NOT NULL,
+    content VARCHAR2(1000),
+    member_id NUMBER NOT NULL,
+    deleted_yn CHAR(1) DEFAULT 'N',
+    created_at DATE DEFAULT SYSDATE,
+    CONSTRAINT pk_view_board PRIMARY KEY (board_id),
+    CONSTRAINT fk_view_board_member
+        FOREIGN KEY (member_id)
+        REFERENCES view_member(member_id),
+    CONSTRAINT chk_view_board_deleted CHECK (deleted_yn IN ('Y', 'N'))
+);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-4. 시퀀스 생성</h3>
+                            <pre><code>CREATE SEQUENCE view_member_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+
+CREATE SEQUENCE view_board_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-5. 실습 데이터 입력</h3>
+                            <pre><code>INSERT INTO view_member (
+    member_id,
+    login_id,
+    password_hash,
+    member_name,
+    email,
+    phone
+) VALUES (
+    view_member_seq.NEXTVAL,
+    'hong',
+    'HASH_1111',
+    '홍길동',
+    'hong@test.com',
+    '010-1111-1111'
+);
+
+INSERT INTO view_member (
+    member_id,
+    login_id,
+    password_hash,
+    member_name,
+    email,
+    phone
+) VALUES (
+    view_member_seq.NEXTVAL,
+    'kim',
+    'HASH_2222',
+    '김철수',
+    'kim@test.com',
+    '010-2222-2222'
+);
+
+INSERT INTO view_member (
+    member_id,
+    login_id,
+    password_hash,
+    member_name,
+    email,
+    phone,
+    active
+) VALUES (
+    view_member_seq.NEXTVAL,
+    'lee',
+    'HASH_3333',
+    '이영희',
+    'lee@test.com',
+    '010-3333-3333',
+    'N'
+);
+
+INSERT INTO view_board (
+    board_id,
+    title,
+    content,
+    member_id
+) VALUES (
+    view_board_seq.NEXTVAL,
+    '첫 번째 게시글',
+    'VIEW 실습용 게시글입니다.',
+    1
+);
+
+INSERT INTO view_board (
+    board_id,
+    title,
+    content,
+    member_id
+) VALUES (
+    view_board_seq.NEXTVAL,
+    '두 번째 게시글',
+    '회원 정보와 조인해서 조회할 예정입니다.',
+    1
+);
+
+INSERT INTO view_board (
+    board_id,
+    title,
+    content,
+    member_id
+) VALUES (
+    view_board_seq.NEXTVAL,
+    '세 번째 게시글',
+    '김철수 회원이 작성한 글입니다.',
+    2
+);
+
+COMMIT;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-6. 기본 결과 확인</h3>
+                            <pre><code>SELECT *
+FROM view_member
+ORDER BY member_id;
+
+SELECT *
+FROM view_board
+ORDER BY board_id;
+
+DESC view_member;
+DESC view_board;
+
+SELECT table_name,
+       constraint_name,
+       constraint_type
+FROM user_constraints
+WHERE table_name IN ('VIEW_MEMBER', 'VIEW_BOARD')
+ORDER BY table_name, constraint_name;</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card view-card" id="view-examples">
+                    <div class="section-title-area">
+                        <span class="section-badge">VIEW Examples</span>
+                        <h2>6. SQL 예제 카드 - VIEW 생성과 조회</h2>
+                    </div>
+
+                    <p>
+                        단순 VIEW, 조건 VIEW, READ ONLY VIEW, 조인 VIEW, 통계 VIEW를 순서대로 만들어보며 VIEW의 사용 목적을 익힙니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. 공개 회원 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_member_public AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email,
+       active,
+       created_at
+FROM view_member;
+
+SELECT *
+FROM v_view_member_public
+ORDER BY member_id;</code></pre>
+                            <p>
+                                PASSWORD_HASH와 PHONE 컬럼이 보이지 않아야 합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. 활성 회원 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_active_member AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email,
+       created_at
+FROM view_member
+WHERE active = 'Y';
+
+SELECT *
+FROM v_view_active_member
+ORDER BY member_id;</code></pre>
+                            <p>
+                                active = 'N'인 회원은 결과에서 제외됩니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. 읽기 전용 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_member_readonly AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email,
+       active,
+       created_at
+FROM view_member
+WITH READ ONLY;
+
+SELECT *
+FROM v_view_member_readonly
+ORDER BY member_id;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-4. READ ONLY VIEW 수정 시도</h3>
+                            <pre><code>UPDATE v_view_member_readonly
+SET member_name = '수정시도'
+WHERE member_id = 1;</code></pre>
+                            <p>
+                                읽기 전용 VIEW이므로 오류가 발생해야 정상입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-5. 게시글 목록 조인 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_board_list AS
+SELECT b.board_id,
+       b.title,
+       b.content,
+       b.deleted_yn,
+       b.created_at,
+       m.member_id,
+       m.login_id,
+       m.member_name
+FROM view_board b
+JOIN view_member m
+  ON b.member_id = m.member_id
+WHERE b.deleted_yn = 'N';
+
+SELECT *
+FROM v_view_board_list
+ORDER BY board_id DESC;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-6. 회원별 게시글 수 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_member_board_count AS
+SELECT m.member_id,
+       m.login_id,
+       m.member_name,
+       COUNT(b.board_id) AS board_count
+FROM view_member m
+LEFT JOIN view_board b
+  ON m.member_id = b.member_id
+GROUP BY m.member_id,
+         m.login_id,
+         m.member_name;
+
+SELECT *
+FROM v_view_member_board_count
+ORDER BY member_id;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-7. VIEW 수정</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_member_public AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email,
+       phone,
+       active,
+       created_at
+FROM view_member;
+
+SELECT *
+FROM v_view_member_public
+ORDER BY member_id;</code></pre>
+                            <p>
+                                VIEW 컬럼이 변경되면 DTO, Mapper, 화면에도 영향이 생길 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-8. VIEW 삭제</h3>
+                            <pre><code>DROP VIEW v_view_member_public;
+
+SELECT view_name
+FROM user_views
+WHERE view_name = 'V_VIEW_MEMBER_PUBLIC';
+
+SELECT *
+FROM view_member;</code></pre>
+                            <p>
+                                VIEW를 삭제해도 원본 VIEW_MEMBER 테이블은 그대로 남아 있어야 합니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-9. USER_VIEWS 확인</h3>
+                            <pre><code>SELECT view_name
+FROM user_views
+ORDER BY view_name;
+
+SELECT view_name,
+       text
+FROM user_views
+WHERE view_name = 'V_VIEW_BOARD_LIST';</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card dml-card" id="view-dml">
+                    <div class="section-title-area">
+                        <span class="section-badge">VIEW DML</span>
+                        <h2>7. VIEW에 DML 실습</h2>
+                    </div>
+
+                    <p>
+                        VIEW는 조회용으로 많이 사용하지만, 단순 VIEW의 경우 INSERT, UPDATE, DELETE가 가능한 경우도 있습니다.
+                        단, VIEW에 대한 DML은 VIEW만 바꾸는 것이 아니라 원본 테이블에 반영될 수 있으므로 주의해야 합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>7-1. 단순 VIEW 생성</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_view_member_simple AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email,
+       active
+FROM view_member;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-2. 단순 VIEW에 UPDATE</h3>
+                            <pre><code>UPDATE v_view_member_simple
+SET email = 'hong_view_update@test.com'
+WHERE member_id = 1;
+
+SELECT member_id,
+       login_id,
+       email
+FROM view_member
+WHERE member_id = 1;
+
+ROLLBACK;</code></pre>
+                            <p>
+                                원본 VIEW_MEMBER의 EMAIL 값이 바뀌었다면 VIEW DML이 원본에 반영된 것입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-3. READ ONLY VIEW에 UPDATE</h3>
+                            <pre><code>UPDATE v_view_member_readonly
+SET email = 'readonly_update@test.com'
+WHERE member_id = 1;</code></pre>
+                            <p>
+                                읽기 전용 VIEW이므로 오류가 발생해야 정상입니다.
+                            </p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>7-4. 조인 VIEW에 INSERT 시도</h3>
+                            <pre><code>INSERT INTO v_view_board_list (
+    board_id,
+    title,
+    content,
+    deleted_yn,
+    created_at,
+    member_id,
+    login_id,
+    member_name
+) VALUES (
+    999,
+    '뷰 INSERT 테스트',
+    '조인 뷰에 INSERT 시도',
+    'N',
+    SYSDATE,
+    1,
+    'hong',
+    '홍길동'
+);</code></pre>
+                            <p>
+                                조인 VIEW는 대부분 INSERT가 어렵습니다. 오류가 발생해도 정상적인 실습 결과입니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>VIEW DML 제한 정리</h3>
+                        <ul>
+                            <li>단순 VIEW는 DML이 가능할 수 있습니다.</li>
+                            <li>DISTINCT, GROUP BY, 집계 함수, UNION 등이 포함되면 DML이 제한될 수 있습니다.</li>
+                            <li>조인 VIEW는 대부분 INSERT가 어렵습니다.</li>
+                            <li>VIEW에 대한 DML은 원본 테이블에 반영될 수 있습니다.</li>
+                            <li>조회 전용 VIEW는 WITH READ ONLY를 사용하는 것이 안전합니다.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="section-card order-card" id="order-by">
+                    <div class="section-title-area">
+                        <span class="section-badge">ORDER BY</span>
+                        <h2>8. VIEW 생성 시 ORDER BY 주의</h2>
+                    </div>
+
+                    <p>
+                        교안에서는 Oracle 8i 이전 버전까지 VIEW 생성 시 ORDER BY를 포함할 수 없다고 설명합니다.
+                        현대 버전에서는 일부 상황에서 허용될 수 있지만, 실무에서는 VIEW 정의에 정렬을 고정하기보다
+                        VIEW를 조회할 때 ORDER BY를 작성하는 방식이 더 명확합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>비권장</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_member_public AS
+SELECT member_id,
+       login_id,
+       member_name
+FROM view_member
+ORDER BY member_id;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>권장</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_member_public AS
+SELECT member_id,
+       login_id,
+       member_name
+FROM view_member;
+
+SELECT *
+FROM v_member_public
+ORDER BY member_id;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card result-card" id="result">
+                    <div class="section-title-area">
+                        <span class="section-badge">Result Check</span>
+                        <h2>9. 결과 화면 확인</h2>
+                    </div>
+
+                    <p>
+                        VIEW 실습 후에는 원본 테이블, VIEW 조회 결과, USER_VIEWS 정보를 함께 확인해야 합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>9-1. 원본 테이블 확인</h3>
+                            <pre><code>SELECT *
+FROM view_member
+ORDER BY member_id;
+
+SELECT *
+FROM view_board
+ORDER BY board_id;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. VIEW 조회 결과 확인</h3>
+                            <pre><code>SELECT *
+FROM v_view_member_readonly
+ORDER BY member_id;
+
+SELECT *
+FROM v_view_board_list
+ORDER BY board_id DESC;
+
+SELECT *
+FROM v_view_member_board_count
+ORDER BY member_id;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-3. VIEW 목록 확인</h3>
+                            <pre><code>SELECT view_name
+FROM user_views
+ORDER BY view_name;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-4. VIEW 정의 SQL 확인</h3>
+                            <pre><code>SELECT view_name,
+       text
+FROM user_views
+WHERE view_name = 'V_VIEW_BOARD_LIST';</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>10. 실습 문제 카드</h2>
+                    </div>
+
+                    <p>
+                        첨부된 실습 문제의 JOIN, OUTER JOIN, TOP-N 문제는 VIEW와 잘 연결됩니다.
+                        반복되는 SELECT문을 VIEW로 만들어두면 매번 긴 SQL을 작성하지 않아도 됩니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 1. 공개 회원 VIEW 만들기</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_member_public AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email,
+       active,
+       created_at
+FROM view_member;
+
+SELECT *
+FROM v_member_public;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 2. 활성 회원 VIEW 만들기</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_active_member AS
+SELECT member_id,
+       login_id,
+       member_name,
+       email
+FROM view_member
+WHERE active = 'Y';
+
+SELECT *
+FROM v_active_member;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 3. 게시글 목록 VIEW 만들기</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_board_list AS
+SELECT b.board_id,
+       b.title,
+       b.content,
+       b.created_at,
+       m.login_id,
+       m.member_name
+FROM view_board b
+JOIN view_member m
+  ON b.member_id = m.member_id
+WHERE b.deleted_yn = 'N';
+
+SELECT *
+FROM v_board_list
+ORDER BY board_id DESC;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 4. 읽기 전용 VIEW 만들기</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_board_list_readonly AS
+SELECT b.board_id,
+       b.title,
+       b.content,
+       b.created_at,
+       m.login_id,
+       m.member_name
+FROM view_board b
+JOIN view_member m
+  ON b.member_id = m.member_id
+WHERE b.deleted_yn = 'N'
+WITH READ ONLY;
+
+UPDATE v_board_list_readonly
+SET title = '수정 시도'
+WHERE board_id = 1;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 5. HR 직원 + 부서 + 도시 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_hr_emp_dept_city AS
+SELECT e.last_name || e.first_name AS employee_name,
+       e.salary,
+       d.department_name,
+       l.city
+FROM employees e
+JOIN departments d
+  ON e.department_id = d.department_id
+JOIN locations l
+  ON l.location_id = d.location_id;
+
+SELECT *
+FROM v_hr_emp_dept_city
+ORDER BY salary DESC;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 6. 충원 안 된 부서 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_empty_department AS
+SELECT d.department_id,
+       d.department_name
+FROM departments d
+LEFT OUTER JOIN employees e
+  ON d.department_id = e.department_id
+WHERE e.employee_id IS NULL;
+
+SELECT *
+FROM v_empty_department;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 7. 연봉 순위 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_emp_salary_rank AS
+SELECT empno,
+       ename,
+       job,
+       sal,
+       deptno,
+       RANK() OVER (ORDER BY sal DESC) AS salary_rank
+FROM emp;
+
+SELECT *
+FROM v_emp_salary_rank
+WHERE salary_rank <= 3;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>문제 8. USER_VIEWS 확인</h3>
+                            <pre><code>SELECT view_name,
+       text
+FROM user_views
+WHERE view_name IN (
+    'V_MEMBER_PUBLIC',
+    'V_ACTIVE_MEMBER',
+    'V_BOARD_LIST',
+    'V_BOARD_LIST_READONLY'
+);</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>11. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. VIEW를 실제 테이블로 착각함</strong>
+                            <span>VIEW는 일반적으로 데이터를 저장하지 않고 SELECT문을 저장한 가상 객체입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. VIEW에 DML하면 VIEW만 바뀐다고 생각함</strong>
+                            <span>단순 VIEW에 대한 UPDATE는 원본 테이블에 반영될 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. 조인 VIEW에 INSERT하려고 함</strong>
+                            <span>두 개 이상 테이블로 만든 VIEW는 대부분 INSERT가 어렵습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. VIEW를 만들면 성능이 무조건 빨라진다고 생각함</strong>
+                            <span>일반 VIEW는 조회 시 내부 SELECT가 실행되므로 성능은 인덱스, 조인 구조, 실행 계획과 함께 봐야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. USER_VIEWS로 정의를 확인하지 않음</strong>
+                            <span>VIEW 내부 SELECT를 모르면 유지보수가 어려워집니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. VIEW 수정 후 DTO나 Mapper를 수정하지 않음</strong>
+                            <span>VIEW 컬럼이 바뀌면 MyBatis resultMap, DTO, JPA Entity, React 화면에도 영향이 생길 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. 조회 전용 VIEW에 WITH READ ONLY를 붙이지 않음</strong>
+                            <span>조회용 VIEW라면 원본 테이블 보호를 위해 WITH READ ONLY를 고려해야 합니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>12. 면접 질문 카드</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. VIEW란 무엇인가요?</h3>
+                            <p>
+                                VIEW는 하나 이상의 테이블 또는 SELECT 결과를 바탕으로 만든 가상의 테이블입니다.<br/>
+                                실제 데이터를 저장하는 것이 아니라 SELECT문을 저장해두고,
+                                조회할 때 원본 테이블에서 데이터를 가져옵니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. VIEW와 TABLE의 차이는 무엇인가요?</h3>
+                            <p>
+                                TABLE은 실제 데이터를 저장하는 객체이고, VIEW는 일반적으로 데이터를 저장하지 않는 가상의 테이블입니다.<br/>
+                                VIEW는 SELECT문으로 정의되며, 원본 테이블의 데이터를 필요한 형태로 보여줍니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. VIEW를 사용하는 이유는 무엇인가요?</h3>
+                            <p>
+                                VIEW는 민감한 컬럼을 숨겨 보안을 유지하고, 복잡한 JOIN이나 집계 쿼리를 재사용하며,<br/>
+                                애플리케이션에서 긴 SQL을 반복하지 않아도 되도록 소스를 간결하게 만들기 위해 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. CREATE VIEW와 CREATE OR REPLACE VIEW의 차이는 무엇인가요?</h3>
+                            <p>
+                                CREATE VIEW는 새로운 VIEW를 생성합니다. 같은 이름의 VIEW가 이미 있으면 오류가 발생할 수 있습니다.<br/>
+                                CREATE OR REPLACE VIEW는 같은 이름의 VIEW가 없으면 새로 만들고,
+                                이미 있으면 기존 VIEW 정의를 교체합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. WITH READ ONLY는 무엇인가요?</h3>
+                            <p>
+                                WITH READ ONLY는 VIEW를 조회 전용으로 만드는 옵션입니다.
+                                이 옵션이 붙은 VIEW는 SELECT는 가능하지만 VIEW를 통한 INSERT, UPDATE, DELETE는 제한됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. VIEW에 INSERT, UPDATE, DELETE가 가능한가요?</h3>
+                            <p>
+                                가능한 경우도 있고 제한되는 경우도 있습니다.<br/>
+                                하나의 테이블로 만든 단순 VIEW는 DML이 가능한 경우가 있지만,
+                                DISTINCT, GROUP BY, 집계 함수, UNION, 조인 등이 포함된 VIEW는 제한될 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. VIEW에 UPDATE하면 데이터가 어디에 반영되나요?</h3>
+                            <p>
+                                단순 VIEW에 UPDATE가 가능하다면, 그 변경은 VIEW 자체가 아니라 원본 테이블에 반영됩니다.
+                                VIEW는 일반적으로 데이터를 직접 저장하지 않기 때문입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. USER_VIEWS는 무엇인가요?</h3>
+                            <p>
+                                USER_VIEWS는 현재 사용자가 생성한 VIEW 정보를 확인할 수 있는 데이터 딕셔너리 뷰입니다.<br/>
+                                VIEW_NAME으로 VIEW 이름을 확인하고, TEXT 컬럼으로 VIEW를 만들 때 사용한 SELECT 정의를 확인할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. VIEW를 만들면 성능이 좋아지나요?</h3>
+                            <p>
+                                일반 VIEW는 성능 향상 도구라기보다 SQL 재사용과 간결화를 위한 도구입니다.<br/>
+                                VIEW는 조회 시 내부 SELECT를 실행하므로 성능은 원본 테이블의 인덱스, 조건절, 조인 방식, 실행 계획에 영향을 받습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>13. Java·Spring·Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        VIEW는 조회 API, MyBatis Mapper, JPA 읽기 전용 Entity, 조회 전용 DTO와 잘 연결됩니다.
+                        특히 게시판 목록, 매물 카드, 관리자 대시보드, 통계 화면에서 유용합니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>Spring 조회 API</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_board_list_api AS
+SELECT b.board_id,
+       b.title,
+       b.created_at,
+       m.member_name,
+       b.deleted_yn
+FROM board b
+JOIN member m
+  ON b.member_id = m.member_id
+WHERE b.deleted_yn = 'N';
+
+SELECT *
+FROM v_board_list_api
+ORDER BY board_id DESC;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>MyBatis Mapper</h3>
+                            <pre><code>&lt;select id="findBoardList" resultType="BoardListDto"&gt;
+    SELECT board_id,
+           title,
+           created_at,
+           member_name
+    FROM v_board_list_api
+    ORDER BY board_id DESC
+&lt;/select&gt;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>JPA 읽기 전용 Entity</h3>
+                            <pre><code>@Entity
+@Table(name = "V_BOARD_LIST_API")
+public class BoardListView {
+
+    @Id
+    @Column(name = "BOARD_ID")
+    private Long boardId;
+
+    @Column(name = "TITLE")
+    private String title;
+
+    @Column(name = "MEMBER_NAME")
+    private String memberName;
+}</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>조회 전용 DTO</h3>
+                            <pre><code>public class BoardListDto {
+    private Long boardId;
+    private String title;
+    private String memberName;
+    private LocalDateTime createdAt;
+}</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>내집마련 매물 카드 VIEW</h3>
+                            <pre><code>CREATE OR REPLACE VIEW v_property_card AS
+SELECT p.property_id,
+       p.title,
+       p.deal_amount,
+       p.area_sqm,
+       p.listing_status,
+       m.member_name AS publisher_name,
+       p.created_at
+FROM property p
+JOIN member m
+  ON p.publisher_id = m.member_id
+WHERE p.listing_status = 'ACTIVE';</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>실무 활용 화면</h3>
+                            <ul>
+                                <li>매물 목록 카드</li>
+                                <li>매물 상세 요약</li>
+                                <li>관리자 대시보드</li>
+                                <li>추천 결과 조회</li>
+                                <li>공인중개사 대시보드</li>
+                                <li>일반회원 문의 내역</li>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>14. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>VIEW
+→ 하나 이상의 테이블 또는 SELECT 결과로 만든 가상의 테이블
+
+물리적 저장
+→ 일반 VIEW는 데이터를 직접 저장하지 않음
+
+주요 목적
+→ 보안성, 편의성, 간결성, 재사용성
+
+CREATE VIEW
+→ VIEW 생성
+
+CREATE OR REPLACE VIEW
+→ 기존 VIEW가 있으면 다시 생성
+
+WITH READ ONLY
+→ 조회 전용 VIEW 생성
+
+DROP VIEW
+→ VIEW 삭제
+
+USER_VIEWS
+→ 생성된 VIEW 정보 확인
+
+VIEW DML
+→ 단순 VIEW는 가능할 수 있음
+→ 조인 VIEW는 제한이 많음
+→ VIEW에 대한 DML은 원본 테이블에 반영됨</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원 실습 순서</h3>
+                        <pre><code>1. 개념 읽기
+2. 실습 테이블 생성
+3. 실습 데이터 INSERT
+4. 단순 VIEW 생성
+5. READ ONLY VIEW 생성
+6. 조인 VIEW 생성
+7. 통계 VIEW 생성
+8. USER_VIEWS로 VIEW 정의 확인
+9. VIEW에 SELECT 실행
+10. 단순 VIEW에 DML 실행 후 원본 테이블 반영 확인
+11. READ ONLY VIEW DML 오류 확인
+12. 조인 VIEW DML 제한 확인
+13. Java / Spring / Oracle 프로젝트 조회 API와 연결</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        VIEW는 SELECT문에 이름을 붙여 만든 가상의 테이블입니다.
+                        원본 테이블의 필요한 컬럼과 행만 보여줄 수 있어 보안성과 편의성이 좋습니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>암기 문법</h3>
+                    <pre><code>CREATE OR REPLACE VIEW 뷰명 AS
+SELECT 컬럼명
+FROM 테이블명
+WHERE 조건;
+
+CREATE OR REPLACE VIEW 뷰명 AS
+SELECT 컬럼명
+FROM 테이블명
+WITH READ ONLY;
+
+DROP VIEW 뷰명;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>VIEW 정보 확인</h3>
+                    <pre><code>SELECT view_name,
+       text
+FROM user_views;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>VIEW의 장점</h3>
+                    <ul>
+                        <li><strong>보안성</strong> : 민감한 컬럼 숨김</li>
+                        <li><strong>편의성</strong> : 복잡한 JOIN 재사용</li>
+                        <li><strong>간결성</strong> : 애플리케이션 SQL 단순화</li>
+                        <li><strong>재사용성</strong> : 여러 화면에서 같은 조회 구조 사용</li>
+                    </ul>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        단순 VIEW에 UPDATE하면 원본 테이블이 바뀔 수 있습니다.
+                        조회 전용 VIEW라면 WITH READ ONLY를 고려해야 합니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        VIEW는 게시판 목록, 매물 카드, 관리자 대시보드, 통계 API,
+                        MyBatis Mapper, JPA 조회 전용 Entity, DTO 설계와 연결됩니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>
