@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oracle SQL Developer 학습 매거진 - Oracle 내장 함수</title>
+    <title>Oracle SQL Developer 학습 매거진 - 주요 내장 함수</title>
 
     <link rel="stylesheet" href="../css/00_nav.css">
     <link rel="stylesheet" href="../css/OracleSqlDeveloper/24_builtin_function.css">
@@ -17,43 +17,1434 @@
         <div class="page-content">
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 24</p>
-                <h1>Oracle 내장 함수</h1>
+                <h1>주요 내장 함수 Built-in Function</h1>
+
                 <p class="chapter-description">
-                    문자, 숫자, 날짜, 변환, 일반 함수의 사용 흐름을 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    Oracle 내장 함수는 데이터베이스에 저장된 원본 값을 조회하면서<br/>
+                    검색하기 좋게 바꾸고, 화면에 보여주기 좋게 가공하고, 계산·분기·순위 결과를 만드는 도구입니다.<br/>
+                    이번 단원에서는 NVL, 문자열 함수, TO_CHAR, TO_DATE, 날짜 함수, 수학 함수,<br/>
+                    DECODE, CASE, 분석 함수까지 Java·Spring·Oracle 프로젝트 흐름과 연결해서 학습합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            원본 데이터를 함수로 가공해<br/>
+                            조회 결과와 검색 조건을 설계한다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            DUAL 테스트 → EMP/EMPLOYEES 적용 →<br/>
+                            마스킹·날짜 포맷·순위 쿼리 작성
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>
+                            검색 API, 목록 화면, 개인정보 마스킹,<br/>
+                            페이징, 리포트 SQL과 연결한다.
+                        </span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 내장 함수는 왜 배우는가?</h2>
+                    </div>
+
+                    <p>
+                        테이블에 저장된 값은 보통 원본 데이터입니다.
+                        하지만 실제 화면, 검색 API, 엑셀 다운로드, 관리자 리포트에서는 원본 그대로보다
+                        가공된 값이 필요한 경우가 많습니다.
+                    </p>
+
+                    <div class="before-after-card">
+                        <div>
+                            <span class="mini-label">DB 원본 값</span>
+                            <pre><code>LAST_NAME    PHONE_NUMBER     HIRE_DATE     SALARY
+Robert       515.123.4567     2013-12-12    10000</code></pre>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <span class="mini-label">화면 출력 값</span>
+                            <pre><code>Robert | 515XXXXXXXX | 2013년 12월 12일 | 고액연봉 | $10,000</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="concept-flow function-flow">
+                        <div>
+                            <strong>검색 보정</strong>
+                            <span>UPPER, LOWER, INSTR로 대소문자와 포함 검색 처리</span>
+                        </div>
+                        <div>
+                            <strong>출력 가공</strong>
+                            <span>TO_CHAR, LPAD, RPAD로 날짜·금액·문자열 표시</span>
+                        </div>
+                        <div>
+                            <strong>분석 처리</strong>
+                            <span>CASE, RANK, ROW_NUMBER로 등급·순위·페이징 구현</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>내장 함수</strong>는 저장된 원본 데이터를 바꾸는 명령이 아니라,
+                            SELECT 결과나 WHERE 조건 안에서 값을 임시로 변환해 사용하는 도구입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 단원 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. 함수는 값을 넣으면 결과를 돌려주는 변환 상자다</h3>
+                    <p>
+                        함수는 괄호 안의 값을 입력으로 받아 새로운 결과를 반환합니다.
+                        입력값은 문자 상수, 숫자 상수, 날짜, 컬럼명, 계산식 모두 가능합니다.
+                    </p>
+
+                    <div class="transform-visual">
+                        <div class="transform-input">
+                            <strong>입력값</strong>
+                            <span>'ORACLE'</span>
+                        </div>
+                        <div class="transform-box">
+                            <strong>LOWER()</strong>
+                            <span>소문자로 변환</span>
+                        </div>
+                        <div class="transform-output">
+                            <strong>결과</strong>
+                            <span>'oracle'</span>
+                        </div>
+                    </div>
+
+                    <h3>2-2. 함수의 주요 사용 위치</h3>
+                    <div class="principle-grid">
+                        <article>
+                            <strong>SELECT 절</strong>
+                            <span>Output</span>
+                            <p>조회 결과를 화면에 보여주기 좋은 형태로 바꿉니다.</p>
+                            <pre><code>SELECT TO_CHAR(HIRE_DATE, 'YYYY-MM-DD')
+FROM EMPLOYEES;</code></pre>
+                        </article>
+                        <article>
+                            <strong>WHERE 절</strong>
+                            <span>Search</span>
+                            <p>검색 조건을 만들기 위해 컬럼 값을 변환합니다.</p>
+                            <pre><code>SELECT *
+FROM EMPLOYEES
+WHERE INSTR(UPPER(LAST_NAME), 'AR') &gt; 0;</code></pre>
+                        </article>
+                        <article>
+                            <strong>ORDER BY 절</strong>
+                            <span>Sort</span>
+                            <p>가공된 값이나 계산 결과를 기준으로 정렬합니다.</p>
+                            <pre><code>SELECT ENAME, SAL
+FROM EMP
+ORDER BY LENGTH(ENAME), SAL DESC;</code></pre>
+                        </article>
+                        <article>
+                            <strong>분석 절 OVER</strong>
+                            <span>Window</span>
+                            <p>행을 유지하면서 그룹 평균, 순위, 이전글·다음글을 붙입니다.</p>
+                            <pre><code>SELECT ENAME, SAL,
+       RANK() OVER (ORDER BY SAL DESC) AS SAL_RANK
+FROM EMP;</code></pre>
+                        </article>
+                    </div>
+
+                    <h3>2-3. 내장 함수 분류표</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>분류</th>
+                                    <th>대표 함수</th>
+                                    <th>주요 목적</th>
+                                    <th>프로젝트 연결</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>NULL 처리</td>
+                                    <td>NVL, NVL2</td>
+                                    <td>NULL을 기본값이나 문구로 대체</td>
+                                    <td>금액 계산, 포인트, 커미션, 선택 입력값 처리</td>
+                                </tr>
+                                <tr>
+                                    <td>문자열</td>
+                                    <td>LOWER, UPPER, LENGTH, SUBSTR, INSTR,<br/>LPAD, RPAD, REPLACE, TRIM</td>
+                                    <td>대소문자 변환, 길이 확인, 일부 추출, 마스킹</td>
+                                    <td>검색창, 이름/이메일/전화번호 마스킹</td>
+                                </tr>
+                                <tr>
+                                    <td>형 변환</td>
+                                    <td>TO_CHAR, TO_NUMBER, TO_DATE</td>
+                                    <td>문자·숫자·날짜 타입 변환</td>
+                                    <td>날짜 검색, 금액 포맷, API 입력값 변환</td>
+                                </tr>
+                                <tr>
+                                    <td>날짜</td>
+                                    <td>SYSDATE, MONTHS_BETWEEN, ADD_MONTHS</td>
+                                    <td>현재 날짜, 기간, 만료일 계산</td>
+                                    <td>가입일, 구독 만료일, D-Day, 통계 기간</td>
+                                </tr>
+                                <tr>
+                                    <td>수학</td>
+                                    <td>ROUND, FLOOR, CEIL, MOD, POWER, SQRT</td>
+                                    <td>반올림, 올림, 나머지, 제곱, 제곱근</td>
+                                    <td>정산, 할인, 평균, 페이지 수 계산</td>
+                                </tr>
+                                <tr>
+                                    <td>조건 분기</td>
+                                    <td>DECODE, CASE</td>
+                                    <td>값이나 조건에 따라 다른 결과 반환</td>
+                                    <td>회원 등급, 주문 상태, 급여 등급</td>
+                                </tr>
+                                <tr>
+                                    <td>분석 함수</td>
+                                    <td>ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD</td>
+                                    <td>순위, 페이징, 이전/다음 행 조회</td>
+                                    <td>게시판 페이징, Top-N, 이전글·다음글</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>3-1. 일반 함수 흐름</h3>
+                    <p>
+                        일반 내장 함수는 보통 한 행의 한 값을 받아서 한 결과를 반환합니다.
+                        원본 테이블이 바로 바뀌는 것이 아니라 조회 결과에서만 바뀌어 보입니다.
+                    </p>
+
+                    <div class="pipeline-card">
+                        <div>
+                            <span>원본 컬럼</span>
+                            <strong>EMAIL = 'SKING'</strong>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <span>함수 적용</span>
+                            <strong>RPAD(SUBSTR(EMAIL, 1, 1), LENGTH(EMAIL), '*')</strong>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <span>출력 결과</span>
+                            <strong>S****</strong>
+                        </div>
+                    </div>
+
+                    <h3>3-2. SELECT 실행 순서 그림 카드</h3>
+                    <p>
+                        함수와 별칭을 어디에서 사용할 수 있는지 이해하려면 SELECT문의 실행 순서를 알아야 합니다.
+                    </p>
+
+                    <div class="execution-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>FROM</strong>
+                            <p>어느 테이블에서 읽을지 결정</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>WHERE</strong>
+                            <p>행을 먼저 필터링</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>GROUP BY</strong>
+                            <p>그룹 생성</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>HAVING</strong>
+                            <p>그룹 조건 필터링</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>SELECT</strong>
+                            <p>함수 계산, 별칭 생성</p>
+                        </div>
+                        <div>
+                            <span>6</span>
+                            <strong>ORDER BY</strong>
+                            <p>최종 결과 정렬</p>
+                        </div>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>왜 중요한가?</h3>
+                        <p>
+                            SELECT 별칭은 SELECT 단계에서 만들어집니다.
+                            WHERE는 SELECT보다 먼저 실행되므로 WHERE에서 SELECT 별칭을 바로 사용할 수 없습니다.<br/>
+                            분석 함수 결과도 WHERE에서 바로 쓰지 말고 서브쿼리나 WITH절로 감싸야 합니다.
+                        </p>
+                    </div>
+
+                    <h3>3-3. 분석 함수 흐름</h3>
+                    <div class="analysis-visual">
+                        <div>
+                            <strong>전체 행</strong>
+                            <p>EMP 전체 직원 목록</p>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <strong>PARTITION BY</strong>
+                            <p>DEPTNO별로 나눔</p>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <strong>ORDER BY</strong>
+                            <p>각 부서 안에서 SAL DESC</p>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <strong>RANK()</strong>
+                            <p>각 행에 부서별 순위 표시</p>
+                        </div>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>4. 기본 문법 카드</h2>
+                    </div>
+
+                    <div class="syntax-strip">
+                        <article>
+                            <span>기본형</span>
+                            <pre><code>함수명(값)
+함수명(컬럼명)
+함수명(표현식)</code></pre>
+                        </article>
+                        <article>
+                            <span>SELECT에서 출력 가공</span>
+                            <pre><code>SELECT TO_CHAR(SAL, 'FM999,999') AS SAL_TEXT
+FROM EMP;</code></pre>
+                        </article>
+                        <article>
+                            <span>WHERE에서 검색 보정</span>
+                            <pre><code>SELECT *
+FROM EMP
+WHERE UPPER(ENAME) = UPPER('smith');</code></pre>
+                        </article>
+                        <article>
+                            <span>분석 함수</span>
+                            <pre><code>분석함수() OVER (
+    PARTITION BY 그룹컬럼
+    ORDER BY 정렬컬럼
+)</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>4-1. NULL 처리</h3>
+                            <pre><code>NVL(컬럼명, NULL일 때 대체값)
+NVL2(컬럼명, NULL이 아닐 때 값, NULL일 때 값)</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-2. 문자열 함수</h3>
+                            <pre><code>LOWER('ORACLE')
+UPPER('oracle')
+INITCAP('oracle sql')
+LENGTH('오라클')
+SUBSTR('123456789', 3, 3)
+INSTR('ABCDEFG', 'DE')
+LPAD('9', 2, '0')
+RPAD('HELLO', 10, 'X')</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-3. 형 변환 함수</h3>
+                            <pre><code>TO_CHAR(숫자 또는 날짜, '포맷')
+TO_NUMBER('문자숫자', '포맷')
+TO_DATE('문자날짜', '포맷')</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>4-4. 조건 분기</h3>
+                            <pre><code>DECODE(표현식, 값1, 결과1, 값2, 결과2, 기본값)
+
+CASE
+    WHEN 조건1 THEN 결과1
+    WHEN 조건2 THEN 결과2
+    ELSE 기본값
+END</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card setup-card" id="setup">
+                    <div class="section-title-area">
+                        <span class="section-badge">Setup</span>
+                        <h2>5. SQL Developer 실습 준비</h2>
+                    </div>
+
+                    <p>
+                        내장 함수는 테이블 없이도 DUAL로 먼저 테스트할 수 있고,
+                        이후 SCOTT.EMP 또는 HR.EMPLOYEES에 적용하면 실제 목록 화면과 가까운 결과를 확인할 수 있습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. 현재 계정 확인</h3>
+                            <pre><code>SHOW USER;
+
+SELECT USER
+FROM DUAL;</code></pre>
+                            <p>SCOTT 또는 HR 계정으로 접속했는지 확인합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 테이블 목록 확인</h3>
+                            <pre><code>SELECT table_name
+FROM user_tables
+ORDER BY table_name;</code></pre>
+                            <p>SCOTT는 EMP, DEPT를, HR은 EMPLOYEES, DEPARTMENTS 등을 확인합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-3. 날짜 출력 형식 임시 변경</h3>
+                            <pre><code>ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS';</code></pre>
+                            <p>실습 중 DATE 타입의 시간까지 확인하기 좋게 현재 세션만 변경합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-4. DUAL로 함수 테스트</h3>
+                            <pre><code>SELECT LOWER('ORACLE') AS LOWER_RESULT,
+       SYSDATE AS NOW_DATE,
+       TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS NOW_TEXT
+FROM DUAL;</code></pre>
+                            <p>DUAL은 계산식이나 함수 결과를 한 줄로 확인할 때 자주 사용합니다.</p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card null-card" id="null-functions">
+                    <div class="section-title-area">
+                        <span class="section-badge">NULL</span>
+                        <h2>6. SQL 예제 카드 - NULL 처리 함수</h2>
+                    </div>
+
+                    <p>
+                        NULL은 0이 아니라 값이 없다는 의미입니다.
+                        NULL이 포함된 산술 계산 결과는 NULL이 될 수 있으므로 급여, 포인트, 할인 금액 계산에서는 반드시 주의해야 합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. NULL 계산 확인</h3>
+                            <pre><code>SELECT 1000 + NULL AS RESULT
+FROM DUAL;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>RESULT는 1000이 아니라 NULL입니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. NVL로 보너스 NULL 처리</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       COMM,
+       SAL + COMM AS TOTAL_ORIGINAL,
+       SAL + NVL(COMM, 0) AS TOTAL_NVL
+FROM EMP
+ORDER BY EMPNO;</code></pre>
+                            <p>COMM이 NULL인 직원도 TOTAL_NVL은 정상적으로 계산됩니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. NVL2로 보너스 상태 표시</h3>
+                            <pre><code>SELECT ENAME,
+       COMM,
+       NVL2(COMM, '보너스 있음', '보너스 없음') AS COMM_STATE
+FROM EMP
+ORDER BY EMPNO;</code></pre>
+                            <p>COMM이 0인 경우는 NULL이 아니므로 “보너스 있음”으로 처리됩니다.</p>
+                        </article>
+
+                        <article class="sql-example project-example">
+                            <h3>6-4. 주문 금액 계산 예시</h3>
+                            <pre><code>SELECT ORDER_ID,
+       PRODUCT_PRICE,
+       SHIPPING_FEE,
+       COUPON_DISCOUNT,
+       PRODUCT_PRICE + SHIPPING_FEE - NVL(COUPON_DISCOUNT, 0) AS PAY_AMOUNT
+FROM ORDERS;</code></pre>
+                            <p>쿠폰 할인 금액이 NULL이어도 결제 금액이 NULL이 되지 않도록 처리합니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card string-card" id="string-functions">
+                    <div class="section-title-area">
+                        <span class="section-badge">String</span>
+                        <h2>7. SQL 예제 카드 - 문자열 함수</h2>
+                    </div>
+
+                    <div class="function-family-grid">
+                        <article>
+                            <span class="family-tag">대소문자</span>
+                            <strong>LOWER / UPPER / INITCAP</strong>
+                            <p>검색어와 저장값의 대소문자를 통일합니다.</p>
+                        </article>
+                        <article>
+                            <span class="family-tag">길이</span>
+                            <strong>LENGTH / LENGTHB</strong>
+                            <p>문자 수와 바이트 수를 확인합니다.</p>
+                        </article>
+                        <article>
+                            <span class="family-tag">추출·검색</span>
+                            <strong>SUBSTR / INSTR</strong>
+                            <p>일부 문자열을 자르거나 포함 위치를 찾습니다.</p>
+                        </article>
+                        <article>
+                            <span class="family-tag">마스킹</span>
+                            <strong>LPAD / RPAD</strong>
+                            <p>자리수를 맞추거나 오른쪽·왼쪽을 특정 문자로 채웁니다.</p>
+                        </article>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>7-1. 대소문자 변환</h3>
+                            <pre><code>SELECT LOWER('ORACLE') AS LOWER_RESULT,
+       UPPER('oracle') AS UPPER_RESULT,
+       INITCAP('oracle sql') AS INITCAP_RESULT
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-2. 대소문자 구분 없는 검색</h3>
+                            <pre><code>SELECT EMPLOYEE_ID,
+       FIRST_NAME,
+       LAST_NAME
+FROM EMPLOYEES
+WHERE UPPER(LAST_NAME) = UPPER('king');</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-3. 문자열 연결</h3>
+                            <pre><code>SELECT FIRST_NAME || ' ' || LAST_NAME AS FULL_NAME
+FROM EMPLOYEES;
+
+SELECT ENAME || '의 직무는 ' || JOB || '입니다.' AS INFO
+FROM EMP;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-4. LENGTH와 LENGTHB</h3>
+                            <pre><code>SELECT LENGTH('오라클') AS LEN_CHAR,
+       LENGTHB('오라클') AS LEN_BYTE
+FROM DUAL;</code></pre>
+                            <div class="result-box">
+                                <strong>예상 결과</strong>
+                                <span>LEN_CHAR = 3, LEN_BYTE = 9</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-5. LPAD와 RPAD</h3>
+                            <pre><code>SELECT LPAD('9', 2, '0') AS LPAD_CODE,
+       RPAD('9', 2, '0') AS RPAD_CODE,
+       LPAD('HELLO', 10, 'X') AS LEFT_FILL,
+       RPAD('HELLO', 10, 'X') AS RIGHT_FILL
+FROM DUAL;</code></pre>
+                            <p>LPAD('9', 2, '0')은 09, RPAD('9', 2, '0')은 90입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-6. INSTR과 SUBSTR</h3>
+                            <pre><code>SELECT INSTR('ABCDEFG', 'DE') AS POSITION,
+       SUBSTR('123456789', 3, 3) AS CUT_RESULT
+FROM DUAL;</code></pre>
+                            <div class="result-box">
+                                <strong>예상 결과</strong>
+                                <span>POSITION = 4, CUT_RESULT = 345</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-7. 이름 마스킹</h3>
+                            <pre><code>SELECT ENAME,
+       RPAD(SUBSTR(ENAME, 1, 1), LENGTH(ENAME), '*') AS MASKED_NAME
+FROM EMP
+ORDER BY ENAME;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-8. REPLACE와 TRIM</h3>
+                            <pre><code>SELECT REPLACE('HELLO WORLD', 'HELLO', 'JAVA') AS REPLACED,
+       '[' || TRIM('  ORACLE  ') || ']' AS TRIMMED
+FROM DUAL;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card conversion-card" id="conversion-functions">
+                    <div class="section-title-area">
+                        <span class="section-badge">Conversion</span>
+                        <h2>8. SQL 예제 카드 - 형 변환 함수</h2>
+                    </div>
+
+                    <p>
+                        형 변환 함수는 데이터 타입을 바꾸는 함수입니다.
+                        숫자와 날짜를 화면용 문자열로 만들거나, 사용자가 입력한 문자열을 숫자·날짜 타입으로 바꿀 때 사용합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>TO_CHAR</h3>
+                            <p>숫자 또는 날짜를 문자로 변환합니다.</p>
+                            <pre><code>TO_CHAR(SALARY, 'FM$999,999')
+TO_CHAR(HIRE_DATE, 'YYYY-MM-DD')</code></pre>
+                        </article>
+                        <article>
+                            <h3>TO_NUMBER</h3>
+                            <p>숫자처럼 생긴 문자를 숫자로 변환합니다.</p>
+                            <pre><code>TO_NUMBER('1,234', '9,999') + 10</code></pre>
+                        </article>
+                        <article>
+                            <h3>TO_DATE</h3>
+                            <p>날짜처럼 생긴 문자를 DATE 타입으로 변환합니다.</p>
+                            <pre><code>TO_DATE('2024-12-25', 'YYYY-MM-DD')</code></pre>
+                        </article>
+                        <article>
+                            <h3>포맷 주의</h3>
+                            <p>문자열 모양과 포맷 문자열이 일치해야 안전합니다.</p>
+                            <pre><code>YYYY = 연도
+MM   = 월
+DD   = 일
+HH24 = 24시간
+MI   = 분
+SS   = 초</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>8-1. 숫자 포맷</h3>
+                            <pre><code>SELECT TO_CHAR(123, '0999') AS ZERO_FILL,
+       TO_CHAR(1234, 'FM999,999.00') AS NUMBER_TEXT,
+       TO_CHAR(1234, 'FM$999,999.00') AS DOLLAR_TEXT
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-2. 급여 출력 포맷</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       TO_CHAR(SAL, 'FM999,999') AS SAL_TEXT,
+       TO_CHAR(SAL * 12, 'FM$999,999') AS YEAR_SAL_TEXT
+FROM EMP
+ORDER BY SAL DESC;</code></pre>
+                            <p>정렬은 문자 포맷 결과가 아니라 원본 숫자 SAL로 하는 것이 안전합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-3. 날짜 포맷</h3>
+                            <pre><code>SELECT SYSDATE AS NOW_DATE,
+       TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') AS NOW_TEXT,
+       TO_CHAR(SYSDATE, 'YYYY"년" MM"월" DD"일"') AS NOW_KOR
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-4. 문자 → 숫자</h3>
+                            <pre><code>SELECT TO_NUMBER('123') + TO_NUMBER('456') AS RESULT1,
+       TO_NUMBER('1,234', '9,999') + 10 AS RESULT2
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-5. 문자 → 날짜</h3>
+                            <pre><code>SELECT TO_DATE('2024-12-25', 'YYYY-MM-DD') AS CHRISTMAS,
+       TO_DATE('2024년12월25일', 'YYYY"년"MM"월"DD"일"') AS CHRISTMAS_KOR
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>8-6. 날짜 검색에서 피해야 할 방식</h3>
+                            <pre><code>-- 인덱스 사용에 불리할 수 있음
+SELECT *
+FROM ORDERS
+WHERE TO_CHAR(ORDER_DATE, 'YYYY-MM-DD') = '2024-12-25';</code></pre>
+                            <p>날짜 컬럼은 가능하면 날짜 타입 그대로 범위 조건으로 검색합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-7. 날짜 검색 권장 방식</h3>
+                            <pre><code>SELECT *
+FROM ORDERS
+WHERE ORDER_DATE &gt;= DATE '2024-12-25'
+  AND ORDER_DATE &lt;  DATE '2024-12-26';</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-8. Java 날짜 파라미터와 연결</h3>
+                            <pre><code>SELECT *
+FROM ORDERS
+WHERE ORDER_DATE &gt;= TO_DATE(:startDate, 'YYYY-MM-DD')
+  AND ORDER_DATE &lt;  TO_DATE(:endDate, 'YYYY-MM-DD') + 1;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card date-card" id="date-math-functions">
+                    <div class="section-title-area">
+                        <span class="section-badge">Date &amp; Math</span>
+                        <h2>9. SQL 예제 카드 - 날짜 함수와 수학 함수</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>9-1. 현재 날짜와 하루 계산</h3>
+                            <pre><code>SELECT SYSDATE AS TODAY,
+       SYSDATE + 1 AS TOMORROW,
+       SYSDATE - 1 AS YESTERDAY
+FROM DUAL;</code></pre>
+                            <p>Oracle에서 날짜에 숫자 1을 더하면 하루가 더해집니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. 두 날짜 사이의 일수</h3>
+                            <pre><code>SELECT TO_DATE('2024-12-25', 'YYYY-MM-DD') - SYSDATE AS DAYS_LEFT
+FROM DUAL;</code></pre>
+                            <p>날짜끼리 빼면 두 날짜 사이의 일수가 나옵니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-3. 근속 개월 수</h3>
+                            <pre><code>SELECT ENAME,
+       HIREDATE,
+       FLOOR(MONTHS_BETWEEN(SYSDATE, HIREDATE)) AS WORK_MONTHS
+FROM EMP
+ORDER BY WORK_MONTHS DESC;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-4. 구독 만료일 계산</h3>
+                            <pre><code>SELECT SYSDATE AS START_DATE,
+       ADD_MONTHS(SYSDATE, 1) AS EXPIRE_DATE
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-5. 수학 함수 한 번에 확인</h3>
+                            <pre><code>SELECT ROUND(123.456, 2) AS ROUND_RESULT,
+       FLOOR(123.956) AS FLOOR_RESULT,
+       CEIL(123.056) AS CEIL_RESULT,
+       MOD(5, 2) AS MOD_RESULT,
+       POWER(2, 3) AS POWER_RESULT,
+       SQRT(10) AS SQRT_RESULT
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example project-example">
+                            <h3>9-6. 총 페이지 수 계산</h3>
+                            <pre><code>SELECT CEIL(101 / 10) AS TOTAL_PAGE
+FROM DUAL;</code></pre>
+                            <p>게시글 101개를 10개씩 보여주면 총 11페이지가 필요합니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card case-card" id="case-functions">
+                    <div class="section-title-area">
+                        <span class="section-badge">DECODE / CASE</span>
+                        <h2>10. SQL 예제 카드 - 조건 분기 함수</h2>
+                    </div>
+
+                    <p>
+                        조건 분기 함수는 DB에 저장된 코드값이나 숫자 범위를 사람이 읽기 쉬운 라벨로 바꿉니다.
+                        Java의 switch, if/else if/else와 비슷하게 이해하면 됩니다.
+                    </p>
+
+                    <div class="permission-map decode-case-map">
+                        <div class="permission-box">
+                            <h3>DECODE</h3>
+                            <p>값 비교 중심, Oracle 전용 함수</p>
+                            <pre><code>DECODE(JOB,
+       'MANAGER', '매니저',
+       'SALESMAN', '영업맨',
+       '기타')</code></pre>
+                        </div>
+                        <div class="visual-arrow">↔</div>
+                        <div class="permission-box">
+                            <h3>CASE</h3>
+                            <p>값 비교와 범위 조건 모두 가능</p>
+                            <pre><code>CASE
+    WHEN SAL &gt;= 3000 THEN '고액'
+    WHEN SAL &gt;= 2000 THEN '중간'
+    ELSE '보통'
+END</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>10-1. DECODE로 직무 표시</h3>
+                            <pre><code>SELECT ENAME,
+       JOB,
+       DECODE(JOB,
+              'MANAGER', '매니저',
+              'SALESMAN', '영업맨',
+              '기타') AS JOB_KO
+FROM EMP;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-2. CASE로 급여 등급 표시</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       CASE
+           WHEN SAL &gt;= 3000 THEN '고액 연봉자'
+           WHEN SAL &gt;= 2000 THEN '중간 연봉자'
+           ELSE '하위 연봉자'
+       END AS SAL_GRADE
+FROM EMP
+ORDER BY SAL DESC;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-3. 값 비교 CASE</h3>
+                            <pre><code>SELECT ENAME,
+       JOB,
+       CASE JOB
+           WHEN 'MANAGER' THEN '매니저'
+           WHEN 'SALESMAN' THEN '영업맨'
+           ELSE '기타'
+       END AS JOB_KO
+FROM EMP;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>10-4. CASE 조건 순서 주의</h3>
+                            <pre><code>-- 잘못된 순서
+CASE
+    WHEN SALARY &gt;= 5000 THEN '중간'
+    WHEN SALARY &gt;= 10000 THEN '고액연봉'
+    ELSE '보통'
+END</code></pre>
+                            <p>10000 이상도 먼저 5000 이상 조건에 걸려 “중간”이 됩니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card analytic-card" id="analytic-functions">
+                    <div class="section-title-area">
+                        <span class="section-badge">Analytic</span>
+                        <h2>11. SQL 예제 카드 - 분석 함수와 Top-N 연결</h2>
+                    </div>
+
+                    <p>
+                        분석 함수는 GROUP BY처럼 그룹 단위 계산을 하면서도 원래 행을 줄이지 않습니다.
+                        그래서 목록 화면에 부서 평균, 급여 순위, 페이지 번호를 함께 붙일 때 유용합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>GROUP BY</h3>
+                            <pre><code>SELECT DEPTNO,
+       AVG(SAL) AS AVG_SAL
+FROM EMP
+GROUP BY DEPTNO;</code></pre>
+                            <p>부서별 한 줄만 나오므로 행 수가 줄어듭니다.</p>
+                        </article>
+                        <article>
+                            <h3>분석 함수</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       AVG(SAL) OVER (PARTITION BY DEPTNO) AS DEPT_AVG_SAL
+FROM EMP;</code></pre>
+                            <p>직원 행은 유지되고 각 행마다 부서 평균이 붙습니다.</p>
+                        </article>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>11-1. 전체 급여 순위</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       ROW_NUMBER() OVER (ORDER BY SAL DESC) AS ROW_NUM,
+       RANK() OVER (ORDER BY SAL DESC) AS RANK_NUM,
+       DENSE_RANK() OVER (ORDER BY SAL DESC) AS DENSE_RANK_NUM
+FROM EMP
+ORDER BY SAL DESC;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-2. 부서별 급여 순위</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       RANK() OVER (PARTITION BY DEPTNO ORDER BY SAL DESC) AS DEPT_SAL_RANK
+FROM EMP
+ORDER BY DEPTNO, DEPT_SAL_RANK;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-3. ROW_NUMBER로 페이징</h3>
+                            <pre><code>WITH ranked_emp AS (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP E
+)
+SELECT EMPNO,
+       ENAME,
+       SAL,
+       RN
+FROM ranked_emp
+WHERE RN BETWEEN 6 AND 10
+ORDER BY RN;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-4. LAG와 LEAD로 이전글·다음글</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT B.*,
+           LEAD(ID) OVER (ORDER BY ID DESC) AS PREV_ID,
+           LAG(ID) OVER (ORDER BY ID DESC) AS NEXT_ID
+    FROM BBS B
+)
+WHERE ID = :boardId;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>순위 함수 선택 기준</h3>
+                        <pre><code>페이징 처리            → ROW_NUMBER()
+동점자를 같은 순위로    → RANK()
+동점 후 순위 건너뜀 없음 → DENSE_RANK()</code></pre>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>12. 실습 문제 카드</h2>
+                    </div>
+
+                    <p>
+                        이번 단원의 실습은 단일 함수 암기가 아니라 여러 함수를 조합해서 실제 목록 화면에 가까운 결과를 만드는 연습입니다.<br/>
+                        특히 HR.EMPLOYEES를 사용한 35번, 36번 문제는 검색, 마스킹, 날짜·금액 포맷, CASE 분기를 모두 연결합니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 35. LAST_NAME에 ar 포함, 전화번호 마스킹</h3>
+                            <p>
+                                LIKE를 사용하지 않고 함수로 LAST_NAME에 ar이 포함된 직원을 찾습니다.
+                                PHONE_NUMBER는 앞 3자리만 남기고 나머지는 X로 채우며,<br/>입사일은 YYYY-MM-DD 형식으로 출력합니다.
+                            </p>
+                            <pre><code>SELECT LAST_NAME,
+       RPAD(SUBSTR(PHONE_NUMBER, 1, 3), LENGTH(PHONE_NUMBER), 'X') AS PHONE_NUMBER,
+       TO_CHAR(HIRE_DATE, 'YYYY-MM-DD') AS HIRE_DATE
+FROM EMPLOYEES
+WHERE INSTR(UPPER(LAST_NAME), 'AR') &gt; 0;</code></pre>
+                            <ul class="check-list">
+                                <li>UPPER로 대소문자를 통일했는가?</li>
+                                <li>INSTR 결과가 0보다 큰 조건을 사용했는가?</li>
+                                <li>전화번호 앞 3자리만 보이는가?</li>
+                                <li>입사일이 YYYY-MM-DD 형식인가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 36. LAST_NAME이 t로 끝나는 직원 조회</h3>
+                            <p>
+                                LIKE 없이 함수로 LAST_NAME의 마지막 글자를 확인합니다.<br/>
+                                EMAIL 마스킹, SALARY 등급, 금액 포맷, 한글 날짜 포맷을 함께 적용합니다.
+                            </p>
+                            <pre><code>SELECT LAST_NAME,
+       RPAD(SUBSTR(EMAIL, 1, 1), LENGTH(EMAIL), '*') AS EMAIL,
+       CASE
+           WHEN SALARY &gt;= 10000 THEN '고액연봉'
+           WHEN SALARY &gt;= 5000 THEN '중간'
+           ELSE '보통'
+       END AS "등급",
+       TO_CHAR(SALARY, 'FM$999,999') AS SALARY,
+       TO_CHAR(HIRE_DATE, 'YYYY"년" MM"월" DD"일"') AS HIRE_DATE
+FROM EMPLOYEES
+WHERE SUBSTR(LOWER(LAST_NAME), -1) = 't'
+ORDER BY LAST_NAME;</code></pre>
+                            <ul class="check-list">
+                                <li>마지막 글자를 SUBSTR로 추출했는가?</li>
+                                <li>EMAIL은 첫 글자만 남겼는가?</li>
+                                <li>CASE 조건 순서가 큰 금액부터인가?</li>
+                                <li>SALARY와 HIRE_DATE가 화면용 포맷인가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>추가 문제 1. 부서별 평균과 개인 급여 비교</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       ROUND(AVG(SAL) OVER (PARTITION BY DEPTNO), 2) AS DEPT_AVG_SAL,
+       CASE
+           WHEN SAL &gt;= AVG(SAL) OVER (PARTITION BY DEPTNO) THEN '평균 이상'
+           ELSE '평균 미만'
+       END AS COMPARE_RESULT
+FROM EMP
+ORDER BY DEPTNO, SAL DESC;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>추가 문제 2. 급여 Top 5 마스킹 목록</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT EMPNO,
+           RPAD(SUBSTR(ENAME, 1, 1), LENGTH(ENAME), '*') AS MASKED_NAME,
+           TO_CHAR(SAL, 'FM999,999') AS SAL_TEXT,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP
+)
+WHERE RN &lt;= 5
+ORDER BY RN;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card error-card" id="errors">
+                    <div class="section-title-area">
+                        <span class="section-badge">Errors</span>
+                        <h2>13. 자주 만나는 오류</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example danger-example">
+                            <h3>ORA-01861: literal does not match format string</h3>
+                            <pre><code>SELECT TO_DATE('2024-12-25', 'YYYY/MM/DD')
+FROM DUAL;</code></pre>
+                            <p>문자열은 하이픈인데 포맷은 슬래시라서 맞지 않습니다.</p>
+                            <pre><code>SELECT TO_DATE('2024-12-25', 'YYYY-MM-DD')
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-01722: invalid number</h3>
+                            <pre><code>SELECT TO_NUMBER('ABC') + 10
+FROM DUAL;</code></pre>
+                            <p>숫자로 바꿀 수 없는 문자를 TO_NUMBER로 변환하려고 할 때 발생합니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-00904: invalid identifier</h3>
+                            <pre><code>SELECT SAL * 12 AS YEAR_SAL
+FROM EMP
+WHERE YEAR_SAL &gt;= 30000;</code></pre>
+                            <p>WHERE 단계에서는 SELECT 별칭 YEAR_SAL이 아직 만들어지지 않았습니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>분석 함수 별칭 WHERE 사용 오류</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       RANK() OVER (ORDER BY SAL DESC) AS SAL_RANK
+FROM EMP
+WHERE SAL_RANK &lt;= 3;</code></pre>
+                            <p>분석 함수 결과를 조건으로 쓰려면 서브쿼리나 WITH절로 감쌉니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>14. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. NULL과 0을 같은 값으로 생각함</strong>
+                            <span>NULL은 값이 없음이고, 0은 값이 있는 숫자입니다. 계산에는 NVL 처리가 필요할 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. LPAD와 RPAD 방향을 반대로 기억함</strong>
+                            <span>LPAD는 왼쪽 채우기, RPAD는 오른쪽 채우기입니다. LPAD('9', 2, '0')은 09입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. Oracle SUBSTR도 Java처럼 0부터 시작한다고 생각함</strong>
+                            <span>Oracle SUBSTR의 위치는 1부터 시작합니다. Java substring 인덱스는 0부터 시작합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. INSTR 결과를 true/false로 생각함</strong>
+                            <span>INSTR는 위치를 반환합니다. 찾지 못하면 0이므로 WHERE에서는 INSTR(...) &gt; 0으로 씁니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. 날짜 포맷에서 MM과 MI를 혼동함</strong>
+                            <span>MM은 월, MI는 분입니다. 시간 포맷은 HH24:MI:SS로 작성합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 날짜 컬럼을 TO_CHAR로 변환해서 WHERE 검색함</strong>
+                            <span>출력은 TO_CHAR로 하되, 검색은 날짜 타입 범위 조건을 사용하는 것이 좋습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. CASE 조건 순서를 작은 범위부터 작성함</strong>
+                            <span>급여 등급처럼 범위가 겹치면 큰 조건 또는 더 구체적인 조건부터 작성합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 8. TO_CHAR 결과를 숫자로 착각함</strong>
+                            <span>TO_CHAR 결과는 문자입니다. 계산과 숫자 정렬에는 원본 숫자 컬럼을 사용합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 9. ROW_NUMBER 정렬 기준을 하나만 둠</strong>
+                            <span>동점이 있는 페이징은 ORDER BY SAL DESC, EMPNO처럼 PK를 추가해 안정적인 순서를 만듭니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 10. SQL에서 처리할 일과 Java에서 처리할 일을 구분하지 않음</strong>
+                            <span>검색·정렬·집계는 SQL에 적합하고, 다국어 표시나 복잡한 정책은 Java/Spring 계층이 더 적합할 수 있습니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>15. 면접 질문 카드</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. Oracle 내장 함수는 왜 사용하나요?</h3>
+                            <p>
+                                조회 결과를 원하는 형태로 가공하거나, 검색 조건을 보정하거나,
+                                NULL을 처리하거나, 날짜·숫자 형식을 변환하거나, 순위와 분석 결과를 만들기 위해 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. NVL과 NVL2의 차이는 무엇인가요?</h3>
+                            <p>
+                                NVL은 NULL일 때 대체값 하나를 반환합니다.
+                                NVL2는 NULL이 아닐 때의 값과 NULL일 때의 값을 각각 지정할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. LIKE 없이 포함 검색을 하려면 어떻게 하나요?</h3>
+                            <p>
+                                INSTR(컬럼, 찾을문자열) &gt; 0 조건을 사용할 수 있습니다.
+                                대소문자를 무시하려면 UPPER 또는 LOWER를 함께 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. LENGTH와 LENGTHB의 차이는 무엇인가요?</h3>
+                            <p>
+                                LENGTH는 문자 수를 반환하고, LENGTHB는 바이트 수를 반환합니다.
+                                한글처럼 멀티바이트 문자는 두 결과가 다를 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. TO_CHAR, TO_DATE, TO_NUMBER의 차이는 무엇인가요?</h3>
+                            <p>
+                                TO_CHAR는 숫자나 날짜를 문자로 변환합니다.
+                                TO_DATE는 문자를 날짜로 변환하고, TO_NUMBER는 문자를 숫자로 변환합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. 날짜 검색에서 TO_CHAR(date_col)을 WHERE에 쓰면 왜 주의해야 하나요?</h3>
+                            <p>
+                                컬럼에 함수를 적용하면 인덱스 사용에 불리할 수 있습니다.
+                                날짜 컬럼은 날짜 타입 그대로 시작일 이상, 다음날 미만 범위 조건으로 검색하는 것이 안전합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. DECODE와 CASE의 차이는 무엇인가요?</h3>
+                            <p>
+                                DECODE는 Oracle 전용 함수이며 값 비교 중심입니다.
+                                CASE는 범위 조건과 복합 조건을 표현할 수 있어 더 유연합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. GROUP BY와 분석 함수의 차이는 무엇인가요?</h3>
+                            <p>
+                                GROUP BY는 그룹당 한 행을 반환하여 행 수가 줄어듭니다.
+                                분석 함수는 원래 행을 유지하면서 각 행에 그룹 기준 계산 결과를 붙입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. ROW_NUMBER, RANK, DENSE_RANK의 차이는 무엇인가요?</h3>
+                            <p>
+                                ROW_NUMBER는 중복 없이 순번을 부여합니다.
+                                RANK는 동점에 같은 순위를 주고 다음 순위를 건너뜁니다.<br/>
+                                DENSE_RANK는 동점에 같은 순위를 주지만 다음 순위를 건너뛰지 않습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. 분석 함수 결과를 WHERE에서 바로 사용할 수 있나요?</h3>
+                            <p>
+                                바로 사용할 수 없습니다.
+                                분석 함수는 SELECT 단계에서 계산되므로 서브쿼리나 WITH절로 감싼 뒤 바깥 WHERE에서 조건을 걸어야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q11. SQL에서 마스킹하는 것과 Java에서 마스킹하는 것의 차이는?</h3>
+                            <p>
+                                SQL에서 마스킹하면 조회 단계에서 원본 노출을 줄일 수 있습니다.
+                                Java에서 마스킹하면 DB 종속성이 줄고 화면 정책 변경에 대응하기 쉽습니다.<br/>
+                                개인정보 보호가 중요하면 DB 조회 단계부터 마스킹하는 설계를 고려합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q12. Spring 프로젝트에서 Oracle 함수를 사용할 때 주의할 점은?</h3>
+                            <p>
+                                Oracle 전용 함수는 DB 종속성을 높입니다.<br/>
+                                검색·집계·페이징처럼 DB에서 처리해야 하는 일에는 적합하지만,
+                                다국어 라벨이나 화면 포맷은 Java 또는 Front-end 계층에서 처리하는 것이 더 유연할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>16. Java·Spring·Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        내장 함수는 Spring 프로젝트의 Repository, Mapper, DAO 계층에서 자주 등장합니다.
+                        특히 검색 API, 게시판 목록, 개인정보 마스킹, 날짜 조건, 페이징 SQL과 직접 연결됩니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>검색 API - 대소문자 무시</h3>
+                            <pre><code>GET /employees?keyword=ar</code></pre>
+                            <pre><code>SELECT EMPLOYEE_ID,
+       FIRST_NAME,
+       LAST_NAME
+FROM EMPLOYEES
+WHERE INSTR(UPPER(LAST_NAME), UPPER(:keyword)) &gt; 0;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>MyBatis Mapper - 마스킹 목록</h3>
+                            <pre><code>&lt;select id="searchEmployees" resultType="EmployeeDto"&gt;
+    SELECT EMPLOYEE_ID,
+           LAST_NAME,
+           RPAD(SUBSTR(PHONE_NUMBER, 1, 3), LENGTH(PHONE_NUMBER), 'X') AS PHONE_NUMBER,
+           TO_CHAR(HIRE_DATE, 'YYYY-MM-DD') AS HIRE_DATE
+    FROM EMPLOYEES
+    WHERE INSTR(UPPER(LAST_NAME), UPPER(#{keyword})) &gt; 0
+&lt;/select&gt;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>DTO를 문자열 중심으로 받을 때</h3>
+                            <pre><code>public class EmployeeDto {
+    private Long employeeId;
+    private String lastName;
+    private String phoneNumber;
+    private String hireDate;
+}</code></pre>
+                            <p>SQL에서 이미 전화번호 마스킹과 날짜 포맷을 완료한 형태입니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>DTO를 원본 타입 중심으로 받을 때</h3>
+                            <pre><code>public class EmployeeDto {
+    private Long employeeId;
+    private String lastName;
+    private String phoneNumber;
+    private LocalDate hireDate;
+    private Integer salary;
+}</code></pre>
+                            <p>날짜와 금액 포맷은 Java 또는 Front-end에서 처리합니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>페이징 파라미터 계산</h3>
+                            <pre><code>int start = (page - 1) * size + 1;
+int end = page * size;</code></pre>
+                            <pre><code>SELECT *
+FROM (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY EMPLOYEE_ID DESC) AS RN
+    FROM EMPLOYEES E
+)
+WHERE RN BETWEEN :start AND :end
+ORDER BY RN;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>SQL과 Java 처리 기준</h3>
+                            <ul>
+                                <li>검색, 정렬, 집계, 순위는 SQL에서 처리하기 좋습니다.</li>
+                                <li>다국어 문구, 화면 포맷, 복잡한 비즈니스 정책은 Java에서 처리하기 좋습니다.</li>
+                                <li>개인정보는 원본 노출 범위를 줄이는 방향으로 설계합니다.</li>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>17. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <pre><code>NVL, NVL2
+→ NULL 처리
+
+LOWER, UPPER, INITCAP
+→ 대소문자 변환
+
+LENGTH, LENGTHB
+→ 문자 수와 바이트 수
+
+SUBSTR, INSTR
+→ 문자열 추출과 위치 검색
+
+LPAD, RPAD
+→ 자리수 채우기와 마스킹
+
+REPLACE, TRIM
+→ 문자열 치환과 공백 제거
+
+TO_CHAR
+→ 숫자/날짜를 문자로 변환
+
+TO_NUMBER
+→ 문자를 숫자로 변환
+
+TO_DATE
+→ 문자를 날짜로 변환
+
+SYSDATE, MONTHS_BETWEEN, ADD_MONTHS
+→ 현재 날짜, 개월 수, 만료일 계산
+
+ROUND, FLOOR, CEIL, MOD
+→ 반올림, 내림, 올림, 나머지
+
+DECODE, CASE
+→ 조건 분기
+
+ROW_NUMBER, RANK, DENSE_RANK
+→ 순번과 순위
+
+LAG, LEAD
+→ 이전 행과 다음 행 조회</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원 실습 순서</h3>
+                        <pre><code>1. DUAL로 단일 함수 결과 확인
+2. EMP에서 NVL로 COMM NULL 처리
+3. EMP에서 ENAME 마스킹 처리
+4. EMPLOYEES에서 LAST_NAME 포함 검색
+5. TO_CHAR로 날짜와 금액 포맷 변경
+6. CASE로 급여 등급 출력
+7. 분석 함수로 부서별 평균과 순위 출력
+8. ROW_NUMBER로 페이징 구간 조회
+9. 실습 문제 35번 작성
+10. 실습 문제 36번 작성
+11. Java/Spring Mapper SQL과 연결
+12. 자주 하는 실수와 면접 질문 복습</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        내장 함수는 DB 원본 데이터를 저장 단계에서 바꾸는 것이 아니라,
+                        조회하는 순간 원하는 형태로 가공하는 도구입니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>암기 문법</h3>
+                    <pre><code>SELECT 함수(컬럼)
+FROM 테이블
+WHERE 함수(컬럼) 조건
+ORDER BY 함수(컬럼);</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>문자열 마스킹 공식</h3>
+                    <pre><code>RPAD(SUBSTR(컬럼, 1, 보여줄글자수), LENGTH(컬럼), '마스킹문자')</code></pre>
+                    <p>예: 이메일 첫 글자만 남기고 나머지를 *로 표시합니다.</p>
+                </div>
+
+                <div class="note-card">
+                    <h3>날짜 포맷 공식</h3>
+                    <pre><code>TO_CHAR(날짜컬럼, 'YYYY-MM-DD HH24:MI:SS')
+TO_DATE('2024-12-25', 'YYYY-MM-DD')</code></pre>
+                    <p>MM은 월, MI는 분입니다.</p>
+                </div>
+
+                <div class="note-card">
+                    <h3>CASE 공식</h3>
+                    <pre><code>CASE
+    WHEN 조건1 THEN 결과1
+    WHEN 조건2 THEN 결과2
+    ELSE 기본값
+END</code></pre>
+                    <p>범위 조건은 큰 조건 또는 더 구체적인 조건부터 작성합니다.</p>
+                </div>
+
+                <div class="note-card">
+                    <h3>분석 함수 공식</h3>
+                    <pre><code>ROW_NUMBER() OVER (ORDER BY 정렬컬럼)
+RANK() OVER (PARTITION BY 그룹컬럼 ORDER BY 정렬컬럼)
+AVG(컬럼) OVER (PARTITION BY 그룹컬럼)</code></pre>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의할 점</h3>
+                    <p>
+                        WHERE절에서 컬럼에 함수를 씌우면 인덱스 사용에 불리할 수 있습니다.
+                        특히 날짜 검색은 TO_CHAR보다 날짜 타입 범위 조건을 우선 고려합니다.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        Spring Boot에서는 검색 조건, 페이징, 순위, 리포트 SQL은 DB 함수로 처리하기 좋고,
+                        다국어 라벨과 화면 포맷은 Java 또는 Front-end에서 처리하는 것이 더 유연할 수 있습니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>

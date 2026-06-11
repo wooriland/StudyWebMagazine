@@ -18,42 +18,1993 @@
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 27</p>
                 <h1>PL/SQL 예외 처리와 프로시저</h1>
+
                 <p class="chapter-description">
-                    PL/SQL 예외 처리와 프로시저 작성의 기본 구조를 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    예외 처리는 PL/SQL 실행 중 발생하는 오류를 안전하게 처리하는 구조이고,<br/>
+                    저장 프로시저는 자주 사용하는 PL/SQL 로직을 데이터베이스에 저장해 반복 호출하는 객체입니다.<br/>
+                    이번 단원에서는 PREDEFINED, NON-PREDEFINED, USER DEFINE 예외와<br/>
+                    SQLCODE, SQLERRM, PRAGMA EXCEPTION_INIT, RAISE, RAISE_APPLICATION_ERROR,<br/>
+                    그리고 CREATE OR REPLACE PROCEDURE, IN, OUT, IN OUT 매개변수까지 학습합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            오류 발생 흐름을 제어하고<br/>
+                            PL/SQL 로직을 프로시저로 저장한다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            예외 실습 → 복사 테이블 생성 →<br/>
+                            프로시저 생성 → OUT 값 확인 → 오류 확인
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>
+                            Spring, MyBatis, JDBC에서<br/>
+                            Oracle 저장 프로시저를 호출하는 구조로 연결한다.
+                        </span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 이번 단원은 무엇을 배우는가?</h2>
+                    </div>
+
+                    <p>
+                        앞 단원에서는 PL/SQL의 기본 블록, 변수, 조건문, 반복문, SELECT INTO,
+                        DML 결과 확인을 배웠습니다. 이번 단원은 그 내용을 실무형으로 확장합니다.<br/>
+                        실행 중 오류가 발생했을 때 안전하게 처리하는 <strong>예외 처리</strong>를 배우고,
+                        자주 쓰는 PL/SQL 로직을 데이터베이스에 저장해 반복 호출하는
+                        <strong>저장 프로시저</strong>를 배웁니다.
+                    </p>
+
+                    <div class="before-after-card">
+                        <div>
+                            <span class="mini-label">익명 PL/SQL 블록</span>
+                            <pre><code>DECLARE
+    v_empno EMP.EMPNO%TYPE := 7369;
+BEGIN
+    UPDATE EMP
+    SET SAL = 1200
+    WHERE EMPNO = v_empno;
+END;
+/</code></pre>
+                            <p>한 번 실행하고 끝나는 일회성 블록입니다.</p>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div>
+                            <span class="mini-label">저장 프로시저</span>
+                            <pre><code>CREATE OR REPLACE PROCEDURE emp_sal_proc
+IS
+BEGIN
+    UPDATE EMP
+    SET SAL = 1200
+    WHERE EMPNO = 7369;
+END;
+/</code></pre>
+                            <p>DB에 저장해두고 필요할 때마다 호출할 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>예외 처리</strong>
+                            <span>실패 상황을 그냥 중단하지 않고<br/>메시지, ROLLBACK, 로그, OUT 값으로 제어한다.</span>
+                        </div>
+                        <div>
+                            <strong>저장 프로시저</strong>
+                            <span>반복되는 PL/SQL 업무 로직을<br/>이름 있는 DB 객체로 저장한다.</span>
+                        </div>
+                        <div>
+                            <strong>Spring 연결</strong>
+                            <span>MyBatis CALLABLE, JDBC CallableStatement,<br/>SimpleJdbcCall로 호출한다.</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>예외 처리</strong>는 실패를 제어하는 문법이고,
+                            <strong>프로시저</strong>는 성공과 실패를 포함한 업무 흐름을 DB에 저장해 재사용하는 객체입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 단원 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. 예외 처리는 왜 필요한가?</h3>
+                    <p>
+                        PL/SQL 실행 중 오류가 발생하면 블록은 중단됩니다.<br/>
+                        예외 처리를 사용하면 오류가 발생했을 때 메시지를 출력하거나,
+                        처리 결과를 OUT 매개변수에 담거나, ROLLBACK을 수행하거나,
+                        호출자에게 업무 오류를 전달할 수 있습니다.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>상황</th>
+                                    <th>발생 가능 예외</th>
+                                    <th>실무 의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>SELECT INTO 결과가 없음</td>
+                                    <td>NO_DATA_FOUND</td>
+                                    <td>조회하려는 회원, 주문, 게시글이 존재하지 않음</td>
+                                </tr>
+                                <tr>
+                                    <td>SELECT INTO 결과가 여러 행</td>
+                                    <td>TOO_MANY_ROWS</td>
+                                    <td>조건이 유일하지 않음, PK 기준 조회가 아님</td>
+                                </tr>
+                                <tr>
+                                    <td>0으로 나누기</td>
+                                    <td>ZERO_DIVIDE</td>
+                                    <td>비율, 평균, 정산 계산에서 분모가 0</td>
+                                </tr>
+                                <tr>
+                                    <td>PK 또는 UNIQUE 중복</td>
+                                    <td>DUP_VAL_ON_INDEX</td>
+                                    <td>아이디, 코드, 주문번호 중복</td>
+                                </tr>
+                                <tr>
+                                    <td>업무 규칙 위반</td>
+                                    <td>USER DEFINE EXCEPTION</td>
+                                    <td>재고 부족, 음수 급여, 이미 취소된 주문</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>2-2. 예외의 세 가지 종류</h3>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>PREDEFINED EXCEPTION</strong>
+                            <span>미리 정의된 예외</span>
+                            <p>Oracle이 자주 발생하는 오류에 이름을 붙여 둔 예외입니다.</p>
+                            <pre><code>NO_DATA_FOUND
+TOO_MANY_ROWS
+ZERO_DIVIDE
+DUP_VAL_ON_INDEX</code></pre>
+                        </article>
+
+                        <article>
+                            <strong>NON-PREDEFINED EXCEPTION</strong>
+                            <span>비미리정의 예외</span>
+                            <p>오류 번호는 있지만 이름이 없는 예외를 사용자가 이름과 연결합니다.</p>
+                            <pre><code>e_null_deptno EXCEPTION;
+PRAGMA EXCEPTION_INIT(e_null_deptno, -1400);</code></pre>
+                        </article>
+
+                        <article>
+                            <strong>USER DEFINE EXCEPTION</strong>
+                            <span>사용자 정의 예외</span>
+                            <p>Oracle 오류가 아니어도 업무 조건에 따라 직접 예외를 발생시킵니다.</p>
+                            <pre><code>e_invalid_salary EXCEPTION;
+
+IF p_sal &lt; 0 THEN
+    RAISE e_invalid_salary;
+END IF;</code></pre>
+                        </article>
+
+                        <article>
+                            <strong>RAISE_APPLICATION_ERROR</strong>
+                            <span>애플리케이션 오류 전달</span>
+                            <p>사용자 정의 오류 번호와 메시지를 Oracle 오류처럼 호출자에게 전달합니다.</p>
+                            <pre><code>RAISE_APPLICATION_ERROR(-20001, '급여는 0 이상이어야 합니다.');</code></pre>
+                        </article>
+                    </div>
+
+                    <h3>2-3. 프로시저란?</h3>
+                    <p>
+                        저장 프로시저는 PL/SQL 블록에 이름을 붙여 데이터베이스에 저장한 객체입니다.<br/>
+                        익명 블록은 한 번 실행하고 끝나지만, 프로시저는 DB에 저장되어 필요할 때마다 호출할 수 있습니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>익명 블록</h3>
+                            <pre><code>DECLARE
+BEGIN
+    실행문;
+END;
+/</code></pre>
+                            <p>한 번 실행하고 끝납니다. 이름이 없고 DB 객체로 저장되지 않습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>저장 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE 프로시저명
+IS
+BEGIN
+    실행문;
+END;
+/</code></pre>
+                            <p>이름을 가진 DB 객체로 저장되고, EXECUTE로 반복 호출합니다.</p>
+                        </article>
+                    </div>
+
+                    <h3>2-4. 프로시저와 함수의 차이</h3>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>구분</th>
+                                    <th>프로시저</th>
+                                    <th>함수</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>목적</td>
+                                    <td>작업 수행 중심</td>
+                                    <td>값 반환 중심</td>
+                                </tr>
+                                <tr>
+                                    <td>호출</td>
+                                    <td>EXECUTE 프로시저명</td>
+                                    <td>SELECT 함수명 FROM DUAL</td>
+                                </tr>
+                                <tr>
+                                    <td>반환</td>
+                                    <td>OUT 매개변수 사용</td>
+                                    <td>RETURN 값 필수</td>
+                                </tr>
+                                <tr>
+                                    <td>예시</td>
+                                    <td>급여 수정, 주문 처리, 회원 검증</td>
+                                    <td>합계 계산, 성별 반환, 포맷 변환</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>3-1. 예외 처리 흐름</h3>
+
+                    <div class="exception-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>BEGIN 실행</strong>
+                            <p>SQL 또는 PL/SQL 문장을<br/>실행합니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>오류 발생</strong>
+                            <p>SELECT 결과 없음, 중복 입력,<br/>0 나누기 등이 발생합니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>EXCEPTION 이동</strong>
+                            <p>실행부가 중단되고<br/>예외 처리부로 흐름이<br/>이동합니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>WHEN 예외명</strong>
+                            <p>발생한 예외와 맞는<br/>WHEN 절을 찾습니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>처리 후 종료</strong>
+                            <p>메시지 출력, ROLLBACK,<br/>OUT 값 설정 후 종료합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>3-2. 프로시저 호출 흐름</h3>
+
+                    <div class="procedure-flow">
+                        <div>
+                            <span>Java / SQL Developer</span>
+                            <strong>EXEC emp_sal_proc(...)</strong>
+                            <p>호출자가 입력값을 전달합니다.</p>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <span>Oracle DB</span>
+                            <strong>Procedure 실행</strong>
+                            <p>DB 내부에서<br/>UPDATE, IF, EXCEPTION을 실행합니다.</p>
+                        </div>
+                        <div class="visual-arrow">→</div>
+                        <div>
+                            <span>호출자</span>
+                            <strong>OUT 값 확인</strong>
+                            <p>처리 건수와 메시지를 바인드 변수로 받습니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>3-3. IN / OUT / IN OUT 그림</h3>
+
+                    <div class="param-visual">
+                        <div>
+                            <strong>IN</strong>
+                            <span>호출자 → 프로시저</span>
+                            <p>입력값을 전달합니다. 예: 사원번호, 급여</p>
+                        </div>
+                        <div>
+                            <strong>OUT</strong>
+                            <span>프로시저 → 호출자</span>
+                            <p>처리 결과를 돌려줍니다. 예: 메시지, 처리 건수</p>
+                        </div>
+                        <div>
+                            <strong>IN OUT</strong>
+                            <span>호출자 ↔ 프로시저</span>
+                            <p>값을 입력받고 변경된 값을 다시 돌려줍니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>3-4. 트랜잭션과 예외 처리</h3>
+
+                    <div class="transaction-visual">
+                        <div>
+                            <strong>모두 성공</strong>
+                            <p>주문 상태 변경, 결제 이력 생성, 재고 차감이 모두 성공</p>
+                            <span>COMMIT</span>
+                        </div>
+                        <div>
+                            <strong>중간 실패</strong>
+                            <p>재고 차감 실패, 중복 입력, 업무 규칙 위반 발생</p>
+                            <span>ROLLBACK</span>
+                        </div>
+                        <div>
+                            <strong>부분 되돌리기</strong>
+                            <p>특정 지점까지만 되돌리고 싶을 때</p>
+                            <span>SAVEPOINT</span>
+                        </div>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card execution-card" id="execution">
+                    <div class="section-title-area">
+                        <span class="section-badge">Execution Order</span>
+                        <h2>4. 실행 순서 그림 카드</h2>
+                    </div>
+
+                    <p>
+                        프로시저는 생성, 컴파일, 상태 확인, 실행, 결과 확인, 오류 확인, 삭제라는 흐름으로 학습하면 쉽습니다.
+                    </p>
+
+                    <div class="execution-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>SET SERVEROUTPUT ON</strong>
+                            <p>DBMS_OUTPUT<br/>출력 준비</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>CREATE PROCEDURE</strong>
+                            <p>프로시저 생성 또는 교체</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>Compile</strong>
+                            <p>Oracle이<br/>프로시저 문법 검사</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>USER_OBJECTS</strong>
+                            <p>VALID / INVALID<br/>상태 확인</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>EXECUTE</strong>
+                            <p>프로시저 실행</p>
+                        </div>
+                        <div>
+                            <span>6</span>
+                            <strong>PRINT / SELECT</strong>
+                            <p>OUT 값과 테이블 변경<br/>결과 확인</p>
+                        </div>
+                    </div>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>잘못된 생성 예</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE hello_proc
+IS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello');
+END;</code></pre>
+                            <p>SQL Developer에서 스크립트로 실행할 때 마지막 /가 없으면<br/>컴파일 실행이 되지 않을 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <h3>올바른 생성 예</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE hello_proc
+IS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello');
+END;
+/</code></pre>
+                            <p>END;로 프로시저 정의를 끝내고, 새 줄의 /로 컴파일합니다.</p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card setup-card" id="setup">
+                    <div class="section-title-area">
+                        <span class="section-badge">Setup</span>
+                        <h2>5. SQL Developer 실습 준비</h2>
+                    </div>
+
+                    <p>
+                        이번 단원은 예외를 일부러 발생시키고, DML이 포함된 프로시저를 만들기 때문에
+                        원본 EMP, DEPT 테이블 대신 복사 테이블을 사용합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. 출력 설정</h3>
+                            <pre><code>SET SERVEROUTPUT ON;
+
+SHOW SERVEROUTPUT;</code></pre>
+                            <p>DBMS_OUTPUT.PUT_LINE 출력 결과를 보기 위한 설정입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 현재 계정 확인</h3>
+                            <pre><code>SHOW USER;
+
+SELECT USER
+FROM DUAL;</code></pre>
+                            <p>SCOTT 계정으로 실습하는 것을 기준으로 합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-3. 원본 EMP 확인</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       SAL,
+       DEPTNO
+FROM EMP
+ORDER BY EMPNO;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-4. 원본 DEPT 확인</h3>
+                            <pre><code>SELECT DEPTNO,
+       DNAME,
+       LOC
+FROM DEPT
+ORDER BY DEPTNO;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-5. EMP 복사 테이블 생성</h3>
+                            <pre><code>DROP TABLE emp_proc_copy PURGE;
+
+CREATE TABLE emp_proc_copy
+AS
+SELECT *
+FROM EMP;
+
+ALTER TABLE emp_proc_copy
+ADD CONSTRAINT pk_emp_proc_copy PRIMARY KEY (EMPNO);</code></pre>
+                            <p>DROP TABLE에서 테이블이 없다는 오류가 나면 처음에는 무시해도 됩니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-6. DEPT 복사 테이블 생성</h3>
+                            <pre><code>DROP TABLE dept_proc_copy PURGE;
+
+CREATE TABLE dept_proc_copy
+AS
+SELECT *
+FROM DEPT;
+
+ALTER TABLE dept_proc_copy
+ADD CONSTRAINT pk_dept_proc_copy PRIMARY KEY (DEPTNO);</code></pre>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>6. 기본 문법 카드</h2>
+                    </div>
+
+                    <div class="syntax-strip">
+                        <article>
+                            <span>예외 처리 기본형</span>
+                            <pre><code>BEGIN
+    실행문;
+EXCEPTION
+    WHEN 예외명 THEN
+        처리문;
+    WHEN OTHERS THEN
+        처리문;
+END;
+/</code></pre>
+                        </article>
+
+                        <article>
+                            <span>비미리정의 예외</span>
+                            <pre><code>DECLARE
+    e_error EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_error, -1400);
+BEGIN
+    실행문;
+EXCEPTION
+    WHEN e_error THEN
+        처리문;
+END;
+/</code></pre>
+                        </article>
+
+                        <article>
+                            <span>사용자 정의 예외</span>
+                            <pre><code>DECLARE
+    e_business_error EXCEPTION;
+BEGIN
+    IF 업무조건위반 THEN
+        RAISE e_business_error;
+    END IF;
+EXCEPTION
+    WHEN e_business_error THEN
+        처리문;
+END;
+/</code></pre>
+                        </article>
+
+                        <article>
+                            <span>프로시저 기본형</span>
+                            <pre><code>CREATE OR REPLACE PROCEDURE 프로시저명
+(
+    p_in  IN  자료형,
+    p_out OUT 자료형
+)
+IS
+BEGIN
+    실행문;
+END;
+/</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. SQLCODE / SQLERRM</h3>
+                            <pre><code>DBMS_OUTPUT.PUT_LINE('오류 코드: ' || SQLCODE);
+DBMS_OUTPUT.PUT_LINE('오류 메시지: ' || SQLERRM);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. RAISE_APPLICATION_ERROR</h3>
+                            <pre><code>RAISE_APPLICATION_ERROR(-20001, '급여는 0 이상이어야 합니다.');</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. 프로시저 실행</h3>
+                            <pre><code>EXECUTE 프로시저명(인수1, 인수2);
+
+EXEC 프로시저명(인수1, 인수2);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-4. OUT 값 받기</h3>
+                            <pre><code>VARIABLE v_count NUMBER;
+VARIABLE v_msg VARCHAR2(200);
+
+EXEC emp_sal_proc(7369, 1200, :v_count, :v_msg);
+
+PRINT v_count;
+PRINT v_msg;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-5. 프로시저 상태 확인</h3>
+                            <pre><code>SELECT OBJECT_NAME,
+       OBJECT_TYPE,
+       STATUS
+FROM USER_OBJECTS
+WHERE OBJECT_TYPE = 'PROCEDURE'
+ORDER BY OBJECT_NAME;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-6. 프로시저 오류 확인</h3>
+                            <pre><code>SHOW ERRORS PROCEDURE emp_sal_proc;
+
+SELECT LINE, POSITION, TEXT
+FROM USER_ERRORS
+WHERE NAME = 'EMP_SAL_PROC'
+ORDER BY SEQUENCE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-7. 소스 확인</h3>
+                            <pre><code>SELECT LINE,
+       TEXT
+FROM USER_SOURCE
+WHERE NAME = 'EMP_SAL_PROC'
+ORDER BY LINE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-8. 프로시저 삭제</h3>
+                            <pre><code>DROP PROCEDURE emp_sal_proc;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card exception-card" id="predefined-exception">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>7. SQL 예제 카드 - 미리 정의된 예외</h2>
+                    </div>
+
+                    <p>
+                        미리 정의된 예외는 Oracle이 자주 발생하는 오류에 미리 이름을 붙여둔 예외입니다.<br/>
+                        처음에는 NO_DATA_FOUND, TOO_MANY_ROWS, ZERO_DIVIDE, DUP_VAL_ON_INDEX 네 가지를 확실히 익히면 됩니다.
+                    </p>
+
+                    <div class="exception-map">
+                        <div>
+                            <strong>NO_DATA_FOUND</strong>
+                            <span>SELECT INTO 0행</span>
+                        </div>
+                        <div>
+                            <strong>TOO_MANY_ROWS</strong>
+                            <span>SELECT INTO 여러 행</span>
+                        </div>
+                        <div>
+                            <strong>ZERO_DIVIDE</strong>
+                            <span>0으로 나누기</span>
+                        </div>
+                        <div>
+                            <strong>DUP_VAL_ON_INDEX</strong>
+                            <span>PK / UNIQUE 중복</span>
+                        </div>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>7-1. ZERO_DIVIDE</h3>
+                            <pre><code>DECLARE
+    v_result NUMBER;
+BEGIN
+    v_result := 10 / 0;
+
+    DBMS_OUTPUT.PUT_LINE('결과: ' || v_result);
+EXCEPTION
+    WHEN ZERO_DIVIDE THEN
+        DBMS_OUTPUT.PUT_LINE('0으로 나눌 수 없습니다.');
+END;
+/</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>0으로 나눌 수 없습니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-2. NO_DATA_FOUND</h3>
+                            <pre><code>DECLARE
+    v_ename EMP.ENAME%TYPE;
+BEGIN
+    SELECT ENAME
+    INTO v_ename
+    FROM EMP
+    WHERE EMPNO = -1;
+
+    DBMS_OUTPUT.PUT_LINE('사원명: ' || v_ename);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('조회된 사원이 없습니다.');
+END;
+/</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-3. TOO_MANY_ROWS</h3>
+                            <pre><code>DECLARE
+    v_ename EMP.ENAME%TYPE;
+BEGIN
+    SELECT ENAME
+    INTO v_ename
+    FROM EMP
+    WHERE DEPTNO = 20;
+
+    DBMS_OUTPUT.PUT_LINE('사원명: ' || v_ename);
+EXCEPTION
+    WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('조회 결과가 2행 이상입니다.');
+END;
+/</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-4. DUP_VAL_ON_INDEX</h3>
+                            <pre><code>BEGIN
+    INSERT INTO dept_proc_copy(DEPTNO, DNAME, LOC)
+    VALUES(10, '중복부서', 'SEOUL');
+
+    DBMS_OUTPUT.PUT_LINE('입력 성공');
+EXCEPTION
+    WHEN DUP_VAL_ON_INDEX THEN
+        DBMS_OUTPUT.PUT_LINE('이미 존재하는 부서번호입니다.');
+END;
+/</code></pre>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>7-5. OTHERS와 SQLCODE, SQLERRM</h3>
+                            <pre><code>DECLARE
+    v_name VARCHAR2(3);
+BEGIN
+    v_name := 'ORACLE';
+
+    DBMS_OUTPUT.PUT_LINE(v_name);
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('알 수 없는 오류가 발생했습니다.');
+        DBMS_OUTPUT.PUT_LINE('오류 코드: ' || SQLCODE);
+        DBMS_OUTPUT.PUT_LINE('오류 메시지: ' || SQLERRM);
+END;
+/</code></pre>
+                            <p>VARCHAR2(3)에 ORACLE을 넣으려 했기 때문에 VALUE_ERROR 계열 오류가 발생합니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card custom-exception-card" id="custom-exception">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>8. SQL 예제 카드 - 비미리정의 예외와 사용자 정의 예외</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>8-1. PRAGMA EXCEPTION_INIT</h3>
+                            <pre><code>DECLARE
+    e_null_deptno EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_null_deptno, -1400);
+BEGIN
+    INSERT INTO dept_proc_copy(DEPTNO, DNAME, LOC)
+    VALUES(NULL, 'NULL부서', 'SEOUL');
+
+    DBMS_OUTPUT.PUT_LINE('입력 성공');
+EXCEPTION
+    WHEN e_null_deptno THEN
+        DBMS_OUTPUT.PUT_LINE('부서번호는 NULL일 수 없습니다.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('기타 오류: ' || SQLCODE || ' / ' || SQLERRM);
+END;
+/</code></pre>
+                            <p>ORA-01400을 e_null_deptno라는 예외명과 연결합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-2. 사용자 정의 예외</h3>
+                            <pre><code>DECLARE
+    v_sal EMP.SAL%TYPE := -100;
+    e_invalid_salary EXCEPTION;
+BEGIN
+    IF v_sal &lt; 0 THEN
+        RAISE e_invalid_salary;
+    END IF;
+
+    DBMS_OUTPUT.PUT_LINE('급여: ' || v_sal);
+EXCEPTION
+    WHEN e_invalid_salary THEN
+        DBMS_OUTPUT.PUT_LINE('급여는 0 이상이어야 합니다.');
+END;
+/</code></pre>
+                            <p>Oracle 문법 오류가 아니라 업무 규칙 위반을 직접 예외로 처리합니다.</p>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>8-3. RAISE_APPLICATION_ERROR</h3>
+                            <pre><code>BEGIN
+    RAISE_APPLICATION_ERROR(-20001, '급여는 0 이상이어야 합니다.');
+END;
+/</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>ORA-20001: 급여는 0 이상이어야 합니다.</span>
+                            </div>
+                            <p>
+                                사용자 정의 오류 번호와 메시지를 호출자에게 Oracle 오류처럼 전달합니다.
+                                Spring에서는 SQLException 또는 DataAccessException 계열로 받을 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>RAISE와 RAISE_APPLICATION_ERROR 차이</h3>
+                        <pre><code>RAISE 사용자정의예외
+→ PL/SQL 블록 안에서 선언한 예외를 발생시킨다.
+
+RAISE_APPLICATION_ERROR
+→ -20000 ~ -20999 범위의 사용자 오류 번호와 메시지를 호출자에게 전달한다.</code></pre>
+                    </div>
+                </section>
+
+                <section class="section-card transaction-card" id="transaction">
+                    <div class="section-title-area">
+                        <span class="section-badge">Transaction</span>
+                        <h2>9. SQL 예제 카드 - 트랜잭션과 예외 처리</h2>
+                    </div>
+
+                    <p>
+                        예외 처리는 단순히 메시지를 출력하는 것에서 끝나지 않습니다.
+                        실무에서는 오류 발생 시 이미 수행된 DML을 되돌릴지, 일부만 되돌릴지 결정해야 합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>COMMIT / ROLLBACK 개념</h3>
+                            <pre><code>COMMIT;
+-- 변경 사항 확정
+
+ROLLBACK;
+-- 마지막 COMMIT 이후 변경 취소</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>SAVEPOINT 개념</h3>
+                            <pre><code>SAVEPOINT before_update;
+
+ROLLBACK TO before_update;</code></pre>
+                            <p>전체가 아니라 특정 저장 지점까지만 되돌릴 수 있습니다.</p>
+                        </article>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example wide-example">
+                            <h3>9-1. SAVEPOINT 실습</h3>
+                            <pre><code>BEGIN
+    SAVEPOINT before_update;
+
+    UPDATE emp_proc_copy
+    SET SAL = SAL + 100
+    WHERE DEPTNO = 10;
+
+    DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || '개의 행을 수정했습니다.');
+
+    ROLLBACK TO before_update;
+
+    DBMS_OUTPUT.PUT_LINE('SAVEPOINT 지점으로 ROLLBACK 했습니다.');
+END;
+/</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>수정 메시지는 출력되지만 ROLLBACK TO 때문에 급여 변경은 취소됩니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>9-2. 확인 SELECT</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       SAL,
+       DEPTNO
+FROM emp_proc_copy
+WHERE DEPTNO = 10
+ORDER BY EMPNO;</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>Spring 프로젝트 주의</h3>
+                        <ul>
+                            <li>SQL Developer 단독 실습에서는 프로시저 안에서 COMMIT을 해도 흐름을 보기 쉽습니다.</li>
+                            <li>Spring Service에서 호출하는 프로시저라면 내부 COMMIT이 @Transactional 롤백과 충돌할 수 있습니다.</li>
+                            <li>실무에서는 트랜잭션 책임을 Java Service에 둘지, DB 프로시저에 둘지 명확히 정해야 합니다.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="section-card procedure-card" id="procedure-basic">
+                    <div class="section-title-area">
+                        <span class="section-badge">Procedure</span>
+                        <h2>10. SQL 예제 카드 - 프로시저 기본</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>10-1. 가장 단순한 프로시저 생성</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE hello_proc
+IS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello Procedure');
+END;
+/</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>Procedure HELLO_PROC compiled 또는 프로시저가 생성되었습니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-2. 프로시저 실행</h3>
+                            <pre><code>EXECUTE hello_proc;
+
+EXEC hello_proc;</code></pre>
+                            <p>DBMS Output에 Hello Procedure가 출력됩니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-3. USER_OBJECTS에서 상태 확인</h3>
+                            <pre><code>SELECT OBJECT_NAME,
+       OBJECT_TYPE,
+       STATUS
+FROM USER_OBJECTS
+WHERE OBJECT_NAME = 'HELLO_PROC';</code></pre>
+                            <p>STATUS가 VALID이면 정상 컴파일된 것입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-4. USER_SOURCE에서 소스 확인</h3>
+                            <pre><code>SELECT LINE,
+       TEXT
+FROM USER_SOURCE
+WHERE NAME = 'HELLO_PROC'
+ORDER BY LINE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-5. 오류 확인</h3>
+                            <pre><code>SHOW ERRORS PROCEDURE hello_proc;
+
+SELECT LINE,
+       POSITION,
+       TEXT
+FROM USER_ERRORS
+WHERE NAME = 'HELLO_PROC'
+ORDER BY SEQUENCE;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-6. 프로시저 삭제</h3>
+                            <pre><code>DROP PROCEDURE hello_proc;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card param-card" id="procedure-params">
+                    <div class="section-title-area">
+                        <span class="section-badge">IN / OUT / IN OUT</span>
+                        <h2>11. SQL 예제 카드 - 프로시저 매개변수</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example wide-example">
+                            <h3>11-1. IN 매개변수 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE print_emp_proc
+(
+    p_empno IN EMP.EMPNO%TYPE
+)
+IS
+    v_ename EMP.ENAME%TYPE;
+    v_sal   EMP.SAL%TYPE;
+BEGIN
+    SELECT ENAME, SAL
+    INTO v_ename, v_sal
+    FROM EMP
+    WHERE EMPNO = p_empno;
+
+    DBMS_OUTPUT.PUT_LINE('사원명: ' || v_ename);
+    DBMS_OUTPUT.PUT_LINE('급여: ' || v_sal);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE(p_empno || '번 사원은 없습니다.');
+    WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('조회 결과가 2행 이상입니다.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('오류: ' || SQLCODE || ' / ' || SQLERRM);
+END;
+/</code></pre>
+                            <pre><code>EXEC print_emp_proc(7369);
+EXEC print_emp_proc(-1);</code></pre>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>11-2. OUT 매개변수 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE emp_sal_proc
+(
+    p_empno  IN  emp_proc_copy.empno%TYPE,
+    p_sal    IN  emp_proc_copy.sal%TYPE,
+    p_count  OUT NUMBER,
+    p_msg    OUT VARCHAR2
+)
+IS
+    e_invalid_salary EXCEPTION;
+BEGIN
+    p_count := 0;
+    p_msg := NULL;
+
+    IF p_sal &lt; 0 THEN
+        RAISE e_invalid_salary;
+    END IF;
+
+    UPDATE emp_proc_copy
+    SET SAL = p_sal
+    WHERE EMPNO = p_empno;
+
+    p_count := SQL%ROWCOUNT;
+
+    IF SQL%NOTFOUND THEN
+        p_msg := TO_CHAR(p_empno) || '번 사원번호가 존재하지 않습니다.';
+    ELSE
+        p_msg := TO_CHAR(p_count) || '개의 행이 수정되었습니다.';
+    END IF;
+
+EXCEPTION
+    WHEN e_invalid_salary THEN
+        p_count := 0;
+        p_msg := '급여는 0 이상이어야 합니다.';
+    WHEN OTHERS THEN
+        p_count := -1;
+        p_msg := '오류: ' || SQLCODE || ' / ' || SQLERRM;
+END;
+/</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-3. OUT 값 받기</h3>
+                            <pre><code>VARIABLE v_count NUMBER;
+VARIABLE v_msg VARCHAR2(200);
+
+EXEC emp_sal_proc(7369, 1200, :v_count, :v_msg);
+
+PRINT v_count;
+PRINT v_msg;</code></pre>
+                            <p>OUT 매개변수는 바인드 변수로 받아야 합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-4. 결과 테이블 확인</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       SAL
+FROM emp_proc_copy
+WHERE EMPNO = 7369;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-5. 없는 사원번호 테스트</h3>
+                            <pre><code>EXEC emp_sal_proc(9999, 3000, :v_count, :v_msg);
+
+PRINT v_count;
+PRINT v_msg;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-6. 잘못된 급여 테스트</h3>
+                            <pre><code>EXEC emp_sal_proc(7369, -100, :v_count, :v_msg);
+
+PRINT v_count;
+PRINT v_msg;</code></pre>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>11-7. IN OUT 매개변수 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE add_bonus_proc
+(
+    p_sal  IN OUT NUMBER,
+    p_rate IN     NUMBER
+)
+IS
+BEGIN
+    p_sal := ROUND(p_sal * (1 + p_rate));
+END;
+/</code></pre>
+                            <pre><code>VARIABLE v_sal NUMBER;
+
+BEGIN
+    :v_sal := 1000;
+END;
+/
+
+EXEC add_bonus_proc(:v_sal, 0.2);
+
+PRINT v_sal;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>v_sal 값이 1000에서 1200으로 변경됩니다.</span>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card procedure-card" id="procedure-practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Procedure Practice</span>
+                        <h2>12. SQL 예제 카드 - 실무형 프로시저</h2>
+                    </div>
+
+                    <p>
+                        이번 단원에서는 앞 단원의 익명 블록 실습을 프로시저로 확장합니다.
+                        사원 수정, 회원 검증, 2의 배수 합, 구구단 출력을 저장 프로시저로 만들어 봅니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example wide-example">
+                            <h3>12-1. 사원 정보 수정 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE update_emp_info_proc
+(
+    p_empno IN  emp_proc_copy.empno%TYPE,
+    p_ename IN  emp_proc_copy.ename%TYPE,
+    p_sal   IN  emp_proc_copy.sal%TYPE,
+    p_count OUT NUMBER,
+    p_msg   OUT VARCHAR2
+)
+IS
+    e_invalid_salary EXCEPTION;
+BEGIN
+    p_count := 0;
+    p_msg := NULL;
+
+    IF p_sal &lt; 0 THEN
+        RAISE e_invalid_salary;
+    END IF;
+
+    UPDATE emp_proc_copy
+    SET ENAME = UPPER(p_ename),
+        SAL = p_sal
+    WHERE EMPNO = p_empno;
+
+    p_count := SQL%ROWCOUNT;
+
+    IF SQL%FOUND THEN
+        p_msg := p_count || '개의 행이 수정되었습니다.';
+    ELSE
+        p_msg := p_empno || '번 사원번호가 존재하지 않습니다.';
+    END IF;
+
+EXCEPTION
+    WHEN e_invalid_salary THEN
+        p_count := 0;
+        p_msg := '연봉은 0 이상이어야 합니다.';
+    WHEN OTHERS THEN
+        p_count := -1;
+        p_msg := '오류: ' || SQLCODE || ' / ' || SQLERRM;
+END;
+/</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>12-2. 사원 수정 실행</h3>
+                            <pre><code>VARIABLE v_count NUMBER;
+VARIABLE v_msg VARCHAR2(200);
+
+EXEC update_emp_info_proc(7369, 'SMITH', 1300, :v_count, :v_msg);
+
+PRINT v_count;
+PRINT v_msg;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>12-3. 사원 수정 결과 확인</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       SAL
+FROM emp_proc_copy
+WHERE EMPNO = 7369;</code></pre>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>12-4. 회원 일치 여부 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE sp_check_member
+(
+    i_empno IN  EMP.EMPNO%TYPE,
+    i_ename IN  EMP.ENAME%TYPE,
+    flag    OUT NUMBER
+)
+IS
+    cnt NUMBER := 0;
+BEGIN
+    SELECT COUNT(*)
+    INTO cnt
+    FROM EMP
+    WHERE EMPNO = i_empno;
+
+    IF cnt = 0 THEN
+        flag := 0;
+    ELSE
+        cnt := 0;
+
+        SELECT COUNT(*)
+        INTO cnt
+        FROM EMP
+        WHERE EMPNO = i_empno
+          AND ENAME = UPPER(i_ename);
+
+        IF cnt = 1 THEN
+            flag := 2;
+        ELSE
+            flag := 1;
+        END IF;
+    END IF;
+END;
+/</code></pre>
+                            <pre><code>VARIABLE v_flag NUMBER;
+
+EXEC sp_check_member(7369, 'SMITH', :v_flag);
+PRINT v_flag;
+
+EXEC sp_check_member(7369, 'KING', :v_flag);
+PRINT v_flag;
+
+EXEC sp_check_member(9999, 'SMITH', :v_flag);
+PRINT v_flag;</code></pre>
+                            <p>0은 사원번호 없음, 1은 이름 불일치, 2는 사원번호와 이름 일치입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>12-5. 2의 배수 합 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE even_sum_proc
+(
+    p_endnum IN  NUMBER,
+    p_sum    OUT NUMBER
+)
+IS
+BEGIN
+    p_sum := 0;
+
+    FOR i IN 1..p_endnum LOOP
+        IF MOD(i, 2) = 0 THEN
+            p_sum := p_sum + i;
+        END IF;
+    END LOOP;
+END;
+/</code></pre>
+                            <pre><code>VARIABLE v_sum NUMBER;
+
+EXEC even_sum_proc(10, :v_sum);
+
+PRINT v_sum;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>12-6. 구구단 프로시저</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE gugudan_proc
+IS
+BEGIN
+    FOR i IN 1..9 LOOP
+        FOR k IN 2..9 LOOP
+            DBMS_OUTPUT.PUT(k || ' * ' || i || ' = ' || (k * i) || '   ');
+        END LOOP;
+
+        DBMS_OUTPUT.NEW_LINE;
+    END LOOP;
+END;
+/</code></pre>
+                            <pre><code>EXEC gugudan_proc;</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>13. 실습 문제 카드</h2>
+                    </div>
+
+                    <p>
+                        실습 문제의 PL/SQL 흐름은 이번 단원에서 프로시저로 확장할 수 있습니다.<br/>
+                        특히 사원번호, 이름, 연봉을 입력받아 수정하는 문제는 IN, OUT, 예외 처리, SQL%ROWCOUNT를 한 번에 연습하기 좋습니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 1. 예외 처리 네 가지 실행</h3>
+                            <p>아래 네 예외를 각각 실행하고 DBMS Output 결과를 확인합니다.</p>
+                            <pre><code>ZERO_DIVIDE
+NO_DATA_FOUND
+TOO_MANY_ROWS
+DUP_VAL_ON_INDEX</code></pre>
+                            <ul class="check-list">
+                                <li>각 예외가 언제 발생하는지 설명할 수 있는가?</li>
+                                <li>SELECT INTO는 정확히 1행이어야 한다는 규칙을 기억하는가?</li>
+                                <li>DUP_VAL_ON_INDEX는 PK 또는 UNIQUE 중복과 연결되는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 2. 사원 급여 수정 프로시저</h3>
+                            <p>사원번호와 급여를 입력받아 급여를 수정하고<br/>처리 건수와 메시지를 OUT으로 반환합니다.</p>
+                            <pre><code>VARIABLE v_count NUMBER;
+VARIABLE v_msg VARCHAR2(200);
+
+EXEC emp_sal_proc(7369, 1200, :v_count, :v_msg);
+
+PRINT v_count;
+PRINT v_msg;</code></pre>
+                            <ul class="check-list">
+                                <li>OUT 값은 바인드 변수로 받았는가?</li>
+                                <li>SQL%ROWCOUNT가 수정 행 수를 반환하는가?</li>
+                                <li>없는 사원번호일 때 메시지가 달라지는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 3. 사용자 정의 예외 추가</h3>
+                            <p>급여가 음수이면 수정하지 않고 사용자 정의 예외로 처리합니다.</p>
+                            <pre><code>IF p_sal &lt; 0 THEN
+    RAISE e_invalid_salary;
+END IF;</code></pre>
+                            <ul class="check-list">
+                                <li>Oracle 문법 오류가 아닌 업무 규칙 위반을 예외로 만들었는가?</li>
+                                <li>예외 발생 시 p_count와 p_msg 값을 설정했는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 4. 회원 검증 프로시저</h3>
+                            <p>사원번호와 이름이 일치하는지 확인하고 flag 값을 반환합니다.</p>
+                            <pre><code>0 → 사원번호 없음
+1 → 사원번호는 있으나 이름 불일치
+2 → 사원번호와 이름 일치</code></pre>
+                            <ul class="check-list">
+                                <li>COUNT(*) INTO로 존재 여부를 확인했는가?</li>
+                                <li>OUT 매개변수 flag를 사용했는가?</li>
+                                <li>로그인 검증 흐름과 연결해서 설명할 수 있는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 5. 구구단 프로시저</h3>
+                            <p>중첩 FOR문을 프로시저로 저장하고 EXEC로 실행합니다.</p>
+                            <pre><code>EXEC gugudan_proc;</code></pre>
+                            <ul class="check-list">
+                                <li>프로시저는 매번 코드를 다시 작성하지 않아도 실행되는가?</li>
+                                <li>PUT과 NEW_LINE의 차이를 이해했는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 6. 프로시저 상태와 오류 확인</h3>
+                            <p>생성된 프로시저가 VALID인지 확인하고,<br/>오류가 있으면 USER_ERRORS로 확인합니다.</p>
+                            <pre><code>SELECT OBJECT_NAME, STATUS
+FROM USER_OBJECTS
+WHERE OBJECT_TYPE = 'PROCEDURE';
+
+SHOW ERRORS PROCEDURE emp_sal_proc;</code></pre>
+                            <ul class="check-list">
+                                <li>VALID와 INVALID의 차이를 아는가?</li>
+                                <li>컴파일 오류 줄 번호를 확인할 수 있는가?</li>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>14. Java·Spring·Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        저장 프로시저는 Java / Spring 프로젝트에서 DB 내부 업무 로직을 호출할 때 연결됩니다.<br/>
+                        특히 레거시 Oracle 프로젝트에서는 핵심 업무 로직이 프로시저에 들어 있는 경우가 많습니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>14-1. MyBatis CALLABLE</h3>
+                            <pre><code>&lt;select id="callUpdateSalary" statementType="CALLABLE"&gt;
+    { call UPDATE_SALARY_PROC(
+        #{empno, mode=IN, jdbcType=NUMERIC},
+        #{salary, mode=IN, jdbcType=NUMERIC},
+        #{resultMessage, mode=OUT, jdbcType=VARCHAR}
+    ) }
+&lt;/select&gt;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-2. MyBatis Map 파라미터</h3>
+                            <pre><code>Map&lt;String, Object&gt; param = new HashMap&lt;&gt;();
+param.put("empno", 7369);
+param.put("salary", 1200);
+param.put("resultMessage", null);
+
+employeeMapper.callUpdateSalary(param);
+
+String message = (String) param.get("resultMessage");</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-3. JDBC CallableStatement</h3>
+                            <pre><code>try (CallableStatement cs =
+        connection.prepareCall("{ call UPDATE_SALARY_PROC(?, ?, ?) }")) {
+
+    cs.setInt(1, 7369);
+    cs.setInt(2, 1200);
+    cs.registerOutParameter(3, Types.VARCHAR);
+
+    cs.execute();
+
+    String message = cs.getString(3);
+}</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-4. Spring SimpleJdbcCall</h3>
+                            <pre><code>SimpleJdbcCall call = new SimpleJdbcCall(jdbcTemplate)
+        .withProcedureName("UPDATE_SALARY_PROC");
+
+Map&lt;String, Object&gt; result = call.execute(
+        Map.of(
+            "P_EMPNO", 7369,
+            "P_SAL", 1200
+        )
+);
+
+String message = (String) result.get("P_MSG");</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-5. JPA StoredProcedureQuery</h3>
+                            <pre><code>StoredProcedureQuery query =
+        entityManager.createStoredProcedureQuery("UPDATE_SALARY_PROC");
+
+query.registerStoredProcedureParameter("P_EMPNO", Long.class, ParameterMode.IN);
+query.registerStoredProcedureParameter("P_SAL", Integer.class, ParameterMode.IN);
+query.registerStoredProcedureParameter("P_MSG", String.class, ParameterMode.OUT);
+
+query.setParameter("P_EMPNO", 7369L);
+query.setParameter("P_SAL", 1200);
+
+query.execute();
+
+String message = (String) query.getOutputParameterValue("P_MSG");</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-6. 트랜잭션 주의</h3>
+                            <pre><code>@Transactional
+public void updateSalary(Long empno, int salary) {
+    salaryMapper.callUpdateSalary(empno, salary);
+}</code></pre>
+                            <p>
+                                Spring에서 @Transactional로 트랜잭션을 관리하는 경우,<br/>
+                                프로시저 내부 COMMIT은 Java 쪽 롤백 제어와 충돌할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>14-7. PL/SQL이 적합한 경우</h3>
+                            <ul>
+                                <li>DB 내부 대량 데이터 처리</li>
+                                <li>월말 정산, 통계 적재, 배치 작업</li>
+                                <li>여러 DML을 하나의 DB 작업으로 묶는 경우</li>
+                                <li>테이블 직접 권한 대신 프로시저 실행 권한만 주는 경우</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>14-8. Java/Spring이 적합한 경우</h3>
+                            <ul>
+                                <li>외부 API 호출</li>
+                                <li>이메일, 문자, 알림, 파일 업로드</li>
+                                <li>인증, 권한, 세션, 토큰 처리</li>
+                                <li>테스트 코드로 검증해야 하는 복잡한 도메인 로직</li>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card permission-card" id="permission">
+                    <div class="section-title-area">
+                        <span class="section-badge">Permission</span>
+                        <h2>15. 실행 권한 카드</h2>
+                    </div>
+
+                    <p>
+                        다른 계정이 내 프로시저를 실행하려면 EXECUTE 권한이 필요합니다.
+                        테이블 직접 권한을 주지 않고 프로시저 실행 권한만 주면 보안성을 높일 수 있습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>15-1. 실행 권한 부여</h3>
+                            <pre><code>GRANT EXECUTE ON emp_sal_proc TO HR;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>15-2. 다른 계정에서 실행</h3>
+                            <pre><code>EXEC SCOTT.emp_sal_proc(7369, 1200, :v_count, :v_msg);</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>15-3. 실행 권한 회수</h3>
+                            <pre><code>REVOKE EXECUTE ON emp_sal_proc FROM HR;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>15-4. 권한 설계 포인트</h3>
+                            <pre><code>테이블 직접 UPDATE 권한
+→ 위험할 수 있음
+
+프로시저 EXECUTE 권한
+→ 정해진 업무 로직만 실행 가능</code></pre>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card error-card" id="errors">
+                    <div class="section-title-area">
+                        <span class="section-badge">Errors</span>
+                        <h2>16. 자주 만나는 오류 카드</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example danger-example">
+                            <h3>PLS-00103</h3>
+                            <pre><code>CREATE OR REPLACE PROCEDURE hello_proc
+IS;
+BEGIN
+    NULL;
+END;
+/</code></pre>
+                            <p>IS 뒤에 세미콜론을 붙이는 등 문법 위치가 잘못되었을 때 자주 발생합니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-01403</h3>
+                            <pre><code>SELECT ENAME
+INTO v_ename
+FROM EMP
+WHERE EMPNO = -1;</code></pre>
+                            <p>SELECT INTO 결과가 0행이면 NO_DATA_FOUND가 발생합니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-01422</h3>
+                            <pre><code>SELECT ENAME
+INTO v_ename
+FROM EMP
+WHERE DEPTNO = 20;</code></pre>
+                            <p>SELECT INTO 결과가 여러 행이면 TOO_MANY_ROWS가 발생합니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>ORA-00001</h3>
+                            <pre><code>INSERT INTO dept_proc_copy(DEPTNO, DNAME, LOC)
+VALUES(10, '중복부서', 'SEOUL');</code></pre>
+                            <p>PK 또는 UNIQUE 값이 중복될 때 발생합니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>PLS-00306</h3>
+                            <pre><code>EXEC emp_sal_proc(7369, 1200);</code></pre>
+                            <p>프로시저가 요구하는 매개변수 개수나 타입과 호출 인수가 맞지 않을 때 발생합니다.</p>
+                        </article>
+
+                        <article class="sql-example danger-example">
+                            <h3>INVALID Procedure</h3>
+                            <pre><code>SELECT OBJECT_NAME, STATUS
+FROM USER_OBJECTS
+WHERE OBJECT_NAME = 'EMP_SAL_PROC';
+
+SHOW ERRORS PROCEDURE emp_sal_proc;</code></pre>
+                            <p>컴파일 실패 상태인 프로시저는 USER_ERRORS 또는 SHOW ERRORS로 원인을 확인합니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>17. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. 예외 처리를 오류가 안 나게 하는 문법으로 생각함</strong>
+                            <span>예외 처리는 오류를 없애는 문법이 아니라, 오류가 발생했을 때 처리 흐름을 정하는 문법입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. SELECT INTO가 여러 행을 처리할 수 있다고 생각함</strong>
+                            <span>SELECT INTO는 정확히 1행만 처리합니다. 여러 행은 커서를 사용해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. WHEN OTHERS THEN NULL로 오류를 숨김</strong>
+                            <span>오류를 숨기면 장애 원인을 찾기 어렵습니다. SQLCODE와 SQLERRM을 기록해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. PRAGMA EXCEPTION_INIT 오류 번호를 양수로 씀</strong>
+                            <span>ORA-01400은 -1400처럼 음수로 연결해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. OUT 매개변수에 리터럴을 전달함</strong>
+                            <span>OUT 값은 바인드 변수로 받아야 합니다. :v_count, :v_msg처럼 전달합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. IN OUT 매개변수에 숫자 리터럴을 전달함</strong>
+                            <span>IN OUT은 변경된 값을 돌려받아야 하므로 반드시 변수를 전달해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. 프로시저 매개변수 자료형에 크기를 씀</strong>
+                            <span>p_msg OUT VARCHAR2(200)가 아니라 p_msg OUT VARCHAR2처럼 씁니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 8. 프로시저에 함수처럼 RETURN 값을 쓰려고 함</strong>
+                            <span>프로시저는 OUT 매개변수로 값을 돌려주고, 함수는 RETURN 값으로 돌려줍니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 9. 프로시저 생성 후 마지막 /를 빼먹음</strong>
+                            <span>END; 다음 새 줄의 /가 있어야 SQL Developer가 프로시저를 컴파일합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 10. 프로시저가 INVALID인데 실행함</strong>
+                            <span>USER_OBJECTS의 STATUS와 SHOW ERRORS로 컴파일 오류를 먼저 확인합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 11. Spring에서 호출할 프로시저에 무조건 COMMIT을 넣음</strong>
+                            <span>@Transactional과 충돌할 수 있으므로 트랜잭션 책임을 명확히 정해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 12. DBMS_OUTPUT을 API 응답으로 착각함</strong>
+                            <span>Spring API 응답은 OUT 매개변수, 결과 셋, 예외, 로그 테이블 등을 사용해야 합니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>18. 면접 질문 카드</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. PL/SQL 예외 처리란 무엇인가요?</h3>
+                            <p>
+                                PL/SQL 실행 중 발생하는 오류를 EXCEPTION 영역에서 처리하는 구조입니다.<br/>
+                                오류가 발생하면 실행 흐름이 EXCEPTION 영역으로 이동하고,
+                                해당 예외명과 일치하는 WHEN 절이 실행됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. 예외의 종류를 설명해보세요.</h3>
+                            <p>
+                                PREDEFINED EXCEPTION은 Oracle이 미리 이름을 붙여둔 예외입니다.<br/>
+                                NON-PREDEFINED EXCEPTION은 오류 번호는 있지만 이름이 없는 오류를
+                                PRAGMA EXCEPTION_INIT으로 연결한 예외입니다.<br/>
+                                USER DEFINE EXCEPTION은 사용자가 직접 선언하고 RAISE로 발생시키는 예외입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. NO_DATA_FOUND와 TOO_MANY_ROWS는 언제 발생하나요?</h3>
+                            <p>
+                                둘 다 SELECT INTO와 관련됩니다.
+                                NO_DATA_FOUND는 SELECT INTO 결과가 0행일 때 발생하고,
+                                TOO_MANY_ROWS는 결과가 2행 이상일 때 발생합니다.<br/>
+                                SELECT INTO는 정확히 한 행만 처리할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. WHEN OTHERS는 무엇인가요?</h3>
+                            <p>
+                                명시적으로 처리하지 않은 모든 예외를 잡는 구문입니다.<br/>
+                                실무에서는 오류를 숨기지 말고 SQLCODE, SQLERRM을 로그로 남기거나
+                                필요하면 RAISE로 다시 예외를 던져야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. SQLCODE와 SQLERRM은 무엇인가요?</h3>
+                            <p>
+                                SQLCODE는 현재 발생한 Oracle 오류 코드를 숫자로 반환하고,
+                                SQLERRM은 해당 오류 메시지를 반환합니다.
+                                예외 처리에서 원인 파악과 로그 기록에 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. PRAGMA EXCEPTION_INIT은 언제 사용하나요?</h3>
+                            <p>
+                                Oracle 오류 번호는 있지만 미리 정의된 예외명이 없는 오류를
+                                사용자가 선언한 예외명과 연결할 때 사용합니다.
+                                예를 들어 ORA-01400은 -1400으로 연결합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. 사용자 정의 예외는 언제 사용하나요?</h3>
+                            <p>
+                                Oracle 문법 오류는 아니지만 업무 규칙을 위반했을 때 사용합니다.<br/>
+                                예를 들어 급여가 음수이거나, 재고가 부족하거나,
+                                이미 취소된 주문을 다시 취소하려는 경우 직접 예외를 발생시킬 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. RAISE와 RAISE_APPLICATION_ERROR의 차이는 무엇인가요?</h3>
+                            <p>
+                                RAISE는 PL/SQL 블록 내부에서 선언한 예외를 발생시킵니다.
+                                RAISE_APPLICATION_ERROR는 사용자 정의 오류 번호와 메시지를
+                                Oracle 오류처럼 호출자에게 전달합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. 저장 프로시저란 무엇인가요?</h3>
+                            <p>
+                                저장 프로시저는 이름을 가진 PL/SQL 블록을 데이터베이스에 저장한 객체입니다.<br/>
+                                자주 사용하는 업무 로직을 DB에 저장해두고 EXECUTE 또는 애플리케이션에서 반복 호출할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. 프로시저와 함수의 차이는 무엇인가요?</h3>
+                            <p>
+                                프로시저는 작업 수행 중심이고, 함수는 값 반환 중심입니다.
+                                함수는 RETURN 값이 필수이며 SELECT문 안에서 사용할 수 있습니다.<br/>
+                                프로시저는 보통 EXECUTE로 실행하고, 결과가 필요하면 OUT 매개변수를 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q11. IN, OUT, IN OUT 매개변수 차이는 무엇인가요?</h3>
+                            <p>
+                                IN은 호출자가 프로시저로 값을 전달하는 입력용 매개변수입니다.<br/>
+                                OUT은 프로시저가 호출자에게 값을 돌려주는 출력용 매개변수입니다.<br/>
+                                IN OUT은 값을 입력받고, 프로시저 내부에서 변경한 값을 다시 호출자에게 돌려줍니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q12. OUT 매개변수는 어떻게 실행하나요?</h3>
+                            <p>
+                                OUT 값을 받을 바인드 변수를 먼저 선언하고,
+                                프로시저 호출 시 콜론을 붙여 전달한 뒤 PRINT로 확인합니다.
+                            </p>
+                            <pre><code>VARIABLE v_count NUMBER;
+
+EXEC emp_sal_proc(7369, 1200, :v_count);
+
+PRINT v_count;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>Q13. 프로시저 컴파일 오류는 어떻게 확인하나요?</h3>
+                            <p>
+                                SHOW ERRORS PROCEDURE 프로시저명 또는 USER_ERRORS를 조회해서 확인합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q14. Spring에서 프로시저를 호출할 때 주의할 점은 무엇인가요?</h3>
+                            <p>
+                                Spring에서는 보통 @Transactional이 트랜잭션을 관리합니다.<br/>
+                                프로시저 내부에서 무조건 COMMIT하거나 ROLLBACK하면 Java 쪽 트랜잭션 제어와 충돌할 수 있습니다.<br/>
+                                또한 DBMS_OUTPUT은 API 응답용이 아니므로 OUT 파라미터나 예외를 통해 결과를 전달하는 것이 좋습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q15. 실무에서 프로시저는 언제 쓰나요?</h3>
+                            <p>
+                                대량 데이터 처리, 배치, 정산, 통계 적재, DB 내부에서 여러 DML을 묶어 처리해야 하는 경우,<br/>
+                                레거시 시스템 연동, 테이블 직접 권한 대신 프로시저 실행 권한만 부여해야 하는 경우에 사용합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>19. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>예외 처리 핵심</h3>
+                        <pre><code>NO_DATA_FOUND
+→ SELECT INTO 결과 0행
+
+TOO_MANY_ROWS
+→ SELECT INTO 결과 2행 이상
+
+ZERO_DIVIDE
+→ 0으로 나누기
+
+DUP_VAL_ON_INDEX
+→ PK 또는 UNIQUE 중복
+
+WHEN OTHERS
+→ 나머지 모든 예외
+
+SQLCODE
+→ 오류 코드
+
+SQLERRM
+→ 오류 메시지
+
+PRAGMA EXCEPTION_INIT
+→ Oracle 오류 번호와 사용자 예외명 연결
+
+RAISE
+→ 사용자 정의 예외 발생
+
+RAISE_APPLICATION_ERROR
+→ 호출자에게 사용자 정의 오류 번호와 메시지 전달</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>프로시저 핵심</h3>
+                        <pre><code>CREATE OR REPLACE PROCEDURE
+→ 프로시저 생성 또는 교체
+
+IN
+→ 입력용 매개변수
+
+OUT
+→ 출력용 매개변수
+
+IN OUT
+→ 입력과 출력 모두 가능한 매개변수
+
+EXECUTE / EXEC
+→ 프로시저 실행
+
+VARIABLE / PRINT
+→ OUT 값을 받을 바인드 변수 선언과 출력
+
+USER_OBJECTS
+→ 프로시저 상태 확인
+
+USER_SOURCE
+→ 프로시저 소스 확인
+
+USER_ERRORS / SHOW ERRORS
+→ 컴파일 오류 확인
+
+DROP PROCEDURE
+→ 프로시저 삭제</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원 실습 순서</h3>
+                        <pre><code>1. SET SERVEROUTPUT ON
+2. emp_proc_copy, dept_proc_copy 복사 테이블 생성
+3. ZERO_DIVIDE 예외 실습
+4. NO_DATA_FOUND 예외 실습
+5. TOO_MANY_ROWS 예외 실습
+6. DUP_VAL_ON_INDEX 예외 실습
+7. SQLCODE, SQLERRM 출력 실습
+8. PRAGMA EXCEPTION_INIT 실습
+9. 사용자 정의 예외와 RAISE 실습
+10. SAVEPOINT와 ROLLBACK 실습
+11. hello_proc 생성과 실행
+12. IN 매개변수 프로시저 생성
+13. OUT 매개변수 프로시저 생성
+14. IN OUT 매개변수 프로시저 생성
+15. 사원 정보 수정 프로시저 작성
+16. sp_check_member 프로시저 작성
+17. USER_OBJECTS, USER_SOURCE, USER_ERRORS 확인
+18. Java / Spring 프로시저 호출 구조 복습</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        예외 처리는 실패를 제어하는 문법이고,
+                        프로시저는 성공과 실패를 포함한 업무 흐름을 DB에 저장해 재사용하는 객체입니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>예외 처리 기본형</h3>
+                    <pre><code>BEGIN
+    실행문;
+EXCEPTION
+    WHEN 예외명 THEN
+        처리문;
+    WHEN OTHERS THEN
+        처리문;
+END;
+/</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>예외 종류</h3>
+                    <pre><code>PREDEFINED
+→ Oracle이 미리 이름을 붙인 예외
+
+NON-PREDEFINED
+→ 오류 번호를 예외명과 연결
+
+USER DEFINE
+→ 사용자가 직접 선언하고 RAISE</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>자주 쓰는 예외</h3>
+                    <pre><code>NO_DATA_FOUND
+TOO_MANY_ROWS
+ZERO_DIVIDE
+DUP_VAL_ON_INDEX
+VALUE_ERROR
+INVALID_NUMBER</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>프로시저 기본형</h3>
+                    <pre><code>CREATE OR REPLACE PROCEDURE 프로시저명
+(
+    p_in  IN  자료형,
+    p_out OUT 자료형
+)
+IS
+BEGIN
+    실행문;
+END;
+/</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>OUT 실행 공식</h3>
+                    <pre><code>VARIABLE v_msg VARCHAR2(200);
+
+EXEC 프로시저명(입력값, :v_msg);
+
+PRINT v_msg;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>상태 확인</h3>
+                    <pre><code>SELECT OBJECT_NAME, STATUS
+FROM USER_OBJECTS
+WHERE OBJECT_TYPE = 'PROCEDURE';
+
+SHOW ERRORS PROCEDURE 프로시저명;</code></pre>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의</h3>
+                    <p>
+                        WHEN OTHERS THEN NULL은 오류를 숨기므로 위험합니다.
+                        SQLCODE와 SQLERRM을 남기거나 필요한 경우 RAISE로 다시 예외를 던지세요.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>Spring 연결</h3>
+                    <p>
+                        MyBatis는 statementType="CALLABLE", JDBC는 CallableStatement,
+                        Spring JDBC는 SimpleJdbcCall, JPA는 StoredProcedureQuery로 프로시저를 호출할 수 있습니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>

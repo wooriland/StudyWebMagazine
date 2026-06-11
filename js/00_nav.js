@@ -18,7 +18,8 @@
                 { label: "02. CSS3", path: "HTML5&CSS3/02_css.html" },
                 { label: "03. Media", path: "HTML5&CSS3/03_media.html" },
                 { label: "04. Contact", path: "HTML5&CSS3/04_contact.html" },
-                { label: "05. Regular Expression", path: "HTML5&CSS3/05_regular_expression.html" }
+                { label: "05. Regular Expression", path: "HTML5&CSS3/05_regular_expression.html" },
+                { label: "06. Flexbox", path: "HTML5&CSS3/06_flexbox.html" }
             ]
         },
         {

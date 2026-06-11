@@ -17,43 +17,1393 @@
         <div class="page-content">
             <header class="page-header">
                 <p class="chapter-label">Oracle SQL Developer - Chapter 25</p>
-                <h1>분석 함수</h1>
+                <h1>분석 함수 Analytic Function</h1>
+
                 <p class="chapter-description">
-                    순위, 집계, 윈도우 기준으로 분석 함수의 기본 구조를 정리합니다. 이후 단계에서 실제 수업 교안, 예제, 실습 문제를 단원별로 채워 넣을 예정입니다.
+                    분석 함수는 조회 결과의 행을 줄이지 않고,<br/>
+                    각 행에 순위, 그룹별 통계, 이전 행, 다음 행, 페이징 번호 같은 분석 결과를 붙이는 SQL 문법입니다.<br/>
+                    이번 단원에서는 OVER, PARTITION BY, ORDER BY, ROW_NUMBER, RANK, DENSE_RANK,<br/>
+                    SUM·AVG OVER, LAG, LEAD를 실습하고 Java·Spring·Oracle 프로젝트의 목록 화면과 연결합니다.
                 </p>
+
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            GROUP BY와 분석 함수의 차이를 이해하고<br/>
+                            행을 유지한 채 통계와 순위를 붙인다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            EMP 기준 평균·순위 실습 →<br/>
+                            HR.EMPLOYEES 페이징 → 게시판 이전글/다음글
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>프로젝트 연결</strong>
+                        <span>
+                            게시판 페이징, 상품 Top-N,<br/>
+                            부서별 순위, 관리자 리포트 SQL과 연결한다.
+                        </span>
+                    </div>
+                </div>
             </header>
 
             <main>
-                <section class="section-card concept-card">
-                    <h2>1. 핵심 개념</h2>
-                    <p>이 영역에는 step1에서 정리한 교안 기반 핵심 개념을 작성합니다.</p>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 분석 함수는 왜 배우는가?</h2>
+                    </div>
+
+                    <p>
+                        일반 그룹 함수와 GROUP BY는 데이터를 요약해서 행 수를 줄입니다.
+                        예를 들어 부서별 평균 급여를 구하면 부서별 한 줄만 남습니다.<br/>
+                        하지만 실무에서는 직원 목록을 그대로 보여주면서 각 직원의 부서 평균 급여,
+                        부서 내 순위, 전체 순번, 이전 데이터와 다음 데이터까지 함께 보여줘야 할 때가 많습니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>행 유지</strong>
+                            <span>직원 목록, 상품 목록, 게시글 목록의 행을<br/>그대로 유지한다.</span>
+                        </div>
+                        <div>
+                            <strong>분석값 추가</strong>
+                            <span>평균, 합계, 순위, 순번, 이전글, 다음글을 각 행에 붙인다.</span>
+                        </div>
+                        <div>
+                            <strong>실무 화면 연결</strong>
+                            <span>페이징, Top-N, 관리자 리포트,<br/>상세 페이지 네비게이션에 사용한다.</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>한 줄 정리</h3>
+                        <p>
+                            <strong>분석 함수</strong>는 GROUP BY처럼 집계하거나 순위를 계산하지만,
+                            GROUP BY와 달리 원본 행을 줄이지 않고 각 행에 분석 결과를 붙입니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card visual-card">
-                    <h2>2. 그림처럼 이해하기</h2>
-                    <p>이 영역에는 데이터베이스 구조, SQL 실행 흐름, 테이블 관계 등을 시각적으로 설명합니다.</p>
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>2. 단원 개념 카드</h2>
+                    </div>
+
+                    <h3>2-1. GROUP BY와 분석 함수의 핵심 차이</h3>
+                    <p>
+                        GROUP BY는 그룹별로 결과를 요약합니다.
+                        분석 함수는 행을 유지하면서 그룹별 계산 결과를 붙입니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>GROUP BY</h3>
+                            <pre><code>SELECT DEPTNO,
+       ROUND(AVG(SAL), 2) AS DEPT_AVG_SAL
+FROM EMP
+GROUP BY DEPTNO
+ORDER BY DEPTNO;</code></pre>
+                            <p>
+                                부서별 평균 급여를 구하지만 결과는 부서별 한 줄입니다.<br/>
+                                직원 이름, 사번, 개인 급여는 사라집니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>분석 함수</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       DEPTNO,
+       SAL,
+       ROUND(AVG(SAL) OVER (PARTITION BY DEPTNO), 2) AS DEPT_AVG_SAL
+FROM EMP
+ORDER BY DEPTNO, EMPNO;</code></pre>
+                            <p>
+                                직원 행은 그대로 유지되고,<br/>
+                                각 직원 행마다 자신이 속한 부서의 평균 급여가 붙습니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>2-2. 분석 함수 기본 문법</h3>
+
+                    <div class="syntax-hero">
+                        <span>기본형</span>
+                        <pre><code>분석함수([인자]) OVER (
+    PARTITION BY 그룹기준컬럼
+    ORDER BY 정렬기준컬럼
+)</code></pre>
+                    </div>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>분석함수</strong>
+                            <span>What</span>
+                            <p>무엇을 계산할지 정합니다.<br/>AVG, SUM, ROW_NUMBER, RANK, LAG, LEAD 등이 들어갑니다.</p>
+                        </article>
+                        <article>
+                            <strong>OVER</strong>
+                            <span>Analytic Mode</span>
+                            <p>일반 집계가 아니라 행을 유지하는 분석 함수 방식으로 계산하겠다는 표시입니다.</p>
+                        </article>
+                        <article>
+                            <strong>PARTITION BY</strong>
+                            <span>Group Range</span>
+                            <p>부서별, 직무별, 카테고리별처럼 분석 범위를 나누는 기준입니다.</p>
+                        </article>
+                        <article>
+                            <strong>ORDER BY</strong>
+                            <span>Rank Order</span>
+                            <p>순위, 순번, 누적합, 이전/다음 행을 계산할 때 기준이 되는 정렬입니다.</p>
+                        </article>
+                    </div>
+
+                    <h3>2-3. 분석 함수 종류</h3>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>분류</th>
+                                    <th>대표 함수</th>
+                                    <th>의미</th>
+                                    <th>실무 연결</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>집계 분석 함수</td>
+                                    <td>AVG, SUM, MIN, MAX, COUNT</td>
+                                    <td>그룹별 평균, 합계, 최소, 최대, 건수를 각 행에 표시</td>
+                                    <td>부서별 평균, 카테고리별 매출 합계, 회원 등급별 인원수</td>
+                                </tr>
+                                <tr>
+                                    <td>순위 분석 함수</td>
+                                    <td>ROW_NUMBER, RANK, DENSE_RANK</td>
+                                    <td>정렬 기준에 따라 순번 또는 순위를 부여</td>
+                                    <td>페이징, 급여 순위, 상품 판매 순위, Top-N</td>
+                                </tr>
+                                <tr>
+                                    <td>순서 분석 함수</td>
+                                    <td>LAG, LEAD</td>
+                                    <td>현재 행 기준 이전 행 또는 다음 행의 값을 가져옴</td>
+                                    <td>게시판 이전글·다음글, 전월 대비 매출 비교</td>
+                                </tr>
+                                <tr>
+                                    <td>누적 분석</td>
+                                    <td>SUM OVER ORDER BY</td>
+                                    <td>정렬 순서에 따라 현재 행까지 누적 계산</td>
+                                    <td>월별 누적 매출, 부서별 누적 급여, 누적 포인트</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
 
-                <section class="section-card sql-card">
-                    <h2>3. SQL 예제</h2>
-                    <pre><code>-- SQL 예제는 이후 step3에서 추가합니다.</code></pre>
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>3. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>3-1. GROUP BY는 행을 줄인다</h3>
+
+                    <div class="flow-steps group-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>EMP 14행</strong>
+                            <p>직원 데이터 전체를 읽습니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>DEPTNO 그룹화</strong>
+                            <p>10, 20, 30번 부서로 묶습니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>AVG(SAL)</strong>
+                            <p>부서별 평균 급여를 계산합니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>부서별 1행</strong>
+                            <p>결과는 부서 수만큼만 나옵니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>3-2. 분석 함수는 행을 유지한다</h3>
+
+                    <div class="flow-steps analytic-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>EMP 14행</strong>
+                            <p>직원 데이터 전체를 읽습니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>PARTITION</strong>
+                            <p>DEPTNO별 내부 그룹을 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>AVG OVER</strong>
+                            <p>각 부서 안에서 평균을 계산합니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>각 행에 붙임</strong>
+                            <p>직원 행은 유지되고 평균값만 추가됩니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>3-3. PARTITION BY 그림</h3>
+
+                    <div class="partition-visual">
+                        <div class="partition-box">
+                            <h3>DEPTNO = 10</h3>
+                            <span>CLARK</span>
+                            <span>KING</span>
+                            <span>MILLER</span>
+                            <p>10번 부서 안에서 평균·순위 계산</p>
+                        </div>
+                        <div class="partition-box">
+                            <h3>DEPTNO = 20</h3>
+                            <span>SMITH</span>
+                            <span>JONES</span>
+                            <span>SCOTT</span>
+                            <span>FORD</span>
+                            <p>20번 부서 안에서 다시 1등부터 시작</p>
+                        </div>
+                        <div class="partition-box">
+                            <h3>DEPTNO = 30</h3>
+                            <span>ALLEN</span>
+                            <span>WARD</span>
+                            <span>BLAKE</span>
+                            <span>MARTIN</span>
+                            <p>30번 부서 안에서 별도 분석</p>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>PARTITION BY 핵심</h3>
+                        <p>
+                            <code>PARTITION BY DEPTNO</code>는 전체 직원을 부서별 작은 묶음으로 나누고,
+                            각 묶음 안에서 평균, 합계, 순위 등을 계산하게 만듭니다.
+                        </p>
+                    </div>
                 </section>
 
-                <section class="section-card practice-card">
-                    <h2>4. 실습 문제 연결</h2>
-                    <p>이 영역에는 온라인 실습 문제 및 해답 교안과 연결되는 문제 번호를 정리합니다.</p>
+                <section class="section-card execution-card" id="execution-order">
+                    <div class="section-title-area">
+                        <span class="section-badge">Execution Order</span>
+                        <h2>4. 실행 순서 그림 카드</h2>
+                    </div>
+
+                    <p>
+                        분석 함수 결과를 WHERE절에서 바로 사용할 수 없는 이유는 SELECT문의 실행 순서와 관련이 있습니다.<br/>
+                        WHERE는 SELECT보다 먼저 실행되고, 분석 함수 별칭은 SELECT 단계에서 만들어집니다.
+                    </p>
+
+                    <div class="execution-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>FROM</strong>
+                            <p>테이블과 조인 결과를<br/>만든다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>WHERE</strong>
+                            <p>분석 전에 대상 행을<br/>먼저 거른다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>GROUP BY</strong>
+                            <p>필요하면 그룹을 만든다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>HAVING</strong>
+                            <p>그룹 조건을 거른다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>SELECT</strong>
+                            <p>분석 함수와 별칭이<br/>계산된다.</p>
+                        </div>
+                        <div>
+                            <span>6</span>
+                            <strong>ORDER BY</strong>
+                            <p>최종 결과를 정렬한다.</p>
+                        </div>
+                    </div>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>잘못된 예</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       ROW_NUMBER() OVER (ORDER BY SAL DESC) AS RN
+FROM EMP
+WHERE RN &lt;= 5;</code></pre>
+                            <p>
+                                RN은 SELECT 단계에서 만들어지는 별칭입니다.<br/>
+                                WHERE 단계에서는 아직 RN을 알 수 없습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>올바른 예</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP E
+)
+WHERE RN &lt;= 5
+ORDER BY RN;</code></pre>
+                            <p>
+                                안쪽 쿼리에서 RN을 만들고,
+                                바깥 쿼리에서 RN 조건을 걸어야 합니다.
+                            </p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card mistake-card">
-                    <h2>5. 자주 하는 실수</h2>
-                    <p>이 영역에는 SQL 작성 중 자주 발생하는 오류와 주의점을 정리합니다.</p>
+                <section class="section-card syntax-card" id="syntax">
+                    <div class="section-title-area">
+                        <span class="section-badge">Syntax</span>
+                        <h2>5. 기본 문법 카드</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>5-1. 전체 평균을 각 행에 표시</h3>
+                            <pre><code>AVG(SAL) OVER ()</code></pre>
+                            <p>전체 결과 집합을 하나의 분석 범위로 보고 평균을 각 행에 표시합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-2. 부서별 평균을 각 행에 표시</h3>
+                            <pre><code>AVG(SAL) OVER (PARTITION BY DEPTNO)</code></pre>
+                            <p>DEPTNO별로 나누어 평균을 계산하고 각 직원 행에 붙입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-3. 전체 순번</h3>
+                            <pre><code>ROW_NUMBER() OVER (ORDER BY SAL DESC)</code></pre>
+                            <p>급여 높은 순서대로 중복 없는 1, 2, 3, 4 순번을 붙입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-4. 전체 순위</h3>
+                            <pre><code>RANK() OVER (ORDER BY SAL DESC)</code></pre>
+                            <p>동점자는 같은 순위이고, 다음 순위는 건너뜁니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-5. 연속 순위</h3>
+                            <pre><code>DENSE_RANK() OVER (ORDER BY SAL DESC)</code></pre>
+                            <p>동점자는 같은 순위이지만, 다음 순위는 건너뛰지 않습니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-6. 부서별 순위</h3>
+                            <pre><code>RANK() OVER (
+    PARTITION BY DEPTNO
+    ORDER BY SAL DESC
+)</code></pre>
+                            <p>부서가 바뀔 때마다 순위가 다시 1부터 시작합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-7. 이전 행</h3>
+                            <pre><code>LAG(ENAME, 1, '이전 없음') OVER (ORDER BY EMPNO)</code></pre>
+                            <p>현재 행 기준 바로 이전 행의 ENAME을 가져옵니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>5-8. 다음 행</h3>
+                            <pre><code>LEAD(ENAME, 1, '다음 없음') OVER (ORDER BY EMPNO)</code></pre>
+                            <p>현재 행 기준 바로 다음 행의 ENAME을 가져옵니다.</p>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="section-card interview-card">
-                    <h2>6. 면접 포인트</h2>
-                    <p>이 영역에는 해당 단원에서 면접에 나올 수 있는 질문과 답변을 정리합니다.</p>
+                <section class="section-card setup-card" id="setup">
+                    <div class="section-title-area">
+                        <span class="section-badge">Setup</span>
+                        <h2>6. SQL Developer 실습 준비</h2>
+                    </div>
+
+                    <p>
+                        이번 단원은 SCOTT.EMP와 HR.EMPLOYEES를 중심으로 실습합니다.
+                        먼저 계정과 테이블을 확인한 뒤 분석 함수 예제를 순서대로 실행합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>6-1. 현재 계정 확인</h3>
+                            <pre><code>SHOW USER;
+
+SELECT USER
+FROM DUAL;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-2. 테이블 목록 확인</h3>
+                            <pre><code>SELECT table_name
+FROM user_tables
+ORDER BY table_name;</code></pre>
+                            <p>SCOTT 계정이면 EMP, DEPT가 보이는지 확인합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-3. EMP 원본 데이터 확인</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       JOB,
+       MGR,
+       HIREDATE,
+       SAL,
+       COMM,
+       DEPTNO
+FROM EMP
+ORDER BY EMPNO;</code></pre>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>6-4. 날짜 표시 형식 설정</h3>
+                            <pre><code>ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS';</code></pre>
+                            <p>실습 결과에서 HIREDATE를 보기 좋게 표시합니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card sql-card" id="sql-basic">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>7. SQL 예제 카드 - GROUP BY와 OVER 비교</h2>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>7-1. GROUP BY로 부서 평균</h3>
+                            <pre><code>SELECT DEPTNO,
+       ROUND(AVG(SAL), 2) AS DEPT_AVG_SAL
+FROM EMP
+GROUP BY DEPTNO
+ORDER BY DEPTNO;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>부서별 한 줄만 출력됩니다. 직원 개별 행은 사라집니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-2. 분석 함수로 부서 평균</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       DEPTNO,
+       SAL,
+       ROUND(AVG(SAL) OVER (PARTITION BY DEPTNO), 2) AS DEPT_AVG_SAL
+FROM EMP
+ORDER BY DEPTNO, EMPNO;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>직원 행은 유지되고, 같은 부서끼리 같은 평균값이 표시됩니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-3. 전체 평균과 부서 평균 동시 표시</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       DEPTNO,
+       SAL,
+       ROUND(AVG(SAL) OVER (), 2) AS ALL_AVG_SAL,
+       ROUND(AVG(SAL) OVER (PARTITION BY DEPTNO), 2) AS DEPT_AVG_SAL
+FROM EMP
+ORDER BY DEPTNO, SAL DESC;</code></pre>
+                            <p>ALL_AVG_SAL은 모든 행에서 같고, DEPT_AVG_SAL은 같은 부서끼리 같습니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>7-4. 부서 평균 이상/미만 비교</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       DEPTNO,
+       SAL,
+       ROUND(AVG(SAL) OVER (PARTITION BY DEPTNO), 2) AS DEPT_AVG_SAL,
+       CASE
+           WHEN SAL &gt;= AVG(SAL) OVER (PARTITION BY DEPTNO)
+           THEN '부서 평균 이상'
+           ELSE '부서 평균 미만'
+       END AS COMPARE_RESULT
+FROM EMP
+ORDER BY DEPTNO, SAL DESC;</code></pre>
+                            <p>분석 함수 결과를 CASE와 결합하면 화면용 판단 컬럼을 만들 수 있습니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card sql-card" id="sql-aggregate">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>8. SQL 예제 카드 - 집계 함수를 분석 함수처럼 사용</h2>
+                    </div>
+
+                    <p>
+                        AVG, SUM, MIN, MAX, COUNT 같은 그룹 함수도 OVER와 함께 사용하면
+                        행을 유지한 채 그룹별 집계값을 표시할 수 있습니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example wide-example">
+                            <h3>8-1. 부서별 최소·최대·합계·평균을 각 행에 표시</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       MIN(SAL) OVER (PARTITION BY DEPTNO) AS DEPT_MIN_SAL,
+       MAX(SAL) OVER (PARTITION BY DEPTNO) AS DEPT_MAX_SAL,
+       SUM(SAL) OVER (PARTITION BY DEPTNO) AS DEPT_SUM_SAL,
+       ROUND(AVG(SAL) OVER (PARTITION BY DEPTNO), 2) AS DEPT_AVG_SAL
+FROM EMP
+ORDER BY DEPTNO, SAL DESC;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>같은 DEPTNO 직원들은 DEPT_MIN_SAL, DEPT_MAX_SAL, DEPT_SUM_SAL, DEPT_AVG_SAL이 같습니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-2. 직무별 총 급여를 각 행에 표시</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       JOB,
+       SAL,
+       SUM(SAL) OVER (PARTITION BY JOB) AS JOB_TOTAL_SAL
+FROM EMP
+ORDER BY JOB, SAL DESC;</code></pre>
+                            <p>JOB이 같은 직원들은 JOB_TOTAL_SAL 값이 같습니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-3. GROUP BY 방식과 비교</h3>
+                            <pre><code>SELECT JOB,
+       SUM(SAL) AS JOB_TOTAL_SAL
+FROM EMP
+GROUP BY JOB
+ORDER BY JOB;</code></pre>
+                            <p>이 방식은 직무별 한 줄만 나오므로 직원 이름은 같이 볼 수 없습니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>8-4. 부서별 직원 수 표시</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       DEPTNO,
+       COUNT(*) OVER (PARTITION BY DEPTNO) AS DEPT_EMP_COUNT
+FROM EMP
+ORDER BY DEPTNO, EMPNO;</code></pre>
+                            <p>각 직원 행마다 해당 부서의 직원 수가 표시됩니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card rank-card" id="sql-rank">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>9. SQL 예제 카드 - ROW_NUMBER / RANK / DENSE_RANK</h2>
+                    </div>
+
+                    <div class="rank-compare">
+                        <div>
+                            <strong>ROW_NUMBER()</strong>
+                            <span>1, 2, 3, 4</span>
+                            <p>동점이어도 무조건 서로 다른 번호를 붙입니다.</p>
+                        </div>
+                        <div>
+                            <strong>RANK()</strong>
+                            <span>1, 2, 2, 4</span>
+                            <p>동점자는 같은 순위이고 다음 순위는 건너뜁니다.</p>
+                        </div>
+                        <div>
+                            <strong>DENSE_RANK()</strong>
+                            <span>1, 2, 2, 3</span>
+                            <p>동점자는 같은 순위이지만<br/>다음 순위는 건너뛰지 않습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example wide-example">
+                            <h3>9-1. 세 함수 한 번에 비교</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       ROW_NUMBER() OVER (ORDER BY SAL DESC) AS ROW_NUM,
+       RANK() OVER (ORDER BY SAL DESC) AS RANK_NUM,
+       DENSE_RANK() OVER (ORDER BY SAL DESC) AS DENSE_RANK_NUM
+FROM EMP
+ORDER BY SAL DESC;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>SCOTT과 FORD처럼 SAL이 같은 행에서 ROW_NUMBER, RANK, DENSE_RANK 차이를 확인합니다.</span>
+                            </div>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-2. 안정적인 ROW_NUMBER</h3>
+                            <pre><code>SELECT ENAME,
+       SAL,
+       EMPNO,
+       ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO ASC) AS RN
+FROM EMP
+ORDER BY RN;</code></pre>
+                            <p>SAL이 같을 때 EMPNO로 한 번 더 정렬해 페이징 결과를 안정적으로 만듭니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-3. 부서별 급여 순위</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       RANK() OVER (PARTITION BY DEPTNO ORDER BY SAL DESC) AS DEPT_SAL_RANK
+FROM EMP
+ORDER BY DEPTNO, DEPT_SAL_RANK;</code></pre>
+                            <p>부서가 바뀔 때마다 순위가 다시 1부터 시작합니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>9-4. HR 부서별 급여 순위</h3>
+                            <pre><code>SELECT EMPLOYEE_ID,
+       LAST_NAME,
+       DEPARTMENT_ID,
+       SALARY,
+       RANK() OVER (
+           PARTITION BY DEPARTMENT_ID
+           ORDER BY SALARY DESC
+       ) AS DEPT_SALARY_RANK
+FROM EMPLOYEES
+ORDER BY DEPARTMENT_ID, DEPT_SALARY_RANK;</code></pre>
+                            <p>DEPARTMENT_ID가 NULL인 직원도 하나의 파티션처럼 묶일 수 있습니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card paging-card" id="sql-paging">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>10. SQL 예제 카드 - Top-N과 페이징</h2>
+                    </div>
+
+                    <p>
+                        분석 함수의 ROW_NUMBER는 Top-N과 페이징에 매우 자주 사용됩니다.
+                        정확히 N개 행을 잘라야 하는 목록 화면에서는 RANK보다 ROW_NUMBER가 더 적합합니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>10-1. 급여 Top 5</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP E
+)
+WHERE RN &lt;= 5
+ORDER BY RN;</code></pre>
+                            <p>급여 높은 순서로 정확히 5행을 가져옵니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-2. 급여 6번째부터 10번째까지</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP E
+)
+WHERE RN BETWEEN 6 AND 10
+ORDER BY RN;</code></pre>
+                            <p>정렬된 결과의 6번째부터 10번째 행을 가져옵니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-3. WITH절로 페이징</h3>
+                            <pre><code>WITH ranked_emp AS (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP E
+)
+SELECT EMPNO,
+       ENAME,
+       SAL,
+       DEPTNO,
+       RN
+FROM ranked_emp
+WHERE RN BETWEEN 6 AND 10
+ORDER BY RN;</code></pre>
+                            <p>복잡한 쿼리는 WITH절로 이름을 붙이면 읽기 쉬워집니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>10-4. 동점자 포함 Top-N</h3>
+                            <pre><code>SELECT *
+FROM (
+    SELECT E.*,
+           RANK() OVER (ORDER BY SAL DESC) AS SAL_RANK
+    FROM EMP E
+)
+WHERE SAL_RANK &lt;= 5
+ORDER BY SAL_RANK, SAL DESC;</code></pre>
+                            <p>5등과 동점인 직원까지 포함하려면 RANK를 사용합니다.</p>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>페이징 공식</h3>
+                        <pre><code>SELECT *
+FROM (
+    SELECT T.*,
+           ROW_NUMBER() OVER (ORDER BY 정렬컬럼 DESC, PK컬럼) AS RN
+    FROM 테이블 T
+)
+WHERE RN BETWEEN 시작번호 AND 끝번호
+ORDER BY RN;</code></pre>
+                    </div>
+                </section>
+
+                <section class="section-card lag-card" id="sql-lag-lead">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>11. SQL 예제 카드 - LAG와 LEAD</h2>
+                    </div>
+
+                    <p>
+                        LAG는 현재 행 기준 이전 행의 값을 가져오고,
+                        LEAD는 현재 행 기준 다음 행의 값을 가져옵니다.
+                        게시판 상세 페이지의 이전글·다음글, 전월 대비 매출 비교에 자주 사용됩니다.
+                    </p>
+
+                    <div class="lag-lead-visual">
+                        <div>
+                            <span>이전 행</span>
+                            <strong>LAG()</strong>
+                            <p>현재 행보다 정렬상 앞에 있는 행</p>
+                        </div>
+                        <div class="visual-arrow">← 현재 행 →</div>
+                        <div>
+                            <span>다음 행</span>
+                            <strong>LEAD()</strong>
+                            <p>현재 행보다 정렬상 뒤에 있는 행</p>
+                        </div>
+                    </div>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>11-1. 이전 사원번호, 다음 사원번호</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       LAG(EMPNO) OVER (ORDER BY EMPNO) AS PREV_EMPNO,
+       LEAD(EMPNO) OVER (ORDER BY EMPNO) AS NEXT_EMPNO
+FROM EMP
+ORDER BY EMPNO;</code></pre>
+                            <p>첫 번째 행의 PREV_EMPNO와 마지막 행의 NEXT_EMPNO는 NULL입니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>11-2. 기본값 지정</h3>
+                            <pre><code>SELECT EMPNO,
+       ENAME,
+       LAG(ENAME, 1, '이전 없음') OVER (ORDER BY EMPNO) AS PREV_ENAME,
+       LEAD(ENAME, 1, '다음 없음') OVER (ORDER BY EMPNO) AS NEXT_ENAME
+FROM EMP
+ORDER BY EMPNO;</code></pre>
+                            <p>이전 또는 다음 행이 없을 때 표시할 기본값을 지정할 수 있습니다.</p>
+                        </article>
+
+                        <article class="sql-example wide-example">
+                            <h3>11-3. 게시판 이전글·다음글 실습용 CTE</h3>
+                            <pre><code>WITH BBS AS (
+    SELECT 101 AS ID, '첫 번째 글' AS TITLE FROM DUAL UNION ALL
+    SELECT 102 AS ID, '두 번째 글' AS TITLE FROM DUAL UNION ALL
+    SELECT 103 AS ID, '세 번째 글' AS TITLE FROM DUAL UNION ALL
+    SELECT 104 AS ID, '네 번째 글' AS TITLE FROM DUAL UNION ALL
+    SELECT 105 AS ID, '다섯 번째 글' AS TITLE FROM DUAL
+),
+BBS_NAV AS (
+    SELECT ID,
+           TITLE,
+           LAG(ID) OVER (ORDER BY ID DESC) AS NEWER_ID,
+           LAG(TITLE) OVER (ORDER BY ID DESC) AS NEWER_TITLE,
+           LEAD(ID) OVER (ORDER BY ID DESC) AS OLDER_ID,
+           LEAD(TITLE) OVER (ORDER BY ID DESC) AS OLDER_TITLE
+    FROM BBS
+)
+SELECT *
+FROM BBS_NAV
+WHERE ID = 103;</code></pre>
+                            <div class="result-box">
+                                <strong>결과 확인</strong>
+                                <span>ID DESC 기준에서 103번 글의 위쪽 최신 글은 104번, 아래쪽 오래된 글은 102번입니다.</span>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card cumulative-card" id="sql-cumulative">
+                    <div class="section-title-area">
+                        <span class="section-badge">SQL Example</span>
+                        <h2>12. SQL 예제 카드 - 누적 합계 맛보기</h2>
+                    </div>
+
+                    <p>
+                        분석 함수 안에 ORDER BY를 넣으면 정렬 순서에 따른 누적 계산도 가능합니다.
+                        처음에는 어렵게 느껴질 수 있지만, 매출 누적합이나 포인트 누적합에서 자주 사용됩니다.
+                    </p>
+
+                    <div class="sql-example-group">
+                        <article class="sql-example">
+                            <h3>12-1. 부서별 총합 반복 표시</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       SUM(SAL) OVER (PARTITION BY DEPTNO) AS DEPT_TOTAL_SAL
+FROM EMP
+ORDER BY DEPTNO, SAL DESC;</code></pre>
+                            <p>같은 부서 직원들에게 부서 총합이 동일하게 표시됩니다.</p>
+                        </article>
+
+                        <article class="sql-example">
+                            <h3>12-2. 부서별 누적 급여</h3>
+                            <pre><code>SELECT ENAME,
+       DEPTNO,
+       SAL,
+       SUM(SAL) OVER (
+           PARTITION BY DEPTNO
+           ORDER BY SAL DESC
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS DEPT_RUNNING_TOTAL
+FROM EMP
+ORDER BY DEPTNO, SAL DESC;</code></pre>
+                            <p>부서 안에서 급여 높은 순서로 현재 행까지의 누적 합계를 계산합니다.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">Practice</span>
+                        <h2>13. 실습 문제 카드</h2>
+                    </div>
+
+                    <p>
+                        교안 실습 문제 31~34번은 원래 OFFSET, ROWNUM 방식으로 제시되어 있지만,
+                        이번 단원에서는 ROW_NUMBER 분석 함수로 같은 구간 조회를 구현합니다.
+                    </p>
+
+                    <div class="practice-link">
+                        <article>
+                            <h3>문제 31. SCOTT.EMP 급여순 6번째~10번째</h3>
+                            <p>
+                                SCOTT 계정에서 연봉순으로 내림차순한 모든 레코드에서
+                                6번째부터 10번째까지 출력합니다.
+                            </p>
+                            <pre><code>WITH ranked_emp AS (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SAL DESC, EMPNO) AS RN
+    FROM EMP E
+)
+SELECT *
+FROM ranked_emp
+WHERE RN BETWEEN 6 AND 10
+ORDER BY RN;</code></pre>
+                            <ul class="check-list">
+                                <li>SAL DESC로 먼저 정렬했는가?</li>
+                                <li>동점 안정성을 위해 EMPNO를 추가했는가?</li>
+                                <li>바깥 WHERE에서 RN BETWEEN 6 AND 10을 사용했는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 32. HR.EMPLOYEES 급여순 11번째~20번째</h3>
+                            <p>
+                                HR 계정에서 연봉순으로 내림차순한 결과의 11번째부터 20번째까지 출력합니다.
+                            </p>
+                            <pre><code>WITH ranked_emp AS (
+    SELECT E.*,
+           ROW_NUMBER() OVER (ORDER BY SALARY DESC, EMPLOYEE_ID) AS RN
+    FROM EMPLOYEES E
+)
+SELECT EMPLOYEE_ID,
+       FIRST_NAME,
+       LAST_NAME,
+       SALARY,
+       RN
+FROM ranked_emp
+WHERE RN BETWEEN 11 AND 20
+ORDER BY RN;</code></pre>
+                            <ul class="check-list">
+                                <li>SALARY DESC 기준인가?</li>
+                                <li>EMPLOYEE_ID로 동점 순서를 안정화했는가?</li>
+                                <li>정확히 10행이 나오는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 33. SCOTT EMP + DEPT 조인 후 급여순 6번째~10번째</h3>
+                            <p>
+                                이름, 연봉, 부서 코드, 부서명, 입사일을 연봉 내림차순으로 정렬한 뒤<br/>
+                                6번째부터 10번째까지만 출력합니다.
+                            </p>
+                            <pre><code>WITH ranked_emp AS (
+    SELECT E.ENAME,
+           E.SAL,
+           E.DEPTNO,
+           D.DNAME,
+           E.HIREDATE,
+           ROW_NUMBER() OVER (ORDER BY E.SAL DESC, E.EMPNO) AS RN
+    FROM EMP E
+    JOIN DEPT D
+      ON E.DEPTNO = D.DEPTNO
+)
+SELECT ENAME,
+       SAL,
+       DEPTNO,
+       DNAME,
+       HIREDATE,
+       RN
+FROM ranked_emp
+WHERE RN BETWEEN 6 AND 10
+ORDER BY RN;</code></pre>
+                            <ul class="check-list">
+                                <li>조인 결과에 ROW_NUMBER를 붙였는가?</li>
+                                <li>정렬 기준이 E.SAL DESC인가?</li>
+                                <li>부서명 DNAME이 함께 출력되는가?</li>
+                            </ul>
+                        </article>
+
+                        <article>
+                            <h3>문제 34. HR 3개 테이블 조인 후 급여순 11번째~20번째</h3>
+                            <p>
+                                EMPLOYEES, DEPARTMENTS, LOCATIONS를 조인해서<br/>이름, 연봉, 부서명, 도시명을 출력하고<br/>
+                                연봉 내림차순 기준 11번째부터 20번째까지만 조회합니다.
+                            </p>
+                            <pre><code>WITH ranked_emp AS (
+    SELECT E.LAST_NAME || ' ' || E.FIRST_NAME AS NAME,
+           E.SALARY,
+           D.DEPARTMENT_NAME,
+           L.CITY,
+           ROW_NUMBER() OVER (ORDER BY E.SALARY DESC, E.EMPLOYEE_ID) AS RN
+    FROM EMPLOYEES E
+    JOIN DEPARTMENTS D
+      ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+    JOIN LOCATIONS L
+      ON D.LOCATION_ID = L.LOCATION_ID
+)
+SELECT NAME,
+       SALARY,
+       DEPARTMENT_NAME,
+       CITY,
+       RN
+FROM ranked_emp
+WHERE RN BETWEEN 11 AND 20
+ORDER BY RN;</code></pre>
+                            <ul class="check-list">
+                                <li>조인을 먼저 구성했는가?</li>
+                                <li>조인 결과에 ROW_NUMBER를 붙였는가?</li>
+                                <li>바깥 쿼리에서 11~20 구간을 잘랐는가?</li>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card project-card" id="project">
+                    <div class="section-title-area">
+                        <span class="section-badge">Project</span>
+                        <h2>14. Java·Spring·Oracle 프로젝트 연결</h2>
+                    </div>
+
+                    <p>
+                        분석 함수는 Spring 프로젝트의 목록 조회, 페이징, 관리자 리포트, 순위 화면에서 자주 사용됩니다.<br/>
+                        특히 대량 데이터를 Java로 모두 가져와서 정렬하고 자르는 방식보다,
+                        Oracle에서 ROW_NUMBER로 필요한 구간만 가져오는 방식이 훨씬 실무적입니다.
+                    </p>
+
+                    <div class="project-connection">
+                        <article>
+                            <h3>14-1. Controller 요청</h3>
+                            <pre><code>GET /employees?page=2&amp;size=10</code></pre>
+                            <p>
+                                사용자가 2페이지를 요청하면 서버는 11번째부터 20번째 행을 조회해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>14-2. Service에서 시작/끝 번호 계산</h3>
+                            <pre><code>int startRow = (page - 1) * size + 1;
+int endRow = page * size;</code></pre>
+                            <p>
+                                page = 2, size = 10이면 startRow = 11, endRow = 20입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>14-3. MyBatis Mapper SQL</h3>
+                            <pre><code>&lt;select id="findEmployees" resultType="EmployeeDto"&gt;
+    WITH ranked_emp AS (
+        SELECT E.EMPLOYEE_ID,
+               E.FIRST_NAME,
+               E.LAST_NAME,
+               E.SALARY,
+               E.DEPARTMENT_ID,
+               ROW_NUMBER() OVER (
+                   ORDER BY E.SALARY DESC, E.EMPLOYEE_ID
+               ) AS RN
+        FROM EMPLOYEES E
+    )
+    SELECT EMPLOYEE_ID,
+           FIRST_NAME,
+           LAST_NAME,
+           SALARY,
+           DEPARTMENT_ID,
+           RN
+    FROM ranked_emp
+    WHERE RN BETWEEN #{startRow} AND #{endRow}
+    ORDER BY RN
+&lt;/select&gt;</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-4. DTO 예시</h3>
+                            <pre><code>public class EmployeeDto {
+    private Long employeeId;
+    private String firstName;
+    private String lastName;
+    private Integer salary;
+    private Long departmentId;
+    private Integer rn;
+}</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-5. JPA nativeQuery 연결</h3>
+                            <pre><code>@Query(value = """
+    WITH ranked_emp AS (
+        SELECT E.EMPLOYEE_ID,
+               E.LAST_NAME,
+               E.SALARY,
+               ROW_NUMBER() OVER (ORDER BY E.SALARY DESC, E.EMPLOYEE_ID) AS RN
+        FROM EMPLOYEES E
+    )
+    SELECT EMPLOYEE_ID,
+           LAST_NAME,
+           SALARY,
+           RN
+    FROM ranked_emp
+    WHERE RN BETWEEN :startRow AND :endRow
+    ORDER BY RN
+    """, nativeQuery = true)
+List&lt;EmployeeRankDto&gt; findSalaryPage(
+        @Param("startRow") int startRow,
+        @Param("endRow") int endRow
+);</code></pre>
+                        </article>
+
+                        <article>
+                            <h3>14-6. SQL에서 처리하기 좋은 것</h3>
+                            <ul>
+                                <li>순위 계산</li>
+                                <li>페이징 번호 계산</li>
+                                <li>부서별 평균, 합계, 최대, 최소</li>
+                                <li>카테고리별 Top-N</li>
+                                <li>이전글·다음글</li>
+                                <li>관리자 리포트용 목록 분석값</li>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistake">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistake</span>
+                        <h2>15. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. GROUP BY와 PARTITION BY를 같은 결과라고 생각함</strong>
+                            <span>둘 다 그룹 기준을 만들지만 GROUP BY는 행을 줄이고, PARTITION BY는 행을 유지합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 2. 분석 함수 결과 별칭을 WHERE에서 바로 사용함</strong>
+                            <span>RN, SAL_RANK 같은 별칭은 SELECT 단계에서 만들어지므로 WHERE에서 바로 사용할 수 없습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 3. 페이징에 RANK를 사용함</strong>
+                            <span>RANK는 동점자 때문에 결과 행 수가 일정하지 않을 수 있습니다. 일반 페이징은 ROW_NUMBER가 적합합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 4. ROW_NUMBER 정렬 기준을 하나만 둠</strong>
+                            <span>SALARY가 같은 행이 있으면 순서가 불안정할 수 있으므로 PK 컬럼을 추가하는 것이 좋습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 5. 분석 함수 안의 ORDER BY와 최종 ORDER BY를 혼동함</strong>
+                            <span>OVER 안의 ORDER BY는 계산 기준이고, SELECT 맨 끝의 ORDER BY는 화면 출력 순서입니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 부서별 순위에서 PARTITION BY를 빼먹음</strong>
+                            <span>PARTITION BY DEPTNO가 없으면 부서별 순위가 아니라 전체 직원 기준 순위가 됩니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 7. LAG와 LEAD 방향을 UI 용어로만 외움</strong>
+                            <span>LAG는 정렬 기준상 이전 행, LEAD는 정렬 기준상 다음 행입니다. 이전글·다음글 명칭은 ORDER BY 방향에 따라 달라질 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 8. 조인 후 행 수가 늘어난 상태에서 ROW_NUMBER를 붙임</strong>
+                            <span>1:N 조인으로 행이 늘어난 경우 직원 순번이 아니라 직원-상세행 순번이 될 수 있습니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 9. 분석 전에 필터링해야 할 조건을 바깥 WHERE에 둠</strong>
+                            <span>재직자 중 순위를 매기려면 안쪽 쿼리에서 WHERE RETIRE_YN = 'N'을 먼저 적용해야 합니다.</span>
+                        </li>
+                        <li>
+                            <strong>실수 10. 누적합의 윈도우 범위를 이해하지 않고 사용함</strong>
+                            <span>누적합은 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW처럼 범위를 명확히 쓰면 이해하기 쉽습니다.</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>16. 면접 질문 카드</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. 분석 함수란 무엇인가요?</h3>
+                            <p>
+                                분석 함수는 조회 결과의 행을 유지하면서 각 행에 순위, 그룹별 집계값,
+                                이전 행, 다음 행 같은 분석 결과를 붙이는 함수입니다.<br/>
+                                GROUP BY와 달리 결과 행 수를 줄이지 않는다는 점이 핵심입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. GROUP BY와 분석 함수의 차이는 무엇인가요?</h3>
+                            <p>
+                                GROUP BY는 그룹당 한 행을 반환하므로 행 수가 줄어듭니다.
+                                분석 함수는 원래 행을 유지하면서 각 행에 그룹 기준 계산 결과를 붙입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. OVER는 무슨 뜻인가요?</h3>
+                            <p>
+                                OVER는 함수를 분석 함수 방식으로 사용하겠다는 표시입니다.
+                                AVG(SAL)은 일반 집계 함수이지만 AVG(SAL) OVER(...)는 행을 유지하면서 평균을 붙입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. PARTITION BY는 무엇인가요?</h3>
+                            <p>
+                                분석 함수 안에서 데이터를 그룹처럼 나누는 기준입니다.
+                                PARTITION BY DEPTNO는 부서별로 분석 범위를 나누겠다는 뜻입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. 분석 함수 안의 ORDER BY와 마지막 ORDER BY는 같은가요?</h3>
+                            <p>
+                                다릅니다. OVER 안의 ORDER BY는 순위나 누적 계산의 기준이고,
+                                SELECT문 마지막 ORDER BY는 최종 결과 화면의 정렬 기준입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. ROW_NUMBER, RANK, DENSE_RANK의 차이는 무엇인가요?</h3>
+                            <p>
+                                ROW_NUMBER는 동점이어도 고유 번호를 붙입니다.
+                                RANK는 동점자에게 같은 순위를 주고 다음 순위를 건너뜁니다.<br/>
+                                DENSE_RANK는 동점자에게 같은 순위를 주지만 다음 순위를 건너뛰지 않습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. 페이징에는 어떤 함수를 쓰는 것이 좋나요?</h3>
+                            <p>
+                                일반적인 페이징에는 ROW_NUMBER가 적합합니다.
+                                페이지당 정확히 10개씩 가져와야 하므로 동점자 때문에 행 수가 달라질 수 있는 RANK는 주의해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. 분석 함수 결과를 WHERE절에서 바로 사용할 수 있나요?</h3>
+                            <p>
+                                바로 사용할 수 없습니다.
+                                분석 함수는 SELECT 단계에서 계산되므로 서브쿼리나 WITH절로 감싼 후 바깥 WHERE에서 조건을 걸어야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. LAG와 LEAD는 어디에 쓰나요?</h3>
+                            <p>
+                                LAG는 이전 행, LEAD는 다음 행의 값을 가져옵니다.
+                                게시판 이전글·다음글, 전월 대비 매출, 이전 주문과 현재 주문 비교에 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. 실무에서 분석 함수는 어디에 많이 쓰나요?</h3>
+                            <p>
+                                게시판 페이징, 상품 판매 순위, 부서별 급여 순위, 회원 포인트 순위,
+                                카테고리별 Top-N, 관리자 리포트, 누적 매출, 이전글·다음글 기능에 많이 사용합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>17. 최종 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>필수 암기 문법</h3>
+                        <pre><code>분석함수() OVER (
+    PARTITION BY 그룹기준
+    ORDER BY 정렬기준
+)</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>함수 선택 기준</h3>
+                        <pre><code>부서별 평균을 각 행에 붙이기
+→ AVG(SAL) OVER (PARTITION BY DEPTNO)
+
+부서별 합계, 최대, 최소를 각 행에 붙이기
+→ SUM, MAX, MIN OVER (PARTITION BY ...)
+
+정확히 1번부터 번호 붙이기
+→ ROW_NUMBER()
+
+동점자를 같은 순위로 처리하기
+→ RANK()
+
+동점자를 같은 순위로 처리하되 순위를 연속으로 유지하기
+→ DENSE_RANK()
+
+이전 행 가져오기
+→ LAG()
+
+다음 행 가져오기
+→ LEAD()
+
+분석 함수 결과로 조건 걸기
+→ 서브쿼리 또는 WITH절로 감싸기</code></pre>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원 실습 순서</h3>
+                        <pre><code>1. GROUP BY로 부서 평균 구하기
+2. AVG OVER로 직원 행에 부서 평균 붙이기
+3. MIN, MAX, SUM, AVG OVER 실습
+4. ROW_NUMBER, RANK, DENSE_RANK 비교
+5. PARTITION BY로 부서별 순위 구하기
+6. ROW_NUMBER로 Top-N 만들기
+7. ROW_NUMBER로 페이징 구간 조회하기
+8. RANK로 동점자 포함 Top-N 만들기
+9. LAG, LEAD로 이전 행과 다음 행 가져오기
+10. 게시판 이전글·다음글 구조 이해하기
+11. 실습 문제 31~34번을 분석 함수 방식으로 다시 풀기
+12. Spring/MyBatis 페이징 SQL과 연결하기</code></pre>
+                    </div>
                 </section>
             </main>
+
+            <aside class="side-note">
+                <h2>학습 메모</h2>
+
+                <div class="note-card">
+                    <h3>오늘의 핵심</h3>
+                    <p>
+                        분석 함수는 행을 줄이지 않고 각 행에 분석 결과를 붙입니다.
+                        GROUP BY가 “요약 보고서”라면 분석 함수는 “목록 화면 + 분석값”입니다.
+                    </p>
+                </div>
+
+                <div class="note-card">
+                    <h3>기본 문법</h3>
+                    <pre><code>분석함수() OVER (
+    PARTITION BY 그룹기준
+    ORDER BY 정렬기준
+)</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>GROUP BY와 비교</h3>
+                    <pre><code>GROUP BY
+→ 그룹당 한 줄
+→ 행 수 감소
+
+분석 함수
+→ 원본 행 유지
+→ 각 행에 분석값 추가</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>순위 함수 차이</h3>
+                    <pre><code>ROW_NUMBER : 1, 2, 3, 4
+RANK       : 1, 2, 2, 4
+DENSE_RANK : 1, 2, 2, 3</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>페이징 공식</h3>
+                    <pre><code>WITH ranked AS (
+    SELECT T.*,
+           ROW_NUMBER() OVER (ORDER BY 정렬컬럼 DESC, PK컬럼) AS RN
+    FROM 테이블 T
+)
+SELECT *
+FROM ranked
+WHERE RN BETWEEN :startRow AND :endRow
+ORDER BY RN;</code></pre>
+                </div>
+
+                <div class="note-card">
+                    <h3>LAG / LEAD</h3>
+                    <pre><code>LAG(컬럼) OVER (ORDER BY 정렬컬럼)
+→ 이전 행
+
+LEAD(컬럼) OVER (ORDER BY 정렬컬럼)
+→ 다음 행</code></pre>
+                </div>
+
+                <div class="note-card warning-note">
+                    <h3>주의</h3>
+                    <p>
+                        분석 함수 결과 별칭은 WHERE에서 바로 사용할 수 없습니다.
+                        반드시 서브쿼리나 WITH절로 감싼 뒤 바깥 WHERE에서 조건을 거세요.
+                    </p>
+                </div>
+
+                <div class="note-card project-note">
+                    <h3>프로젝트 연결</h3>
+                    <p>
+                        Spring 프로젝트에서 page, size를 받으면 Service에서 startRow와 endRow를 계산하고,
+                        Mapper SQL에서 ROW_NUMBER로 구간을 잘라 조회합니다.
+                    </p>
+                </div>
+            </aside>
         </div>
     </div>
 </body>
