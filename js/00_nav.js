@@ -93,6 +93,28 @@
                 { label: "26. PL/SQL 기초", path: "OracleSqlDeveloper/26_plsql_basic.html" },
                 { label: "27. PL/SQL 예외 처리와 프로시저", path: "OracleSqlDeveloper/27_plsql_exception_procedure.html" }
             ]
+        },
+        {
+            title: "React.js With Vite",
+            items: [
+                { label: "00. React 학습 로드맵", path: "React/00_react_roadmap.html" },
+                { label: "01. React와 Vite 시작하기", path: "React/01_react_vite_start.html" },
+                { label: "02. Vite 프로젝트 구조 읽기", path: "React/02_vite_project_structure.html" },
+                { label: "03. React에서 CSS 다루기", path: "React/03_react_css.html" },
+                { label: "04. Bootstrap과 UI 라이브러리", path: "React/04_bootstrap_ui_library.html" },
+                { label: "05. JSX 완전 이해", path: "React/05_jsx_complete.html" },
+                { label: "06. 브라우저 렌더링과 Virtual DOM", path: "React/06_browser_rendering_virtual_dom.html" },
+                { label: "07. 컴포넌트 설계", path: "React/07_component_design.html" },
+                { label: "08. props, children, state", path: "React/08_props_children_state.html" },
+                { label: "09. useState와 폼 입력", path: "React/09_usestate_form.html" },
+                { label: "10. useEffect와 useRef", path: "React/10_useeffect_useref.html" },
+                { label: "11. useReducer와 useContext", path: "React/11_usereducer_usecontext.html" },
+                { label: "12. 최적화와 Custom Hook", path: "React/12_optimization_custom_hook.html" },
+                { label: "13. React Router", path: "React/13_react_router.html" },
+                { label: "14. REST API 연동과 배포", path: "React/14_rest_api_deploy.html" },
+                { label: "15. ES6 모듈 import/export", path: "React/15_es6_module_import_export.html" },
+                { label: "16. 개발 환경 오류 해결 노트", path: "React/16_react_troubleshooting.html" }
+            ]
         }
     ];
 
@@ -158,6 +180,7 @@
             path.includes("/HTML5&CSS3/") ||
             path.includes("/JavaBasics/") ||
             path.includes("/OracleSqlDeveloper/") ||
+            path.includes("/React/") ||
             path.includes("/studypages/")
         ) {
             return "../";
