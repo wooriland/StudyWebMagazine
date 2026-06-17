@@ -6,64 +6,1303 @@
     <title>React.js With Vite - 06. 브라우저 렌더링과 Virtual DOM</title>
 
     <link rel="stylesheet" href="../css/00_nav.css">
+    <link rel="stylesheet" href="../css/study-theme.css">
     <link rel="stylesheet" href="../css/react/06_browser_rendering_virtual_dom.css">
 
     <script src="../js/00_nav.js" defer></script>
-    <link rel="stylesheet" href="../css/study-theme.css">
 </head>
 <body class="theme-react study-page react-page react-lesson-page react-lesson-06">
     <div class="layout">
         <nav class="side-nav" id="sideNav"></nav>
 
         <div class="page-content">
-            <main class="study-main react-main">
-                <article class="lesson-card react-lesson-card">
-                    <header class="lesson-hero">
-                        <p class="lesson-kicker">React.js With Vite</p>
-                        <h1>06. 브라우저 렌더링과 Virtual DOM</h1>
-                        <p class="lesson-summary">세부 내용은 추후 작성 예정입니다.</p>
-                    </header>
+            <header class="page-header">
+                <p class="chapter-label">React.js With Vite - Chapter 06</p>
+                <h1>브라우저 렌더링과 Virtual DOM</h1>
 
-                    <section class="lesson-section lesson-step lesson-step-1">
-                        <h2>Step 1. 한 단원 공부하기</h2>
-                        <div class="lesson-placeholder">
-                            <p>학습 목표, 먼저 알아야 할 것, 핵심 질문, 교안 요약, 체크포인트를 작성할 영역입니다.</p>
-                        </div>
-                    </section>
+                <p class="chapter-description">
+                    React는 실제 DOM을 무작정 직접 수정하지 않고, 메모리 안의 Virtual DOM에서 먼저 변경점을 계산한 뒤
+                    필요한 부분만 실제 DOM에 반영합니다.<br/>
+                    이번 단원에서는 브라우저가 화면을 그리는 과정인 <code>DOM</code>, <code>CSSOM</code>,
+                    <code>Reflow</code>, <code>Repaint</code>, <code>Composite</code>를 이해하고,<br/>
+                    React의 <code>Virtual DOM</code>, <code>Diffing</code>, <code>Reconciliation</code>,
+                    <code>Batch Update</code>가 어떤 문제를 해결하는지 학습합니다.
+                </p>
 
-                    <section class="lesson-section lesson-step lesson-step-2">
-                        <h2>Step 2. 핵심 개념 정리</h2>
-                        <div class="concept-grid">
-                            <section class="concept-card">
-                                <h3>핵심 개념 설명</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>그림처럼 이해</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>React.js 예제</h3>
-                                <pre><code>// 예제 코드 작성 예정</code></pre>
-                            </section>
-                            <section class="concept-card">
-                                <h3>자주 하는 실수</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>면접 포인트</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                        </div>
-                    </section>
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            DOM 변경 비용을 이해하고<br/>
+                            Virtual DOM의 역할을 설명한다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>핵심 흐름</strong>
+                        <span>
+                            state 변경 → Virtual DOM 생성 →<br/>
+                            Diffing → Reconciliation
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            state 변경 예제와 직접 DOM 조작을<br/>
+                            비교하며 React 방식을 이해한다.
+                        </span>
+                    </div>
+                </div>
+            </header>
 
-                    <section class="lesson-section lesson-step lesson-step-3">
-                        <h2>Step 3. HTML 학습 매거진 정리</h2>
-                        <div class="lesson-placeholder">
-                            <p>최종 매거진형 설명을 정리할 영역입니다.</p>
+            <main>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 이번 단원은 무엇을 배우는가?</h2>
+                    </div>
+
+                    <p>
+                        앞 단원에서는 JSX가 HTML이 아니라 React가 화면을 만들기 위한 UI 설계도라는 것을 배웠습니다.<br/>
+                        이번 단원에서는 그 JSX로 표현한 UI가 실제 브라우저 화면에 반영될 때 어떤 일이 일어나는지,
+                        그리고 React가 왜 Virtual DOM이라는 중간 단계를 사용하는지 이해합니다.<br/>
+                        브라우저는 HTML을 읽어 DOM을 만들고, CSS를 읽어 CSSOM을 만든 뒤,
+                        요소의 위치와 크기를 계산하고, 색상과 배경을 그리고, 여러 레이어를 합성해 최종 화면을 출력합니다.<br/>
+                        이 과정에서 DOM 변경이 자주 발생하면 Reflow, Repaint, Composite 비용이 반복될 수 있습니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>DOM</strong>
+                            <span>
+                                HTML 문서를 브라우저가<br/>
+                                트리 형태 객체로 모델링한 구조입니다.
+                            </span>
                         </div>
-                    </section>
-                </article>
+                        <div>
+                            <strong>브라우저 렌더링</strong>
+                            <span>
+                                Reflow, Repaint, Composite를 거쳐<br/>
+                                실제 화면을 계산하고 그립니다.
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Virtual DOM</strong>
+                            <span>
+                                실제 DOM을 바로 고치기 전에<br/>
+                                메모리 속 설계도에서 변경점을 계산합니다.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원의 한 줄 정리</h3>
+                        <p>
+                            <strong>
+                                Virtual DOM은 실제 DOM을 바로 여러 번 고치는 대신,
+                                메모리 안의 가벼운 설계도에서 변경점을 먼저 계산하고<br/>
+                                필요한 부분만 실제 DOM에 반영하기 위한 React의 업데이트 구조입니다.
+                            </strong>
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card study-card" id="step1">
+                    <div class="section-title-area">
+                        <span class="section-badge">Step 1</span>
+                        <h2>2. 한 단원 공부하기</h2>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="study-table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">오늘의 단원</th>
+                                    <td>브라우저 렌더링과 Virtual DOM</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오늘의 목표</th>
+                                    <td>
+                                        DOM 변경이 왜 비용이 큰 작업인지 이해하고,
+                                        React의 Virtual DOM이 어떤 문제를 해결하는지 설명할 수 있습니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">먼저 알아야 할 것</th>
+                                    <td>
+                                        HTML 태그 구조, CSS 기본 속성, JavaScript 객체, JSX, 컴포넌트,
+                                        <code>main.jsx → App.jsx</code> 렌더링 흐름,
+                                        <code>className</code>, <code>onClick</code>을 알고 있어야 합니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오늘의 핵심 질문</th>
+                                    <td>
+                                        “React는 왜 실제 DOM을 바로바로 고치지 않고,
+                                        Virtual DOM이라는 중간 단계를 사용할까?”
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">교안 핵심 요약</th>
+                                    <td>
+                                        DOM은 HTML 문서의 태그를 트리 형태 객체로 모델링한 것 →
+                                        DOM API로 Node를 수정할 수 있음 →<br/>
+                                        실제 DOM 변경이 많아지면 Reflow, Repaint, Composite 과정이 반복되어 성능 부담 발생 →
+                                        Virtual DOM은 실제 DOM의 가벼운 JavaScript 객체 표현 →<br/>
+                                        state나 props가 바뀌면 새로운 Virtual DOM 생성 →
+                                        이전 Virtual DOM과 새 Virtual DOM을 Diffing →<br/>
+                                        변경된 부분만 Reconciliation으로 실제 DOM에 반영 →
+                                        Batch Update로 실제 DOM 조작 최소화
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">실습 목표</th>
+                                    <td>
+                                        버튼을 클릭해 state가 바뀌면 React가 화면을 자동으로 갱신하는 예제를 실행하고,
+                                        직접 DOM 조작 방식과 React 방식의 차이를 비교합니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">체크포인트</th>
+                                    <td>
+                                        DOM이 무엇인지 설명할 수 있는가?<br/>
+                                        Reflow와 Repaint의 차이를 말할 수 있는가?<br/>
+                                        Virtual DOM이 실제 DOM의 가벼운 JavaScript 객체 표현이라는 점을 이해했는가?<br/>
+                                        Diffing과 Reconciliation의 역할을 구분할 수 있는가?<br/>
+                                        React에서 직접 DOM 조작을 남발하면 왜 좋지 않은지 설명할 수 있는가?
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card rendering-map-card" id="rendering-map">
+                    <div class="section-title-area">
+                        <span class="section-badge">Rendering Map</span>
+                        <h2>3. 브라우저 렌더링과 Virtual DOM 한눈에 보기</h2>
+                    </div>
+
+                    <p>
+                        브라우저는 HTML과 CSS를 읽어 화면을 계산하고 그립니다.
+                        React는 이 실제 DOM 변경을 줄이기 위해 Virtual DOM에서 먼저 변경점을 계산한 뒤,
+                        꼭 필요한 변경만 실제 DOM에 반영합니다.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">개념</th>
+                                    <th scope="col">의미</th>
+                                    <th scope="col">핵심 포인트</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>DOM</td>
+                                    <td>HTML 문서를 브라우저가 객체 트리로 표현한 것</td>
+                                    <td>JavaScript가 DOM API로 Node를 찾고 수정할 수 있습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>CSSOM</td>
+                                    <td>CSS 규칙을 브라우저가 객체 트리로 표현한 것</td>
+                                    <td>DOM과 CSSOM을 결합해 레이아웃 계산을 준비합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Reflow</td>
+                                    <td>요소의 위치와 크기를 다시 계산하는 단계</td>
+                                    <td><code>width</code>, <code>height</code>, <code>margin</code>, <code>font-size</code> 변경과 관련됩니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Repaint</td>
+                                    <td>색상, 배경, 텍스트, 그림자 같은 픽셀을 다시 그리는 단계</td>
+                                    <td><code>color</code>, <code>background-color</code>, <code>box-shadow</code> 변경과 관련됩니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Composite</td>
+                                    <td>여러 레이어를 합성해 최종 화면을 출력하는 단계</td>
+                                    <td>배경, 텍스트, 이미지, 애니메이션 레이어를 합칩니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Virtual DOM</td>
+                                    <td>실제 DOM의 가벼운 JavaScript 객체 표현</td>
+                                    <td>실제 DOM 변경 전에 메모리에서 UI 구조를 비교합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Diffing</td>
+                                    <td>이전 Virtual DOM과 새 Virtual DOM을 비교하는 과정</td>
+                                    <td>어디가 바뀌었는지 찾습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Reconciliation</td>
+                                    <td>Diffing으로 찾은 변경점을 실제 DOM에 반영하는 과정</td>
+                                    <td>전체 DOM이 아니라 바뀐 부분만 반영합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>Batch Update</td>
+                                    <td>여러 변경을 묶어서 처리하는 방식</td>
+                                    <td>실제 DOM 조작 횟수를 줄이는 데 도움을 줍니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>핵심 흐름</h3>
+                        <pre><code>JSX 작성
+↓
+컴포넌트 렌더링
+↓
+Virtual DOM 생성
+↓
+state / props 변경
+↓
+새로운 Virtual DOM 생성
+↓
+Diffing
+↓
+Reconciliation
+↓
+실제 DOM 최소 변경
+↓
+브라우저 Reflow / Repaint / Composite 수행</code></pre>
+                    </div>
+                </section>
+
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>4. 핵심 개념 설명</h2>
+                    </div>
+
+                    <h3>4-1. DOM은 브라우저가 만든 HTML 객체 트리다</h3>
+                    <p>
+                        DOM은 Document Object Model의 약자입니다.
+                        HTML 문서의 태그들을 브라우저가 읽고,
+                        JavaScript가 다룰 수 있는 트리 형태의 객체 구조로 만든 것입니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>HTML 문서</h3>
+                            <pre><code>&lt;body&gt;
+    &lt;h1&gt;Hello React&lt;/h1&gt;
+    &lt;p&gt;Virtual DOM을 공부합니다.&lt;/p&gt;
+&lt;/body&gt;</code></pre>
+                            <p>
+                                브라우저가 읽는 마크업 문서입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>DOM 트리</h3>
+                            <pre><code>document
+└─ html
+   └─ body
+      ├─ h1
+      │  └─ "Hello React"
+      └─ p
+         └─ "Virtual DOM을 공부합니다."</code></pre>
+                            <p>
+                                HTML 태그가 JavaScript가 접근할 수 있는 객체 트리로 표현됩니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-2. DOM API로 실제 DOM을 직접 조작할 수 있다</h3>
+                    <p>
+                        JavaScript는 DOM API를 사용해 실제 DOM 요소를 찾고 수정할 수 있습니다.
+                        하지만 DOM 변경이 자주 발생하면 브라우저는 화면을 다시 계산하고 다시 그릴 수 있습니다.
+                    </p>
+
+                    <pre><code>const title = document.querySelector("h1");
+title.textContent = "Hello Virtual DOM";</code></pre>
+
+                    <div class="warning-box">
+                        <h3>중요한 이해</h3>
+                        <ul>
+                            <li>DOM API 호출 자체가 항상 큰 문제인 것은 아닙니다.</li>
+                            <li>문제는 DOM 변경 이후 브라우저가 Reflow, Repaint, Composite를 다시 수행할 수 있다는 점입니다.</li>
+                            <li>DOM 변경이 많고 자주 발생하면 화면 갱신 비용이 커질 수 있습니다.</li>
+                        </ul>
+                    </div>
+
+                    <h3>4-3. 브라우저 렌더링 과정</h3>
+                    <p>
+                        브라우저가 화면을 그리는 과정을 단순화하면
+                        DOM 생성, CSSOM 생성, Reflow, Repaint, Composite 순서로 볼 수 있습니다.
+                    </p>
+
+                    <div class="rendering-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>HTML 파싱</strong>
+                            <p>HTML 문서를 읽고<br/>태그 구조를 해석합니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>DOM 생성</strong>
+                            <p>HTML 태그를<br/>객체 트리로 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>CSSOM 생성</strong>
+                            <p>CSS 규칙을<br/>객체 트리로 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>Reflow</strong>
+                            <p>요소의 위치와 크기를<br/>계산합니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>Repaint</strong>
+                            <p>색상, 배경, 텍스트 등을<br/>다시 그립니다.</p>
+                        </div>
+                        <div>
+                            <span>6</span>
+                            <strong>Composite</strong>
+                            <p>여러 레이어를 합성해<br/>최종 화면을 출력합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>4-4. Reflow, Repaint, Composite 차이</h3>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>Reflow</strong>
+                            <span>위치와 크기 계산</span>
+                            <p>
+                                요소의 너비, 높이, 여백, 위치가 바뀌면 브라우저가 레이아웃을 다시 계산합니다.
+                            </p>
+                            <pre><code>width
+height
+margin
+padding
+font-size
+display
+top / left</code></pre>
+                        </article>
+
+                        <article>
+                            <strong>Repaint</strong>
+                            <span>시각 요소 다시 그리기</span>
+                            <p>
+                                위치와 크기는 그대로일 수 있지만 색상, 배경, 그림자 같은 픽셀을 다시 그립니다.
+                            </p>
+                            <pre><code>color
+background-color
+box-shadow
+visibility
+outline</code></pre>
+                        </article>
+
+                        <article>
+                            <strong>Composite</strong>
+                            <span>레이어 합성</span>
+                            <p>
+                                배경, 텍스트, 이미지, 애니메이션 레이어를 합성해 최종 화면을 만듭니다.
+                            </p>
+                            <pre><code>background layer
+text layer
+image layer
+animation layer</code></pre>
+                        </article>
+
+                        <article>
+                            <strong>비용 관점</strong>
+                            <span>Reflow가 가장 부담</span>
+                            <p>
+                                Reflow가 발생하면 Repaint와 Composite까지 이어질 수 있어 가장 비용이 큰 단계로 이해하면 됩니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-5. Virtual DOM은 실제 DOM의 가벼운 JavaScript 객체 표현이다</h3>
+                    <p>
+                        Virtual DOM은 실제 DOM을 바로 직접 조작하는 대신,
+                        React가 메모리 안에 만들어 두는 가벼운 UI 구조 객체입니다.<br/>
+                        실제 DOM의 완전한 브라우저 객체 복사본이 아니라,
+                        UI 구조를 비교하기 위한 JavaScript 객체 표현으로 이해하는 것이 좋습니다.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">구분</th>
+                                    <th scope="col">실제 DOM</th>
+                                    <th scope="col">Virtual DOM</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>관리 주체</td>
+                                    <td>브라우저</td>
+                                    <td>React</td>
+                                </tr>
+                                <tr>
+                                    <td>형태</td>
+                                    <td>브라우저 DOM 객체 트리</td>
+                                    <td>JavaScript 객체 구조</td>
+                                </tr>
+                                <tr>
+                                    <td>역할</td>
+                                    <td>실제 화면과 연결</td>
+                                    <td>변경점 계산과 비교</td>
+                                </tr>
+                                <tr>
+                                    <td>변경 비용</td>
+                                    <td>Reflow/Repaint 발생 가능</td>
+                                    <td>메모리 계산 중심</td>
+                                </tr>
+                                <tr>
+                                    <td>개발자 관점</td>
+                                    <td>직접 조작하면 복잡해질 수 있음</td>
+                                    <td>state/props 기반 UI 계산에 적합</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>4-6. Virtual DOM 작동 원리</h3>
+                    <p>
+                        React는 컴포넌트가 렌더링되면 Virtual DOM을 만들고,
+                        state나 props가 바뀌면 새로운 Virtual DOM을 만듭니다.<br/>
+                        그 다음 이전 Virtual DOM과 새로운 Virtual DOM을 비교해 변경점을 찾고,
+                        변경된 부분만 실제 DOM에 반영합니다.
+                    </p>
+
+                    <div class="vdom-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>Virtual DOM 생성</strong>
+                            <p>컴포넌트의 UI 구조를<br/>JavaScript 객체로 표현합니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>state / props 변경</strong>
+                            <p>데이터가 바뀌면<br/>컴포넌트가 다시 렌더링됩니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>새 Virtual DOM 생성</strong>
+                            <p>변경된 데이터 기준으로<br/>새 UI 설계도를 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>Diffing</strong>
+                            <p>이전 설계도와 새 설계도를<br/>비교합니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>Reconciliation</strong>
+                            <p>바뀐 부분만<br/>실제 DOM에 반영합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>4-7. Diffing과 Reconciliation</h3>
+                    <p>
+                        Diffing은 이전 Virtual DOM과 새로운 Virtual DOM을 비교해
+                        어디가 바뀌었는지 찾는 과정입니다.
+                        Reconciliation은 Diffing으로 찾은 변경점을 실제 DOM에 반영하는 과정입니다.
+                    </p>
+
+                    <div class="before-after-card">
+                        <div>
+                            <span class="mini-label">이전 Virtual DOM</span>
+                            <pre><code>section
+├─ h1: "Count: 0"
+└─ button: "증가"</code></pre>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div>
+                            <span class="mini-label">새 Virtual DOM</span>
+                            <pre><code>section
+├─ h1: "Count: 1"
+└─ button: "증가"</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>비교 결과</h3>
+                        <p>
+                            <code>button</code>은 그대로이고, <code>h1</code>의 텍스트만
+                            <code>Count: 0</code>에서 <code>Count: 1</code>로 바뀌었습니다.
+                            React는 전체 DOM을 다시 만드는 대신 바뀐 텍스트 부분만 실제 DOM에 반영합니다.
+                        </p>
+                    </div>
+
+                    <h3>4-8. Batch Update</h3>
+                    <p>
+                        Batch Update는 여러 변경을 실제 DOM에 여러 번 나누어 반영하지 않고,
+                        가능한 한 묶어서 처리하는 방식입니다.
+                        이를 통해 실제 DOM 조작 횟수를 줄일 수 있습니다.
+                    </p>
+
+                    <pre><code>setCount(count + 1);
+setTheme("dark");
+setMessage("업데이트 완료");</code></pre>
+
+                    <p>
+                        위처럼 한 이벤트 안에서 여러 상태가 바뀌어도 React는 내부적으로 변경을 모아
+                        업데이트를 처리하려고 합니다.
+                    </p>
+                </section>
+
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>5. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>5-1. 설계도에서 먼저 수정하기</h3>
+                    <p>
+                        Virtual DOM은 실제 건물을 바로 뜯어고치기 전에
+                        설계도에서 먼저 수정하고 비교하는 방식으로 이해하면 쉽습니다.
+                    </p>
+
+                    <div class="blueprint-map">
+                        <div>
+                            <strong>실제 DOM</strong>
+                            <span>실제 건물</span>
+                            <p>브라우저 화면과 직접 연결되어 있어<br/>바꾸면 렌더링 비용이 발생할 수 있습니다.</p>
+                        </div>
+                        <div>
+                            <strong>이전 Virtual DOM</strong>
+                            <span>이전 설계도</span>
+                            <p>현재 화면 구조를<br/>메모리 안의 JavaScript 객체로 표현한 것입니다.</p>
+                        </div>
+                        <div>
+                            <strong>새 Virtual DOM</strong>
+                            <span>새 설계도</span>
+                            <p>state나 props가 바뀐 뒤 다시 계산한 UI 구조입니다.</p>
+                        </div>
+                        <div>
+                            <strong>Diffing</strong>
+                            <span>설계도 비교</span>
+                            <p>이전 설계도와 새 설계도를 비교해<br/>달라진 부분을 찾습니다.</p>
+                        </div>
+                        <div>
+                            <strong>Reconciliation</strong>
+                            <span>필요한 공사만 진행</span>
+                            <p>실제 DOM에서 바뀐 부분만 수정합니다.</p>
+                        </div>
+                        <div>
+                            <strong>Batch Update</strong>
+                            <span>공사 묶음 처리</span>
+                            <p>여러 변경을 따로따로 공사하지 않고<br/>가능한 한 묶어서 반영합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-2. 실제 DOM 조작과 React 방식 비교</h3>
+
+                    <div class="before-after-card">
+                        <div>
+                            <span class="mini-label">직접 DOM 조작</span>
+                            <pre><code>const countText = document.querySelector("#count");
+
+countText.textContent = count + 1;</code></pre>
+                            <p>
+                                개발자가 직접 DOM을 찾아서 글자를 바꿉니다.<br/>
+                                화면이 커질수록 어떤 DOM을 언제 바꿔야 하는지 관리가 어려워집니다.
+                            </p>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div>
+                            <span class="mini-label">React 방식</span>
+                            <pre><code>const [count, setCount] = useState(0);
+
+&lt;h1&gt;Count: {count}&lt;/h1&gt;
+&lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+    증가
+&lt;/button&gt;</code></pre>
+                            <p>
+                                개발자는 state를 바꾸고,
+                                React가 새 UI 설계도를 계산해<br/>필요한 DOM 변경만 반영합니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>5-3. 브라우저 렌더링 흐름</h3>
+
+                    <div class="browser-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>DOM</strong>
+                            <p>HTML 태그 구조를<br/>객체 트리로 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>CSSOM</strong>
+                            <p>CSS 규칙을 객체 트리로 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>Reflow</strong>
+                            <p>요소의 위치와 크기를<br/>계산합니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>Repaint</strong>
+                            <p>색상, 배경, 텍스트 등을 그립니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>Composite</strong>
+                            <p>레이어를 합성해<br/>최종 화면을 출력합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-4. React 업데이트 흐름</h3>
+
+                    <div class="react-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>JSX</strong>
+                            <p>UI 구조를 작성합니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>Virtual DOM</strong>
+                            <p>React가 메모리 안에 UI<br/>구조를 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>state 변경</strong>
+                            <p>사용자 이벤트나<br/>데이터 변경이 발생합니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>Diffing</strong>
+                            <p>이전 UI 구조와 새 UI 구조를<br/>비교합니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>실제 DOM 반영</strong>
+                            <p>바뀐 부분만<br/>실제 DOM에 반영합니다.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">React Example</span>
+                        <h2>6. state 변경으로 Virtual DOM 흐름 관찰하기</h2>
+                    </div>
+
+                    <p>
+                        아래 예제는 Vite React 프로젝트에서 바로 실행할 수 있는 관찰용 예제입니다.<br/>
+                        아직 <code>useState</code>는 뒤 단원에서 자세히 배우지만,
+                        이번 단원에서는 state가 바뀌면 React가 UI를 다시 계산하고
+                        실제 DOM에 필요한 변경만 반영한다는 흐름을 이해하는 데 집중합니다.
+                    </p>
+
+                    <div class="code-example-group">
+                        <article class="code-example wide-example">
+                            <h3>6-1. 실습 파일 구조</h3>
+                            <pre><code>src/
+├─ App.jsx
+├─ App.css
+├─ main.jsx
+└─ index.css</code></pre>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-2. src/App.jsx</h3>
+                            <pre><code>import { useState } from "react";
+import "./App.css";
+
+export default function App() {
+    const [count, setCount] = useState(0);
+    const [theme, setTheme] = useState("light");
+    const [message, setMessage] = useState("아직 업데이트 전입니다.");
+
+    const isDark = theme === "dark";
+
+    function handleIncrease() {
+        setCount(count + 1);
+        setMessage("count state가 변경되었습니다.");
+    }
+
+    function handleThemeChange() {
+        setTheme(isDark ? "light" : "dark");
+        setMessage("theme state가 변경되었습니다.");
+    }
+
+    return (
+        &lt;main className={isDark ? "app-page dark" : "app-page"}&gt;
+            &lt;section className="hero-card"&gt;
+                &lt;p className="lesson-label"&gt;React.js With Vite&lt;/p&gt;
+                &lt;h1&gt;브라우저 렌더링과 Virtual DOM&lt;/h1&gt;
+                &lt;p&gt;
+                    state가 바뀌면 React는 새로운 Virtual DOM을 만들고,
+                    이전 Virtual DOM과 비교한 뒤 필요한 부분만 실제 DOM에 반영합니다.
+                &lt;/p&gt;
+            &lt;/section&gt;
+
+            &lt;section className="counter-card"&gt;
+                &lt;h2&gt;Count: {count}&lt;/h2&gt;
+                &lt;p&gt;
+                    버튼을 누르면 count state가 바뀌고 화면의 숫자가 갱신됩니다.
+                &lt;/p&gt;
+
+                &lt;button onClick={handleIncrease}&gt;
+                    count 증가
+                &lt;/button&gt;
+            &lt;/section&gt;
+
+            &lt;section className="counter-card"&gt;
+                &lt;h2&gt;Theme: {theme}&lt;/h2&gt;
+                &lt;p&gt;
+                    테마 버튼을 누르면 className이 바뀌고 배경색이 달라집니다.
+                &lt;/p&gt;
+
+                &lt;button onClick={handleThemeChange}&gt;
+                    테마 변경
+                &lt;/button&gt;
+            &lt;/section&gt;
+
+            &lt;section className="counter-card"&gt;
+                &lt;h2&gt;업데이트 메시지&lt;/h2&gt;
+                &lt;p&gt;{message}&lt;/p&gt;
+            &lt;/section&gt;
+        &lt;/main&gt;
+    );
+}</code></pre>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-3. src/App.css</h3>
+                            <pre><code>.app-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    background-color: #f4fbff;
+    color: #172033;
+    min-height: 100vh;
+}
+
+.app-page.dark {
+    background-color: #172033;
+    color: #f8fdff;
+}
+
+.hero-card,
+.counter-card {
+    margin-bottom: 20px;
+    padding: 28px;
+    background-color: #ffffff;
+    border: 1px solid #d6eaf3;
+    border-radius: 24px;
+    color: #172033;
+}
+
+.app-page.dark .hero-card,
+.app-page.dark .counter-card {
+    background-color: #243447;
+    border-color: #3b5268;
+    color: #f8fdff;
+}
+
+.lesson-label {
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 6px 12px;
+    background-color: #cffafe;
+    color: #155e75;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+button {
+    padding: 12px 18px;
+    background-color: #164e63;
+    color: #ecfeff;
+    border: none;
+    border-radius: 999px;
+    font-weight: 800;
+    cursor: pointer;
+}</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>예제에서 관찰할 것</h3>
+                        <ul>
+                            <li><code>count 증가</code> 버튼을 누르면 <code>count</code> state가 바뀌고 숫자가 갱신됩니다.</li>
+                            <li><code>테마 변경</code> 버튼을 누르면 <code>theme</code> state가 바뀌고 <code>className</code>이 달라집니다.</li>
+                            <li>개발자가 <code>document.querySelector()</code>로 DOM을 직접 찾지 않습니다.</li>
+                            <li>state 변경 → 새 Virtual DOM 생성 → Diffing → Reconciliation 흐름을 떠올리며 실행합니다.</li>
+                            <li>여러 state 변경은 React 내부에서 묶여 처리될 수 있습니다.</li>
+                        </ul>
+                    </div>
+
+                    <h3>6-4. count 증가 버튼 내부 흐름</h3>
+
+                    <div class="state-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>버튼 클릭</strong>
+                            <p><code>handleIncrease</code> 함수가 실행됩니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>state 변경</strong>
+                            <p><code>setCount</code>, <code>setMessage</code>가 호출됩니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>리렌더링</strong>
+                            <p><code>App</code> 컴포넌트가 다시 계산됩니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>Diffing</strong>
+                            <p>이전 Virtual DOM과 새 Virtual DOM을 비교합니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>실제 DOM 반영</strong>
+                            <p>바뀐 숫자와 메시지만 실제 DOM에 반영됩니다.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-card direct-dom-card" id="direct-dom">
+                    <div class="section-title-area">
+                        <span class="section-badge">Direct DOM</span>
+                        <h2>7. 직접 DOM 조작 방식과 React 방식 비교</h2>
+                    </div>
+
+                    <p>
+                        React 앱에서도 <code>document.querySelector()</code>로 DOM을 직접 찾고 바꿀 수는 있습니다.<br/>
+                        하지만 React는 state와 props를 기준으로 UI를 계산하므로,
+                        직접 DOM 조작을 남발하면 React가 알고 있는 상태와 실제 화면이 어긋날 수 있습니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>직접 DOM 조작 방식</h3>
+                            <pre><code>&lt;h1 id="count"&gt;0&lt;/h1&gt;
+&lt;button id="increase"&gt;증가&lt;/button&gt;</code></pre>
+                            <pre><code>let count = 0;
+
+const countText = document.querySelector("#count");
+const increaseButton = document.querySelector("#increase");
+
+increaseButton.addEventListener("click", () =&gt; {
+    count += 1;
+    countText.textContent = count;
+});</code></pre>
+                            <p>
+                                개발자가 직접 DOM을 찾고, 이벤트를 연결하고, 텍스트를 수정합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>React 방식</h3>
+                            <pre><code>import { useState } from "react";
+
+export default function App() {
+    const [count, setCount] = useState(0);
+
+    return (
+        &lt;&gt;
+            &lt;h1&gt;Count: {count}&lt;/h1&gt;
+            &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+                증가
+            &lt;/button&gt;
+        &lt;/&gt;
+    );
+}</code></pre>
+                            <p>
+                                개발자는 state를 바꾸고, React가 화면 반영을 관리합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>React 사고방식</h3>
+                        <pre><code>직접 DOM 조작 방식
+→ 이 DOM을 찾아서 글자를 바꾸자.
+
+React 방식
+→ count state를 바꾸자.
+→ 화면은 count 값을 기준으로 다시 계산된다.</code></pre>
+                    </div>
+
+                    <div class="warning-box">
+                        <h3>직접 DOM 조작을 남발하면 생길 수 있는 문제</h3>
+                        <ul>
+                            <li>React가 알고 있는 state와 실제 DOM 화면이 어긋날 수 있습니다.</li>
+                            <li>다음 렌더링 때 React가 직접 바꾼 DOM을 다시 덮어쓸 수 있습니다.</li>
+                            <li>DOM 변경 이후 발생하는 Reflow/Repaint 비용을 개발자가 직접 관리해야 합니다.</li>
+                            <li>화면이 커질수록 어떤 DOM을 언제 바꿔야 하는지 추적하기 어려워집니다.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="section-card mutation-card" id="mutation">
+                    <div class="section-title-area">
+                        <span class="section-badge">State Mutation</span>
+                        <h2>8. 참조 타입 state와 변경 감지</h2>
+                    </div>
+
+                    <p>
+                        교안에서는 Primitive Type은 값 비교이고,
+                        Reference Type인 배열이나 객체는 주소 비교라고 설명합니다.<br/>
+                        객체나 배열 state의 내부 값만 직접 수정하고 같은 객체를 다시 전달하면
+                        React가 변경을 제대로 감지하지 못할 수 있습니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>잘못된 객체 수정</h3>
+                            <pre><code>const [user, setUser] = useState({
+    name: "Kim",
+    age: 20
+});
+
+function changeName() {
+    user.name = "Lee";
+    setUser(user);
+}</code></pre>
+                            <p>
+                                객체 내부 값은 바뀌었지만 객체 참조가 그대로라<br/>변경 감지가 명확하지 않을 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>새 객체로 업데이트</h3>
+                            <pre><code>function changeName() {
+    setUser({
+        ...user,
+        name: "Lee"
+    });
+}</code></pre>
+                            <p>
+                                기존 객체를 복사하고 바뀐 속성만 덮어쓴 새 객체를 전달합니다.
+                            </p>
+                        </article>
+
+                        <article class="danger-example">
+                            <h3>잘못된 배열 수정</h3>
+                            <pre><code>items.push("새 항목");
+setItems(items);</code></pre>
+                            <p>
+                                기존 배열을 직접 수정하면 참조가 그대로일 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>새 배열로 업데이트</h3>
+                            <pre><code>setItems([
+    ...items,
+    "새 항목"
+]);</code></pre>
+                            <p>
+                                기존 배열을 복사하고 새 항목을 추가한 새 배열을 전달합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원에서는 이렇게만 기억하기</h3>
+                        <p>
+                            React는 state와 props의 변화를 기준으로 새로운 UI를 계산합니다.<br/>
+                            객체와 배열처럼 참조 타입을 다룰 때는 기존 값을 직접 수정하기보다
+                            새 객체나 새 배열을 만들어 전달하는 습관이 중요합니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistakes">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistakes</span>
+                        <h2>9. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. React에서 document.querySelector()로 화면을 계속 바꾸려고 함</strong>
+                            <span>
+                                React에서는 DOM을 직접 찾고 수정하기보다 state를 변경하고,
+                                화면은 state의 결과로 표현하는 방식이 기본입니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 2. DOM API 호출 자체가 무조건 느리다고 외움</strong>
+                            <span>
+                                정확히는 DOM 변경 이후 발생할 수 있는 Reflow, Repaint, Composite 과정이 비용을 만들 수 있습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 3. Reflow와 Repaint를 구분하지 못함</strong>
+                            <span>
+                                Reflow는 위치와 크기를 다시 계산하는 단계이고,
+                                Repaint는 색상, 배경, 그림자 같은 시각 요소를 다시 그리는 단계입니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 4. Virtual DOM을 실제 DOM의 완전한 복제라고 생각함</strong>
+                            <span>
+                                Virtual DOM은 브라우저 DOM 객체를 그대로 하나 더 만든 것이 아니라,
+                                React가 메모리에서 비교하기 위한 가벼운 JavaScript 객체 표현입니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 5. Virtual DOM은 항상 직접 DOM보다 빠르다고 외움</strong>
+                            <span>
+                                Virtual DOM은 무조건 빠른 기술이라기보다,
+                                변경점을 계산하고 실제 DOM 조작을 최소화하는 업데이트 구조입니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 객체나 배열 state를 직접 수정함</strong>
+                            <span>
+                                객체와 배열은 참조 타입이므로 직접 수정하지 말고,
+                                새 객체나 새 배열을 만들어 state를 업데이트하는 것이 좋습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 7. Diffing과 Reconciliation을 같은 말로 생각함</strong>
+                            <span>
+                                Diffing은 차이를 찾는 과정이고,
+                                Reconciliation은 찾은 변경점을 실제 DOM에 반영하는 과정입니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 8. React가 브라우저 렌더링 과정을 없앤다고 생각함</strong>
+                            <span>
+                                React는 Reflow, Repaint, Composite를 없애는 것이 아니라,
+                                불필요한 실제 DOM 조작을 줄여 브라우저 렌더링 부담을 줄이도록 돕습니다.
+                            </span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>10. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. DOM이란 무엇인가요?</h3>
+                            <p>
+                                DOM은 Document Object Model의 약자로,
+                                HTML 문서를 JavaScript가 접근할 수 있도록 객체 트리로 표현한 모델입니다.<br/>
+                                브라우저는 HTML을 읽어 DOM 트리를 만들고,
+                                JavaScript는 DOM API로 이를 조작할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. DOM을 직접 자주 변경하면 왜 성능 문제가 생길 수 있나요?</h3>
+                            <p>
+                                DOM 변경 이후 브라우저가 요소의 위치와 크기를 다시 계산하는 Reflow,
+                                픽셀을 다시 그리는 Repaint, 레이어를 합성하는 Composite를 수행할 수 있기 때문입니다.<br/>
+                                DOM Node가 많고 변경이 잦을수록 이 비용이 커질 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. Reflow와 Repaint의 차이는 무엇인가요?</h3>
+                            <p>
+                                Reflow는 요소의 위치와 크기를 다시 계산하는 과정이고,
+                                Repaint는 계산된 레이아웃을 바탕으로 색상, 배경, 텍스트,
+                                그림자 같은 시각 요소를 다시 그리는 과정입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. Composite는 무엇인가요?</h3>
+                            <p>
+                                Composite는 브라우저가 배경, 텍스트, 이미지, 애니메이션 같은 여러 렌더링 레이어를
+                                합성해서 최종 화면으로 출력하는 단계입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. Virtual DOM은 무엇인가요?</h3>
+                            <p>
+                                Virtual DOM은 실제 DOM의 구조를 메모리 안에 가볍게 표현한 JavaScript 객체입니다.
+                                React는 이를 이용해 변경점을 계산하고 실제 DOM 조작을 최소화합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. Virtual DOM은 왜 사용하나요?</h3>
+                            <p>
+                                실제 DOM을 직접 여러 번 조작하면 Reflow, Repaint 같은 브라우저 렌더링 비용이 반복될 수 있습니다.<br/>
+                                Virtual DOM을 사용하면 변경 내용을 메모리에서 먼저 계산하고,
+                                실제로 바뀐 부분만 DOM에 반영할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. state나 props가 바뀌면 React에서는 어떤 일이 일어나나요?</h3>
+                            <p>
+                                state나 props가 변경되면 React는 컴포넌트를 다시 렌더링하고
+                                새로운 Virtual DOM을 만듭니다.
+                                이후 이전 Virtual DOM과 비교해 변경된 부분만 실제 DOM에 반영합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. Diffing이란 무엇인가요?</h3>
+                            <p>
+                                Diffing은 이전 Virtual DOM과 새로운 Virtual DOM을 비교해
+                                어떤 부분이 바뀌었는지 찾는 과정입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. Reconciliation이란 무엇인가요?</h3>
+                            <p>
+                                Reconciliation은 Diffing 결과를 바탕으로 실제 DOM을 업데이트하는 재조정 과정입니다.<br/>
+                                React는 전체 DOM을 다시 만드는 것이 아니라 변경된 부분만 반영해 DOM 조작을 최소화합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. Batch Update란 무엇인가요?</h3>
+                            <p>
+                                Batch Update는 여러 상태 변경이나 노드 변경을 모아 한 번에 처리하는 방식입니다.
+                                이를 통해 반복적인 실제 DOM 조작을 줄이고 성능을 개선할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q11. Virtual DOM이 항상 실제 DOM보다 빠른가요?</h3>
+                            <p>
+                                항상 그렇다고 말하면 정확하지 않습니다.
+                                Virtual DOM은 변경점을 계산해 실제 DOM 조작을 최소화하는 데 장점이 있습니다.<br/>
+                                특히 상태 변화가 많고 UI가 복잡한 애플리케이션에서 효율적인 업데이트 구조를 제공합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q12. React에서 직접 DOM 조작을 남발하면 왜 좋지 않나요?</h3>
+                            <p>
+                                React는 state와 props를 기준으로 UI를 계산합니다.<br/>
+                                개발자가 직접 DOM을 바꾸면 React가 알고 있는 상태와 실제 화면이 어긋날 수 있고,
+                                다음 렌더링 때 React가 다시 자신의 계산 결과로 화면을 덮어쓸 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q13. 객체나 배열 state를 직접 수정하면 왜 문제가 될 수 있나요?</h3>
+                            <p>
+                                객체와 배열은 참조 타입이라 내부 값만 직접 수정하면 참조가 그대로일 수 있습니다.
+                                React는 변경 감지를 위해 새 객체나 새 배열을 만들어 state를 업데이트하는 방식을 권장합니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>11. 이번 단원 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>반드시 기억할 흐름</h3>
+                        <pre><code>DOM
+→ HTML 문서를 객체 트리로 표현한 것
+
+Reflow
+→ 위치와 크기 다시 계산
+
+Repaint
+→ 색상, 배경, 텍스트 등 시각 요소 다시 그리기
+
+Composite
+→ 여러 레이어를 합성해 최종 화면 출력
+
+Virtual DOM
+→ 실제 DOM의 가벼운 JavaScript 객체 표현
+
+state / props 변경
+→ 새로운 Virtual DOM 생성
+
+Diffing
+→ 이전 Virtual DOM과 새 Virtual DOM 비교
+
+Reconciliation
+→ 변경된 부분만 실제 DOM에 반영
+
+Batch Update
+→ 여러 변경을 묶어서 실제 DOM 조작 최소화</code></pre>
+                    </div>
+
+                    <h3>핵심 체크리스트</h3>
+                    <ul class="check-list">
+                        <li>DOM은 HTML 문서를 브라우저가 객체 트리로 표현한 것입니다.</li>
+                        <li>DOM 변경 이후 브라우저는 Reflow, Repaint, Composite를 다시 수행할 수 있습니다.</li>
+                        <li>Reflow는 요소의 위치와 크기를 다시 계산하는 단계입니다.</li>
+                        <li>Repaint는 색상, 배경, 텍스트, 그림자 같은 시각 요소를 다시 그리는 단계입니다.</li>
+                        <li>Composite는 여러 레이어를 합성해 최종 화면을 출력하는 단계입니다.</li>
+                        <li>Virtual DOM은 실제 DOM을 추상화한 가벼운 JavaScript 객체 표현입니다.</li>
+                        <li>state나 props가 바뀌면 React는 새로운 Virtual DOM을 만듭니다.</li>
+                        <li>Diffing은 이전 Virtual DOM과 새 Virtual DOM을 비교하는 과정입니다.</li>
+                        <li>Reconciliation은 변경된 부분만 실제 DOM에 반영하는 과정입니다.</li>
+                        <li>Batch Update는 여러 변경을 묶어 실제 DOM 조작을 줄이는 방식입니다.</li>
+                        <li>React에서는 DOM을 직접 수정하기보다 state를 바꾸고 UI를 state의 결과로 표현하는 것이 좋습니다.</li>
+                    </ul>
+                </section>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+                    <p>
+                        이번 단원은 React의 성능 최적화 마법을 외우는 단원이 아니라,
+                        브라우저가 화면을 그리는 비용과 React가 그 비용을 줄이기 위해 어떤 구조를 사용하는지 이해하는 단원입니다.<br/>
+                        Virtual DOM은 실제 DOM을 없애는 것이 아니라,
+                        실제 DOM 조작을 줄이기 위한 메모리 속 설계도라고 생각하면 됩니다.
+                    </p>
+
+                    <div class="note-card command-note">
+                        <h3>오늘의 핵심 흐름</h3>
+                        <pre><code>state 변경
+↓
+컴포넌트 리렌더링
+↓
+새 Virtual DOM 생성
+↓
+이전 Virtual DOM과 비교
+↓
+변경점 찾기
+↓
+필요한 부분만 실제 DOM에 반영</code></pre>
+                    </div>
+
+                    <div class="note-card warning-note">
+                        <h3>가장 많이 틀리는 부분</h3>
+                        <p>
+                            Virtual DOM을 “항상 실제 DOM보다 빠른 복사본”이라고 단순하게 외우면 안 됩니다.<br/>
+                            핵심은 실제 DOM 조작을 최소화하고,
+                            state와 props 중심으로 UI 업데이트 흐름을 일관되게 관리하는 데 있습니다.
+                        </p>
+                    </div>
+
+                    <div class="note-card next-note">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원에서는 컴포넌트 설계를 공부합니다.
+                            Virtual DOM은 컴포넌트 단위로 UI를 다시 계산하고 비교하기 때문에,
+                            컴포넌트를 어떻게 나눌지 이해하는 것이 React 화면 구조의 핵심이 됩니다.
+                        </p>
+                        <a href="./07_component_design.html">07. 컴포넌트 설계</a>
+                    </div>
+                </aside>
             </main>
         </div>
     </div>
