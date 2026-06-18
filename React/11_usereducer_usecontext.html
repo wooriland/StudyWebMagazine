@@ -6,64 +6,1290 @@
     <title>React.js With Vite - 11. useReducer와 useContext</title>
 
     <link rel="stylesheet" href="../css/00_nav.css">
+    <link rel="stylesheet" href="../css/study-theme.css">
     <link rel="stylesheet" href="../css/react/11_usereducer_usecontext.css">
 
     <script src="../js/00_nav.js" defer></script>
-    <link rel="stylesheet" href="../css/study-theme.css">
 </head>
 <body class="theme-react study-page react-page react-lesson-page react-lesson-11">
     <div class="layout">
         <nav class="side-nav" id="sideNav"></nav>
 
         <div class="page-content">
-            <main class="study-main react-main">
-                <article class="lesson-card react-lesson-card">
-                    <header class="lesson-hero">
-                        <p class="lesson-kicker">React.js With Vite</p>
-                        <h1>11. useReducer와 useContext</h1>
-                        <p class="lesson-summary">세부 내용은 추후 작성 예정입니다.</p>
-                    </header>
+            <header class="page-header">
+                <p class="chapter-label">React.js With Vite - Chapter 11</p>
+                <h1>useReducer와 useContext</h1>
 
-                    <section class="lesson-section lesson-step lesson-step-1">
-                        <h2>Step 1. 한 단원 공부하기</h2>
-                        <div class="lesson-placeholder">
-                            <p>학습 목표, 먼저 알아야 할 것, 핵심 질문, 교안 요약, 체크포인트를 작성할 영역입니다.</p>
-                        </div>
-                    </section>
+                <p class="chapter-description">
+                    <code>useState</code>가 단순한 상태를 관리하기 좋은 Hook이라면,<br/>
+                    <code>useReducer</code>는 복잡한 상태 변경 로직을 <code>action</code>,
+                    <code>dispatch</code>, <code>reducer</code> 구조로 정리하는 Hook입니다.<br/>
+                    그리고 <code>useContext</code>와 <code>Context API</code>는 여러 컴포넌트가 공유해야 하는 상태와 함수를
+                    props를 여러 단계로 내려보내지 않고 사용할 수 있게 해 줍니다.<br/>
+                    이번 단원에서는 로그인 상태를 예제로 <strong>복잡한 상태 관리</strong>,
+                    <strong>props drilling 해결</strong>, <strong>Provider 범위</strong>,
+                    <strong>중앙 안내 데스크 비유</strong>까지 함께 정리합니다.
+                </p>
 
-                    <section class="lesson-section lesson-step lesson-step-2">
-                        <h2>Step 2. 핵심 개념 정리</h2>
-                        <div class="concept-grid">
-                            <section class="concept-card">
-                                <h3>핵심 개념 설명</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>그림처럼 이해</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>React.js 예제</h3>
-                                <pre><code>// 예제 코드 작성 예정</code></pre>
-                            </section>
-                            <section class="concept-card">
-                                <h3>자주 하는 실수</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>면접 포인트</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                        </div>
-                    </section>
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            복잡한 상태 변경 로직을<br/>
+                            reducer로 분리한다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>핵심 문법</strong>
+                        <span>
+                            <code>useReducer</code>, <code>dispatch</code>,<br/>
+                            <code>action</code>, <code>useContext</code>
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            로그인 상태 → reducer → Provider →<br/>
+                            하위 컴포넌트에서 useContext
+                        </span>
+                    </div>
+                </div>
+            </header>
 
-                    <section class="lesson-section lesson-step lesson-step-3">
-                        <h2>Step 3. HTML 학습 매거진 정리</h2>
-                        <div class="lesson-placeholder">
-                            <p>최종 매거진형 설명을 정리할 영역입니다.</p>
+            <main>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 이번 단원은 무엇을 배우는가?</h2>
+                    </div>
+
+                    <p>
+                        지금까지는 <code>useState</code>를 사용해 카운터, 입력값, 체크박스처럼
+                        비교적 단순한 상태를 관리했습니다.<br/>
+                        하지만 실제 프로젝트에서는 로그인 상태, 사용자 정보, 권한, 에러 메시지,
+                        전역 알림, 장바구니처럼 여러 값이 함께 움직이는 복잡한 상태를 자주 만나게 됩니다.<br/>
+                        이런 상태를 모두 <code>useState</code> 여러 개로 나누어 관리하면
+                        상태 변경 함수가 컴포넌트 곳곳에 흩어질 수 있습니다.<br/>
+                        이때 <code>useReducer</code>를 사용하면 상태 변경 규칙을 <code>reducer</code> 함수에 모아
+                        관리할 수 있습니다.<br/>
+                        또한 여러 컴포넌트가 같은 로그인 상태나 <code>dispatch</code> 함수를 필요로 할 때,
+                        props를 계속 아래로 전달하면 코드가 복잡해집니다.<br/>
+                        이 문제를 줄이기 위해 <code>Context API</code>와 <code>useContext</code>를 사용합니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>useReducer</strong>
+                            <span>
+                                복잡한 상태 변경 로직을<br/>
+                                reducer 함수로 정리합니다.
+                            </span>
                         </div>
-                    </section>
-                </article>
+                        <div>
+                            <strong>dispatch / action</strong>
+                            <span>
+                                action 요청서를 dispatch로 보내<br/>
+                                reducer가 새 state를 만듭니다.
+                            </span>
+                        </div>
+                        <div>
+                            <strong>useContext</strong>
+                            <span>
+                                Provider가 제공한 값을<br/>
+                                하위 컴포넌트가 직접 꺼내 씁니다.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원의 한 줄 정리</h3>
+                        <p>
+                            <strong>
+                                useReducer는 action이라는 요청서를 dispatch로 접수해 reducer가 새 state를 만드는 구조이고,<br/>
+                                useContext는 Provider가 제공한 공통 데이터를 하위 컴포넌트가 props drilling 없이 꺼내 쓰게 해 주는 구조입니다.
+                            </strong>
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card study-card" id="step1">
+                    <div class="section-title-area">
+                        <span class="section-badge">Step 1</span>
+                        <h2>2. 한 단원 공부하기</h2>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="study-table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">오늘의 단원</th>
+                                    <td>useReducer와 useContext</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오늘의 목표</th>
+                                    <td>
+                                        복잡한 상태 변경 로직을 <code>useReducer</code>로 분리하고,<br/>
+                                        <code>Context API</code>와 <code>useContext</code>를 사용해
+                                        여러 컴포넌트가 공유해야 하는 상태와 함수를 props drilling 없이 사용할 수 있습니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">먼저 알아야 할 것</th>
+                                    <td>
+                                        JSX, 함수형 컴포넌트, props와 state, 부모-자식 데이터 흐름,
+                                        <code>useState</code>, 객체 state 업데이트, 이벤트 처리,<br/>
+                                        구조 분해 할당, 전개 연산자 <code>...</code>,
+                                        <code>import</code> / <code>export</code>를 알고 있어야 합니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오늘의 핵심 질문</th>
+                                    <td>
+                                        “여러 컴포넌트가 같은 로그인 상태와 변경 함수를 필요로 할 때,
+                                        props를 계속 아래로 내려보내야 할까?”
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">교안 핵심 요약</th>
+                                    <td>
+                                        <code>useReducer</code>는 <code>useState</code> 외에 상태 정보를 관리하는 Hook →
+                                        복잡한 객체 상태를 관리할 때 유리 →
+                                        상태 변경 로직을 컴포넌트에서 분리할 수 있음 →<br/>
+                                        형식은 <code>const [state, dispatch] = useReducer(reducer, initialState)</code> →
+                                        <code>state</code>는 현재 상태 →
+                                        <code>dispatch</code>는 상태 변경 요청 함수 →<br/>
+                                        <code>reducer</code>는 현재 state와 action을 받아 새로운 state를 반환하는 함수 →
+                                        <code>action</code>은 상태 변경 요청을 표현하는 객체이며 보통 <code>type</code> 속성을 가짐 →<br/>
+                                        단순 primitive 상태는 <code>useState</code>가 유리하고,
+                                        상태 값이 여러 개이며 구조가 복잡하면 <code>useReducer</code>가 유리할 수 있음 →<br/>
+                                        <code>useContext</code>와 Context API는 애플리케이션 상태 정보를 여러 컴포넌트에서 공유하게 해 줌 →
+                                        <code>Context</code>는 데이터를 담는 컨테이너 →<br/>
+                                        <code>Provider</code>는 데이터를 제공하는 컴포넌트 →
+                                        <code>Consumer</code> 또는 <code>useContext</code>는 데이터를 사용하는 하위 컴포넌트 →<br/>
+                                        <code>useReducer</code>와 <code>Context API</code>를 함께 사용하면 props drilling을 줄일 수 있음
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">실습 목표</th>
+                                    <td>
+                                        로그인 상태를 <code>useReducer</code>로 관리하고,
+                                        <code>AuthContext</code>와 <code>AuthProvider</code>를 만들어<br/>
+                                        <code>Header</code>, <code>ProfilePanel</code>, <code>LoginButton</code>,
+                                        <code>LogoutButton</code> 같은 하위 컴포넌트에서
+                                        <code>useContext</code>로 로그인 상태와 <code>dispatch</code>를 사용할 수 있게 합니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">체크포인트</th>
+                                    <td>
+                                        <code>useReducer</code>가 왜 필요한지 설명할 수 있는가?<br/>
+                                        <code>state</code>, <code>dispatch</code>, <code>reducer</code>, <code>action</code>의 역할을 구분할 수 있는가?<br/>
+                                        <code>useState</code>와 <code>useReducer</code> 중 어떤 상황에서 무엇을 선택할지 말할 수 있는가?<br/>
+                                        Context, Provider, Consumer의 역할을 설명할 수 있는가?<br/>
+                                        props drilling이 무엇인지 설명할 수 있는가?<br/>
+                                        Provider 범위 밖에서 <code>useContext</code>를 쓰면 어떤 문제가 생길 수 있는지 이해했는가?<br/>
+                                        <code>useReducer</code>와 <code>useContext</code>를 함께 사용해 로그인 상태를 공유할 수 있는가?
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card reducer-map-card" id="reducer-map">
+                    <div class="section-title-area">
+                        <span class="section-badge">State Map</span>
+                        <h2>3. useReducer와 useContext 한눈에 보기</h2>
+                    </div>
+
+                    <p>
+                        <code>useReducer</code>와 <code>useContext</code>는 서로 다른 문제를 해결합니다.
+                        <code>useReducer</code>는 상태 변경 로직을 정리하고,
+                        <code>useContext</code>는 여러 컴포넌트가 같은 값을 공유하도록 도와줍니다.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">개념</th>
+                                    <th scope="col">역할</th>
+                                    <th scope="col">대표 예</th>
+                                    <th scope="col">주의점</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>useReducer</code></td>
+                                    <td>복잡한 상태 변경 로직 관리</td>
+                                    <td>로그인, 장바구니, 게시판 필터</td>
+                                    <td>단순 state까지 모두 reducer로 만들 필요는 없습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>state</code></td>
+                                    <td>현재 상태값</td>
+                                    <td><code>{ isLogin, user, message }</code></td>
+                                    <td>기존 객체를 직접 수정하지 않습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>action</code></td>
+                                    <td>상태 변경 요청 객체</td>
+                                    <td><code>{ type: "LOGIN", payload: user }</code></td>
+                                    <td><code>type</code> 오타와 <code>payload</code> 구조를 주의합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>dispatch</code></td>
+                                    <td>action을 reducer에게 보내는 함수</td>
+                                    <td><code>dispatch({ type: "LOGOUT" })</code></td>
+                                    <td>직접 state를 바꾸지 않고 dispatch로 요청합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>reducer</code></td>
+                                    <td>현재 state와 action으로 새 state 반환</td>
+                                    <td><code>authReducer(state, action)</code></td>
+                                    <td><code>default</code>에서는 기존 state를 반환해야 합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>Context API</code></td>
+                                    <td>여러 컴포넌트에 공통 값 제공</td>
+                                    <td>로그인 상태, 테마, 전역 알림</td>
+                                    <td>Provider 범위 안에서만 값 사용이 가능합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>useContext</code></td>
+                                    <td>Provider가 제공한 값을 꺼내 사용</td>
+                                    <td><code>const { state } = useAuth()</code></td>
+                                    <td>Provider 밖에서 사용하면 기본값이 반환될 수 있습니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>4. 핵심 개념 설명</h2>
+                    </div>
+
+                    <h3>4-1. useReducer는 복잡한 상태 변경 로직을 정리한다</h3>
+                    <p>
+                        <code>useState</code>는 단순한 상태를 관리할 때 좋습니다.
+                        하지만 상태가 객체이고 변경 방식이 여러 개라면,
+                        상태 변경 함수가 컴포넌트 안에 계속 쌓이게 됩니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>useState가 적합한 경우</h3>
+                            <pre><code>const [count, setCount] = useState(0);
+const [name, setName] = useState("");
+const [isOpen, setIsOpen] = useState(false);</code></pre>
+                            <p>
+                                숫자 하나, 문자열 하나, boolean 하나처럼 단순한 상태는<br/>
+                                <code>useState</code>가 더 간단하고 읽기 쉽습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>useReducer가 적합한 경우</h3>
+                            <pre><code>const [state, dispatch] =
+    useReducer(authReducer, initialState);</code></pre>
+                            <p>
+                                로그인, 로그아웃, 에러 처리, 메시지 변경처럼<br/>
+                                상태 변경 종류가 많으면 <code>useReducer</code>가 유리합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-2. useReducer의 기본 형식</h3>
+
+                    <pre><code>const [state, dispatch] = useReducer(reducer, initialState);</code></pre>
+
+                    <div class="reducer-parts">
+                        <article>
+                            <strong>state</strong>
+                            <span>현재 상태</span>
+                            <p>컴포넌트가 현재 가지고 있는<br/>상태값입니다.</p>
+                        </article>
+                        <article>
+                            <strong>dispatch</strong>
+                            <span>요청 접수 함수</span>
+                            <p>action을 reducer에게 전달하는<br/>함수입니다.</p>
+                        </article>
+                        <article>
+                            <strong>action</strong>
+                            <span>요청 객체</span>
+                            <p>어떤 상태 변경을 원하는지 표현합니다.</p>
+                        </article>
+                        <article>
+                            <strong>reducer</strong>
+                            <span>상태 변경 담당자</span>
+                            <p>현재 state와 action을 받아<br/>새 state를 반환합니다.</p>
+                        </article>
+                    </div>
+
+                    <h3>4-3. action은 상태 변경 요청서다</h3>
+                    <p>
+                        action은 reducer에게 보내는 요청 객체입니다.
+                        보통 <code>type</code>으로 작업 종류를 구분하고,
+                        필요한 추가 데이터는 <code>payload</code>에 담습니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>로그인 요청</h3>
+                            <pre><code>{
+    type: "LOGIN",
+    payload: {
+        id: 1,
+        name: "가길동",
+        role: "USER"
+    }
+}</code></pre>
+                            <p>
+                                로그인에는 사용자 정보가 필요하므로 <code>payload</code>를 함께 전달합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>로그아웃 요청</h3>
+                            <pre><code>{
+    type: "LOGOUT"
+}</code></pre>
+                            <p>
+                                로그아웃은 추가 데이터 없이 상태를 초기화할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-4. dispatch는 action을 reducer에게 보내는 함수다</h3>
+                    <p>
+                        컴포넌트는 state를 직접 수정하지 않습니다.
+                        대신 <code>dispatch</code>로 action을 보내고,
+                        reducer가 그 action에 따라 새 state를 만듭니다.
+                    </p>
+
+                    <pre><code>dispatch({
+    type: "LOGIN",
+    payload: {
+        id: 1,
+        name: "가길동",
+        role: "USER"
+    }
+});</code></pre>
+
+                    <div class="summary-box">
+                        <h3>dispatch 실행 흐름</h3>
+                        <pre><code>사용자 클릭
+↓
+dispatch(action)
+↓
+reducer(currentState, action)
+↓
+newState 반환
+↓
+React가 state 변경 반영
+↓
+컴포넌트 리렌더링</code></pre>
+                    </div>
+
+                    <h3>4-5. reducer는 기존 state를 직접 수정하지 않고 새 state를 반환한다</h3>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>잘못된 예</h3>
+                            <pre><code>function authReducer(state, action) {
+    state.isLogin = true;
+    state.user = action.payload;
+
+    return state;
+}</code></pre>
+                            <p>
+                                기존 state 객체를 직접 수정하면 상태 변경 추적이 어려워질 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>올바른 예</h3>
+                            <pre><code>function authReducer(state, action) {
+    return {
+        ...state,
+        isLogin: true,
+        user: action.payload
+    };
+}</code></pre>
+                            <p>
+                                기존 state를 복사하고 변경할 값만 덮어쓴 새 객체를 반환합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-6. Context API는 공통 데이터를 제공하는 구조다</h3>
+                    <p>
+                        React의 기본 데이터 전달 방식은 props입니다.<br/>
+                        그러나 로그인 상태, 테마, 전역 알림처럼 여러 컴포넌트가 공통으로 사용하는 값은
+                        props만으로 전달하면 중간 컴포넌트가 전달 통로가 될 수 있습니다.
+                    </p>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>Context</strong>
+                            <span>공유 컨테이너</span>
+                            <pre><code>const AuthContext = createContext(null);</code></pre>
+                            <p>공유할 데이터를 담는 컨테이너 역할을 합니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>Provider</strong>
+                            <span>값 제공자</span>
+                            <pre><code>&lt;AuthContext.Provider value={{ state, dispatch }}&gt;
+    {children}
+&lt;/AuthContext.Provider&gt;</code></pre>
+                            <p>하위 컴포넌트에게 Context 값을 제공합니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>useContext</strong>
+                            <span>값 사용자</span>
+                            <pre><code>const { state, dispatch } =
+    useContext(AuthContext);</code></pre>
+                            <p>Provider가 제공한 값을 하위 컴포넌트에서 꺼내 씁니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>props drilling 해결</strong>
+                            <span>중간 전달 감소</span>
+                            <pre><code>const { dispatch } = useAuth();
+
+dispatch({ type: "LOGOUT" });</code></pre>
+                            <p>중간 컴포넌트를 거치지 않고 필요한 컴포넌트가 직접 사용합니다.</p>
+                        </article>
+                    </div>
+
+                    <h3>4-7. useReducer와 useContext를 함께 쓰는 이유</h3>
+                    <p>
+                        <code>useReducer</code>는 상태 변경 로직을 정리합니다.
+                        <code>useContext</code>는 state와 dispatch를 여러 컴포넌트가 공유하도록 도와줍니다.<br/>
+                        둘을 함께 쓰면 로그인 상태처럼 여러 컴포넌트에서 필요한 값을 깔끔하게 관리할 수 있습니다.
+                    </p>
+
+                    <div class="summary-box">
+                        <h3>조합 구조</h3>
+                        <pre><code>AuthProvider
+├─ useReducer로 state와 dispatch 생성
+├─ Context.Provider로 state와 dispatch 제공
+└─ 하위 컴포넌트는 useContext로 필요한 값만 사용</code></pre>
+                    </div>
+                </section>
+
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>5. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>5-1. 중앙 안내 데스크 비유</h3>
+                    <p>
+                        <code>useReducer</code>와 <code>useContext</code>를 함께 쓰는 구조는
+                        건물 안의 중앙 안내 데스크로 비유하면 이해하기 쉽습니다.
+                    </p>
+
+                    <div class="desk-map">
+                        <div>
+                            <strong>Context</strong>
+                            <span>안내 데스크 시스템</span>
+                            <p>공유 데이터를 담는 컨테이너입니다.</p>
+                        </div>
+                        <div>
+                            <strong>Provider</strong>
+                            <span>안내 데스크 설치 구역</span>
+                            <p>이 범위 안에서만 Context 값을 사용할 수 있습니다.</p>
+                        </div>
+                        <div>
+                            <strong>state</strong>
+                            <span>현재 안내 정보</span>
+                            <p>로그인 여부, 사용자 정보, 메시지 같은 현재 상태입니다.</p>
+                        </div>
+                        <div>
+                            <strong>action</strong>
+                            <span>요청서</span>
+                            <p>LOGIN, LOGOUT처럼 상태 변경 요청을 표현합니다.</p>
+                        </div>
+                        <div>
+                            <strong>dispatch</strong>
+                            <span>요청 접수</span>
+                            <p>action 요청서를 reducer에게 전달합니다.</p>
+                        </div>
+                        <div>
+                            <strong>reducer</strong>
+                            <span>처리 담당자</span>
+                            <p>요청서를 보고 규칙대로 새 state를 만듭니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-2. 로그인 상태 변경 흐름</h3>
+
+                    <div class="dispatch-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>버튼 클릭</strong>
+                            <p>사용자가<br/>로그인 버튼을 누릅니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>action 생성</strong>
+                            <p><code>{ type: "LOGIN", payload: user }</code> 요청서를 만듭니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>dispatch</strong>
+                            <p>action을 reducer에게 전달합니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>reducer</strong>
+                            <p>LOGIN 규칙에 따라<br/>새 state를 반환합니다.</p>
+                        </div>
+                        <div>
+                            <span>5</span>
+                            <strong>화면 갱신</strong>
+                            <p>Header와 ProfilePanel이<br/>새 로그인 상태를 보여줍니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-3. props drilling 해결 그림</h3>
+
+                    <div class="before-after-card">
+                        <div>
+                            <span class="mini-label">props만 사용하는 구조</span>
+                            <pre><code>App
+↓ user, onLogout
+Layout
+↓ user, onLogout
+Header
+↓ user, onLogout
+UserMenu
+↓ onLogout
+LogoutButton</code></pre>
+                            <p>
+                                중간 컴포넌트가 실제로 사용하지 않는 props까지 계속 전달해야 합니다.
+                            </p>
+                        </div>
+
+                        <div class="visual-arrow">→</div>
+
+                        <div>
+                            <span class="mini-label">Context 사용하는 구조</span>
+                            <pre><code>AuthProvider
+├─ Layout
+│  └─ Header
+│     └─ UserMenu
+│        └─ LogoutButton
+└─ ProfilePanel
+
+LogoutButton
+→ useAuth()
+→ dispatch 직접 사용</code></pre>
+                            <p>
+                                필요한 컴포넌트가 Provider가 제공한 값을 직접 꺼내 씁니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>5-4. Provider 범위 그림</h3>
+
+                    <div class="provider-scope">
+                        <div class="danger-example">
+                            <strong>잘못된 범위</strong>
+                            <pre><code>&lt;Header /&gt;
+
+&lt;AuthProvider&gt;
+    &lt;ProfilePanel /&gt;
+&lt;/AuthProvider&gt;</code></pre>
+                            <p>
+                                <code>Header</code>는 Provider 밖에 있으므로 AuthContext 값을 사용할 수 없습니다.
+                            </p>
+                        </div>
+
+                        <div>
+                            <strong>올바른 범위</strong>
+                            <pre><code>&lt;AuthProvider&gt;
+    &lt;Header /&gt;
+    &lt;ProfilePanel /&gt;
+&lt;/AuthProvider&gt;</code></pre>
+                            <p>
+                                Context를 사용하는 컴포넌트는 Provider 내부에 있어야 합니다.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">React Example</span>
+                        <h2>6. 로그인 상태와 dispatch 예제</h2>
+                    </div>
+
+                    <p>
+                        아래 예제는 Vite React 프로젝트에서 바로 실행할 수 있는 실습 예제입니다.<br/>
+                        로그인 상태를 <code>useReducer</code>로 관리하고,
+                        <code>AuthProvider</code>가 <code>state</code>와 <code>dispatch</code>를 제공하며,
+                        하위 컴포넌트들이 <code>useAuth()</code>로 필요한 값을 꺼내 사용합니다.
+                    </p>
+
+                    <div class="code-example-group">
+                        <article class="code-example wide-example">
+                            <h3>6-1. 실습 파일 구조</h3>
+                            <pre><code>src/
+├─ context/
+│  └─ AuthContext.jsx
+├─ components/
+│  ├─ Header.jsx
+│  ├─ ProfilePanel.jsx
+│  ├─ LoginButton.jsx
+│  └─ LogoutButton.jsx
+├─ App.jsx
+├─ App.css
+├─ main.jsx
+└─ index.css</code></pre>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-2. src/context/AuthContext.jsx</h3>
+                            <pre><code>import { createContext, useContext, useReducer } from "react";
+
+const AuthContext = createContext(null);
+
+const initialState = {
+    isLogin: false,
+    user: null,
+    message: "로그인이 필요합니다.",
+    error: null
+};
+
+function authReducer(state, action) {
+    switch (action.type) {
+        case "LOGIN":
+            return {
+                ...state,
+                isLogin: true,
+                user: action.payload,
+                message: `${action.payload.name}님, 환영합니다.`,
+                error: null
+            };
+
+        case "LOGOUT":
+            return {
+                ...state,
+                isLogin: false,
+                user: null,
+                message: "로그아웃되었습니다.",
+                error: null
+            };
+
+        case "SET_MESSAGE":
+            return {
+                ...state,
+                message: action.payload
+            };
+
+        case "SET_ERROR":
+            return {
+                ...state,
+                error: action.payload
+            };
+
+        case "CLEAR_ERROR":
+            return {
+                ...state,
+                error: null
+            };
+
+        default:
+            return state;
+    }
+}
+
+export function AuthProvider({ children }) {
+    const [state, dispatch] = useReducer(authReducer, initialState);
+
+    return (
+        &lt;AuthContext.Provider value={{ state, dispatch }}&gt;
+            {children}
+        &lt;/AuthContext.Provider&gt;
+    );
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+
+    if (!context) {
+        throw new Error("useAuth는 AuthProvider 안에서 사용해야 합니다.");
+    }
+
+    return context;
+}</code></pre>
+                            <p>
+                                Context 생성, 초기 상태, reducer, Provider, Custom Hook을 한 파일에 정리합니다.
+                            </p>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-3. src/components/Header.jsx</h3>
+                            <pre><code>import { useAuth } from "../context/AuthContext.jsx";
+
+export default function Header() {
+    const { state } = useAuth();
+
+    return (
+        &lt;header className="app-header"&gt;
+            &lt;p className="chapter-label"&gt;React.js With Vite&lt;/p&gt;
+            &lt;h1&gt;useReducer와 useContext&lt;/h1&gt;
+            &lt;p&gt;{state.message}&lt;/p&gt;
+        &lt;/header&gt;
+    );
+}</code></pre>
+                            <p>
+                                <code>Header</code>는 props를 받지 않고 Context에서 직접 상태를 읽습니다.
+                            </p>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-4. src/components/ProfilePanel.jsx</h3>
+                            <pre><code>import { useAuth } from "../context/AuthContext.jsx";
+
+export default function ProfilePanel() {
+    const { state } = useAuth();
+
+    if (!state.isLogin) {
+        return (
+            &lt;section className="card"&gt;
+                &lt;h2&gt;프로필&lt;/h2&gt;
+                &lt;p&gt;로그인 후 사용자 정보를 확인할 수 있습니다.&lt;/p&gt;
+            &lt;/section&gt;
+        );
+    }
+
+    return (
+        &lt;section className="card"&gt;
+            &lt;h2&gt;프로필&lt;/h2&gt;
+            &lt;p&gt;이름: {state.user.name}&lt;/p&gt;
+            &lt;p&gt;역할: {state.user.role}&lt;/p&gt;
+        &lt;/section&gt;
+    );
+}</code></pre>
+                            <p>
+                                로그인 여부에 따라 다른 화면을 렌더링합니다.
+                            </p>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-5. src/components/LoginButton.jsx</h3>
+                            <pre><code>import { useAuth } from "../context/AuthContext.jsx";
+
+export default function LoginButton() {
+    const { dispatch } = useAuth();
+
+    function handleLogin() {
+        dispatch({
+            type: "LOGIN",
+            payload: {
+                id: 1,
+                name: "가길동",
+                role: "USER"
+            }
+        });
+    }
+
+    return (
+        &lt;button onClick={handleLogin}&gt;
+            로그인
+        &lt;/button&gt;
+    );
+}</code></pre>
+                            <p>
+                                로그인 버튼은 state를 직접 수정하지 않고 <code>dispatch</code>로 LOGIN action을 보냅니다.
+                            </p>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-6. src/components/LogoutButton.jsx</h3>
+                            <pre><code>import { useAuth } from "../context/AuthContext.jsx";
+
+export default function LogoutButton() {
+    const { dispatch } = useAuth();
+
+    function handleLogout() {
+        dispatch({
+            type: "LOGOUT"
+        });
+    }
+
+    return (
+        &lt;button onClick={handleLogout}&gt;
+            로그아웃
+        &lt;/button&gt;
+    );
+}</code></pre>
+                            <p>
+                                로그아웃 버튼도 <code>dispatch</code>로 LOGOUT action을 보냅니다.
+                            </p>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-7. src/App.jsx</h3>
+                            <pre><code>import "./App.css";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import Header from "./components/Header.jsx";
+import ProfilePanel from "./components/ProfilePanel.jsx";
+import LoginButton from "./components/LoginButton.jsx";
+import LogoutButton from "./components/LogoutButton.jsx";
+
+export default function App() {
+    return (
+        &lt;AuthProvider&gt;
+            &lt;main className="app-page"&gt;
+                &lt;Header /&gt;
+
+                &lt;section className="card"&gt;
+                    &lt;h2&gt;로그인 상태 변경&lt;/h2&gt;
+                    &lt;p&gt;
+                        아래 버튼들은 props를 받지 않고,
+                        Context에서 dispatch를 꺼내 상태 변경을 요청합니다.
+                    &lt;/p&gt;
+
+                    &lt;div className="button-group"&gt;
+                        &lt;LoginButton /&gt;
+                        &lt;LogoutButton /&gt;
+                    &lt;/div&gt;
+                &lt;/section&gt;
+
+                &lt;ProfilePanel /&gt;
+            &lt;/main&gt;
+        &lt;/AuthProvider&gt;
+    );
+}</code></pre>
+                            <p>
+                                <code>AuthProvider</code>로 감싼 하위 컴포넌트들은 모두 <code>useAuth()</code>를 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-8. src/App.css</h3>
+                            <pre><code>.app-page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    color: #172033;
+}
+
+.app-header {
+    margin-bottom: 24px;
+    padding: 34px;
+    background: linear-gradient(135deg, #172033, #164e63);
+    color: white;
+    border-radius: 28px;
+}
+
+.chapter-label {
+    display: inline-block;
+    margin: 0 0 12px;
+    padding: 6px 12px;
+    color: #b8f3ff;
+    border: 1px solid rgba(97, 218, 251, 0.5);
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.card {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 26px;
+    background-color: #ffffff;
+    border: 1px solid #d6eaf3;
+    border-radius: 22px;
+    box-shadow: 0 8px 24px rgba(22, 78, 99, 0.08);
+}
+
+.card h2 {
+    margin: 0;
+    color: #164e63;
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+button {
+    width: fit-content;
+    padding: 12px 18px;
+    background-color: #164e63;
+    color: #ecfeff;
+    border: none;
+    border-radius: 999px;
+    font-weight: 800;
+    cursor: pointer;
+}</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>예제에서 확인할 것</h3>
+                        <ul>
+                            <li><code>AuthContext</code>를 <code>createContext</code>로 만들었는가?</li>
+                            <li><code>initialState</code>를 객체로 정의했는가?</li>
+                            <li><code>reducer</code> 함수가 state와 action을 받아 새 state를 반환하는가?</li>
+                            <li><code>LOGIN</code>, <code>LOGOUT</code>, <code>SET_MESSAGE</code>, <code>SET_ERROR</code> action을 구분할 수 있는가?</li>
+                            <li><code>dispatch</code>를 호출해서 reducer에 action을 전달하는가?</li>
+                            <li>reducer 안에서 기존 state를 직접 수정하지 않고 새 객체를 반환하는가?</li>
+                            <li><code>AuthProvider</code>가 <code>useReducer</code>로 state와 dispatch를 만들었는가?</li>
+                            <li><code>AuthProvider</code>가 <code>Context.Provider</code>의 value로 <code>{ state, dispatch }</code>를 제공하는가?</li>
+                            <li><code>Header</code>, <code>ProfilePanel</code>, <code>LoginButton</code>, <code>LogoutButton</code>이 props 없이 <code>useAuth</code>로 값을 꺼내는가?</li>
+                            <li>Provider로 감싸지 않은 컴포넌트에서 <code>useAuth</code>를 쓰면 오류가 발생할 수 있음을 이해했는가?</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistakes">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistakes</span>
+                        <h2>7. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. useReducer를 모든 상태에 사용하려고 함</strong>
+                            <span>
+                                숫자 하나, 문자열 하나, boolean 하나처럼 단순한 상태는
+                                <code>useState</code>가 더 간단합니다.
+                                상태 구조가 복잡하거나 action 종류가 많을 때 <code>useReducer</code>를 고려합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 2. reducer 안에서 state를 직접 수정함</strong>
+                            <span>
+                                <code>state.isLogin = true</code>처럼 직접 수정하지 말고,
+                                <code>{ ...state, isLogin: true }</code>처럼 새 객체를 반환해야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 3. default에서 state를 반환하지 않음</strong>
+                            <span>
+                                알 수 없는 action이 들어왔을 때 <code>undefined</code>가 반환되지 않도록
+                                <code>default: return state</code>를 작성해야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 4. action.type 오타</strong>
+                            <span>
+                                <code>LOGIN</code> 대신 <code>LOGN</code>처럼 오타가 나면 reducer의 case와 매칭되지 않습니다.
+                                프로젝트가 커지면 action type을 상수로 분리할 수 있습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 5. payload 구조를 reducer와 다르게 보냄</strong>
+                            <span>
+                                reducer가 <code>action.payload.name</code>을 기대한다면
+                                payload는 문자열이 아니라 <code>{ name: "가길동" }</code> 같은 객체여야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 6. Provider 범위를 잘못 잡음</strong>
+                            <span>
+                                Context를 사용하는 컴포넌트는 반드시 Provider 내부에 있어야 합니다.
+                                Provider 밖에서 사용하면 기본값이 반환되거나 오류가 발생할 수 있습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 7. Provider의 value를 전달하지 않음</strong>
+                            <span>
+                                <code>&lt;AuthContext.Provider&gt;</code>만 작성하면 공유할 값이 없습니다.
+                                반드시 <code>value={{ state, dispatch }}</code>를 전달해야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 8. useContext 결과가 null일 수 있다는 점을 고려하지 않음</strong>
+                            <span>
+                                기본값을 <code>null</code>로 만들었다면 Provider 밖에서 사용할 때 오류가 날 수 있습니다.
+                                Custom Hook에서 Provider 내부 사용 여부를 검사하면 좋습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 9. Context에 너무 많은 값을 넣음</strong>
+                            <span>
+                                모든 상태를 하나의 거대한 Context에 넣기보다
+                                <code>AuthContext</code>, <code>ThemeContext</code>, <code>ToastContext</code>처럼 역할별로 나누는 것이 좋습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 10. props drilling을 무조건 나쁘다고 생각함</strong>
+                            <span>
+                                1~2단계의 명확한 전달은 props가 더 단순할 수 있습니다.
+                                여러 단계 깊이 전달되거나 여러 컴포넌트가 공통으로 사용하는 값일 때 Context를 고려합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 11. Context가 상태 변경 규칙까지 자동으로 정리한다고 생각함</strong>
+                            <span>
+                                Context는 값을 공유하는 기능입니다.
+                                상태 변경 규칙을 정리하려면 <code>useReducer</code>를 함께 사용하는 것이 좋습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 12. reducer가 너무 많은 일을 함</strong>
+                            <span>
+                                reducer는 새 state를 계산하는 함수로 유지하고,
+                                API 요청, localStorage 저장, alert 같은 side effect는 이벤트 핸들러나 <code>useEffect</code>에서 처리하는 것이 좋습니다.
+                            </span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>8. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. useReducer란 무엇인가요?</h3>
+                            <p>
+                                <code>useReducer</code>는 <code>useState</code>처럼 상태를 관리하는 Hook이지만,
+                                상태 변경 로직을 reducer 함수로 분리할 수 있다는 점이 다릅니다.<br/>
+                                상태가 객체처럼 복잡하거나 변경 action이 여러 개인 경우에 유용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. useReducer의 기본 형식은 무엇인가요?</h3>
+                            <p>
+                                <code>const [state, dispatch] = useReducer(reducer, initialState)</code>입니다.<br/>
+                                <code>state</code>는 현재 상태값, <code>dispatch</code>는 상태 변경 요청 함수,
+                                <code>reducer</code>는 현재 state와 action을 받아 새 state를 반환하는 함수,
+                                <code>initialState</code>는 초기 상태입니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. action이란 무엇인가요?</h3>
+                            <p>
+                                action은 reducer에게 전달하는 상태 변경 요청 객체입니다.
+                                일반적으로 <code>{ type: "LOGIN", payload: user }</code>처럼
+                                <code>type</code>과 <code>payload</code> 형태로 작성합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. dispatch란 무엇인가요?</h3>
+                            <p>
+                                dispatch는 상태 변경을 요청하는 함수입니다.
+                                직접 state를 바꾸는 것이 아니라 action을 dispatch하면
+                                reducer가 그 action에 따라 새로운 state를 계산합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. reducer란 무엇인가요?</h3>
+                            <p>
+                                reducer는 상태 변경 규칙을 모아 둔 함수입니다.
+                                현재 state와 action을 받아 action type에 따라 새 state를 반환합니다.
+                                기존 state를 직접 수정하지 않는 것이 중요합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. useState와 useReducer는 언제 구분해서 사용하나요?</h3>
+                            <p>
+                                단순한 값 하나를 관리할 때는 <code>useState</code>가 간단합니다.<br/>
+                                하지만 로그인 상태처럼 user, error, message 등 여러 값을 함께 관리하고
+                                action 종류가 많다면 <code>useReducer</code>로 변경 로직을 분리하는 것이 좋습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. Context API란 무엇인가요?</h3>
+                            <p>
+                                Context API는 전역적으로 또는 특정 컴포넌트 트리 범위에서 데이터를 공유하기 위한 기능입니다.<br/>
+                                Provider가 값을 제공하고 하위 컴포넌트는 <code>useContext</code>로 그 값을 꺼내 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. Provider는 무엇인가요?</h3>
+                            <p>
+                                Provider는 Context의 값을 제공하는 역할을 합니다.
+                                Provider로 감싼 하위 컴포넌트들은 <code>useContext</code>를 통해
+                                <code>value</code>에 들어 있는 값을 사용할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. useContext는 무엇인가요?</h3>
+                            <p>
+                                <code>useContext</code>는 Context 값을 읽기 위한 Hook입니다.
+                                Provider가 제공한 값을 props 없이 하위 컴포넌트에서 바로 사용할 수 있게 해 줍니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. props drilling이란 무엇인가요?</h3>
+                            <p>
+                                props drilling은 깊은 컴포넌트 구조에서 상위 데이터를 하위 컴포넌트까지 전달하기 위해
+                                중간 컴포넌트들이 props를 계속 넘겨야 하는 문제입니다.<br/>
+                                Context API를 사용하면 이런 전달 과정을 줄일 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q11. useReducer와 useContext를 함께 쓰면 무엇이 좋은가요?</h3>
+                            <p>
+                                <code>useReducer</code>는 상태 변경 로직을 정리하고,
+                                <code>useContext</code>는 그 state와 dispatch를 여러 컴포넌트에서 공유하게 해 줍니다.<br/>
+                                로그인 상태나 테마처럼 여러 컴포넌트가 사용하는 상태를 관리할 때 유용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q12. Provider 범위 밖에서 useContext를 사용하면 어떤 문제가 생기나요?</h3>
+                            <p>
+                                Context를 사용하는 컴포넌트는 해당 Provider 내부에 있어야 합니다.
+                                Provider 밖에서 <code>useContext</code>를 호출하면 기본값이 반환되며,
+                                기본값이 <code>null</code>이면 오류가 날 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q13. Context를 사용하면 props를 아예 쓰지 않아도 되나요?</h3>
+                            <p>
+                                아닙니다. Context는 props를 완전히 대체하는 것이 아니라 props drilling을 줄이기 위한 도구입니다.<br/>
+                                가까운 컴포넌트 사이의 데이터 전달은 props가 더 명확할 수 있고,
+                                여러 컴포넌트가 공통으로 쓰는 값은 Context가 적합합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q14. reducer 안에서 API 요청을 해도 되나요?</h3>
+                            <p>
+                                일반적으로 reducer는 현재 state와 action을 받아 새 state를 반환하는 상태 변경 함수로 유지하는 것이 좋습니다.<br/>
+                                API 요청, localStorage 저장, alert 같은 side effect는 이벤트 핸들러나 <code>useEffect</code>에서 처리하는 것이 좋습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>9. 이번 단원 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>반드시 기억할 구분</h3>
+                        <pre><code>useReducer
+→ 복잡한 상태 관리
+→ 상태 변경 로직 분리
+→ const [state, dispatch] = useReducer(reducer, initialState)
+
+state
+→ 현재 상태
+
+dispatch
+→ 상태 변경 요청 함수
+→ action을 reducer에 전달
+
+action
+→ 상태 변경 요청 객체
+→ 보통 { type, payload } 형태
+
+reducer
+→ 현재 state와 action을 받아 새 state 반환
+→ 기존 state 직접 수정 금지
+
+useContext
+→ Context 값을 꺼내 쓰는 Hook
+
+Context
+→ 공유 데이터를 담는 컨테이너
+
+Provider
+→ 하위 컴포넌트에게 Context 값을 제공
+
+props drilling
+→ 중간 컴포넌트가 전달만을 위해 props를 계속 넘기는 상황
+
+useReducer + useContext
+→ 복잡한 상태 변경 로직은 reducer로 정리
+→ state와 dispatch는 Provider로 제공
+→ 하위 컴포넌트는 useContext로 필요한 값만 사용</code></pre>
+                    </div>
+
+                    <h3>핵심 체크리스트</h3>
+                    <ul class="check-list">
+                        <li><code>useReducer</code>는 복잡한 상태 변경 로직을 정리할 때 사용합니다.</li>
+                        <li><code>state</code>는 현재 상태값입니다.</li>
+                        <li><code>action</code>은 상태 변경 요청 객체입니다.</li>
+                        <li><code>dispatch</code>는 action을 reducer에게 전달하는 함수입니다.</li>
+                        <li><code>reducer</code>는 현재 state와 action을 받아 새 state를 반환합니다.</li>
+                        <li>reducer는 기존 state를 직접 수정하지 않고 새 객체를 반환해야 합니다.</li>
+                        <li>단순한 상태는 <code>useState</code>, 복잡한 상태 변경은 <code>useReducer</code>를 고려합니다.</li>
+                        <li>Context는 공유 데이터를 담는 컨테이너입니다.</li>
+                        <li>Provider는 하위 컴포넌트에게 Context 값을 제공합니다.</li>
+                        <li><code>useContext</code>는 Provider가 제공한 값을 꺼내 쓰는 Hook입니다.</li>
+                        <li>Context를 사용하는 컴포넌트는 Provider 내부에 있어야 합니다.</li>
+                        <li><code>useReducer + useContext</code> 조합은 props drilling을 줄이는 데 도움이 됩니다.</li>
+                    </ul>
+                </section>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+                    <p>
+                        이번 단원은 상태 관리가 단순한 컴포넌트 내부를 넘어,
+                        여러 컴포넌트가 함께 사용하는 구조로 확장되는 단계입니다.<br/>
+                        <code>useReducer</code>는 상태 변경 규칙을 정리하고,
+                        <code>useContext</code>는 Provider가 제공한 공통 데이터를 하위 컴포넌트가 바로 사용하게 해 줍니다.
+                    </p>
+
+                    <div class="note-card command-note">
+                        <h3>오늘의 핵심 문법</h3>
+                        <pre><code>const [state, dispatch] = useReducer(reducer, initialState);
+
+dispatch({
+    type: "LOGIN",
+    payload: user
+});
+
+&lt;AuthContext.Provider value={{ state, dispatch }}&gt;
+    {children}
+&lt;/AuthContext.Provider&gt;
+
+const { state, dispatch } = useContext(AuthContext);</code></pre>
+                    </div>
+
+                    <div class="note-card warning-note">
+                        <h3>가장 많이 틀리는 부분</h3>
+                        <p>
+                            reducer 안에서 기존 state를 직접 수정하거나,
+                            Provider 범위 밖에서 <code>useContext</code>를 사용하는 실수가 많습니다.<br/>
+                            reducer는 새 state를 반환해야 하고, Context를 사용하는 컴포넌트는 반드시 Provider 내부에 있어야 합니다.
+                        </p>
+                    </div>
+
+                    <div class="note-card next-note">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원에서는 최적화와 Custom Hook을 공부합니다.<br/>
+                            <code>useReducer</code>와 <code>useContext</code>로 상태 구조를 정리했다면,
+                            다음 단계에서는 불필요한 렌더링을 줄이고 반복되는 Hook 로직을 Custom Hook으로 분리하는 방법을 배웁니다.
+                        </p>
+                        <a href="./12_optimization_custom_hook.html">12. 최적화와 Custom Hook</a>
+                    </div>
+                </aside>
             </main>
         </div>
     </div>

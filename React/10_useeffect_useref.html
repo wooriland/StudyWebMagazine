@@ -6,64 +6,1155 @@
     <title>React.js With Vite - 10. useEffect와 useRef</title>
 
     <link rel="stylesheet" href="../css/00_nav.css">
+    <link rel="stylesheet" href="../css/study-theme.css">
     <link rel="stylesheet" href="../css/react/10_useeffect_useref.css">
 
     <script src="../js/00_nav.js" defer></script>
-    <link rel="stylesheet" href="../css/study-theme.css">
 </head>
 <body class="theme-react study-page react-page react-lesson-page react-lesson-10">
     <div class="layout">
         <nav class="side-nav" id="sideNav"></nav>
 
         <div class="page-content">
-            <main class="study-main react-main">
-                <article class="lesson-card react-lesson-card">
-                    <header class="lesson-hero">
-                        <p class="lesson-kicker">React.js With Vite</p>
-                        <h1>10. useEffect와 useRef</h1>
-                        <p class="lesson-summary">세부 내용은 추후 작성 예정입니다.</p>
-                    </header>
+            <header class="page-header">
+                <p class="chapter-label">React.js With Vite - Chapter 10</p>
+                <h1>useEffect와 useRef</h1>
 
-                    <section class="lesson-section lesson-step lesson-step-1">
-                        <h2>Step 1. 한 단원 공부하기</h2>
-                        <div class="lesson-placeholder">
-                            <p>학습 목표, 먼저 알아야 할 것, 핵심 질문, 교안 요약, 체크포인트를 작성할 영역입니다.</p>
-                        </div>
-                    </section>
+                <p class="chapter-description">
+                    <code>useState</code>가 값을 기억하고 화면을 다시 렌더링하게 하는 Hook이었다면,
+                    <code>useEffect</code>는 렌더링 이후 실행해야 하는 부가 작업을 처리하는 Hook입니다.<br/>
+                    이번 단원에서는 <code>useEffect</code>의 실행 시점, <code>dependency array</code>,
+                    <code>cleanup</code> 함수, 무한 루프 주의점을 학습하고,<br/>
+                    <code>useRef</code>로 DOM 요소에 접근하거나 리렌더링과 관계없는 값을 유지하는 방법을 정리합니다.<br/>
+                    대표 실습은 <strong>document.title 변경</strong>, <strong>타이머와 cleanup</strong>,
+                    <strong>input focus</strong>, <strong>ref로 렌더링 횟수 저장</strong>입니다.
+                </p>
 
-                    <section class="lesson-section lesson-step lesson-step-2">
-                        <h2>Step 2. 핵심 개념 정리</h2>
-                        <div class="concept-grid">
-                            <section class="concept-card">
-                                <h3>핵심 개념 설명</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>그림처럼 이해</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>React.js 예제</h3>
-                                <pre><code>// 예제 코드 작성 예정</code></pre>
-                            </section>
-                            <section class="concept-card">
-                                <h3>자주 하는 실수</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                            <section class="concept-card">
-                                <h3>면접 포인트</h3>
-                                <p>내용 작성 예정</p>
-                            </section>
-                        </div>
-                    </section>
+                <div class="header-summary">
+                    <div class="summary-item">
+                        <strong>학습 목표</strong>
+                        <span>
+                            렌더링 이후 작업과 정리 작업을<br/>
+                            Hook으로 안전하게 처리한다.
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>핵심 문법</strong>
+                        <span>
+                            <code>useEffect</code>, <code>[]</code>, <code>[count]</code>,<br/>
+                            <code>return cleanup</code>, <code>useRef</code>
+                        </span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>실습 방향</strong>
+                        <span>
+                            문서 제목 변경 → 타이머 cleanup →<br/>
+                            input focus → ref 값 저장
+                        </span>
+                    </div>
+                </div>
+            </header>
 
-                    <section class="lesson-section lesson-step lesson-step-3">
-                        <h2>Step 3. HTML 학습 매거진 정리</h2>
-                        <div class="lesson-placeholder">
-                            <p>최종 매거진형 설명을 정리할 영역입니다.</p>
+            <main>
+                <section class="section-card intro-card" id="intro">
+                    <div class="section-title-area">
+                        <span class="section-badge">Overview</span>
+                        <h2>1. 이번 단원은 무엇을 배우는가?</h2>
+                    </div>
+
+                    <p>
+                        React 컴포넌트의 기본 역할은 현재 state와 props를 기준으로 JSX를 반환하는 것입니다.
+                        하지만 실제 앱에서는 JSX를 반환하는 것만으로 끝나지 않습니다.<br/>
+                        화면이 렌더링된 뒤 문서 제목을 바꾸거나, 서버에 데이터를 요청하거나,
+                        타이머를 시작하거나, input에 focus를 주는 일이 필요합니다.<br/>
+                        이런 작업은 렌더링 과정 안에서 직접 처리하기보다 <code>useEffect</code>로 분리하는 것이 좋습니다.<br/>
+                        또한 DOM 요소를 직접 가리키거나, 타이머 ID처럼 화면에는 표시하지 않지만 컴포넌트 생애 동안
+                        유지해야 하는 값은 <code>useRef</code>로 관리할 수 있습니다.
+                    </p>
+
+                    <div class="concept-flow">
+                        <div>
+                            <strong>useEffect</strong>
+                            <span>
+                                렌더링 이후 실행할
+                                부가 작업을 처리합니다.
+                            </span>
                         </div>
-                    </section>
-                </article>
+                        <div>
+                            <strong>cleanup</strong>
+                            <span>
+                                타이머, 이벤트 리스너 같은
+                                등록 작업을 정리합니다.
+                            </span>
+                        </div>
+                        <div>
+                            <strong>useRef</strong>
+                            <span>
+                                DOM 요소나 리렌더링 없는 값을
+                                책갈피처럼 기억합니다.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>이번 단원의 한 줄 정리</h3>
+                        <p>
+                            <strong>
+                                useEffect는 렌더링 후 울리는 알람이고, cleanup은 알람을 끄고 정리하는 작업이며,
+                                useRef는 DOM 요소나 리렌더링 없는 값을 가리키는 책갈피입니다.
+                            </strong>
+                        </p>
+                    </div>
+                </section>
+
+                <section class="section-card study-card" id="step1">
+                    <div class="section-title-area">
+                        <span class="section-badge">Step 1</span>
+                        <h2>2. 한 단원 공부하기</h2>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="study-table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">오늘의 단원</th>
+                                    <td>useEffect와 useRef</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오늘의 목표</th>
+                                    <td>
+                                        렌더링 이후 실행해야 하는 작업을 <code>useEffect</code>로 처리하고,
+                                        cleanup 함수로 정리 작업을 수행하며,<br/>
+                                        <code>useRef</code>로 DOM 요소에 접근하거나 리렌더링과 관계없는 값을 유지할 수 있습니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">먼저 알아야 할 것</th>
+                                    <td>
+                                        JSX, 함수형 컴포넌트, 컴포넌트 생명주기 개념,
+                                        <code>useState</code>, state 변경 시 리렌더링,
+                                        props, 이벤트 처리,<br/><code>setInterval</code>, <code>setTimeout</code>,
+                                        DOM 요소, <code>input.focus()</code>를 알고 있어야 합니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오늘의 핵심 질문</th>
+                                    <td>
+                                        “화면이 렌더링된 뒤에 타이머를 시작하거나 input에 focus를 주려면
+                                        React에서는 어디에 작성해야 할까?”
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">교안 핵심 요약</th>
+                                    <td>
+                                        Hook은 함수형 컴포넌트에서 React 기능을 사용할 수 있게 해 줌 →<br/>
+                                        <code>useEffect</code>는 함수형 컴포넌트에서 컴포넌트의 Life Cycle에 따른
+                                        부가 작업을 처리하는 Hook →
+                                        Mount, Update, Unmount 시점과 연결됨 →<br/>
+                                        <code>useEffect(() =&gt; {})</code>는 Mount와 Update 후 실행 →
+                                        <code>useEffect(() =&gt; {}, [의존성 배열])</code>은 Mount 후와 의존성 배열 값 변경 시 실행 →<br/>
+                                        빈 배열 <code>[]</code>은 Mount 시 한 번만 실행 →
+                                        effect 콜백 안에서 사용하는 state나 props는 의존성 배열에 넣어야 최신 값을 보장할 수 있음 →<br/>
+                                        cleanup 함수는 <code>useEffect(() =&gt; { return () =&gt; {} })</code> 형태로 반환 →
+                                        cleanup은 Unmount 시 또는 다음 effect 실행 전에 호출 →<br/>
+                                        타이머, 이벤트 리스너, 네트워크 요청 정리에 사용 →
+                                        effect 안에서 의존성 배열에 포함된 state를 계속 변경하면 무한 루프가 발생할 수 있음 →<br/>
+                                        지역변수는 의존성 배열에 넣어도 React가 변화를 추적할 수 없어 의미가 없음 →<br/>
+                                        <code>useRef</code>는 DOM 요소 접근 또는 렌더링과 관계없는 값을 저장할 때 사용 →
+                                        <code>const ref = useRef(기본값)</code> 형태 →<br/>
+                                        반환값은 <code>{ current: 기본값 }</code> 형태 →
+                                        <code>ref.current</code>로 DOM 요소나 저장값에 접근 →<br/>
+                                        ref 값은 컴포넌트 생애 주기 동안 유지되며, 변경해도 리렌더링이 발생하지 않음
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">실습 목표</th>
+                                    <td>
+                                        <code>useEffect</code>로 문서 제목 변경,
+                                        타이머 시작과 cleanup 처리,
+                                        <code>useRef</code>로 input focus 주기,
+                                        ref로 렌더링 횟수나 타이머 ID를 저장하는 예제를 만듭니다.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">체크포인트</th>
+                                    <td>
+                                        <code>useEffect</code>가 언제 실행되는지 설명할 수 있는가?<br/>
+                                        의존성 배열이 없을 때, 빈 배열일 때, 값이 들어 있을 때의 차이를 말할 수 있는가?<br/>
+                                        cleanup 함수가 왜 필요한지 설명할 수 있는가?<br/>
+                                        effect 안에서 state를 변경할 때 무한 루프가 생기는 조건을 이해했는가?<br/>
+                                        <code>useRef</code>가 반환하는 객체 구조를 설명할 수 있는가?<br/>
+                                        <code>useRef</code>와 <code>useState</code>의 차이를 말할 수 있는가?<br/>
+                                        input focus를 <code>useRef</code>로 구현할 수 있는가?
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card effect-map-card" id="effect-map">
+                    <div class="section-title-area">
+                        <span class="section-badge">Effect Map</span>
+                        <h2>3. useEffect와 useRef 한눈에 보기</h2>
+                    </div>
+
+                    <p>
+                        <code>useEffect</code>와 <code>useRef</code>는 모두 함수형 컴포넌트에서 사용하는 Hook이지만,
+                        해결하는 문제가 다릅니다.
+                    </p>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">개념</th>
+                                    <th scope="col">역할</th>
+                                    <th scope="col">대표 사용 예</th>
+                                    <th scope="col">주의점</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>useEffect</code></td>
+                                    <td>렌더링 이후 부가 작업 실행</td>
+                                    <td>문서 제목 변경, 데이터 요청, 타이머 등록</td>
+                                    <td>의존성 배열을 정확히 작성해야 합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>의존성 배열 없음</td>
+                                    <td>렌더링 후 매번 effect 실행</td>
+                                    <td>렌더링 로그 확인</td>
+                                    <td>서버 요청이나 타이머 등록을 넣으면 과도하게 실행될 수 있습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[]</code></td>
+                                    <td>Mount 후 한 번만 실행</td>
+                                    <td>초기 데이터 요청, 초기 focus,<br/>초기 타이머 등록</td>
+                                    <td>effect 안에서 사용하는 state나 props가 바뀌어도 다시 실행되지 않습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>[count]</code></td>
+                                    <td>Mount 후 실행 + count 변경 시 실행</td>
+                                    <td>count에 따라 document.title 변경</td>
+                                    <td>effect 안에서 count를 계속 변경하면 무한 루프가 될 수 있습니다.</td>
+                                </tr>
+                                <tr>
+                                    <td>cleanup</td>
+                                    <td>등록한 작업 정리</td>
+                                    <td>clearInterval, removeEventListener</td>
+                                    <td>타이머와 이벤트 리스너는 등록했으면 정리해야 합니다.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>useRef</code></td>
+                                    <td>DOM 접근 또는 리렌더링 없는 값 저장</td>
+                                    <td>input focus, timer ID 저장, 이전 값 저장</td>
+                                    <td><code>ref.current</code> 변경은 리렌더링을 발생시키지 않습니다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card concept-card" id="concept">
+                    <div class="section-title-area">
+                        <span class="section-badge">Concept Card</span>
+                        <h2>4. 핵심 개념 설명</h2>
+                    </div>
+
+                    <h3>4-1. useEffect는 렌더링 이후 실행할 부가 작업을 담당한다</h3>
+                    <p>
+                        React 컴포넌트의 렌더링은 JSX를 계산하는 과정입니다.
+                        하지만 문서 제목 변경, 서버 요청, 타이머 등록, 이벤트 리스너 등록, localStorage 접근 같은 작업은
+                        JSX를 계산하는 일과 다릅니다.<br/>
+                        이런 작업은 렌더링 이후에 실행되는 부가 작업이므로 <code>useEffect</code>에서 처리합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>권장하지 않는 방향</h3>
+                            <pre><code>export default function App() {
+    document.title = "App";
+
+    return &lt;h1&gt;App&lt;/h1&gt;;
+}</code></pre>
+                            <p>
+                                렌더링 중 외부 작업을 직접 실행하는 습관은 좋지 않습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>useEffect 사용</h3>
+                            <pre><code>useEffect(() =&gt; {
+    document.title = "App";
+}, []);</code></pre>
+                            <p>
+                                렌더링 이후 실행할 작업을 effect로 분리합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-2. useEffect의 세 가지 실행 패턴</h3>
+
+                    <div class="principle-grid">
+                        <article>
+                            <strong>의존성 배열 없음</strong>
+                            <span>매 렌더링 후 실행</span>
+                            <pre><code>useEffect(() =&gt; {
+    console.log("매번 실행");
+});</code></pre>
+                            <p>
+                                Mount 후에도 실행되고, Update 후에도 실행됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>빈 배열 []</strong>
+                            <span>처음 한 번 실행</span>
+                            <pre><code>useEffect(() =&gt; {
+    console.log("처음 한 번");
+}, []);</code></pre>
+                            <p>
+                                컴포넌트가 처음 화면에 나타난 뒤 한 번만 실행됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>값이 있는 배열</strong>
+                            <span>값 변경 시 실행</span>
+                            <pre><code>useEffect(() =&gt; {
+    document.title = `count: ${count}`;
+}, [count]);</code></pre>
+                            <p>
+                                처음 실행되고, 이후 <code>count</code>가 바뀔 때마다 실행됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>cleanup 포함</strong>
+                            <span>정리 작업</span>
+                            <pre><code>useEffect(() =&gt; {
+    const id = setInterval(() =&gt; {}, 1000);
+
+    return () =&gt; clearInterval(id);
+}, []);</code></pre>
+                            <p>
+                                Unmount 시 또는 다음 effect 실행 전에 정리합니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-3. 의존성 배열은 effect의 실행 조건이다</h3>
+                    <p>
+                        의존성 배열은 effect가 다시 실행되어야 하는 기준값 목록입니다.
+                        effect 안에서 사용하는 state나 props가 있고, 그 값이 바뀔 때 effect도 다시 실행되어야 한다면
+                        의존성 배열에 넣어야 합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article class="danger-example">
+                            <h3>의존성 누락</h3>
+                            <pre><code>useEffect(() =&gt; {
+    document.title = `count: ${count}`;
+}, []);</code></pre>
+                            <p>
+                                처음 한 번만 실행되므로 <code>count</code>가 바뀌어도 최신 값이 반영되지 않습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>의존성 포함</h3>
+                            <pre><code>useEffect(() =&gt; {
+    document.title = `count: ${count}`;
+}, [count]);</code></pre>
+                            <p>
+                                <code>count</code>가 바뀔 때마다 effect가 다시 실행됩니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>의존성 배열 판단 공식</h3>
+                        <pre><code>effect 안에서 state나 props를 사용한다.
+↓
+그 값이 바뀔 때 effect도 다시 실행되어야 한다.
+↓
+의존성 배열에 그 값을 넣는다.</code></pre>
+                    </div>
+
+                    <h3>4-4. cleanup 함수는 등록한 작업을 정리한다</h3>
+                    <p>
+                        타이머, 이벤트 리스너, 구독 작업처럼 “등록하는 작업”은 나중에 정리해야 합니다.
+                        <code>useEffect</code>에서 함수를 반환하면 그 함수가 cleanup 함수가 됩니다.
+                    </p>
+
+                    <pre><code>useEffect(() =&gt; {
+    const timerId = setInterval(() =&gt; {
+        console.log("timer");
+    }, 1000);
+
+    return () =&gt; {
+        clearInterval(timerId);
+    };
+}, []);</code></pre>
+
+                    <p>
+                        cleanup은 컴포넌트가 화면에서 사라질 때 또는 다음 effect가 실행되기 전에 호출됩니다.
+                        타이머를 정리하지 않으면 컴포넌트가 사라져도 타이머가 계속 실행될 수 있습니다.
+                    </p>
+
+                    <h3>4-5. useEffect에서 무한 루프가 생기는 경우</h3>
+                    <p>
+                        effect 안에서 의존성 배열에 포함된 state를 조건 없이 계속 변경하면 무한 루프가 생길 수 있습니다.
+                    </p>
+
+                    <pre><code>const [count, setCount] = useState(0);
+
+useEffect(() =&gt; {
+    setCount(count + 1);
+}, [count]);</code></pre>
+
+                    <div class="warning-box">
+                        <h3>무한 루프 흐름</h3>
+                        <pre><code>count 변경
+↓
+useEffect 실행
+↓
+setCount(count + 1)
+↓
+count 변경
+↓
+리렌더링
+↓
+useEffect 다시 실행
+↓
+반복</code></pre>
+                    </div>
+
+                    <h3>4-6. useRef는 DOM 요소나 렌더링과 관계없는 값을 기억한다</h3>
+                    <p>
+                        <code>useRef</code>는 DOM 요소에 직접 접근하거나,
+                        값은 기억해야 하지만 그 값이 바뀐다고 화면을 다시 그릴 필요는 없을 때 사용합니다.
+                    </p>
+
+                    <div class="compare-grid">
+                        <article>
+                            <h3>DOM 요소 접근</h3>
+                            <pre><code>const inputRef = useRef(null);
+
+&lt;input ref={inputRef} /&gt;
+
+inputRef.current.focus();</code></pre>
+                            <p>
+                                <code>inputRef.current</code>가 실제 input DOM 요소를 가리킵니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>렌더링 없는 값 저장</h3>
+                            <pre><code>const timerIdRef = useRef(null);
+
+timerIdRef.current = setInterval(() =&gt; {
+    console.log("timer");
+}, 1000);</code></pre>
+                            <p>
+                                타이머 ID처럼 화면에 표시하지 않는 값을 저장하기 좋습니다.
+                            </p>
+                        </article>
+                    </div>
+
+                    <h3>4-7. useState와 useRef의 차이</h3>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">구분</th>
+                                    <th scope="col">useState</th>
+                                    <th scope="col">useRef</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>목적</td>
+                                    <td>화면에 반영되는 변하는 값 관리</td>
+                                    <td>DOM 접근 또는 리렌더링과 관계없는 값 저장</td>
+                                </tr>
+                                <tr>
+                                    <td>값 저장 위치</td>
+                                    <td>state 값</td>
+                                    <td><code>ref.current</code></td>
+                                </tr>
+                                <tr>
+                                    <td>값 변경 방식</td>
+                                    <td><code>setState()</code> 호출</td>
+                                    <td><code>ref.current = 값</code></td>
+                                </tr>
+                                <tr>
+                                    <td>변경 시 리렌더링</td>
+                                    <td>발생함</td>
+                                    <td>발생하지 않음</td>
+                                </tr>
+                                <tr>
+                                    <td>대표 예</td>
+                                    <td>카운트, 입력값, 열림/닫힘</td>
+                                    <td>input focus, timer ID, 이전 값, 렌더링 횟수</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section-card visual-card" id="visual">
+                    <div class="section-title-area">
+                        <span class="section-badge">Visual</span>
+                        <h2>5. 그림처럼 이해하기</h2>
+                    </div>
+
+                    <h3>5-1. useEffect는 렌더링 후 울리는 알람이다</h3>
+                    <p>
+                        <code>useEffect</code>는 “렌더링이 끝난 뒤 울리는 알람”처럼 생각하면 쉽습니다.
+                        화면이 만들어진 뒤 해야 할 일을 예약하고, 조건이 맞으면 알람처럼 실행합니다.
+                    </p>
+
+                    <div class="alarm-map">
+                        <div>
+                            <strong>렌더링</strong>
+                            <span>화면 만들기</span>
+                            <p>React가 JSX를 계산하고<br/>화면을 반영합니다.</p>
+                        </div>
+                        <div>
+                            <strong>useEffect</strong>
+                            <span>렌더링 후 알람</span>
+                            <p>화면이 반영된 뒤<br/>추가 작업을 실행합니다.</p>
+                        </div>
+                        <div>
+                            <strong>의존성 배열</strong>
+                            <span>알람 조건표</span>
+                            <p>어떤 값이 바뀔 때<br/>알람이 울릴지 정합니다.</p>
+                        </div>
+                        <div>
+                            <strong>cleanup</strong>
+                            <span>알람 끄기</span>
+                            <p>타이머나 이벤트 리스너를 정리합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-2. 의존성 배열은 알람 조건표다</h3>
+
+                    <div class="dependency-grid">
+                        <div>
+                            <strong>조건표 없음</strong>
+                            <pre><code>useEffect(() =&gt; {})</code></pre>
+                            <p>렌더링될 때마다 알람이 울립니다.</p>
+                        </div>
+                        <div>
+                            <strong>빈 조건표</strong>
+                            <pre><code>useEffect(() =&gt; {}, [])</code></pre>
+                            <p>처음 한 번만 알람이 울립니다.</p>
+                        </div>
+                        <div>
+                            <strong>count 조건</strong>
+                            <pre><code>useEffect(() =&gt; {}, [count])</code></pre>
+                            <p><code>count</code>가 바뀔 때 알람이 울립니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-3. cleanup은 방을 나가기 전 정리다</h3>
+
+                    <div class="cleanup-flow">
+                        <div>
+                            <span>1</span>
+                            <strong>Mount</strong>
+                            <p>컴포넌트가 화면에 나타납니다.</p>
+                        </div>
+                        <div>
+                            <span>2</span>
+                            <strong>작업 등록</strong>
+                            <p>타이머나 이벤트 리스너를 등록합니다.</p>
+                        </div>
+                        <div>
+                            <span>3</span>
+                            <strong>Update / Unmount</strong>
+                            <p>다음 effect 실행 전 또는 화면에서 사라지는 시점이 옵니다.</p>
+                        </div>
+                        <div>
+                            <span>4</span>
+                            <strong>cleanup</strong>
+                            <p>등록한 타이머나 이벤트 리스너를 정리합니다.</p>
+                        </div>
+                    </div>
+
+                    <h3>5-4. useRef는 책갈피다</h3>
+                    <p>
+                        책을 읽다가 중요한 페이지에 책갈피를 꽂으면 나중에 그 위치를 바로 찾을 수 있습니다.
+                        React에서도 특정 DOM 요소에 ref라는 책갈피를 꽂아두면, 나중에 <code>ref.current</code>로 접근할 수 있습니다.
+                    </p>
+
+                    <div class="bookmark-map">
+                        <div>
+                            <strong>ref 객체 생성</strong>
+                            <span>책갈피 만들기</span>
+                            <pre><code>const inputRef = useRef(null);</code></pre>
+                        </div>
+                        <div>
+                            <strong>DOM에 연결</strong>
+                            <span>책갈피 꽂기</span>
+                            <pre><code>&lt;input ref={inputRef} /&gt;</code></pre>
+                        </div>
+                        <div>
+                            <strong>DOM 접근</strong>
+                            <span>책갈피 위치 찾기</span>
+                            <pre><code>inputRef.current.focus();</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-card practice-card" id="practice">
+                    <div class="section-title-area">
+                        <span class="section-badge">React Example</span>
+                        <h2>6. 타이머와 input focus 예제</h2>
+                    </div>
+
+                    <p>
+                        아래 예제는 Vite React 프로젝트에서 바로 실행할 수 있는 실습 예제입니다.
+                        <code>useEffect</code>로 렌더링 이후 작업을 실행하고,
+                        cleanup으로 타이머를 정리하며,
+                        <code>useRef</code>로 input DOM에 접근합니다.
+                    </p>
+
+                    <div class="code-example-group">
+                        <article class="code-example wide-example">
+                            <h3>6-1. 실습 파일 구조</h3>
+                            <pre><code>src/
+├─ App.jsx
+├─ App.css
+├─ main.jsx
+└─ index.css</code></pre>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-2. src/App.jsx</h3>
+                            <pre><code>import { useEffect, useRef, useState } from "react";
+import "./App.css";
+
+export default function App() {
+    const [count, setCount] = useState(0);
+    const [seconds, setSeconds] = useState(0);
+    const [isRunning, setIsRunning] = useState(false);
+    const [name, setName] = useState("");
+
+    const inputRef = useRef(null);
+    const renderCountRef = useRef(0);
+
+    useEffect(() =&gt; {
+        renderCountRef.current += 1;
+    });
+
+    useEffect(() =&gt; {
+        document.title = `count: ${count}`;
+    }, [count]);
+
+    useEffect(() =&gt; {
+        if (!isRunning) {
+            return;
+        }
+
+        const timerId = setInterval(() =&gt; {
+            setSeconds((prevSeconds) =&gt; prevSeconds + 1);
+        }, 1000);
+
+        return () =&gt; {
+            clearInterval(timerId);
+        };
+    }, [isRunning]);
+
+    function focusInput() {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }
+
+    function resetTimer() {
+        setSeconds(0);
+        setIsRunning(false);
+    }
+
+    return (
+        &lt;main className="app-page"&gt;
+            &lt;header className="page-hero"&gt;
+                &lt;p&gt;React.js With Vite&lt;/p&gt;
+                &lt;h1&gt;useEffect와 useRef&lt;/h1&gt;
+                &lt;p&gt;
+                    렌더링 이후 작업, cleanup, DOM 접근을 공부합니다.
+                &lt;/p&gt;
+            &lt;/header&gt;
+
+            &lt;section className="card"&gt;
+                &lt;h2&gt;1. count 변경과 document.title&lt;/h2&gt;
+                &lt;p&gt;현재 count: {count}&lt;/p&gt;
+                &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+                    count 증가
+                &lt;/button&gt;
+            &lt;/section&gt;
+
+            &lt;section className="card"&gt;
+                &lt;h2&gt;2. 타이머와 cleanup&lt;/h2&gt;
+                &lt;p&gt;진행 시간: {seconds}초&lt;/p&gt;
+
+                &lt;div className="button-group"&gt;
+                    &lt;button onClick={() =&gt; setIsRunning(true)}&gt;
+                        시작
+                    &lt;/button&gt;
+                    &lt;button onClick={() =&gt; setIsRunning(false)}&gt;
+                        정지
+                    &lt;/button&gt;
+                    &lt;button onClick={resetTimer}&gt;
+                        초기화
+                    &lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/section&gt;
+
+            &lt;section className="card"&gt;
+                &lt;h2&gt;3. useRef로 input focus&lt;/h2&gt;
+
+                &lt;label&gt;
+                    이름
+                    &lt;input
+                        ref={inputRef}
+                        value={name}
+                        onChange={(event) =&gt; setName(event.target.value)}
+                        placeholder="이름을 입력하세요"
+                    /&gt;
+                &lt;/label&gt;
+
+                &lt;button onClick={focusInput}&gt;
+                    입력창에 focus 주기
+                &lt;/button&gt;
+
+                &lt;p&gt;입력한 이름: {name || "아직 입력하지 않음"}&lt;/p&gt;
+            &lt;/section&gt;
+
+            &lt;section className="card summary-card"&gt;
+                &lt;h2&gt;4. 렌더링 횟수 ref&lt;/h2&gt;
+                &lt;p&gt;
+                    이 값은 ref에 저장되어 렌더링 이후 증가하지만,
+                    ref 값을 바꾸는 것 자체는 리렌더링을 발생시키지 않습니다.
+                &lt;/p&gt;
+                &lt;p&gt;렌더링 이후 기록된 횟수: {renderCountRef.current}&lt;/p&gt;
+            &lt;/section&gt;
+        &lt;/main&gt;
+    );
+}</code></pre>
+                        </article>
+
+                        <article class="code-example wide-example">
+                            <h3>6-3. src/App.css</h3>
+                            <pre><code>.app-page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    color: #172033;
+}
+
+.page-hero {
+    margin-bottom: 24px;
+    padding: 34px;
+    background: linear-gradient(135deg, #172033, #164e63);
+    color: white;
+    border-radius: 28px;
+}
+
+.page-hero p:first-child {
+    display: inline-block;
+    margin: 0 0 12px;
+    padding: 6px 12px;
+    color: #b8f3ff;
+    border: 1px solid rgba(97, 218, 251, 0.5);
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.card {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 26px;
+    background-color: #ffffff;
+    border: 1px solid #d6eaf3;
+    border-radius: 22px;
+    box-shadow: 0 8px 24px rgba(22, 78, 99, 0.08);
+}
+
+.card h2 {
+    margin: 0;
+    color: #164e63;
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+button {
+    width: fit-content;
+    padding: 12px 18px;
+    background-color: #164e63;
+    color: #ecfeff;
+    border: none;
+    border-radius: 999px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+label {
+    display: grid;
+    gap: 8px;
+    color: #334155;
+    font-weight: 700;
+}
+
+input {
+    max-width: 420px;
+    padding: 12px 14px;
+    border: 1px solid #c9e8f5;
+    border-radius: 14px;
+    font: inherit;
+}
+
+.summary-card {
+    background-color: #f8fdff;
+}</code></pre>
+                        </article>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>예제에서 확인할 것</h3>
+                        <ul>
+                            <li><code>useEffect</code>와 <code>useRef</code>를 import했는가?</li>
+                            <li><code>useEffect</code>를 컴포넌트 최상위에서 호출했는가?</li>
+                            <li><code>count</code>가 바뀔 때 <code>document.title</code>이 바뀌는가?</li>
+                            <li><code>document.title</code> effect의 의존성 배열에 <code>count</code>가 들어 있는가?</li>
+                            <li>타이머 시작 시 <code>setInterval</code>이 등록되는가?</li>
+                            <li>타이머 정지 또는 effect 재실행 시 <code>clearInterval</code>이 실행되는가?</li>
+                            <li><code>isRunning</code>이 바뀔 때 effect가 다시 실행되는가?</li>
+                            <li><code>inputRef.current</code>가 실제 input DOM 요소를 가리키는가?</li>
+                            <li>버튼 클릭 시 <code>inputRef.current.focus()</code>가 실행되는가?</li>
+                            <li><code>ref.current</code> 값을 변경해도 그것만으로 리렌더링이 발생하지 않는다는 점을 이해했는가?</li>
+                            <li>화면에 반영되어야 하는 <code>seconds</code>는 state로 관리하고, DOM 접근은 ref로 관리하는 차이를 이해했는가?</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="section-card mistake-card" id="mistakes">
+                    <div class="section-title-area">
+                        <span class="section-badge">Mistakes</span>
+                        <h2>7. 자주 하는 실수</h2>
+                    </div>
+
+                    <ul class="mistake-list">
+                        <li>
+                            <strong>실수 1. 렌더링 중에 부가 작업을 직접 실행함</strong>
+                            <span>
+                                <code>document.title</code> 변경, 타이머 등록, 이벤트 리스너 등록 같은 작업은
+                                렌더링 본문이 아니라 <code>useEffect</code>에서 처리하는 것이 좋습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 2. 의존성 배열을 빼먹음</strong>
+                            <span>
+                                effect 안에서 <code>count</code>를 사용하면서 <code>[]</code>를 넣으면
+                                처음 값만 보고 이후 변경을 반영하지 못할 수 있습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 3. 의존성 배열을 아예 안 써서 effect가 너무 자주 실행됨</strong>
+                            <span>
+                                의존성 배열이 없으면 렌더링 후 매번 실행됩니다.
+                                서버 요청이나 타이머 등록을 넣으면 과도하게 실행될 수 있습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 4. effect 안에서 의존성 배열의 state를 무조건 변경함</strong>
+                            <span>
+                                <code>useEffect(() =&gt; setCount(count + 1), [count])</code>처럼 작성하면
+                                무한 루프가 발생할 수 있습니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 5. cleanup을 하지 않음</strong>
+                            <span>
+                                타이머나 이벤트 리스너를 등록했다면 cleanup에서
+                                <code>clearInterval</code>, <code>removeEventListener</code>로 정리해야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 6. 이벤트 리스너를 제거하지 않음</strong>
+                            <span>
+                                <code>window.addEventListener</code>를 사용했다면 cleanup에서
+                                같은 함수 참조로 <code>window.removeEventListener</code>를 호출해야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 7. ref 값을 바꾸면 화면도 바로 바뀐다고 생각함</strong>
+                            <span>
+                                <code>ref.current</code> 변경은 리렌더링을 발생시키지 않습니다.
+                                화면에 보여야 하는 값은 <code>useState</code>로 관리해야 합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 8. 모든 DOM 조작을 ref로 해결하려고 함</strong>
+                            <span>
+                                입력값, 열림/닫힘, 선택 상태처럼 화면 상태는 state로 관리하고,
+                                focus나 scroll 같은 DOM 접근이 필요할 때 ref를 사용합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 9. ref.current가 null인 시점을 고려하지 않음</strong>
+                            <span>
+                                DOM이 아직 연결되지 않은 시점에는 <code>ref.current</code>가 <code>null</code>일 수 있으므로
+                                필요한 경우 <code>if (inputRef.current)</code>로 확인합니다.
+                            </span>
+                        </li>
+                        <li>
+                            <strong>실수 10. 지역변수를 의존성 배열에 넣고 React가 추적한다고 생각함</strong>
+                            <span>
+                                지역변수는 컴포넌트 함수가 호출될 때마다 새로 생성되는 일시적인 값입니다.
+                                화면과 연결되면 state, 렌더링 없는 유지값이면 ref를 고려합니다.
+                            </span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="section-card interview-card" id="interview">
+                    <div class="section-title-area">
+                        <span class="section-badge">Interview</span>
+                        <h2>8. 면접 포인트</h2>
+                    </div>
+
+                    <div class="qa-list">
+                        <article>
+                            <h3>Q1. useEffect란 무엇인가요?</h3>
+                            <p>
+                                <code>useEffect</code>는 함수형 컴포넌트에서 렌더링 이후 실행할 side effect를 처리하는 Hook입니다.<br/>
+                                문서 제목 변경, 데이터 요청, 타이머 등록, 이벤트 리스너 등록 같은 작업을 처리할 때 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q2. useEffect는 언제 실행되나요?</h3>
+                            <p>
+                                의존성 배열이 없으면 Mount와 모든 Update 후 실행되고,
+                                빈 배열이면 Mount 후 한 번만 실행됩니다.
+                                의존성 배열에 값이 있으면 처음 실행된 뒤 해당 값이 변경될 때마다 실행됩니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q3. 의존성 배열이란 무엇인가요?</h3>
+                            <p>
+                                의존성 배열은 effect가 어떤 값의 변경에 반응해야 하는지를 알려주는 배열입니다.
+                                effect 안에서 사용하는 state나 props를 넣어 최신 값을 기준으로 effect가 실행되게 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q4. 의존성 배열을 누락하면 어떤 문제가 생길 수 있나요?</h3>
+                            <p>
+                                effect가 최신 state나 props를 기준으로 실행되지 않을 수 있습니다.
+                                예를 들어 <code>count</code>를 사용하면서 빈 배열을 넣으면 처음 count만 기준으로 실행되고
+                                이후 변경은 반영되지 않습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q5. cleanup 함수란 무엇인가요?</h3>
+                            <p>
+                                cleanup 함수는 <code>useEffect</code>에서 반환하는 정리 함수입니다.<br/>
+                                컴포넌트가 unmount될 때 또는 다음 effect가 실행되기 전에 호출되며,
+                                타이머 해제, 이벤트 리스너 제거, 구독 해제 같은 작업에 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q6. cleanup이 필요한 이유는 무엇인가요?</h3>
+                            <p>
+                                타이머나 이벤트 리스너를 등록한 뒤 정리하지 않으면 컴포넌트가 사라진 후에도 계속 실행될 수 있습니다.<br/>
+                                이로 인해 중복 실행, 메모리 누수, 예측하기 어려운 동작이 발생할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q7. useEffect에서 무한 루프는 언제 발생하나요?</h3>
+                            <p>
+                                effect 안에서 의존성 배열에 포함된 state를 조건 없이 변경하면
+                                <code>state 변경 → 리렌더링 → effect 실행 → state 변경</code>이 반복되어
+                                무한 루프가 발생할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q8. useRef란 무엇인가요?</h3>
+                            <p>
+                                <code>useRef</code>는 DOM 요소를 참조하거나 리렌더링과 관계없는 값을 저장하기 위한 Hook입니다.<br/>
+                                반환된 ref 객체의 <code>current</code> 속성에 값이 저장되며,
+                                <code>current</code>가 바뀌어도 리렌더링은 발생하지 않습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q9. useRef로 input focus를 어떻게 구현하나요?</h3>
+                            <p>
+                                <code>const inputRef = useRef(null)</code>로 ref 객체를 만들고,
+                                input의 <code>ref</code> 속성에 연결합니다.
+                                이후 <code>inputRef.current.focus()</code>를 호출하면 해당 input에 focus를 줄 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q10. useState와 useRef의 차이는 무엇인가요?</h3>
+                            <p>
+                                <code>useState</code>는 값이 바뀌면 리렌더링이 발생하고 화면에 반영됩니다.<br/>
+                                <code>useRef</code>는 값을 기억하지만 <code>ref.current</code>를 변경해도 리렌더링이 발생하지 않습니다.<br/>
+                                화면에 반영되어야 하는 값은 state, DOM 접근이나 화면과 관계없는 값은 ref를 사용합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q11. 타이머 ID는 state와 ref 중 무엇으로 관리하는 것이 좋은가요?</h3>
+                            <p>
+                                타이머 ID는 화면에 표시할 값이 아니고 나중에 <code>clearInterval</code>로 정리하기 위해 기억하면 되는 값입니다.<br/>
+                                그래서 <code>useRef</code>로 관리하는 것이 적절합니다.
+                                반면 화면에 표시되는 초 단위 시간은 <code>useState</code>로 관리해야 합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <h3>Q12. useRef를 사용하면 document.querySelector를 안 써도 되나요?</h3>
+                            <p>
+                                특정 컴포넌트 안의 DOM 요소에 접근할 때는 <code>document.querySelector</code>보다
+                                <code>useRef</code>가 React 구조에 더 잘 맞습니다.<br/>
+                                ref를 JSX 요소에 직접 연결하므로 컴포넌트 내부의 특정 요소를 명확히 참조할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="section-card summary-card" id="summary">
+                    <div class="section-title-area">
+                        <span class="section-badge">Summary</span>
+                        <h2>9. 이번 단원 정리</h2>
+                    </div>
+
+                    <div class="summary-box">
+                        <h3>반드시 기억할 구분</h3>
+                        <pre><code>useEffect
+→ 렌더링 이후 실행할 부가 작업
+→ document.title 변경
+→ 데이터 요청
+→ 타이머 등록
+→ 이벤트 리스너 등록
+
+의존성 배열 없음
+→ 모든 렌더링 후 실행
+
+빈 배열 []
+→ Mount 후 한 번 실행
+
+[count]
+→ Mount 후 실행 + count 변경 시 실행
+
+의존성 배열
+→ effect가 다시 실행될 기준값 목록
+→ effect 안에서 사용하는 state/props를 넣어야 최신 값 보장
+
+cleanup
+→ effect에서 반환하는 정리 함수
+→ Unmount 시 또는 다음 effect 실행 전 호출
+→ 타이머 해제, 이벤트 리스너 제거
+
+무한 루프 주의
+→ effect 안에서 의존성 배열에 있는 state를 계속 변경하면 위험
+
+useRef
+→ { current: 초기값 } 객체 반환
+→ DOM 요소 접근
+→ 리렌더링과 관계없는 값 저장
+→ current 변경만으로는 리렌더링 없음
+
+useState vs useRef
+→ 화면에 반영되어야 하는 값은 useState
+→ 화면과 관계없이 기억해야 하는 값은 useRef</code></pre>
+                    </div>
+
+                    <h3>핵심 체크리스트</h3>
+                    <ul class="check-list">
+                        <li><code>useEffect</code>는 렌더링 이후 실행할 부가 작업을 처리합니다.</li>
+                        <li>의존성 배열이 없으면 렌더링 후 매번 실행됩니다.</li>
+                        <li>빈 배열 <code>[]</code>은 Mount 후 한 번만 실행됩니다.</li>
+                        <li><code>[count]</code>는 처음 실행 후 <code>count</code>가 바뀔 때마다 실행됩니다.</li>
+                        <li>effect 안에서 사용하는 state나 props는 의존성 배열에 포함해야 최신 값을 보장할 수 있습니다.</li>
+                        <li>cleanup 함수는 타이머, 이벤트 리스너, 구독 작업을 정리합니다.</li>
+                        <li>의존성 배열에 포함된 state를 effect 안에서 계속 변경하면 무한 루프가 될 수 있습니다.</li>
+                        <li><code>useRef</code>는 <code>{ current: 초기값 }</code> 형태의 객체를 반환합니다.</li>
+                        <li><code>ref.current</code>로 DOM 요소에 접근할 수 있습니다.</li>
+                        <li><code>ref.current</code> 값을 변경해도 리렌더링은 발생하지 않습니다.</li>
+                        <li>화면에 반영되어야 하는 값은 <code>useState</code>, 화면과 관계없이 기억해야 하는 값은 <code>useRef</code>를 사용합니다.</li>
+                    </ul>
+                </section>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+                    <p>
+                        이번 단원은 React가 화면을 그린 뒤에 무엇을 해야 하는지 다루는 단원입니다.<br/>
+                        <code>useEffect</code>는 렌더링 이후 실행할 작업을 정리하는 장소이고,
+                        <code>cleanup</code>은 등록한 작업을 안전하게 해제하는 장치입니다.<br/>
+                        <code>useRef</code>는 DOM 요소나 리렌더링 없이 유지해야 하는 값을 가리키는 책갈피입니다.
+                    </p>
+
+                    <div class="note-card command-note">
+                        <h3>오늘의 핵심 문법</h3>
+                        <pre><code>useEffect(() =&gt; {
+    const timerId = setInterval(() =&gt; {
+        console.log("timer");
+    }, 1000);
+
+    return () =&gt; {
+        clearInterval(timerId);
+    };
+}, []);
+
+const inputRef = useRef(null);
+
+&lt;input ref={inputRef} /&gt;
+
+inputRef.current.focus();</code></pre>
+                    </div>
+
+                    <div class="note-card warning-note">
+                        <h3>가장 많이 틀리는 부분</h3>
+                        <p>
+                            <code>useEffect</code>에서 의존성 배열을 빼먹거나,
+                            타이머와 이벤트 리스너를 cleanup하지 않는 실수가 많습니다.<br/>
+                            또한 <code>ref.current</code>를 바꾸면 화면도 자동으로 바뀐다고 오해하기 쉽습니다.
+                            화면에 반영할 값은 state, DOM 접근이나 리렌더링 없는 기억값은 ref로 구분해야 합니다.
+                        </p>
+                    </div>
+
+                    <div class="note-card next-note">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원에서는 <code>useReducer</code>와 <code>useContext</code>를 공부합니다.<br/>
+                            <code>useState</code>가 단순한 상태 관리에 적합하고,
+                            <code>useEffect</code>가 렌더링 이후 작업을 담당한다면,<br/>
+                            <code>useReducer</code>는 복잡한 상태 변경 로직을 분리하고
+                            <code>useContext</code>는 여러 컴포넌트가 공유할 값을 전달하는 데 도움을 줍니다.
+                        </p>
+                        <a href="./11_usereducer_usecontext.html">11. useReducer와 useContext</a>
+                    </div>
+                </aside>
             </main>
         </div>
     </div>
