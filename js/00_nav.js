@@ -62,6 +62,26 @@
             ]
         },
         {
+            title: "ES6 JavaScript",
+            items: [
+                { label: "ES6 학습 로드맵", path: "ES6/00_es6_roadmap.html" },
+                { label: "let, const, Scope", path: "ES6/01_let_const_scope.html" },
+                { label: "Template Literals", path: "ES6/02_template_literals.html" },
+                { label: "this 키워드", path: "ES6/03_this.html" },
+                { label: "Arrow Function", path: "ES6/04_arrow_function.html" },
+                { label: "for...of, 함수, 배열 메서드", path: "ES6/05_forof_function_array.html" },
+                { label: "Class", path: "ES6/06_class.html" },
+                { label: "import와 export", path: "ES6/07_import_export.html" },
+                { label: "Spread와 Rest", path: "ES6/08_spread_rest.html" },
+                { label: "Computed Property Name", path: "ES6/09_computed_property.html" },
+                { label: "Destructuring Assignment", path: "ES6/10_destructuring.html" },
+                { label: "Shorthand, Method, 객체 복사", path: "ES6/11_shorthand_method_copy.html" },
+                { label: "Promise", path: "ES6/12_promise.html" },
+                { label: "async / await", path: "ES6/13_async_await.html" },
+                { label: "ES6 실전 종합 정리", path: "ES6/14_es6_practice_summary.html" }
+            ]
+        },
+        {
             title: "OracleDatabaseSqlDeveloper",
             items: [
                 { label: "00. Database 학습 로드맵", path: "OracleSqlDeveloper/00_database_roadmap.html" },
@@ -179,6 +199,7 @@
         if (
             path.includes("/HTML5&CSS3/") ||
             path.includes("/JavaBasics/") ||
+            path.includes("/ES6/") ||
             path.includes("/OracleSqlDeveloper/") ||
             path.includes("/React/") ||
             path.includes("/studypages/")
