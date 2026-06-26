@@ -82,6 +82,32 @@
             ]
         },
         {
+            title: 'Spring Boot',
+            items: [
+                { label: '00. Spring Boot 학습 메인', path: 'SpringBoot/00_springboot_index.html' },
+                { label: '01. Spring Boot 통합 로드맵', path: 'SpringBoot/01_springboot_roadmap.html' },
+                { label: '02. JDBC 기본 흐름', path: 'SpringBoot/02_jdbc_basic_flow.html' },
+                { label: '03. JDBC 쿼리 실행과 ResultSet', path: 'SpringBoot/03_jdbc_query_resultset.html' },
+                { label: '04. JDBC 트랜잭션과 자원 반납', path: 'SpringBoot/04_jdbc_transaction_resource.html' },
+                { label: '05. Generic 기본', path: 'SpringBoot/05_generic_basic.html' },
+                { label: '06. Generic 와일드카드와 제한 타입', path: 'SpringBoot/06_generic_wildcard_bounded.html' },
+                { label: '07. Spring Framework와 Boot', path: 'SpringBoot/07_spring_framework_boot.html' },
+                { label: '08. Spring Boot 프로젝트 구조와 설정', path: 'SpringBoot/08_springboot_project_config.html' },
+                { label: '09. Spring MVC와 Controller', path: 'SpringBoot/09_spring_mvc_controller.html' },
+                { label: '10. Validation과 Exception', path: 'SpringBoot/10_spring_validation_exception.html' },
+                { label: '11. DataSource와 HikariCP', path: 'SpringBoot/11_datasource_hikaricp.html' },
+                { label: '12. JPA Entity와 Repository CRUD', path: 'SpringBoot/12_jpa_entity_repository_crud.html' },
+                { label: '13. JPA 영속성 컨텍스트와 트랜잭션', path: 'SpringBoot/13_jpa_persistence_transaction.html' },
+                { label: '14. JPA 연관관계·쿼리·DTO', path: 'SpringBoot/14_jpa_relation_query_dto.html' },
+                { label: '15. Thymeleaf 표현식', path: 'SpringBoot/15_thymeleaf_expression.html' },
+                { label: '16. Thymeleaf Fragment와 Utility', path: 'SpringBoot/16_thymeleaf_fragment_utility.html' },
+                { label: '17. RestTemplate', path: 'SpringBoot/17_resttemplate.html' },
+                { label: '18. Filter·Interceptor·AOP', path: 'SpringBoot/18_filter_interceptor_aop.html' },
+                { label: '19. JWT 개념', path: 'SpringBoot/19_jwt_concept.html' },
+                { label: '20. Spring Security + JWT', path: 'SpringBoot/20_spring_security_jwt.html' }
+            ]
+        },
+        {
             title: 'OracleDatabaseSqlDeveloper',
             items: [
                 { label: '00. Database 학습 로드맵', path: 'OracleSqlDeveloper/00_database_roadmap.html' },
@@ -206,6 +232,7 @@
             path.includes('/HTML5&CSS3/') ||
             path.includes('/JavaBasics/') ||
             path.includes('/ES6/') ||
+            path.includes('/SpringBoot/') ||
             path.includes('/OracleSqlDeveloper/') ||
             path.includes('/React/') ||
             path.includes('/studypages/')
