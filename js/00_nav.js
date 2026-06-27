@@ -84,7 +84,7 @@
         {
             title: 'Spring Boot',
             items: [
-                { label: '00. Spring Boot 학습 메인', path: 'SpringBoot/00_springboot_index.html' },
+                 
                 { label: '01. Spring Boot 통합 로드맵', path: 'SpringBoot/01_springboot_roadmap.html' },
                 { label: '02. JDBC 기본 흐름', path: 'SpringBoot/02_jdbc_basic_flow.html' },
                 { label: '03. JDBC 쿼리 실행과 ResultSet', path: 'SpringBoot/03_jdbc_query_resultset.html' },

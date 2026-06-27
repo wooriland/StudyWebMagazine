@@ -1,33 +1,987 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 02_jdbc_basic_flow</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/02_jdbc_basic_flow.css">
-</head>
-<body class="springboot-page springboot-lesson-02">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 02. JDBC 기본 흐름</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/02_jdbc_basic_flow.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-02">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header jdbc-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 02</p>
+                    <h1>JDBC 기본 흐름</h1>
+
+                    <p class="chapter-description">
+                        JDBC는 Java가 데이터베이스에 연결하고 SQL을 실행하기 위한 가장 기본적인 표준 API입니다.<br>
+                        이 단원에서는 <strong>드라이버 로딩, DriverManager, Connection, JDBC URL</strong>을 중심으로
+                        Java와 Oracle DB가 실제로 어떻게 연결되는지 정리합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="JDBC 핵심 키워드">
+                        <span>JDBC</span>
+                        <span>Oracle Driver</span>
+                        <span>Class.forName()</span>
+                        <span>DriverManager</span>
+                        <span>Connection</span>
+                        <span>JDBC URL</span>
+                        <span>DataSource</span>
+                        <span>HikariCP</span>
+                        <span>React API</span>
+                        <span>Oracle DB</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>JDBC가 Java와 DB 사이에서 어떤 역할을 하는지 이해합니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>DriverManager와 Connection이<br />DB 연결 과정에서 맡는 역할을 구분합니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>React 요청이 Spring Boot 서버를 거쳐<br />DB 조회로 이어지는 흐름을 설명할 수 있습니다.</p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>JDBC란 무엇인가?</h2>
+                        </div>
+
+                        <p>
+                            JDBC는 <strong>Java Database Connectivity</strong>의 약자입니다.<br />
+                            Java 코드에서 Oracle, MySQL, MS-SQL 같은 데이터베이스에 연결하고,
+                            <code class="inline-code">SELECT</code>, <code class="inline-code">INSERT</code>,
+                            <code class="inline-code">UPDATE</code>, <code class="inline-code">DELETE</code> 같은 SQL을 실행할
+                            수 있게 해주는 표준 API입니다.<br />
+                            Java는 Oracle DB와 직접 대화하지 않습니다.<br />
+                            Java는 JDBC API를 사용하고, 실제 Oracle DB와 통신하는 일은
+                            <strong>Oracle JDBC Driver</strong>가 담당합니다.<br />
+                            그래서 JDBC를 공부한다는 것은 “Java가 DB에 어떻게 말을 거는지”를 배우는 것입니다.
+                        </p>
+
+                        <div class="concept-flow">
+                            <div class="flow-item">
+                                <strong>Java 코드</strong>
+                                <p>개발자가 작성한 서버 로직입니다.</p>
+                            </div>
+                            <div class="flow-arrow">→</div>
+                            <div class="flow-item highlight">
+                                <strong>JDBC API</strong>
+                                <p>DB 접근을 위한 Java 표준 규칙입니다.</p>
+                            </div>
+                            <div class="flow-arrow">→</div>
+                            <div class="flow-item oracle">
+                                <strong>Oracle Driver</strong>
+                                <p>Oracle DB가 이해할 수 있는 방식으로<br />통역합니다.</p>
+                            </div>
+                            <div class="flow-arrow">→</div>
+                            <div class="flow-item">
+                                <strong>Oracle DB</strong>
+                                <p>실제 데이터가 저장된 공간입니다.</p>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                JDBC는 Java 애플리케이션이 데이터베이스에 연결하고 SQL을 실행하기 위한
+                                <strong>가장 기본적인 DB 접근 표준 API</strong>입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>JDBC 기본 흐름</h2>
+                        </div>
+
+                        <p>
+                            JDBC 프로그래밍은 일정한 순서를 가집니다.
+                            이번 단원에서는 그중에서도 <strong>드라이버 로딩 → DB 연결 → Connection 획득</strong>을 중심으로 봅니다.
+                        </p>
+
+                        <div class="jdbc-flow-map" aria-label="JDBC 기본 흐름">
+                            <article>
+                                <span>1</span>
+                                <strong>Driver 준비</strong>
+                                <p>Oracle DB에 연결하려면 Oracle JDBC Driver가 필요합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <strong>Driver 로딩</strong>
+                                <p><code class="inline-code">Class.forName()</code>으로 드라이버를 JVM에 로딩합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <strong>DriverManager</strong>
+                                <p>JDBC URL에 맞는 드라이버를 찾아 연결을 요청합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <strong>Connection</strong>
+                                <p>Java와 DB 사이에 실제 연결 통로가 만들어집니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <strong>SQL 실행 준비</strong>
+                                <p>Connection으로 Statement 또는 PreparedStatement를 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>6</span>
+                                <strong>결과 처리</strong>
+                                <p>SELECT 결과는 ResultSet으로 읽고, 작업 후 자원을 닫습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="focus-panel">
+                            <h3>이번 단원의 집중 포인트</h3>
+                            <p>
+                                <code class="inline-code">Class.forName("oracle.jdbc.OracleDriver")</code>와
+                                <code class="inline-code">DriverManager.getConnection(url, username, password)</code>가
+                                어떤 의미인지 이해하는 것이 핵심입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>DriverManager와 Connection 이해하기</h2>
+                        </div>
+
+                        <p>
+                            JDBC 기본 흐름에서 가장 중요한 두 객체는
+                            <code class="inline-code">DriverManager</code>와
+                            <code class="inline-code">Connection</code>입니다.
+                        </p>
+
+                        <div class="role-grid">
+                            <article>
+                                <h3>DriverManager</h3>
+                                <p>
+                                    등록된 JDBC Driver 중에서<br />JDBC URL에 맞는 드라이버를 찾고,<br />
+                                    해당 드라이버에게 DB 연결 생성을 요청합니다.
+                                </p>
+                                <pre class="mini-code"><code>Connection con =
+    DriverManager.getConnection(url, user, password);</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Connection</h3>
+                                <p>
+                                    Java 애플리케이션과 DB 사이에 열린 실제 연결 통로입니다.<br />
+                                    SQL 실행 객체 생성, 트랜잭션 제어,<br />연결 종료의 기준이 됩니다.
+                                </p>
+                                <pre class="mini-code"><code>PreparedStatement ps =
+    con.prepareStatement(sql);</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>JDBC URL</h3>
+                                <p>
+                                    어떤 DB 서버의 어떤 서비스에 접속할지 알려주는 주소입니다.<br />
+                                    Oracle에서는 SID 방식과 Service Name 방식이<br />자주 등장합니다.
+                                </p>
+                                <pre class="mini-code"><code>jdbc:oracle:thin:@localhost:1521/XEPDB1</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card visual-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>그림처럼 이해하기</h2>
+                        </div>
+
+                        <p>
+                            JDBC를 전화 연결 과정으로 생각하면 이해하기 쉽습니다.
+                            Java 프로그램은 DB에 전화를 걸고, JDBC Driver는 통역자 역할을 하며,
+                            Connection은 실제 연결된 전화선입니다.
+                        </p>
+
+                        <div class="phone-map">
+                            <div class="phone-node">
+                                <span>전화를 거는 사람</span>
+                                <strong>Java Program</strong>
+                                <p>DB에 조회나 저장을<br />요청하는 서버 코드</p>
+                            </div>
+
+                            <div class="phone-line">→</div>
+
+                            <div class="phone-node">
+                                <span>통역자</span>
+                                <strong>JDBC Driver</strong>
+                                <p>Oracle DB와<br />대화하는 방법을 알고 있는<br />라이브러리</p>
+                            </div>
+
+                            <div class="phone-line">→</div>
+
+                            <div class="phone-node">
+                                <span>전화 교환원</span>
+                                <strong>DriverManager</strong>
+                                <p>URL을 보고<br />맞는 드라이버로 연결 요청</p>
+                            </div>
+
+                            <div class="phone-line">→</div>
+
+                            <div class="phone-node highlight">
+                                <span>전화선</span>
+                                <strong>Connection</strong>
+                                <p>Java와 DB 사이의<br />실제 연결 통로</p>
+                            </div>
+
+                            <div class="phone-line">→</div>
+
+                            <div class="phone-node oracle">
+                                <span>상대방</span>
+                                <strong>Oracle DB</strong>
+                                <p>SQL을 처리하고<br />결과를 돌려주는<br />데이터 저장소</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>순수 Java JDBC 연결 예제</h2>
+                        </div>
+
+                        <p>
+                            가장 먼저 확인할 예제는 DB 연결 자체가 되는지 확인하는 코드입니다.
+                            이 예제는 <strong>JDBC Driver 로딩, DriverManager, Connection</strong>의 역할을 보여줍니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 기본 연결 테스트</h3>
+                            <pre class="code-block"><code>import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class JdbcConnectionTest {
+
+    public static void main(String[] args) {
+        String driver = "oracle.jdbc.OracleDriver";
+        String url = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
+        String username = "JAVA";
+        String password = "JAVA";
+
+        Connection con = null;
+
+        try {
+            Class.forName(driver);
+            System.out.println("Oracle JDBC Driver 로딩 성공");
+
+            con = DriverManager.getConnection(url, username, password);
+            System.out.println("DB 연결 성공");
+
+        } catch (ClassNotFoundException e) {
+            System.out.println("JDBC 드라이버 클래스를 찾을 수 없습니다.");
+            e.printStackTrace();
+
+        } catch (SQLException e) {
+            System.out.println("DB 연결에 실패했습니다.");
+            e.printStackTrace();
+
+        } finally {
+            if (con != null) {
+                try {
+                    con.close();
+                    System.out.println("DB 연결 종료");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) try-with-resources 개선 예제</h3>
+                            <pre class="code-block"><code>import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class JdbcConnectionTryWithResources {
+
+    public static void main(String[] args) {
+        String driver = "oracle.jdbc.OracleDriver";
+        String url = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
+        String username = "JAVA";
+        String password = "JAVA";
+
+        try {
+            Class.forName(driver);
+
+            try (Connection con = DriverManager.getConnection(url, username, password)) {
+                System.out.println("DB 연결 성공");
+                System.out.println("AutoCommit 상태: " + con.getAutoCommit());
+            }
+
+            System.out.println("try 블록 종료 후 Connection 자동 close");
+
+        } catch (ClassNotFoundException e) {
+            System.out.println("드라이버 로딩 실패");
+            e.printStackTrace();
+
+        } catch (SQLException e) {
+            System.out.println("DB 연결 실패");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-summary-grid">
+                            <div>
+                                <strong>Class.forName()</strong>
+                                <p>JDBC Driver를 JVM에 로딩합니다.</p>
+                            </div>
+                            <div>
+                                <strong>DriverManager</strong>
+                                <p>URL에 맞는 드라이버를 찾아 연결을 만듭니다.</p>
+                            </div>
+                            <div>
+                                <strong>Connection</strong>
+                                <p>Java와 DB 사이의 실제 연결 통로입니다.</p>
+                            </div>
+                            <div>
+                                <strong>close()</strong>
+                                <p>사용한 DB 연결 자원을 반납합니다.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Spring Boot에서 DB 연결 확인하기</h2>
+                        </div>
+
+                        <p>
+                            Spring Boot에서는 보통 <code class="inline-code">DriverManager</code>를 직접 사용하지 않습니다.
+                            <code class="inline-code">application.yml</code>의 설정을 바탕으로
+                            <code class="inline-code">DataSource</code>가 자동 생성되고,
+                            HikariCP가 Connection Pool을 관리합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) Maven 의존성</h3>
+                            <pre class="code-block"><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.oracle.database.jdbc&lt;/groupId&gt;
+    &lt;artifactId&gt;ojdbc11&lt;/artifactId&gt;
+    &lt;scope&gt;runtime&lt;/scope&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-jdbc&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) application.yml 설정</h3>
+                            <pre class="code-block"><code>server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
+    username: JAVA
+    password: JAVA</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) DB 연결 확인 Service</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+
+@Service
+@RequiredArgsConstructor
+public class DbConnectionCheckService {
+
+    private final DataSource dataSource;
+
+    public String checkConnection() {
+        try (Connection con = dataSource.getConnection()) {
+            return "DB 연결 성공: " + con.getMetaData().getURL();
+        } catch (Exception e) {
+            return "DB 연결 실패: " + e.getMessage();
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) DB 연결 확인 Controller</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequiredArgsConstructor
+public class DbCheckController {
+
+    private final DbConnectionCheckService dbConnectionCheckService;
+
+    @GetMapping("/api/db/ping")
+    public String ping() {
+        return dbConnectionCheckService.checkConnection();
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>React에서 Axios로 API 호출하기</h2>
+                        </div>
+
+                        <p>
+                            React는 Oracle DB에 직접 연결하지 않습니다.
+                            React는 Spring Boot API를 호출하고, Spring Boot가 내부에서 JDBC 또는 JPA를 통해 DB에 접근합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>import axios from "axios";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 5000,
+});
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) DB 연결 확인 API 호출</h3>
+                            <pre class="code-block"><code>import apiClient from "./apiClient";
+
+export async function checkDbConnection() {
+  const response = await apiClient.get("/api/db/ping");
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) React 컴포넌트</h3>
+                            <pre class="code-block"><code>import { useEffect, useState } from "react";
+import { checkDbConnection } from "../api/dbApi";
+
+function DbStatusCard() {
+  const [message, setMessage] = useState("DB 연결 확인 중...");
+  const [error, setError] = useState("");
+
+  useEffect(() =&gt; {
+    async function loadDbStatus() {
+      try {
+        const result = await checkDbConnection();
+        setMessage(result);
+      } catch (err) {
+        setError("DB 연결 상태를 확인하지 못했습니다.");
+      }
+    }
+
+    loadDbStatus();
+  }, []);
+
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;DB 연결 상태&lt;/h2&gt;
+      {error ? &lt;p&gt;{error}&lt;/p&gt; : &lt;p&gt;{message}&lt;/p&gt;}
+    &lt;/section&gt;
+  );
+}
+
+export default DbStatusCard;</code></pre>
+                        </div>
+
+                        <div class="react-flow">
+                            <article>
+                                <span>1</span>
+                                <strong>React</strong>
+                                <p>Axios로 <code class="inline-code">/api/db/ping</code> 호출</p>
+                            </article>
+                            <article>
+                                <span>2</span>
+                                <strong>Controller</strong>
+                                <p>Spring Boot가 요청 수신</p>
+                            </article>
+                            <article>
+                                <span>3</span>
+                                <strong>Service</strong>
+                                <p>DataSource에서 Connection 획득</p>
+                            </article>
+                            <article>
+                                <span>4</span>
+                                <strong>Oracle DB</strong>
+                                <p>연결 성공 여부 확인</p>
+                            </article>
+                            <article>
+                                <span>5</span>
+                                <strong>Response</strong>
+                                <p>React 화면에 결과 출력</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>토큰 저장과 DTO 전송 예제</h2>
+                        </div>
+
+                        <p>
+                            실제 프로젝트에서는 사용자 조회 API나 DB 확인 API가 인증이 필요한 API일 수 있습니다.<br />
+                            이때 React는 로그인 후 받은 JWT를 저장하고, 이후 API 요청마다
+                            <code class="inline-code">Authorization</code> 헤더에 토큰을 담아 보냅니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem("accessToken", token);
+    sessionStorage.removeItem("accessToken");
+  } else {
+    sessionStorage.setItem("accessToken", token);
+    localStorage.removeItem("accessToken");
+  }
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken")
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem("accessToken");
+  sessionStorage.removeItem("accessToken");
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) Axios Interceptor로 토큰 자동 첨부</h3>
+                            <pre class="code-block"><code>apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>// React에서 보내는 JSON
+{
+  "username": "user1",
+  "email": "user1@example.com"
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) Spring Boot 요청 DTO</h3>
+                            <pre class="code-block"><code>public record UserSearchRequest(
+        String username,
+        String email
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) Controller에서 DTO 받기</h3>
+                            <pre class="code-block"><code>@PostMapping("/api/users/search")
+public UserSearchResponse search(@RequestBody UserSearchRequest request) {
+    return userSearchService.search(request);
+}</code></pre>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>주의</strong>
+                            <p>
+                                React가 보내는 JSON key와 Spring Boot DTO 필드명이 맞아야 합니다.
+                                예를 들어 JSON이 <code class="inline-code">username</code>이면 DTO도
+                                <code class="inline-code">username</code> 필드를 가져야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            JDBC 기본 흐름을 알면 DB 연결 오류를 훨씬 쉽게 읽을 수 있습니다.
+                            오류가 발생했을 때는 <strong>드라이버 → URL → 계정 → 네트워크 → DB 객체</strong> 순서로 확인하면 좋습니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">ClassNotFoundException:<br/>oracle.jdbc.OracleDriver</code>
+                            </div>
+                            <div>Oracle JDBC Driver 클래스를 찾지 못했습니다.</div>
+                            <div><code class="inline-code">ojdbc11</code> 의존성, Maven 다운로드, 드라이버 클래스명 오타를 확인합니다.</div>
+
+                            <div><code class="inline-code">No suitable driver found</code></div>
+                            <div>JDBC URL을 처리할 수 있는<br />드라이버를 찾지 못했습니다.</div>
+                            <div>Oracle Driver 의존성, JDBC URL 형식,<br /><code
+                                    class="inline-code">jdbc:oracle:thin:@</code> 시작
+                                여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-01017</code></div>
+                            <div>DB 계정 또는 비밀번호가 틀렸습니다.</div>
+                            <div>username, password, 계정 잠금 여부, SQL Developer 접속 가능 여부를 확인합니다.</div>
+
+                            <div><code
+                                    class="inline-code">The Network Adapter could not<br/>establish the connection</code>
+                            </div>
+                            <div>DB 서버에 네트워크 연결을 하지 못했습니다.</div>
+                            <div>DB 실행 여부, host, port 1521, 방화벽, Oracle Listener 상태를 확인합니다.</div>
+
+                            <div><code class="inline-code">Listener refused the connection</code></div>
+                            <div>Listener는 응답했지만<br />SID 또는 Service Name이 맞지 않을 수 있습니다.</div>
+                            <div><code class="inline-code">xe</code>와 <code class="inline-code">XEPDB1</code>, <code
+                                    class="inline-code">:</code>와 <code class="inline-code">/</code> 사용을 확인합니다.</div>
+
+                            <div><code class="inline-code">Failed to configure a DataSource</code></div>
+                            <div>Spring Boot가 DB 연결 설정을 찾지 못했습니다.</div>
+                            <div><code class="inline-code">spring.datasource.url</code>, username, password, yml 들여쓰기를
+                                확인합니다.</div>
+
+                            <div><code class="inline-code">HikariPool - Connection is not available</code></div>
+                            <div>커넥션 풀에서 빌려줄 Connection이 부족합니다.</div>
+                            <div>Connection close 누락, 긴 쿼리, 긴 트랜잭션, pool size를 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-00942</code></div>
+                            <div>테이블 또는 뷰가 존재하지 않습니다.</div>
+                            <div>테이블명, 접속 계정, 스키마명, 권한을 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-00904</code></div>
+                            <div>컬럼명이 잘못되었습니다.</div>
+                            <div>컬럼명, 대소문자, JPA naming strategy, SQL 오타를 확인합니다.</div>
+
+                            <div><code class="inline-code">AxiosError: Network Error</code></div>
+                            <div>React가 Spring Boot 서버에 연결하지 못했습니다.</div>
+                            <div>Spring Boot 실행 여부, 포트, baseURL, CORS 설정을 확인합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. React에서 DB에 직접 연결하려 함</h3>
+                                <p>
+                                    React는 브라우저에서 실행되므로<br />DB 계정과 비밀번호를 노출하면 안 됩니다.<br />
+                                    DB 연결은 반드시<br />Spring Boot 서버가 담당해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. Oracle Driver 의존성 누락</h3>
+                                <p>
+                                    <code class="inline-code">ojdbc11</code> 의존성이 없으면<br />
+                                    <code class="inline-code">oracle.jdbc.OracleDriver</code>를<br />찾지 못합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. JDBC URL 오타</h3>
+                                <p>
+                                    <code
+                                        class="inline-code">jdbc:oracle:thin:<br/>@localhost:1521/XEPDB1</code>에서<br />
+                                    <code class="inline-code">@</code>, <code class="inline-code">:</code>,
+                                    <code class="inline-code">/</code> 위치가 틀리면<br />연결이 실패합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. SID와 Service Name 혼동</h3>
+                                <p>
+                                    <code class="inline-code">:xe</code>는 SID 방식이고<br />
+                                    <code class="inline-code">/XEPDB1</code>은 Service Name 방식입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. Connection close 누락</h3>
+                                <p>
+                                    Connection을 닫지 않으면<br />커넥션 누수가 발생하고,<br />
+                                    결국 HikariPool timeout 문제가<br />생길 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. SQL 문자열 직접 결합</h3>
+                                <p>
+                                    사용자 입력을 SQL 문자열에 직접 붙이면<br />SQL Injection 위험이 있습니다.<br />
+                                    <code class="inline-code">PreparedStatement</code>를 사용해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. @RequestBody 누락</h3>
+                                <p>
+                                    React가 JSON을 보내는 경우<br />Controller 파라미터에<br />
+                                    <code class="inline-code">@RequestBody</code>가 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. DTO 필드명 불일치</h3>
+                                <p>
+                                    React JSON key와<br />Java DTO 필드명이 다르면<br />값이 제대로 매핑되지 않을 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            JDBC 기본 흐름은 단순 예제에서 끝나는 내용이 아닙니다.
+                            실무에서는 DB 연결 오류, 커넥션 풀, JPA 내부 동작, 트랜잭션 문제를 이해하는 기반이 됩니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>DB 연결 오류 해결</h3>
+                                <p>드라이버, URL, 계정, 포트,<br />Listener, Service Name 문제를<br />단계별로 확인할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Spring Boot DataSource 설정</h3>
+                                <p><code class="inline-code">application.yml</code>의 datasource 설정이<br />어떤 의미인지 이해할 수
+                                    있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>JPA 내부 동작 이해</h3>
+                                <p>JPA가 결국 Hibernate와 JDBC를 통해<br />DB와 통신한다는 구조를 이해할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>커넥션 풀 문제 분석</h3>
+                                <p>HikariCP timeout, connection leak,<br />pool size 문제를 분석할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>레거시 프로젝트 유지보수</h3>
+                                <p>순수 JDBC, DAO,<br />MyBatis 기반 프로젝트의 DB 접근 코드를<br />읽는 데 도움이 됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>보안 구조 이해</h3>
+                                <p>React가 DB에 직접 연결하면 안 되고,<br />서버 API를 통해 접근해야 하는 이유를<br />설명할 수 있습니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. JDBC가 무엇인가요?</h3>
+                                <p>
+                                    JDBC는 Java Database Connectivity의 약자로,
+                                    Java 애플리케이션이 데이터베이스에 연결하고 SQL을 실행하기 위한 표준 API입니다.<br />
+                                    Java는 JDBC API를 사용하고, 실제 DB별 통신은 JDBC Driver가 담당합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. JDBC Driver는 왜 필요한가요?</h3>
+                                <p>
+                                    DB마다 통신 방식이 다르기 때문에 Java의 공통 JDBC 호출을
+                                    Oracle이나 MySQL이 이해할 수 있는 요청으로 변환해주는 드라이버가 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. <code>Class.forName("oracle.jdbc.OracleDriver")</code>의 역할은 무엇인가요?</h3>
+                                <p>
+                                    Oracle JDBC Driver 클래스를 JVM에 로딩하고 DriverManager가 사용할 수 있도록 등록하는 역할을 합니다.
+                                    최신 환경에서는 자동 등록되기도 하지만 JDBC 기본 원리 이해에는 중요한 코드입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. DriverManager는 어떤 역할을 하나요?</h3>
+                                <p>
+                                    DriverManager는 등록된 JDBC Driver 중 JDBC URL에 맞는 드라이버를 찾아
+                                    DB 연결을 생성하고 <code class="inline-code">Connection</code> 객체를 반환합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. Connection은 무엇인가요?</h3>
+                                <p>
+                                    Connection은 Java 애플리케이션과 DB 사이의 실제 연결 통로입니다.
+                                    SQL 실행 객체 생성, 트랜잭션 제어, 자원 반납의 기준이 됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. 순수 JDBC와 Spring Boot DataSource의 차이는 무엇인가요?</h3>
+                                <p>
+                                    순수 JDBC는 <code class="inline-code">DriverManager.getConnection()</code>으로 직접 연결을
+                                    만들고,
+                                    Spring Boot는 <code class="inline-code">DataSource</code>와 HikariCP를 통해 Connection을
+                                    관리합니다.<br />
+                                    실무에서는 커넥션 풀을 사용하는 DataSource 방식이 일반적입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. 커넥션 풀이 왜 필요한가요?</h3>
+                                <p>
+                                    웹 애플리케이션은 동시에 많은 요청을 처리합니다.
+                                    요청마다 DB 연결을 새로 만들면 비용이 크기 때문에,
+                                    미리 연결을 만들어두고 빌려 쓰는 커넥션 풀이 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. React가 DB에 직접 연결하면 안 되는 이유는 무엇인가요?</h3>
+                                <p>
+                                    React는 브라우저에서 실행되기 때문에 DB 주소, 계정, 비밀번호가 사용자에게 노출될 수 있습니다.
+                                    따라서 React는 Spring Boot API를 호출하고, DB 접근은 서버가 담당해야 합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>JDBC는 Java가 DB에 연결하고 SQL을 실행하기 위한 표준 API입니다.</li>
+                            <li><code class="inline-code">Class.forName()</code>은 JDBC Driver를 JVM에 로딩합니다.</li>
+                            <li><code class="inline-code">DriverManager</code>는 JDBC URL에 맞는 드라이버를 찾아 연결을 만듭니다.</li>
+                            <li><code class="inline-code">Connection</code>은 Java와 DB 사이의 실제 연결 통로입니다.</li>
+                            <li>Spring Boot에서는 <code class="inline-code">DataSource</code>와 HikariCP가 Connection을 관리합니다.
+                            </li>
+                            <li>React는 DB에 직접 연결하지 않고 Spring Boot API를 호출합니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>Driver vs DriverManager</strong>
+                                <p>Driver는 DB별 통역자이고,<br />DriverManager는<br />드라이버를 찾아<br />연결을 만드는 관리자입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Connection vs DataSource</strong>
+                                <p>Connection은 실제 연결이고,<br />DataSource는 Connection을<br />제공하고 관리하는 객체입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>SID vs Service Name</strong>
+                                <p><code class="inline-code">:xe</code>는 SID 방식,<br /><code
+                                        class="inline-code">/XEPDB1</code>은<br />Service Name 방식입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>JDBC vs JPA</strong>
+                                <p>JDBC는 직접 DB 연결과<br />SQL 실행 API이고,<br />JPA는 JDBC 위에서 객체 중심으로<br />DB를 다루는 기술입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>401 vs DB 오류</strong>
+                                <p>401은 인증 문제이고,<br />DB 연결 실패는 datasource,<br />driver, URL, 계정 문제입니다.</p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>03_jdbc_query_resultset.html</strong>입니다.<br />
+                            이번 단원에서 DB 연결 통로인 Connection을 만들었다면,
+                            다음 단원에서는 그 Connection으로
+                            <code class="inline-code">PreparedStatement</code>를 만들고,<br />
+                            <code class="inline-code">executeQuery()</code>,
+                            <code class="inline-code">executeUpdate()</code>,
+                            <code class="inline-code">ResultSet</code>을 사용해
+                            실제 SQL을 실행하고 결과를 읽는 방법을 공부합니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>JDBC 기본 흐름</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>JDBC 쿼리 실행과 ResultSet</strong>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>

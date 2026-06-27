@@ -1,33 +1,1130 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 04_jdbc_transaction_resource</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/04_jdbc_transaction_resource.css">
-</head>
-<body class="springboot-page springboot-lesson-04">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 04. JDBC 트랜잭션과 자원 반납</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/04_jdbc_transaction_resource.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-04">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header transaction-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 04</p>
+                    <h1>JDBC 트랜잭션과 자원 반납</h1>
+
+                    <p class="chapter-description">
+                        SQL을 실행할 줄 아는 것만으로는 안전한 백엔드가 되지 않습니다.<br>
+                        등록·수정·삭제 API에서는 <strong>성공하면 commit, 실패하면 rollback, 마지막에는 close</strong>로
+                        DB 작업을 안전하게 마무리해야 합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="JDBC 트랜잭션 핵심 키워드">
+                        <span>Transaction</span>
+                        <span>setAutoCommit(false)</span>
+                        <span>commit()</span>
+                        <span>rollback()</span>
+                        <span>close()</span>
+                        <span>try-with-resources</span>
+                        <span>DataSource</span>
+                        <span>HikariCP</span>
+                        <span>@Transactional</span>
+                        <span>LIKE Parameter</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>트랜잭션이 여러 SQL을 하나의 업무 단위로<br />묶는 개념임을 이해합니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>commit, rollback, close의 역할을 구분하고<br />안전한 JDBC 마무리 흐름을 익힙니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>React 등록·수정·삭제 요청이 실패했을 때<br />서버에서 rollback되는 구조를 이해합니다.</p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>트랜잭션이란 무엇인가?</h2>
+                        </div>
+
+                        <p>
+                            트랜잭션은 여러 SQL을 <strong>하나의 업무 단위</strong>로 묶는 개념입니다.<br />
+                            SQL 하나하나가 아니라 “회원가입”, “주문”, “게시글 등록”처럼 하나의 업무가
+                            성공했는지를 기준으로 commit과 rollback을 결정합니다.<br />
+                            예를 들어 회원가입은 <code class="inline-code">users</code> 테이블에 회원 정보를 저장하고,
+                            <code class="inline-code">user_roles</code> 테이블에 기본 권한을 저장하고,
+                            <code class="inline-code">signup_log</code>에 가입 로그를 남길 수 있습니다.<br />
+                            이 중 하나라도 실패하면 전체 작업을 취소해야 데이터가 깨지지 않습니다.
+                        </p>
+
+                        <div class="transaction-unit">
+                            <article>
+                                <span>SQL 1</span>
+                                <strong>users INSERT</strong>
+                                <p>회원 기본 정보 저장</p>
+                            </article>
+
+                            <div class="unit-plus">+</div>
+
+                            <article>
+                                <span>SQL 2</span>
+                                <strong>user_roles INSERT</strong>
+                                <p>회원 기본 권한 저장</p>
+                            </article>
+
+                            <div class="unit-plus">+</div>
+
+                            <article>
+                                <span>SQL 3</span>
+                                <strong>signup_log INSERT</strong>
+                                <p>가입 이력 저장</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                트랜잭션은 여러 SQL을 하나의 업무처럼 묶고,
+                                <strong>모두 성공하면 commit, 하나라도 실패하면 rollback</strong>하는 데이터 정합성 보호 장치입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>JDBC 트랜잭션 흐름도</h2>
+                        </div>
+
+                        <p>
+                            JDBC에서 트랜잭션을 직접 제어할 때는
+                            <code class="inline-code">Connection</code> 객체를 기준으로
+                            <code class="inline-code">setAutoCommit(false)</code>,
+                            <code class="inline-code">commit()</code>,
+                            <code class="inline-code">rollback()</code>,
+                            <code class="inline-code">close()</code>를 사용합니다.
+                        </p>
+
+                        <div class="transaction-flow">
+                            <div class="flow-node start">
+                                <span>1</span>
+                                <strong>Connection 획득</strong>
+                                <p>DB 연결 통로를 얻습니다.</p>
+                            </div>
+
+                            <div class="flow-arrow">→</div>
+
+                            <div class="flow-node">
+                                <span>2</span>
+                                <strong>setAutoCommit(false)</strong>
+                                <p>SQL마다 자동 commit되는 것을 막습니다.</p>
+                            </div>
+
+                            <div class="flow-arrow">→</div>
+
+                            <div class="flow-node">
+                                <span>3</span>
+                                <strong>SQL 여러 개 실행</strong>
+                                <p>INSERT, UPDATE, DELETE를 업무 단위로 실행합니다.</p>
+                            </div>
+
+                            <div class="flow-split">
+                                <article class="success">
+                                    <span>성공</span>
+                                    <strong>commit()</strong>
+                                    <p>모든 변경을 DB에 최종 확정합니다.</p>
+                                </article>
+
+                                <article class="fail">
+                                    <span>실패</span>
+                                    <strong>rollback()</strong>
+                                    <p>현재 트랜잭션의 변경을 취소합니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="flow-node end">
+                                <span>마지막</span>
+                                <strong>close()</strong>
+                                <p>Connection, PreparedStatement, ResultSet 자원을 반납합니다.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>commit, rollback, close 역할 구분</h2>
+                        </div>
+
+                        <p>
+                            초보자가 가장 많이 헷갈리는 부분은
+                            <code class="inline-code">close()</code>를
+                            <code class="inline-code">commit()</code>이나
+                            <code class="inline-code">rollback()</code>과 비슷한 의미로 생각하는 것입니다.
+                            세 메서드는 역할이 완전히 다릅니다.
+                        </p>
+
+                        <div class="compare-table transaction-table">
+                            <div class="table-head">메서드</div>
+                            <div class="table-head">역할</div>
+                            <div class="table-head">사용 시점</div>
+                            <div class="table-head">핵심 의미</div>
+
+                            <div><strong>commit()</strong></div>
+                            <div>현재 트랜잭션의 변경 내용을 DB에 확정합니다.</div>
+                            <div>모든 SQL이 정상 완료되었을 때</div>
+                            <div>“이번 업무는 성공했으니 반영하자.”</div>
+
+                            <div><strong>rollback()</strong></div>
+                            <div>현재 트랜잭션의 변경 내용을 취소합니다.</div>
+                            <div>중간에 예외나 실패가 발생했을 때</div>
+                            <div>“이번 업무는 실패했으니 없던 일로 하자.”</div>
+
+                            <div><strong>close()</strong></div>
+                            <div>사용한 JDBC 자원을 반납합니다.</div>
+                            <div>성공/실패와 관계없이 마지막에</div>
+                            <div>“사용한 DB 연결을 돌려주자.”</div>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>실무 안전 원칙</strong>
+                            <p>
+                                성공하면 <code class="inline-code">commit()</code>,
+                                실패하면 <code class="inline-code">rollback()</code>,
+                                마지막에는 <code class="inline-code">close()</code>를 명시적으로 처리해야 합니다.
+                                <code class="inline-code">close()</code>가 트랜잭션 결과 결정을 대신해준다고 기대하면 안 됩니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>AutoCommit 이해하기</h2>
+                        </div>
+
+                        <p>
+                            <code class="inline-code">autoCommit</code>은 SQL 하나가 실행될 때마다 자동으로 DB에 확정할지 결정하는 설정입니다.
+                            기본값이 true인 경우에는 INSERT, UPDATE, DELETE가 실행될 때마다 자동으로 commit됩니다.
+                        </p>
+
+                        <div class="autocommit-grid">
+                            <article>
+                                <span>autoCommit = true</span>
+                                <h3>SQL마다 자동 commit</h3>
+                                <p>
+                                    단일 SQL에는 간단하지만, 여러 SQL을 하나의 업무로 묶어야 할 때<br />일부 데이터만 반영될 위험이 있습니다.
+                                </p>
+                                <pre class="mini-code"><code>con.setAutoCommit(true);</code></pre>
+                            </article>
+
+                            <article class="highlight">
+                                <span>autoCommit = false</span>
+                                <h3>개발자가 직접 결정</h3>
+                                <p>
+                                    여러 SQL을 실행한 뒤 모두 성공하면 commit,<br />하나라도 실패하면 rollback으로 전체 작업을 제어합니다.
+                                </p>
+                                <pre class="mini-code"><code>con.setAutoCommit(false);</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card visual-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>그림처럼 이해하기</h2>
+                        </div>
+
+                        <p>
+                            트랜잭션은 은행 이체처럼 이해하면 쉽습니다.
+                            A 계좌에서 출금만 되고 B 계좌에 입금이 안 되면 안 됩니다.
+                            두 작업은 모두 성공하거나 모두 실패해야 합니다.
+                        </p>
+
+                        <div class="bank-visual">
+                            <article>
+                                <span>1단계</span>
+                                <strong>A 계좌 출금</strong>
+                                <p>10,000원 출금 성공</p>
+                            </article>
+
+                            <div class="bank-arrow">→</div>
+
+                            <article>
+                                <span>2단계</span>
+                                <strong>B 계좌 입금</strong>
+                                <p>10,000원 입금 성공</p>
+                            </article>
+
+                            <div class="bank-result success">
+                                <strong>둘 다 성공</strong>
+                                <p>commit()</p>
+                            </div>
+
+                            <div class="bank-result fail">
+                                <strong>하나라도 실패</strong>
+                                <p>rollback()</p>
+                            </div>
+                        </div>
+
+                        <div class="borrow-visual">
+                            <article>
+                                <h3>Connection Pool을 도서관처럼 생각하기</h3>
+                                <p>
+                                    <code class="inline-code">dataSource.getConnection()</code>은 책을 빌리는 것,
+                                    <code class="inline-code">con.close()</code>는 책을 반납하는 것과 같습니다.
+                                    반납하지 않으면 다른 요청이 Connection을 사용할 수 없습니다.
+                                </p>
+                            </article>
+
+                            <div class="borrow-flow">
+                                <span>DataSource</span>
+                                <em>빌림</em>
+                                <span>Connection</span>
+                                <em>사용</em>
+                                <span>DB 작업</span>
+                                <em>반납</em>
+                                <span>close()</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>순수 JDBC 트랜잭션 예제</h2>
+                        </div>
+
+                        <p>
+                            아래 예제는 회원가입 시 <code class="inline-code">users</code> 테이블과
+                            <code class="inline-code">user_roles</code> 테이블에 함께 INSERT하는 상황입니다.
+                            둘 중 하나라도 실패하면 전체 rollback합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>회원 가입 + 권한 등록 트랜잭션</h3>
+                            <pre class="code-block"><code>import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+public class JdbcTransactionExample {
+
+    public static void main(String[] args) {
+        String url = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
+        String dbUser = "JAVA";
+        String dbPassword = "JAVA";
+
+        String insertUserSql = """
+            INSERT INTO users (id, username, email)
+            VALUES (users_seq.NEXTVAL, ?, ?)
+            """;
+
+        String insertRoleSql = """
+            INSERT INTO user_roles (id, username, role_name)
+            VALUES (user_roles_seq.NEXTVAL, ?, ?)
+            """;
+
+        Connection con = null;
+
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+
+            con = DriverManager.getConnection(url, dbUser, dbPassword);
+            con.setAutoCommit(false);
+
+            try (PreparedStatement ps = con.prepareStatement(insertUserSql)) {
+                ps.setString(1, "user1");
+                ps.setString(2, "user1@example.com");
+
+                int count = ps.executeUpdate();
+
+                if (count != 1) {
+                    throw new SQLException("회원 정보 저장 실패");
+                }
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(insertRoleSql)) {
+                ps.setString(1, "user1");
+                ps.setString(2, "ROLE_USER");
+
+                int count = ps.executeUpdate();
+
+                if (count != 1) {
+                    throw new SQLException("회원 권한 저장 실패");
+                }
+            }
+
+            con.commit();
+            System.out.println("회원 가입 트랜잭션 성공");
+
+        } catch (Exception e) {
+            if (con != null) {
+                try {
+                    con.rollback();
+                    System.out.println("오류 발생, rollback 완료");
+                } catch (SQLException rollbackException) {
+                    rollbackException.printStackTrace();
+                }
+            }
+
+            e.printStackTrace();
+
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException closeException) {
+                    closeException.printStackTrace();
+                }
+            }
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-summary-grid">
+                            <div>
+                                <strong>setAutoCommit(false)</strong>
+                                <p>SQL마다 자동 commit되는 것을 막습니다.</p>
+                            </div>
+                            <div>
+                                <strong>executeUpdate()</strong>
+                                <p>INSERT, UPDATE, DELETE 실행 후<br />영향받은 행 수를 반환합니다.</p>
+                            </div>
+                            <div>
+                                <strong>commit()</strong>
+                                <p>모든 SQL이 성공했을 때 DB에 확정합니다.</p>
+                            </div>
+                            <div>
+                                <strong>rollback()</strong>
+                                <p>하나라도 실패했을 때<br />현재 트랜잭션을 취소합니다.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Spring Boot DataSource와 @Transactional</h2>
+                        </div>
+
+                        <p>
+                            Spring Boot에서는 보통 <code class="inline-code">DriverManager</code>를 직접 쓰지 않고
+                            <code class="inline-code">DataSource</code>를 주입받아 사용합니다.<br />
+                            JPA나 Repository를 사용하는 경우에는 Service 계층의
+                            <code class="inline-code">@Transactional</code>로 트랜잭션을 관리하는 방식이 일반적입니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 요청 DTO와 응답 DTO</h3>
+                            <pre class="code-block"><code>public record SignupRequest(
+    String username,
+    String email,
+    String password
+) {
+}
+
+public record ApiResponse(
+    boolean ok,
+    String message
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) DataSource 기반 JDBC Service</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+@Service
+@RequiredArgsConstructor
+public class SignupJdbcService {
+
+    private final DataSource dataSource;
+
+    public void signup(SignupRequest request) {
+        String insertUserSql = """
+            INSERT INTO users (id, username, email, password)
+            VALUES (users_seq.NEXTVAL, ?, ?, ?)
+            """;
+
+        String insertRoleSql = """
+            INSERT INTO user_roles (id, username, role_name)
+            VALUES (user_roles_seq.NEXTVAL, ?, ?)
+            """;
+
+        Connection con = null;
+
+        try {
+            con = dataSource.getConnection();
+            con.setAutoCommit(false);
+
+            try (PreparedStatement ps = con.prepareStatement(insertUserSql)) {
+                ps.setString(1, request.username());
+                ps.setString(2, request.email());
+                ps.setString(3, request.password());
+
+                int count = ps.executeUpdate();
+
+                if (count != 1) {
+                    throw new SQLException("회원 정보 저장 실패");
+                }
+            }
+
+            try (PreparedStatement ps = con.prepareStatement(insertRoleSql)) {
+                ps.setString(1, request.username());
+                ps.setString(2, "ROLE_USER");
+
+                int count = ps.executeUpdate();
+
+                if (count != 1) {
+                    throw new SQLException("회원 권한 저장 실패");
+                }
+            }
+
+            con.commit();
+
+        } catch (Exception e) {
+            if (con != null) {
+                try {
+                    con.rollback();
+                } catch (SQLException rollbackException) {
+                    rollbackException.printStackTrace();
+                }
+            }
+
+            throw new RuntimeException("회원가입 처리 중 오류가 발생했습니다.", e);
+
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException closeException) {
+                    closeException.printStackTrace();
+                }
+            }
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) @Transactional 방식</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class SignupJpaService {
+
+    private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
+
+    @Transactional
+    public void signup(SignupRequest request) {
+        User user = new User(
+            request.username(),
+            request.email(),
+            request.password()
+        );
+
+        UserRole role = new UserRole(
+            request.username(),
+            "ROLE_USER"
+        );
+
+        userRepository.save(user);
+        userRoleRepository.save(role);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>정리</strong>
+                            <p>
+                                순수 JDBC에서는 <code class="inline-code">commit()</code>과
+                                <code class="inline-code">rollback()</code>을 직접 호출합니다.
+                                Spring Boot에서는 <code class="inline-code">@Transactional</code>이
+                                트랜잭션 시작, commit, rollback을 대신 관리합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>React에서 Axios로 API 호출하기</h2>
+                        </div>
+
+                        <p>
+                            React는 트랜잭션을 직접 제어하지 않습니다.
+                            React는 폼 값을 JSON으로 보내고, Spring Boot 서버가 DB 트랜잭션을 처리한 뒤
+                            성공 또는 실패 응답을 내려줍니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem("accessToken", token);
+    sessionStorage.removeItem("accessToken");
+  } else {
+    sessionStorage.setItem("accessToken", token);
+    localStorage.removeItem("accessToken");
+  }
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken")
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem("accessToken");
+  sessionStorage.removeItem("accessToken");
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) Axios 공통 인스턴스와 토큰 자동 첨부</h3>
+                            <pre class="code-block"><code>import axios from "axios";
+import { getAccessToken, clearToken } from "../utils/tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 5000,
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) =&gt; response,
+  (error) =&gt; {
+    if (error.response?.status === 401) {
+      clearToken();
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) 회원가입 API 호출</h3>
+                            <pre class="code-block"><code>import apiClient from "./apiClient";
+
+export async function signup(form) {
+  const response = await apiClient.post("/api/auth/signup", form);
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>import { useState } from "react";
+import { signup } from "../api/authApi";
+
+function SignupForm() {
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+
+  const [message, setMessage] = useState("");
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    try {
+      const result = await signup(form);
+      setMessage(result.message);
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setMessage("이미 사용 중인 아이디 또는 이메일입니다.");
+      } else {
+        setMessage("회원가입에 실패했습니다. 다시 확인해주세요.");
+      }
+    }
+  }
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="username"
+        value={form.username}
+        onChange={handleChange}
+        placeholder="아이디"
+      /&gt;
+
+      &lt;input
+        name="email"
+        value={form.email}
+        onChange={handleChange}
+        placeholder="이메일"
+      /&gt;
+
+      &lt;input
+        type="password"
+        name="password"
+        value={form.password}
+        onChange={handleChange}
+        placeholder="비밀번호"
+      /&gt;
+
+      &lt;button type="submit"&gt;회원가입&lt;/button&gt;
+
+      {message && &lt;p&gt;{message}&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+}
+
+export default SignupForm;</code></pre>
+                        </div>
+
+                        <div class="json-preview">
+                            <h3>React가 보내는 JSON</h3>
+                            <pre class="code-block"><code>{
+  "username": "user1",
+  "email": "user1@example.com",
+  "password": "pass1234"
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card search-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>LIKE 파라미터 처리</h2>
+                        </div>
+
+                        <p>
+                            검색 기능에서는 <code class="inline-code">LIKE</code> 조건을 자주 사용합니다.
+                            사용자 입력값을 SQL 문자열에 직접 붙이지 말고,
+                            <code class="inline-code">PreparedStatement</code>의 파라미터로 안전하게 바인딩해야 합니다.
+                        </p>
+
+                        <div class="like-table">
+                            <div class="table-head">검색 목적</div>
+                            <div class="table-head">Oracle SQL</div>
+                            <div class="table-head">PreparedStatement용 SQL</div>
+
+                            <div>값 포함</div>
+                            <div><code class="inline-code">where loc like '%값%'</code></div>
+                            <div><code class="inline-code">where loc like '%' || ? || '%'</code></div>
+
+                            <div>값으로 시작</div>
+                            <div><code class="inline-code">where loc like '값%'</code></div>
+                            <div><code class="inline-code">where loc like ? || '%'</code></div>
+
+                            <div>값으로 끝</div>
+                            <div><code class="inline-code">where loc like '%값'</code></div>
+                            <div><code class="inline-code">where loc like '%' || ?</code></div>
+
+                            <div>한 글자 뒤 값 포함</div>
+                            <div><code class="inline-code">where loc like '_값%'</code></div>
+                            <div><code class="inline-code">where loc like '_' || ? || '%'</code></div>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>검색 Repository 예제</h3>
+                            <pre class="code-block"><code>public List&lt;UserResponse&gt; searchByUsername(String keyword) {
+    String sql = """
+        SELECT id, username, email
+        FROM users
+        WHERE username LIKE '%' || ? || '%'
+        ORDER BY id DESC
+        """;
+
+    List&lt;UserResponse&gt; users = new ArrayList&lt;&gt;();
+
+    try (
+        Connection con = dataSource.getConnection();
+        PreparedStatement ps = con.prepareStatement(sql)
+    ) {
+        ps.setString(1, keyword);
+
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                users.add(new UserResponse(
+                    rs.getLong("id"),
+                    rs.getString("username"),
+                    rs.getString("email")
+                ));
+            }
+        }
+
+        return users;
+
+    } catch (SQLException e) {
+        throw new RuntimeException("사용자 검색 중 오류가 발생했습니다.", e);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>주의</strong>
+                            <p>
+                                <code class="inline-code">'%?%'</code>처럼 작성하면
+                                <code class="inline-code">?</code>가 파라미터가 아니라 문자열 문자로 처리됩니다.
+                                <code class="inline-code">'%' || ? || '%'</code> 또는
+                                <code class="inline-code">"%" + keyword + "%"</code> 방식으로 처리해야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            트랜잭션과 자원 반납 오류는 주로
+                            <strong>Connection 누수, rollback 누락, DB 제약 조건 위반, DTO 매핑 오류</strong>에서 발생합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">HikariPool - Connection is not available</code></div>
+                            <div>커넥션 풀에서 빌려줄 Connection이 부족합니다.</div>
+                            <div>Connection close 누락, 긴 트랜잭션, 느린 SQL, pool size를 확인합니다.</div>
+
+                            <div><code class="inline-code">Connection is closed</code></div>
+                            <div>이미 닫힌 Connection으로 SQL을 실행하려고 했습니다.</div>
+                            <div>try-with-resources 블록 밖에서 Connection을 사용하지 않았는지 확인합니다.</div>
+
+                            <div><code class="inline-code">ResultSet closed</code></div>
+                            <div>ResultSet이 닫힌 뒤 값을 읽으려 했습니다.</div>
+                            <div>ResultSet을 사용하는 블록 안에서 DTO 변환까지 끝내야 합니다.</div>
+
+                            <div><code class="inline-code">ORA-01008</code></div>
+                            <div>SQL의 모든 <code class="inline-code">?</code>에 값이 바인딩되지 않았습니다.</div>
+                            <div>setXXX 누락 여부와 파라미터 개수를 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-00001</code></div>
+                            <div>UNIQUE 제약 조건을 위반했습니다.</div>
+                            <div>중복 아이디, 중복 이메일, 중복 키 여부를 확인하고 rollback 처리합니다.</div>
+
+                            <div><code class="inline-code">ORA-02291</code></div>
+                            <div>자식 테이블에 데이터를 넣으려는데 부모 키가 없습니다.</div>
+                            <div>부모 INSERT 후 자식 INSERT 순서인지 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-02292</code></div>
+                            <div>부모 데이터를 삭제하려는데 자식 데이터가 남아 있습니다.</div>
+                            <div>자식 데이터 먼저 삭제하거나 cascade 정책을 검토합니다.</div>
+
+                            <div><code class="inline-code">400 Bad Request</code></div>
+                            <div>React JSON과 Spring DTO 구조가 맞지 않을 수 있습니다.</div>
+                            <div>@RequestBody, Content-Type, JSON key, DTO 필드명을 확인합니다.</div>
+
+                            <div><code class="inline-code">401 Unauthorized</code></div>
+                            <div>인증되지 않은 요청입니다.</div>
+                            <div>JWT 저장 여부, Authorization 헤더, Bearer 접두사, 만료 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">500 Internal Server Error</code></div>
+                            <div>서버 내부 DB 처리 중 예외가 발생했습니다.</div>
+                            <div>SQLException 로그, rollback 여부, close 보장 여부를 확인합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. autoCommit을 끄지 않음</h3>
+                                <p>여러 SQL을 하나의 업무로 묶어야 하는데<br />자동 커밋이 켜져 있으면<br />일부 데이터만 반영될 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>2. catch에서 rollback 누락</h3>
+                                <p>예외가 발생했는데 rollback을 하지 않으면<br />실패한 작업의 일부가 남을 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>3. commit을 너무 일찍 호출</h3>
+                                <p>모든 SQL이 끝나기 전에 commit하면<br />이후 실패 시 앞의 작업을 되돌리기 어렵습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>4. close를 commit으로 착각</h3>
+                                <p>close는 자원 반납입니다.<br />트랜잭션 결과는 commit 또는 rollback으로<br />명확히 결정해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>5. Connection close 누락</h3>
+                                <p>close를 하지 않으면 커넥션 풀이 고갈되어<br />API timeout이 발생할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>6. autoCommit 상태 복구 누락</h3>
+                                <p>커넥션 풀 환경에서는 사용 후<br /><code class="inline-code">setAutoCommit(true)</code>로<br />복구하는
+                                    습관이
+                                    안전합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>7. LIKE 검색에 '%?%' 사용</h3>
+                                <p><code class="inline-code">'%?%'</code>는 파라미터가 아닙니다.<br /><code
+                                        class="inline-code">'%' || ? || '%'</code>를 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>8. @Transactional에서 예외를 삼킴</h3>
+                                <p>예외를 catch만 하고 다시 던지지 않으면<br />Spring이 정상 종료로 판단할 수 있습니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            트랜잭션과 자원 반납은 실무 백엔드 안정성과 직접 연결됩니다.
+                            특히 등록·수정·삭제 API, 주문/결제, 파일 업로드, 관리자 일괄 처리에서 중요합니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>회원가입</h3>
+                                <p>회원 정보, 권한, 프로필, 가입 로그를<br />하나의 트랜잭션으로 묶어야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>주문/결제</h3>
+                                <p>주문, 주문상품, 재고 차감, 결제 로그 중<br />하나라도 실패하면 전체 rollback해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>게시글 + 첨부파일</h3>
+                                <p>게시글 저장과 첨부파일 메타데이터 저장을<br />같은 업무 단위로 관리해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>관리자 일괄 처리</h3>
+                                <p>회원 상태, 상품 가격,<br />게시글 공개 상태 변경은 중간 실패 시<br />일부만 반영되지 않도록 해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>커넥션 풀 안정성</h3>
+                                <p>close 누락은 HikariCP timeout과<br />API 장애로 이어질 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>검색 기능</h3>
+                                <p>LIKE 검색은 PreparedStatement 파라미터로<br />안전하게 처리해야 합니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. 트랜잭션이 무엇인가요?</h3>
+                                <p>
+                                    트랜잭션은 여러 DB 작업을 하나의 업무 단위로 묶는 개념입니다.
+                                    모든 작업이 성공하면 commit하고, 하나라도 실패하면 rollback해서 데이터 정합성을 지킵니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. JDBC에서 트랜잭션을 어떻게 처리하나요?</h3>
+                                <p>
+                                    Connection 객체로 처리합니다.
+                                    <code class="inline-code">setAutoCommit(false)</code>로 자동 커밋을 끄고,
+                                    여러 SQL을 실행한 뒤 성공하면 <code class="inline-code">commit()</code>,
+                                    실패하면 <code class="inline-code">rollback()</code>을 호출합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. commit과 rollback의 차이는 무엇인가요?</h3>
+                                <p>
+                                    commit은 트랜잭션의 변경 내용을 DB에 최종 확정하는 것이고,
+                                    rollback은 현재 트랜잭션의 변경 내용을 취소하는 것입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. close는 commit이나 rollback과 같은 의미인가요?</h3>
+                                <p>
+                                    아닙니다. close는 자원 반납입니다.
+                                    commit은 변경 확정, rollback은 변경 취소, close는 Connection이나 Statement 같은 자원을 닫는 역할입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. try-with-resources를 사용하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    Connection, PreparedStatement, ResultSet처럼 반드시 닫아야 하는 자원을 자동으로 close해줍니다.
+                                    예외가 발생해도 자원 반납이 보장되어 자원 누수를 줄일 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. @Transactional은 어떤 역할을 하나요?</h3>
+                                <p>
+                                    Service 메서드에서 DB 작업을 하나의 트랜잭션으로 묶어줍니다.
+                                    메서드가 정상 종료되면 commit하고, RuntimeException이 발생하면 rollback합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. LIKE 검색에서 PreparedStatement를 어떻게 사용하나요?</h3>
+                                <p>
+                                    Oracle에서는 <code class="inline-code">where username like '%' || ? || '%'</code>처럼
+                                    작성하거나,
+                                    Java에서 <code class="inline-code">"%" + keyword + "%"</code>로 값을 만들어 바인딩할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. React에서 rollback을 직접 제어하나요?</h3>
+                                <p>
+                                    아닙니다. React는 API 요청과 화면 처리를 담당합니다.
+                                    commit과 rollback은 Spring Boot 서버의 Service 계층에서 처리합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>트랜잭션은 여러 SQL을 하나의 업무 단위로 묶는 개념입니다.</li>
+                            <li><code class="inline-code">setAutoCommit(false)</code>는 SQL마다 자동 commit되는 것을 막습니다.</li>
+                            <li><code class="inline-code">commit()</code>은 DB 변경을 확정합니다.</li>
+                            <li><code class="inline-code">rollback()</code>은 현재 트랜잭션의 변경을 취소합니다.</li>
+                            <li><code class="inline-code">close()</code>는 commit이나 rollback이 아니라 자원 반납입니다.</li>
+                            <li><code class="inline-code">try-with-resources</code>는 JDBC 자원을 안전하게 닫아줍니다.</li>
+                            <li>등록·수정·삭제 API는 실패 시 rollback해야 데이터 정합성을 지킬 수 있습니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>commit vs close</strong>
+                                <p>commit은 DB 변경 확정,<br />close는 자원 반납입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>rollback vs 예외 처리</strong>
+                                <p>예외를 잡는 것만으로는 부족하고,<br />DB 변경을 취소하려면<br />rollback이 필요합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>autoCommit true vs false</strong>
+                                <p>true는 SQL마다 자동 확정,<br />false는 개발자가<br />commit/rollback을 결정합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>JDBC Transaction vs<br />@Transactional</strong>
+                                <p>JDBC는 직접 제어,<br />@Transactional은<br />Spring이 트랜잭션을 관리합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>LIKE '%?%'</strong>
+                                <p>이 방식은 파라미터가 아닙니다.<br />'%' || ? || '%' 형태를<br />사용해야 합니다.</p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>05_generic_basic.html</strong>입니다.<br />
+                            JDBC에서 <code class="inline-code">List&lt;UserResponse&gt;</code>,
+                            <code class="inline-code">ApiResponse</code> 같은 타입 구조를 다루기 시작했기 때문에,
+                            이제 Spring Boot 코드에서 자주 등장하는 Generic 문법을 정리합니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>JDBC 트랜잭션과 자원 반납</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>Generic 기본</strong>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>
