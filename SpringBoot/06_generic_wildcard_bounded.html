@@ -1,33 +1,1331 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 06_generic_wildcard_bounded</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/06_generic_wildcard_bounded.css">
-</head>
-<body class="springboot-page springboot-lesson-06">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 06. Generic 와일드카드와 제한 타입</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/06_generic_wildcard_bounded.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-06">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header wildcard-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 06</p>
+                    <h1>Generic 와일드카드와 제한 타입</h1>
+
+                    <p class="chapter-description">
+                        Generic 기본이 <strong>“어떤 타입을 사용할 것인가”</strong>를 정하는 문법이었다면,<br />
+                        Generic 심화는 <strong>“어떤 범위의 타입까지 허용할 것인가”</strong>를 정하는 문법입니다.<br />
+                        이 단원에서는 <code>&lt;T extends ...&gt;</code>, <code>?</code>,
+                        <code>List&lt;?&gt;</code>, <code>List&lt;Object&gt;</code>,
+                        <code>List&lt;? extends ...&gt;</code>, <code>List&lt;? super ...&gt;</code>를<br />
+                        Spring Boot 공통 응답 DTO와 페이징 응답 타입까지 연결해서 정리합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="Generic 심화 핵심 키워드">
+                        <span>&lt;T extends ...&gt;</span>
+                        <span>Wildcard ?</span>
+                        <span>List&lt;?&gt;</span>
+                        <span>List&lt;Object&gt;</span>
+                        <span>? extends</span>
+                        <span>? super</span>
+                        <span>PECS</span>
+                        <span>ApiResponse&lt;T&gt;</span>
+                        <span>PageResponse&lt;T&gt;</span>
+                        <span>ParameterizedTypeReference</span>
+                        <span>GrantedAuthority</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p><code>&lt;T extends ...&gt;</code>가 타입 파라미터의 상한선을<br />정하는 문법임을 이해합니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p><code>List&lt;?&gt;</code>, <code>List&lt;Object&gt;</code>, <code>? extends</code>,
+                                <code>? super</code>의<br />차이를 구분합니다.
+                            </p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>공통 API 응답, 페이징 응답, RestTemplate,<br />Security 권한 타입에서 Generic 심화 문법을 읽습니다.</p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>Generic 심화는 타입의 범위를 정하는 문법이다</h2>
+                        </div>
+
+                        <p>
+                            지난 단원에서는 <code class="inline-code">List&lt;UserResponse&gt;</code>,
+                            <code class="inline-code">ResponseEntity&lt;LoginResponse&gt;</code>,
+                            <code class="inline-code">JpaRepository&lt;User, Long&gt;</code>처럼
+                            타입을 명확히 지정하는 방법을 배웠습니다.<br />
+                            이번 단원에서는 “정확히 하나의 타입”만 지정하는 것이 아니라,
+                            <strong>어떤 타입 범위까지 허용할 것인지</strong>를 다룹니다.<br />
+                            예를 들어 숫자 계열만 받고 싶으면 <code class="inline-code">&lt;T extends Number&gt;</code>,
+                            어떤 리스트든 읽기만 하고 싶으면 <code class="inline-code">List&lt;?&gt;</code>,<br />
+                            Number 계열을 읽고 싶으면 <code class="inline-code">List&lt;? extends Number&gt;</code>,
+                            Integer를 넣고 싶으면 <code class="inline-code">List&lt;? super Integer&gt;</code>를 사용합니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>Bounded Type</span>
+                                <h3>&lt;T extends Number&gt;</h3>
+                                <p>T는 Number 또는<br />Number의 자식 타입만 될 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Wildcard</span>
+                                <h3>List&lt;?&gt;</h3>
+                                <p>정확한 타입은 모르지만<br />어떤 타입의 리스트든 받을 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Upper Bound</span>
+                                <h3>List&lt;? extends Number&gt;</h3>
+                                <p>Number 계열 리스트를<br />읽기 중심으로 처리할 때 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Lower Bound</span>
+                                <h3>List&lt;? super Integer&gt;</h3>
+                                <p>Integer 값을 리스트에 넣는<br />쓰기 중심 코드에 사용합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                Generic 기본은 타입을 정하는 문법이고,
+                                Generic 심화는 타입의 <strong>허용 범위와 읽기·쓰기 방향</strong>을 정하는 문법입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>Generic 심화 학습 흐름도</h2>
+                        </div>
+
+                        <p>
+                            이 단원은 단순한 Java 문법 암기가 아니라 Spring Boot 코드 읽기와 연결됩니다.<br />
+                            <code class="inline-code">PageResponse&lt;T&gt;</code>,
+                            <code class="inline-code">ParameterizedTypeReference&lt;List&lt;JsonPlace&gt;&gt;</code>,
+                            <code class="inline-code">Collection&lt;? extends GrantedAuthority&gt;</code> 같은
+                            실무 타입을 읽을 수 있어야 합니다.
+                        </p>
+
+                        <div class="wildcard-flow">
+                            <article>
+                                <span>Step 1</span>
+                                <strong>Generic 기본</strong>
+                                <p>List&lt;T&gt;, ApiResponse&lt;T&gt;처럼<br />타입을 지정합니다.</p>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article>
+                                <span>Step 2</span>
+                                <strong>타입 제한</strong>
+                                <p>&lt;T extends Number&gt;처럼<br />타입의 상한선을 정합니다.</p>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article>
+                                <span>Step 3</span>
+                                <strong>와일드카드</strong>
+                                <p>List&lt;?&gt;, ? extends, ? super로<br />유연한 매개변수를 만듭니다.</p>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article>
+                                <span>Step 4</span>
+                                <strong>Spring Boot 연결</strong>
+                                <p>공통 응답, 페이징, RestTemplate,<br />Security 권한 타입을 읽습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="spring-type-map">
+                            <div>
+                                <strong>ApiResponse&lt;T&gt;</strong>
+                                <p>data 타입을 T로 바꾸는 공통 응답</p>
+                            </div>
+                            <div>
+                                <strong>PageResponse&lt;T&gt;</strong>
+                                <p>content 요소 타입을 T로 바꾸는 페이징 응답</p>
+                            </div>
+                            <div>
+                                <strong>ResponseEntity&lt;ApiResponse&lt;PageResponse&lt;PostResponse&gt;&gt;&gt;</strong>
+                                <p>HTTP 응답 → 공통 응답 → 페이징 응답 → 게시글 DTO</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>제한 타입과 와일드카드 비교</h2>
+                        </div>
+
+                        <p>
+                            <code class="inline-code">T</code>는 이름이 있는 타입 파라미터이고,
+                            <code class="inline-code">?</code>는 이름 없는 미지의 타입입니다.
+                            두 문법은 비슷해 보이지만 사용하는 위치와 목적이 다릅니다.
+                        </p>
+
+                        <div class="compare-table bounded-table">
+                            <div class="table-head">문법</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">사용 위치</div>
+                            <div class="table-head">대표 예시</div>
+
+                            <div><code class="inline-code">&lt;T&gt;</code></div>
+                            <div>호출 시점에 결정되는 이름 있는 타입 파라미터</div>
+                            <div>클래스, 인터페이스, 제네릭 메소드</div>
+                            <div><code class="inline-code">public static &lt;T&gt; T first(List&lt;T&gt; list)</code>
+                            </div>
+
+                            <div><code class="inline-code">&lt;T extends Number&gt;</code></div>
+                            <div>T를 Number 또는 Number 하위 타입으로 제한</div>
+                            <div>제네릭 클래스, 제네릭 메소드 타입 파라미터 선언부</div>
+                            <div><code
+                                    class="inline-code">public static<br/>&lt;T extends Number&gt; double sum(List&lt;T&gt; list)</code>
+                            </div>
+
+                            <div><code class="inline-code">List&lt;?&gt;</code></div>
+                            <div>어떤 요소 타입의 리스트든 받을 수 있음</div>
+                            <div>필드, 일반 메소드 매개변수</div>
+                            <div><code class="inline-code">printList(List&lt;?&gt; list)</code></div>
+
+                            <div><code class="inline-code">List&lt;? extends Number&gt;</code></div>
+                            <div>Number 또는 Number 하위 타입 리스트를 받음</div>
+                            <div>읽기 중심 매개변수</div>
+                            <div><code class="inline-code">sum(List&lt;? extends Number&gt; list)</code></div>
+
+                            <div><code class="inline-code">List&lt;? super Integer&gt;</code></div>
+                            <div>Integer 또는 Integer 상위 타입 리스트를 받음</div>
+                            <div>쓰기 중심 매개변수</div>
+                            <div><code class="inline-code">addIntegers(List&lt;? super Integer&gt; list)</code></div>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>중요한 문법 보완</strong>
+                            <p>
+                                타입 파라미터 선언부에는 <code class="inline-code">&lt;T super Integer&gt;</code>를 사용할 수
+                                없습니다.<br />
+                                <code class="inline-code">super</code>는
+                                <code class="inline-code">List&lt;? super Integer&gt;</code>처럼 와일드카드에서 사용합니다.<br />
+                                타입 파라미터 제한은 <code class="inline-code">&lt;T extends Number&gt;</code>처럼 <code
+                                    class="inline-code">extends</code>를 사용합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card pecs-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>PECS 원칙: Producer Extends, Consumer Super</h2>
+                        </div>
+
+                        <p>
+                            와일드카드를 외울 때는 PECS 원칙이 가장 좋습니다.
+                            데이터를 주로 <strong>읽는 쪽</strong>이면 <code class="inline-code">extends</code>,
+                            데이터를 주로 <strong>넣는 쪽</strong>이면 <code class="inline-code">super</code>를 사용합니다.
+                        </p>
+
+                        <div class="pecs-grid">
+                            <article class="extends-card">
+                                <span>Producer Extends</span>
+                                <h3>List&lt;? extends Number&gt;</h3>
+                                <p>
+                                    리스트가 Number 계열 값을 생산합니다.<br />
+                                    메소드 입장에서는 값을 꺼내서 Number로 읽을 수 있습니다.
+                                </p>
+                                <pre class="mini-code"><code>double sum(List&lt;? extends Number&gt; list) {
+    double total = 0;
+    for (Number n : list) {
+        total += n.doubleValue();
+    }
+    return total;
+}</code></pre>
+                            </article>
+
+                            <article class="super-card">
+                                <span>Consumer Super</span>
+                                <h3>List&lt;? super Integer&gt;</h3>
+                                <p>
+                                    리스트가 Integer 값을 소비합니다.
+                                    메소드 입장에서는 Integer를 안전하게 넣을 수 있습니다.
+                                </p>
+                                <pre class="mini-code"><code>void addIntegers(List&lt;? super Integer&gt; list) {
+    list.add(1);
+    list.add(2);
+    list.add(3);
+}</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>암기법</strong>
+                            <p>
+                                읽기 중심이면 <code class="inline-code">extends</code>,
+                                쓰기 중심이면 <code class="inline-code">super</code>.
+                                즉, <strong>Producer Extends, Consumer Super</strong>입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card visual-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>그림처럼 이해하기</h2>
+                        </div>
+
+                        <p>
+                            <code class="inline-code">List&lt;?&gt;</code>,
+                            <code class="inline-code">List&lt;Object&gt;</code>,
+                            <code class="inline-code">extends</code>,
+                            <code class="inline-code">super</code>는 타입 계층 그림으로 이해하면 훨씬 쉽습니다.
+                        </p>
+
+                        <div class="type-visual-grid">
+                            <article>
+                                <h3>List&lt;?&gt;</h3>
+                                <p>모든 타입의 리스트를 받을 수 있습니다.</p>
+                                <div class="type-stack">
+                                    <span>List&lt;String&gt;</span>
+                                    <span>List&lt;Integer&gt;</span>
+                                    <span>List&lt;UserResponse&gt;</span>
+                                    <span>List&lt;Object&gt;</span>
+                                </div>
+                            </article>
+
+                            <article>
+                                <h3>List&lt;Object&gt;</h3>
+                                <p>Object를 요소 타입으로 선언한 리스트만 받을 수 있습니다.</p>
+                                <div class="type-stack single">
+                                    <span>List&lt;Object&gt;</span>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div class="hierarchy-visual">
+                            <article>
+                                <h3>? extends Number</h3>
+                                <div class="tree">
+                                    <strong>Number</strong>
+                                    <span>Integer</span>
+                                    <span>Double</span>
+                                    <span>Long</span>
+                                </div>
+                                <p>Number 계열을 읽기 좋지만, 어떤 하위 타입인지 몰라 추가는 어렵습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>? super Integer</h3>
+                                <div class="tree reverse">
+                                    <strong>Object</strong>
+                                    <span>Number</span>
+                                    <span>Integer</span>
+                                </div>
+                                <p>Integer를 넣기 좋지만, 꺼낼 때는 Object로 읽는 것이 안전합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="nested-response-visual">
+                            <h3>Spring Boot 페이징 응답 구조</h3>
+                            <div class="nested-card level-1">
+                                <strong>ResponseEntity</strong>
+                                <p>HTTP 상태 코드, 헤더, body</p>
+                                <div class="nested-card level-2">
+                                    <strong>ApiResponse</strong>
+                                    <p>ok, message, data</p>
+                                    <div class="nested-card level-3">
+                                        <strong>PageResponse&lt;PostResponse&gt;</strong>
+                                        <p>content, page, size, totalElements, totalPages</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>기본 Java 코드 예제</h2>
+                        </div>
+
+                        <p>
+                            아래 예제들은 와일드카드와 제한 타입의 가장 기본적인 사용법입니다.
+                            읽기 중심인지, 쓰기 중심인지 먼저 판단하는 습관을 들이면 됩니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) &lt;T extends Number&gt;: Number 계열만 허용</h3>
+                            <pre class="code-block"><code>import java.util.List;
+
+public class NumberUtils {
+
+    public static &lt;T extends Number&gt; double sum(List&lt;T&gt; numbers) {
+        double total = 0;
+
+        for (T number : numbers) {
+            total += number.doubleValue();
+        }
+
+        return total;
+    }
+
+    public static void main(String[] args) {
+        List&lt;Integer&gt; integers = List.of(1, 2, 3);
+        List&lt;Double&gt; doubles = List.of(1.5, 2.5, 3.5);
+
+        System.out.println(sum(integers));
+        System.out.println(sum(doubles));
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) List&lt;?&gt;: 어떤 리스트든 출력</h3>
+                            <pre class="code-block"><code>import java.util.List;
+
+public class WildcardPrinter {
+
+    public static void printList(List&lt;?&gt; list) {
+        for (Object item : list) {
+            System.out.println(item);
+        }
+    }
+
+    public static void main(String[] args) {
+        List&lt;String&gt; names = List.of("kim", "lee");
+        List&lt;Integer&gt; numbers = List.of(1, 2, 3);
+
+        printList(names);
+        printList(numbers);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) List&lt;? extends Number&gt;: 읽기 중심</h3>
+                            <pre class="code-block"><code>import java.util.List;
+
+public class NumberReader {
+
+    public static void printNumbers(List&lt;? extends Number&gt; numbers) {
+        for (Number number : numbers) {
+            System.out.println(number.doubleValue());
+        }
+    }
+
+    public static void main(String[] args) {
+        List&lt;Integer&gt; integers = List.of(1, 2, 3);
+        List&lt;Double&gt; doubles = List.of(1.1, 2.2, 3.3);
+
+        printNumbers(integers);
+        printNumbers(doubles);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) List&lt;? super Integer&gt;: 쓰기 중심</h3>
+                            <pre class="code-block"><code>import java.util.ArrayList;
+import java.util.List;
+
+public class IntegerWriter {
+
+    public static void addIntegers(List&lt;? super Integer&gt; target) {
+        target.add(1);
+        target.add(2);
+        target.add(3);
+    }
+
+    public static void main(String[] args) {
+        List&lt;Integer&gt; integers = new ArrayList&lt;&gt;();
+        List&lt;Number&gt; numbers = new ArrayList&lt;&gt;();
+        List&lt;Object&gt; objects = new ArrayList&lt;&gt;();
+
+        addIntegers(integers);
+        addIntegers(numbers);
+        addIntegers(objects);
+
+        System.out.println(integers);
+        System.out.println(numbers);
+        System.out.println(objects);
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Spring Boot 공통 응답과 페이징 응답</h2>
+                        </div>
+
+                        <p>
+                            Spring Boot에서는 Generic을 사용해 API 응답 구조를 통일할 수 있습니다.
+                            특히 목록 조회와 페이징 조회는 <code class="inline-code">ApiResponse&lt;T&gt;</code>,
+                            <code class="inline-code">PageResponse&lt;T&gt;</code>로 재사용 구조를 만드는 것이 좋습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) ApiResponse&lt;T&gt;</h3>
+                            <pre class="code-block"><code>public record ApiResponse&lt;T&gt;(
+    boolean ok,
+    String message,
+    T data
+) {
+    public static &lt;T&gt; ApiResponse&lt;T&gt; success(T data) {
+        return new ApiResponse&lt;&gt;(true, "요청이 성공했습니다.", data);
+    }
+
+    public static &lt;T&gt; ApiResponse&lt;T&gt; fail(String message) {
+        return new ApiResponse&lt;&gt;(false, message, null);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) PageResponse&lt;T&gt;</h3>
+                            <pre class="code-block"><code>import org.springframework.data.domain.Page;
+
+import java.util.List;
+import java.util.function.Function;
+
+public record PageResponse&lt;T&gt;(
+    List&lt;T&gt; content,
+    int page,
+    int size,
+    long totalElements,
+    int totalPages,
+    boolean first,
+    boolean last
+) {
+    public static &lt;E, D&gt; PageResponse&lt;D&gt; from(
+            Page&lt;E&gt; page,
+            Function&lt;E, D&gt; mapper
+    ) {
+        List&lt;D&gt; content = page.getContent()
+                .stream()
+                .map(mapper)
+                .toList();
+
+        return new PageResponse&lt;&gt;(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isFirst(),
+                page.isLast()
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) PostResponse DTO</h3>
+                            <pre class="code-block"><code>public record PostResponse(
+    Long id,
+    String title,
+    String writer
+) {
+    public static PostResponse from(Post post) {
+        return new PostResponse(
+                post.getId(),
+                post.getTitle(),
+                post.getWriter()
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) Controller</h3>
+                            <pre class="code-block"><code>@RestController
+@RequestMapping("/api/posts")
+@RequiredArgsConstructor
+public class PostController {
+
+    private final PostService postService;
+
+    @GetMapping
+    public ResponseEntity&lt;ApiResponse&lt;PageResponse&lt;PostResponse&gt;&gt;&gt; findPosts(
+            @PageableDefault(size = 10, sort = "id") Pageable pageable
+    ) {
+        PageResponse&lt;PostResponse&gt; response = postService.findPosts(pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response)
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) Service</h3>
+                            <pre class="code-block"><code>@Service
+@RequiredArgsConstructor
+public class PostService {
+
+    private final PostRepository postRepository;
+
+    @Transactional(readOnly = true)
+    public PageResponse&lt;PostResponse&gt; findPosts(Pageable pageable) {
+        Page&lt;Post&gt; postPage = postRepository.findAll(pageable);
+
+        return PageResponse.from(postPage, PostResponse::from);
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>React에서 Axios로 페이징 API 호출하기</h2>
+                        </div>
+
+                        <p>
+                            Java의 <code
+                                class="inline-code">ResponseEntity&lt;ApiResponse&lt;PageResponse&lt;PostResponse&gt;&gt;&gt;</code>는
+                            React에서 <code class="inline-code">response.data.data.content</code> 구조로 보입니다.<br />
+                            Generic 타입 구조를 읽으면 React에서 데이터 접근 경로도 예측할 수 있습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem("accessToken", token);
+    sessionStorage.removeItem("accessToken");
+  } else {
+    sessionStorage.setItem("accessToken", token);
+    localStorage.removeItem("accessToken");
+  }
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken")
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem("accessToken");
+  sessionStorage.removeItem("accessToken");
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) Axios Interceptor</h3>
+                            <pre class="code-block"><code>import axios from "axios";
+import { getAccessToken, clearToken } from "../utils/tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) =&gt; response,
+  (error) =&gt; {
+    if (error.response?.status === 401) {
+      clearToken();
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) 게시글 목록 API 함수</h3>
+                            <pre class="code-block"><code>import apiClient from "./apiClient";
+
+export async function fetchPosts(page = 0, size = 10) {
+  const response = await apiClient.get("/api/posts", {
+    params: {
+      page,
+      size,
+    },
+  });
+
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) React 목록 렌더링</h3>
+                            <pre class="code-block"><code>import { useEffect, useState } from "react";
+import { fetchPosts } from "../api/postApi";
+
+function PostList() {
+  const [posts, setPosts] = useState([]);
+  const [pageInfo, setPageInfo] = useState({
+    page: 0,
+    totalPages: 0,
+    first: true,
+    last: false,
+  });
+
+  const [message, setMessage] = useState("");
+
+  useEffect(() =&gt; {
+    async function loadPosts() {
+      try {
+        const result = await fetchPosts(0, 10);
+
+        if (result.ok) {
+          setPosts(result.data.content);
+          setPageInfo({
+            page: result.data.page,
+            totalPages: result.data.totalPages,
+            first: result.data.first,
+            last: result.data.last,
+          });
+          setMessage(result.message);
+        } else {
+          setMessage(result.message);
+        }
+      } catch (error) {
+        setMessage("게시글 목록을 불러오지 못했습니다.");
+      }
+    }
+
+    loadPosts();
+  }, []);
+
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;게시글 목록&lt;/h2&gt;
+
+      {message &amp;&amp; &lt;p&gt;{message}&lt;/p&gt;}
+
+      &lt;ul&gt;
+        {posts.map((post) =&gt; (
+          &lt;li key={post.id}&gt;
+            {post.title} / {post.writer}
+          &lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+
+      &lt;p&gt;
+        현재 페이지: {pageInfo.page + 1} / {pageInfo.totalPages}
+      &lt;/p&gt;
+    &lt;/section&gt;
+  );
+}
+
+export default PostList;</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>폼 입력값을 DTO로 보내는 검색 예제</h2>
+                        </div>
+
+                        <p>
+                            검색 폼에서는 keyword, page, size를 DTO로 보내고,
+                            서버는 <code class="inline-code">ApiResponse&lt;PageResponse&lt;PostResponse&gt;&gt;</code>를
+                            반환합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) React 검색 API</h3>
+                            <pre class="code-block"><code>import apiClient from "./apiClient";
+
+export async function searchPosts(form) {
+  const response = await apiClient.post("/api/posts/search", form);
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) React 검색 폼</h3>
+                            <pre class="code-block"><code>import { useState } from "react";
+import { searchPosts } from "../api/postApi";
+
+function PostSearchForm() {
+  const [form, setForm] = useState({
+    keyword: "",
+    page: 0,
+    size: 10,
+  });
+
+  const [posts, setPosts] = useState([]);
+  const [pageInfo, setPageInfo] = useState({
+    page: 0,
+    totalPages: 0,
+  });
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: name === "page" || name === "size" ? Number(value) : value,
+    }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const result = await searchPosts(form);
+
+    if (result.ok) {
+      setPosts(result.data.content);
+      setPageInfo({
+        page: result.data.page,
+        totalPages: result.data.totalPages,
+      });
+    }
+  }
+
+  return (
+    &lt;section&gt;
+      &lt;h2&gt;게시글 검색&lt;/h2&gt;
+
+      &lt;form onSubmit={handleSubmit}&gt;
+        &lt;input
+          name="keyword"
+          value={form.keyword}
+          onChange={handleChange}
+          placeholder="검색어"
+        /&gt;
+
+        &lt;select name="size" value={form.size} onChange={handleChange}&gt;
+          &lt;option value="10"&gt;10개&lt;/option&gt;
+          &lt;option value="20"&gt;20개&lt;/option&gt;
+          &lt;option value="30"&gt;30개&lt;/option&gt;
+        &lt;/select&gt;
+
+        &lt;button type="submit"&gt;검색&lt;/button&gt;
+      &lt;/form&gt;
+
+      &lt;ul&gt;
+        {posts.map((post) =&gt; (
+          &lt;li key={post.id}&gt;
+            {post.title} / {post.writer}
+          &lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/section&gt;
+  );
+}
+
+export default PostSearchForm;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) Spring Boot 요청 DTO와 검색 Controller</h3>
+                            <pre class="code-block"><code>public record PostSearchRequest(
+    String keyword,
+    int page,
+    int size
+) {
+}
+
+@PostMapping("/search")
+public ResponseEntity&lt;ApiResponse&lt;PageResponse&lt;PostResponse&gt;&gt;&gt; search(
+        @RequestBody PostSearchRequest request
+) {
+    PageResponse&lt;PostResponse&gt; response = postService.search(request);
+
+    return ResponseEntity.ok(
+            ApiResponse.success(response)
+    );
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) Service와 Repository</h3>
+                            <pre class="code-block"><code>@Transactional(readOnly = true)
+public PageResponse&lt;PostResponse&gt; search(PostSearchRequest request) {
+    Pageable pageable = PageRequest.of(
+            request.page(),
+            request.size(),
+            Sort.by(Sort.Direction.DESC, "id")
+    );
+
+    Page&lt;Post&gt; postPage = postRepository.findByTitleContaining(
+            request.keyword(),
+            pageable
+    );
+
+    return PageResponse.from(postPage, PostResponse::from);
+}
+
+public interface PostRepository extends JpaRepository&lt;Post, Long&gt; {
+
+    Page&lt;Post&gt; findByTitleContaining(String keyword, Pageable pageable);
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>RestTemplate과 Security에서 만나는 Generic 심화</h2>
+                        </div>
+
+                        <p>
+                            Generic 심화는 JPA뿐 아니라 RestTemplate, Spring Security에서도 자주 등장합니다.<br />
+                            특히 외부 API가 JSON 배열을 반환할 때는 <code class="inline-code">ParameterizedTypeReference</code>로
+                            <code class="inline-code">List&lt;DTO&gt;</code> 타입 정보를 보존해야 합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) RestTemplate에서 List&lt;JsonPlace&gt; 받기</h3>
+                            <pre class="code-block"><code>ResponseEntity&lt;List&lt;JsonPlace&gt;&gt; response =
+        restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                new ParameterizedTypeReference&lt;List&lt;JsonPlace&gt;&gt;() {}
+        );
+
+List&lt;JsonPlace&gt; places = response.getBody();</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) List.class 사용 시 문제</h3>
+                            <pre class="code-block"><code>ResponseEntity&lt;List&gt; response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        entity,
+        List.class
+);
+
+// 이 경우 요소가 JsonPlace가 아니라 LinkedHashMap일 수 있습니다.</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) Spring Security 권한 타입</h3>
+                            <pre class="code-block"><code>public class UserAdapter implements UserDetails {
+
+    private final User user;
+
+    @Override
+    public Collection&lt;? extends GrantedAuthority&gt; getAuthorities() {
+        return Collections.singletonList(
+                new SimpleGrantedAuthority(user.getRole())
+        );
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getUsername();
+    }
+
+    @Override
+    public String getPassword() {
+        return user.getPassword();
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>읽는 방법</strong>
+                            <p>
+                                <code class="inline-code">Collection&lt;? extends GrantedAuthority&gt;</code>는
+                                “정확한 권한 구현 클래스는 몰라도 되지만, 최소한 GrantedAuthority로 읽을 수 있는 권한 목록”이라는 뜻입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            Generic 심화 오류는 대부분 타입 범위와 읽기·쓰기 방향을 잘못 이해했을 때 발생합니다.
+                            특히 <code class="inline-code">List&lt;Object&gt;</code>와 <code
+                                class="inline-code">List&lt;?&gt;</code>,
+                            <code class="inline-code">extends</code>와 <code class="inline-code">super</code>를 혼동할 때 많이
+                            발생합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code
+                                    class="inline-code">List&lt;String&gt; cannot be converted to List&lt;Object&gt;</code>
+                            </div>
+                            <div><code class="inline-code">List&lt;String&gt;</code>은 <code
+                                    class="inline-code">List&lt;Object&gt;</code>의 자식이 아닙니다.</div>
+                            <div>모든 리스트를 받으려면 <code class="inline-code">List&lt;?&gt;</code>를 사용합니다.</div>
+
+                            <div><code class="inline-code">capture of ? extends Number</code></div>
+                            <div><code class="inline-code">List&lt;? extends Number&gt;</code>에 값을 추가하려 했습니다.</div>
+                            <div>읽기 전용으로 쓰거나, 추가가 목적이면 <code class="inline-code">? super Integer</code>를 사용합니다.</div>
+
+                            <div><code class="inline-code">unexpected type</code></div>
+                            <div>제네릭 메소드 타입 파라미터 자리에 <code class="inline-code">?</code>를 사용했을 수 있습니다.</div>
+                            <div><code class="inline-code">&lt;?&gt;</code>가 아니라 <code
+                                    class="inline-code">&lt;T&gt;</code>처럼 이름 있는 타입 파라미터를 사용합니다.</div>
+
+                            <div><code class="inline-code">cannot find symbol: doubleValue()</code></div>
+                            <div>T가 Number 계열이라고 보장되지 않습니다.</div>
+                            <div><code class="inline-code">&lt;T extends Number&gt;</code>로 제한합니다.</div>
+
+                            <div><code class="inline-code">LinkedHashMap cannot be cast to JsonPlace</code></div>
+                            <div>RestTemplate에서 <code class="inline-code">List.class</code>로 받아<br />요소 타입 정보가 사라졌습니다.
+                            </div>
+                            <div><code
+                                    class="inline-code">ParameterizedTypeReference&lt;List&lt;JsonPlace&gt;&gt;</code>를
+                                사용합니다.</div>
+
+                            <div><code class="inline-code">Cannot read properties of undefined</code></div>
+                            <div>React에서 공통 응답 구조의 경로를 잘못 읽었습니다.</div>
+                            <div><code class="inline-code">response.data.content</code>가 아니라<br /><code
+                                    class="inline-code">response.data.data.content</code>인지 확인합니다.</div>
+
+                            <div><code class="inline-code">posts.map is not a function</code></div>
+                            <div>posts가 배열이 아니라 PageResponse 객체일 수 있습니다.</div>
+                            <div>실제 배열은 <code class="inline-code">result.data.content</code> 안에 있는지 확인합니다.</div>
+
+                            <div><code class="inline-code">400 Bad Request</code></div>
+                            <div>React JSON과 Spring DTO 필드 구조가<br />맞지 않을 수 있습니다.</div>
+                            <div><code class="inline-code">@RequestBody</code>, Content-Type, DTO 필드명, page/size 타입을
+                                확인합니다.</div>
+
+                            <div><code class="inline-code">401 Unauthorized</code></div>
+                            <div>인증이 필요한 API에 토큰이 없거나 잘못되었습니다.</div>
+                            <div>Authorization 헤더, Bearer 접두사, 토큰 만료 여부를 확인합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. List&lt;Object&gt;가<br />모든 리스트를 받는다고 착각</h3>
+                                <p>모든 타입의 리스트를 받으려면<br /><code class="inline-code">List&lt;?&gt;</code>를 사용해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>2. extends 리스트에 값 추가</h3>
+                                <p><code class="inline-code">List&lt;? extends Number&gt;</code>는<br />읽기에는 좋지만 값을 추가하기
+                                    어렵습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>3. super 리스트에서<br />Integer로 바로 읽기</h3>
+                                <p><code class="inline-code">List&lt;? super Integer&gt;</code>는<br />꺼낼 때 <code
+                                        class="inline-code">Object</code>로 읽는 것이 안전합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>4. 제네릭 메소드에 &lt;?&gt; 사용</h3>
+                                <p>제네릭 메소드 타입 파라미터에는<br />이름이 필요하므로 <code class="inline-code">&lt;T&gt;</code>를 사용해야
+                                    합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>5. &lt;T super Integer&gt; 작성</h3>
+                                <p>타입 파라미터 선언부에는<br /><code class="inline-code">super</code>를 사용할 수 없습니다.<br /><code
+                                        class="inline-code">List&lt;? super Integer&gt;</code>로 작성합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>6. T와 ?를 같은 것으로 생각</h3>
+                                <p><code class="inline-code">T</code>는 이름 있는 타입이고,<br /><code
+                                        class="inline-code">?</code>는
+                                    이름 없는 미지의 타입입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>7. RestTemplate에서<br />List.class 사용</h3>
+                                <p>요소 타입 정보가 사라져<br /><code class="inline-code">LinkedHashMap</code>이 반환될 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>8. React에서<br />페이징 객체를 배열로 착각</h3>
+                                <p><code class="inline-code">PageResponse</code>는 객체이고<br />실제 배열은 <code
+                                        class="inline-code">content</code>에 있습니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            Generic 심화 문법은 Java 유틸리티뿐 아니라 Spring Boot 실무의 공통 응답,
+                            페이징, 외부 API 연동, Security 권한 처리에서 계속 등장합니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>공통 API 응답</h3>
+                                <p><code class="inline-code">ApiResponse&lt;T&gt;</code>로<br />LoginResponse,
+                                    UserResponse,
+                                    PageResponse를<br />하나의 응답 구조로 감쌉니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>페이징 응답</h3>
+                                <p><code class="inline-code">PageResponse&lt;T&gt;</code>로<br />게시글, 회원, 댓글 목록의 페이징
+                                    응답을<br />
+                                    통일합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>JPA Repository</h3>
+                                <p><code class="inline-code">Page&lt;Post&gt;</code>, <code
+                                        class="inline-code">Optional&lt;User&gt;</code>,<br /><code
+                                        class="inline-code">List&lt;Post&gt;</code> 같은 타입을 읽습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>검색 API</h3>
+                                <p><code class="inline-code">Page&lt;Post&gt;<br/>findByTitleContaining(...)</code>처럼 검색
+                                    결과를
+                                    페이지 단위로 반환합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>RestTemplate</h3>
+                                <p><code
+                                        class="inline-code">ParameterizedTypeReference&lt;List&lt;DTO&gt;&gt;</code><br />로
+                                    외부 API 배열 응답 타입을 보존합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Spring Security</h3>
+                                <p><code class="inline-code">Collection&lt;? extends GrantedAuthority&gt;</code><br />로
+                                    권한 목록을
+                                    읽기 중심으로 처리합니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">14</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. &lt;T extends Number&gt;는 무슨 뜻인가요?</h3>
+                                <p>
+                                    T가 Number 또는 Number의 하위 타입이어야 한다는 뜻입니다.
+                                    이렇게 제한하면 메소드 내부에서 <code class="inline-code">doubleValue()</code> 같은 Number의 메소드를
+                                    안전하게 사용할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. List&lt;?&gt;는 무엇인가요?</h3>
+                                <p>
+                                    어떤 타입의 요소를 가진 리스트든 받을 수 있다는 뜻입니다.
+                                    다만 정확한 요소 타입을 모르기 때문에 내부에서는 요소를 Object로 읽는 것이 안전합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. List&lt;?&gt;와 List&lt;Object&gt;의 차이는 무엇인가요?</h3>
+                                <p>
+                                    <code class="inline-code">List&lt;?&gt;</code>는 모든 타입의 리스트를 받을 수 있지만,
+                                    <code class="inline-code">List&lt;Object&gt;</code>는 요소 타입이 Object로 선언된 리스트만 받을 수
+                                    있습니다.
+                                    <code class="inline-code">List&lt;String&gt;</code>은 <code
+                                        class="inline-code">List&lt;Object&gt;</code>의 자식이 아닙니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. List&lt;? extends Number&gt;는 언제 사용하나요?</h3>
+                                <p>
+                                    Number 계열 리스트를 읽기 중심으로 처리할 때 사용합니다.
+                                    Integer, Double, Long 리스트를 받을 수 있고, 요소를 Number로 읽을 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. List&lt;? super Integer&gt;는 언제 사용하나요?</h3>
+                                <p>
+                                    Integer 값을 리스트에 추가해야 할 때 사용합니다.
+                                    List&lt;Integer&gt;, List&lt;Number&gt;, List&lt;Object&gt;에 Integer를 안전하게 추가할 수
+                                    있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. PECS 원칙이 무엇인가요?</h3>
+                                <p>
+                                    Producer Extends, Consumer Super의 약자입니다.
+                                    값을 읽어오는 생산자 역할이면 extends, 값을 넣는 소비자 역할이면 super를 사용한다는 원칙입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. PageResponse&lt;T&gt;를 왜 만드나요?</h3>
+                                <p>
+                                    게시글, 회원, 댓글 등 페이징 응답의 구조는 같고 content의 요소 타입만 다르기 때문입니다.
+                                    Generic을 사용하면 PageResponse 하나로 여러 DTO 페이징 응답을 재사용할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. ParameterizedTypeReference&lt;List&lt;JsonPlace&gt;&gt;는 왜 쓰나요?</h3>
+                                <p>
+                                    RestTemplate에서 List.class로 받으면 요소 타입 정보가 사라질 수 있습니다.
+                                    ParameterizedTypeReference를 사용하면 List&lt;JsonPlace&gt;라는 Generic 타입 정보를 보존할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. Collection&lt;? extends GrantedAuthority&gt;는 어떻게 읽나요?</h3>
+                                <p>
+                                    GrantedAuthority 또는 그 하위 타입 객체들의 컬렉션이라는 뜻입니다.
+                                    Spring Security에서 권한 목록을 읽기 중심으로 처리할 때 사용됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. React와 Generic 심화는 어떻게 연결되나요?</h3>
+                                <p>
+                                    Java의 Generic 타입 구조는 Spring Boot의 JSON 응답 구조와 연결됩니다.<br />
+                                    <code
+                                        class="inline-code">ApiResponse&lt;PageResponse&lt;PostResponse&gt;&gt;</code>라면
+                                    React에서는 <code class="inline-code">response.data.data.content</code>가 실제 게시글 배열입니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li><code class="inline-code">&lt;T extends Number&gt;</code>는 T가 Number 또는 Number 하위 타입이어야
+                                한다는 뜻입니다.</li>
+                            <li><code class="inline-code">List&lt;?&gt;</code>는 어떤 타입의 리스트든 받을 수 있습니다.</li>
+                            <li><code class="inline-code">List&lt;Object&gt;</code>는 Object 요소 타입으로 선언된 리스트만 받을 수 있습니다.
+                            </li>
+                            <li><code class="inline-code">List&lt;? extends Number&gt;</code>는 읽기 중심입니다.</li>
+                            <li><code class="inline-code">List&lt;? super Integer&gt;</code>는 쓰기 중심입니다.</li>
+                            <li><code class="inline-code">?</code>는 제네릭 메소드의 타입 파라미터 이름으로 사용할 수 없습니다.</li>
+                            <li><code class="inline-code">PageResponse&lt;T&gt;</code>는 페이징 응답의 content 타입을 일반화합니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>T vs ?</strong>
+                                <p>T는 이름 있는 타입,<br />?는 이름 없는 미지의 타입입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>List&lt;?&gt; vs List&lt;Object&gt;</strong>
+                                <p>모든 리스트를 받으려면<br />List&lt;?&gt;를 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>extends vs super</strong>
+                                <p>extends는 읽기 중심,<br />super는 쓰기 중심입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>&lt;T super ...&gt;</strong>
+                                <p>Java 타입 파라미터 선언부에서는<br />사용할 수 없는 문법입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>PageResponse&lt;T&gt;</strong>
+                                <p>React에서 실제 배열은<br />data.content 안에 있습니다.</p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>07_spring_framework_boot.html</strong>입니다.<br />
+                            이번 단원까지 Generic 기본과 심화를 정리했으므로,
+                            이제 Spring Framework와 Spring Boot의 큰 구조를 배울 때<br />
+                            <code class="inline-code">JpaRepository&lt;Entity, ID&gt;</code>,
+                            <code class="inline-code">ResponseEntity&lt;ApiResponse&lt;T&gt;&gt;</code>,
+                            <code class="inline-code">Page&lt;DTO&gt;</code>,
+                            <code class="inline-code">Collection&lt;? extends GrantedAuthority&gt;</code>를 자연스럽게 읽을 수
+                            있습니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>Generic 와일드카드와 제한 타입</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>Spring Framework와 Boot</strong>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>
