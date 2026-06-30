@@ -1,33 +1,1046 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 11_datasource_hikaricp</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/11_datasource_hikaricp.css">
-</head>
-<body class="springboot-page springboot-lesson-11">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 11. DataSource와 HikariCP</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/11_datasource_hikaricp.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-11">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header datasource-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 11</p>
+                    <h1>DataSource와 HikariCP</h1>
+
+                    <p class="chapter-description">
+                        <strong>DataSource</strong>는 Spring에서 DB Connection을 얻는 표준 입구이고,<br>
+                        <strong>HikariCP</strong>는 미리 만들어 둔 Connection을 Pool로 관리해서
+                        API 요청마다 새 DB 연결을 만들지 않게 해주는 고성능 Connection Pool입니다.<br>
+                        이 단원에서는 JDBC 기본 흐름을 복습하고,<br>
+                        <strong>Spring Boot DB 설정, HikariCP 설정, JdbcTemplate, @Transactional</strong>이
+                        React API 요청과 어떻게 연결되는지 정리합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="DataSource와 HikariCP 핵심 키워드">
+                        <span>JDBC</span>
+                        <span>DriverManager</span>
+                        <span>Connection</span>
+                        <span>DataSource</span>
+                        <span>HikariCP</span>
+                        <span>Connection Pool</span>
+                        <span>JdbcTemplate</span>
+                        <span>RowMapper</span>
+                        <span>@Transactional</span>
+                        <span>commit / rollback</span>
+                        <span>spring.datasource</span>
+                        <span>spring.datasource.hikari</span>
+                        <span>Oracle JDBC</span>
+                        <span>React API</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>JDBC의 기본 연결 흐름과<br>DriverManager 방식의 한계를 이해합니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>DataSource와 HikariCP가<br>Connection을 빌려주고 반납받는 구조를 설명할 수 있습니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>React API 요청이 Controller, Service,<br>Repository, DataSource, HikariCP를 거쳐<br>DB에 접근하는
+                                흐름을
+                                이해합니다.</p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>DataSource와 HikariCP를 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            React에서 <code class="inline-code">GET /api/posts</code>를 호출하면 Spring Boot는 Controller,
+                            Service,
+                            Repository를 지나 DB에 접근합니다. 이때 DB에 접근하려면 반드시 <strong>Connection</strong>이 필요합니다.<br>
+                            JDBC를 직접 공부할 때는 <code class="inline-code">DriverManager.getConnection()</code>으로 연결을 만들었지만,
+                            실제 웹 API 서버에서는 매 요청마다 새 연결을 만들면 성능과 안정성 문제가 생깁니다.<br>
+                            그래서 Spring Boot에서는 <strong>DataSource</strong>를 DB 연결의 표준 입구로 사용하고,
+                            그 뒤에서 <strong>HikariCP</strong>가 Connection Pool을 관리합니다.<br>
+                            요청이 들어오면 새 Connection을 만드는 것이 아니라 Pool에서 빌리고,
+                            작업이 끝나면 <code class="inline-code">close()</code>를 통해 Pool에 반납합니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>JDBC</span>
+                                <h3>DB 접근 표준 API</h3>
+                                <p>Java에서 Oracle, MySQL 같은<br>DB에 연결하고 SQL을 실행하기 위한<br>표준 API입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>DataSource</span>
+                                <h3>DB 연결 입구</h3>
+                                <p>Spring에서 Connection을 얻는<br>표준 인터페이스입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>HikariCP</span>
+                                <h3>Connection Pool</h3>
+                                <p>Connection을 미리 만들어두고<br>요청마다 빌려주고 반납받습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>JdbcTemplate</span>
+                                <h3>JDBC 반복 제거</h3>
+                                <p>Connection, PreparedStatement,<br>ResultSet, close 반복 코드를 줄여줍니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                DataSource는 DB 연결을 얻는 표준 입구이고,
+                                HikariCP는 Connection을 미리 준비해 API 요청마다 새 DB 연결을 만들지 않게 해주는 Connection Pool입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>React 요청이 DB까지 내려가는 흐름도</h2>
+                        </div>
+
+                        <p>
+                            React는 DataSource나 HikariCP를 직접 다루지 않습니다.
+                            하지만 React의 Axios 요청은 결국 Spring Boot 내부에서 DataSource와 HikariCP를 거쳐 DB까지 내려갑니다.
+                        </p>
+
+                        <div class="datasource-flow" aria-label="React 요청이 DB까지 내려가는 2행 흐름도">
+                            <div class="flow-row top-flow">
+                                <article>
+                                    <span>1</span>
+                                    <strong>React</strong>
+                                    <p>Axios로 API를 호출합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>2</span>
+                                    <strong>Controller</strong>
+                                    <p>HTTP 요청을 받고<br>Service를 호출합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>3</span>
+                                    <strong>Service</strong>
+                                    <p>비즈니스 로직과 트랜잭션을 처리합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>4</span>
+                                    <strong>Repository</strong>
+                                    <p>JdbcTemplate 또는<br>JPA Repository로<br>DB 접근을 요청합니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row bottom-flow">
+                                <article>
+                                    <span>5</span>
+                                    <strong>DataSource</strong>
+                                    <p>DB Connection을 얻는 표준 입구입니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>6</span>
+                                    <strong>HikariCP</strong>
+                                    <p>Connection Pool에서 연결을 빌려줍니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>7</span>
+                                    <strong>Oracle DB</strong>
+                                    <p>SQL을 실행하고 결과를 반환합니다.</p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="response-flow">
+                            <h3>응답 흐름</h3>
+                            <p>
+                                Oracle DB → ResultSet → RowMapper → DTO → Controller → JSON Response → React 화면 렌더링
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card compare-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>DriverManager 방식과 HikariCP 방식 비교</h2>
+                        </div>
+
+                        <p>
+                            JDBC를 처음 배울 때는 <code class="inline-code">DriverManager.getConnection()</code>으로 Connection을
+                            직접 만듭니다.<br>
+                            하지만 웹 서버에서는 매 요청마다 새 연결을 생성하는 방식이 부담스럽습니다.<br>
+                            HikariCP는 Connection을 미리 준비해두고 요청마다 빌려주는 방식으로 이 문제를 해결합니다.
+                        </p>
+
+                        <div class="compare-panel">
+                            <article>
+                                <span>학습용 기본 방식</span>
+                                <h3>DriverManager</h3>
+                                <pre class="mini-code"><code>Connection con = DriverManager.getConnection(
+    url,
+    username,
+    password
+);</code></pre>
+                                <p>
+                                    요청마다 DB 연결을 새로 만들 수 있습니다.
+                                    연결 생성, 인증, 세션 확보 비용이 반복됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Spring Boot 실무 방식</span>
+                                <h3>DataSource + HikariCP</h3>
+                                <pre class="mini-code"><code>Connection con = dataSource.getConnection();</code></pre>
+                                <p>
+                                    Pool에서 Connection을 빌려 쓰고,
+                                    다 쓰면 <code class="inline-code">close()</code>로 반납합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="pool-visual">
+                            <h3>Connection Pool을 대여소처럼 이해하기</h3>
+                            <div class="pool-grid">
+                                <article class="available">
+                                    <strong>Connection 1</strong>
+                                    <p>대기 중</p>
+                                </article>
+                                <article class="available">
+                                    <strong>Connection 2</strong>
+                                    <p>대기 중</p>
+                                </article>
+                                <article class="using">
+                                    <strong>Connection 3</strong>
+                                    <p>사용 중</p>
+                                </article>
+                                <article class="available">
+                                    <strong>Connection 4</strong>
+                                    <p>대기 중</p>
+                                </article>
+                            </div>
+                            <p>
+                                API 요청은 Connection을 “생성”하는 것이 아니라 Pool에서 “대여”합니다.
+                                작업이 끝나면 연결을 끊는 것이 아니라 Pool에 반납합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Spring Boot DB 설정과 HikariCP 설정</h2>
+                        </div>
+
+                        <p>
+                            Spring Boot는 <code class="inline-code">spring.datasource.*</code> 설정을 보고 DataSource를 자동
+                            구성합니다.
+                            HikariCP 관련 설정은 <code class="inline-code">spring.datasource.hikari.*</code> 아래에 작성합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>application.yml</h3>
+                            <pre class="code-block"><code>server:
+  port: 8080
+
+spring:
+  application:
+    name: datasource-hikari-study
+
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/XEPDB1}
+    username: ${DB_USERNAME:JAVA}
+    password: ${DB_PASSWORD:JAVA}
+    hikari:
+      pool-name: StudyHikariPool
+      auto-commit: false
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 600000
+      max-lifetime: 1800000</code></pre>
+                        </div>
+
+                        <div class="config-grid">
+                            <article>
+                                <strong>driver-class-name</strong>
+                                <p>사용할 JDBC Driver 클래스입니다.<br>Oracle은 <code
+                                        class="inline-code">oracle.jdbc.OracleDriver</code>를 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>url</strong>
+                                <p>DB 접속 주소입니다.<br>PDB 사용 시 <code
+                                        class="inline-code">jdbc:oracle:thin:@localhost:1521/XEPDB1</code><br>형태를 자주
+                                    씁니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>username / password</strong>
+                                <p>DB 계정과 비밀번호입니다. 실무에서는 환경변수로 분리합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>maximum-pool-size</strong>
+                                <p>Pool에서 가질 수 있는 최대 Connection 수입니다.<br>무조건 크게 잡으면 DB에 부담이 됩니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>connection-timeout</strong>
+                                <p>Connection을 빌리기 위해 기다릴 최대 시간입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>max-lifetime</strong>
+                                <p>Connection 하나가<br>Pool 안에서 살아 있을 수 있는 최대 시간입니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Maven 의존성과 테이블 준비</h2>
+                        </div>
+
+                        <p>
+                            Spring JDBC와 HikariCP를 사용하려면 JDBC Starter와 DB Driver가 필요합니다.
+                            Oracle DB를 사용한다면 <code class="inline-code">ojdbc11</code> 의존성을 추가합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>pom.xml 의존성</h3>
+                            <pre class="code-block"><code>&lt;dependencies&gt;
+    &lt;!-- REST API, Controller, JSON 응답 --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- Spring JDBC, JdbcTemplate, DataSource, HikariCP --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-jdbc&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- Oracle JDBC Driver --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;com.oracle.database.jdbc&lt;/groupId&gt;
+        &lt;artifactId&gt;ojdbc11&lt;/artifactId&gt;
+        &lt;scope&gt;runtime&lt;/scope&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- Lombok 선택 --&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;
+        &lt;artifactId&gt;lombok&lt;/artifactId&gt;
+        &lt;optional&gt;true&lt;/optional&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Oracle 테이블 예시</h3>
+                            <pre class="code-block"><code>CREATE TABLE post (
+    id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    title VARCHAR2(100) NOT NULL,
+    content VARCHAR2(3000) NOT NULL,
+    writer VARCHAR2(50) NOT NULL,
+    created_at DATE DEFAULT SYSDATE NOT NULL
+);</code></pre>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>Oracle 버전 주의</strong>
+                            <p>
+                                Oracle 버전이나 설정에 따라 identity 문법이 맞지 않을 수 있습니다.
+                                이 경우 <code class="inline-code">SEQUENCE</code>를 직접 생성해서 사용할 수 있습니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>JdbcTemplate Repository 예제</h2>
+                        </div>
+
+                        <p>
+                            <code class="inline-code">JdbcTemplate</code>은 내부적으로 DataSource를 사용해 Connection을 얻고,
+                            SQL 실행이 끝나면 자원을 반납합니다.
+                            개발자는 SQL, 파라미터, RowMapper에 집중할 수 있습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>DTO</h3>
+                            <pre class="code-block"><code>import java.time.LocalDateTime;
+
+public record PostCreateRequest(
+        String title,
+        String content,
+        String writer
+) {
+}
+
+public record PostResponse(
+        Long id,
+        String title,
+        String content,
+        String writer,
+        LocalDateTime createdAt
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Repository</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+
+import java.sql.Timestamp;
+import java.util.List;
+
+@Repository
+@RequiredArgsConstructor
+public class PostJdbcRepository {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    private final RowMapper&lt;PostResponse&gt; postRowMapper = (rs, rowNum) -&gt; {
+        Timestamp createdAt = rs.getTimestamp("created_at");
+
+        return new PostResponse(
+                rs.getLong("id"),
+                rs.getString("title"),
+                rs.getString("content"),
+                rs.getString("writer"),
+                createdAt == null ? null : createdAt.toLocalDateTime()
+        );
+    };
+
+    public List&lt;PostResponse&gt; findAll() {
+        String sql = """
+                SELECT id, title, content, writer, created_at
+                FROM post
+                ORDER BY id DESC
+                """;
+
+        return jdbcTemplate.query(sql, postRowMapper);
+    }
+
+    public PostResponse findById(Long id) {
+        String sql = """
+                SELECT id, title, content, writer, created_at
+                FROM post
+                WHERE id = ?
+                """;
+
+        return jdbcTemplate.queryForObject(sql, postRowMapper, id);
+    }
+
+    public int save(PostCreateRequest request) {
+        String sql = """
+                INSERT INTO post (title, content, writer)
+                VALUES (?, ?, ?)
+                """;
+
+        return jdbcTemplate.update(
+                sql,
+                request.title(),
+                request.content(),
+                request.writer()
+        );
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Service와 Controller 예제</h2>
+                        </div>
+
+                        <p>
+                            Service 계층에는 <code class="inline-code">@Transactional</code>을 적용합니다.
+                            조회만 하는 메서드는 <code class="inline-code">@Transactional(readOnly = true)</code>를 사용하고,
+                            등록/수정/삭제는 일반 <code class="inline-code">@Transactional</code>을 사용합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>Service</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class PostJdbcService {
+
+    private final PostJdbcRepository postJdbcRepository;
+
+    @Transactional(readOnly = true)
+    public List&lt;PostResponse&gt; findAll() {
+        return postJdbcRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse findById(Long id) {
+        return postJdbcRepository.findById(id);
+    }
+
+    @Transactional
+    public void create(PostCreateRequest request) {
+        postJdbcRepository.save(request);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Controller</h3>
+                            <pre class="code-block"><code>import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/jdbc/posts")
+@RequiredArgsConstructor
+public class PostJdbcController {
+
+    private final PostJdbcService postJdbcService;
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;PostResponse&gt;&gt; findAll() {
+        return ResponseEntity.ok(postJdbcService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity&lt;PostResponse&gt; findById(@PathVariable Long id) {
+        return ResponseEntity.ok(postJdbcService.findById(id));
+    }
+
+    @PostMapping
+    public ResponseEntity&lt;Void&gt; create(@RequestBody PostCreateRequest request) {
+        postJdbcService.create(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>DataSource 직접 등록 예제</h2>
+                        </div>
+
+                        <p>
+                            일반적인 단일 DB 프로젝트에서는 Spring Boot 자동 설정을 우선 사용하는 것이 좋습니다.<br>
+                            하지만 원리 이해를 위해 <code class="inline-code">@Configuration</code>과
+                            <code class="inline-code">@Bean</code>으로 <code class="inline-code">HikariDataSource</code>를
+                            직접 등록하는 구조도 알아두면 좋습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>DatabaseConfig</h3>
+                            <pre class="code-block"><code>import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.sql.DataSource;
+
+@Configuration
+public class DatabaseConfig {
+
+    @Value("${spring.datasource.driver-class-name}")
+    private String driverClassName;
+
+    @Value("${spring.datasource.url}")
+    private String jdbcUrl;
+
+    @Value("${spring.datasource.username}")
+    private String username;
+
+    @Value("${spring.datasource.password}")
+    private String password;
+
+    @Bean
+    public DataSource dataSource() {
+        HikariConfig config = new HikariConfig();
+
+        config.setPoolName("ManualHikariPool");
+        config.setDriverClassName(driverClassName);
+        config.setJdbcUrl(jdbcUrl);
+        config.setUsername(username);
+        config.setPassword(password);
+
+        config.setAutoCommit(false);
+        config.setConnectionTimeout(30000);
+        config.setMaximumPoolSize(10);
+        config.setMinimumIdle(2);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+
+        return new HikariDataSource(config);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>TransactionManager 직접 등록 예제</h3>
+                            <pre class="code-block"><code>import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.sql.DataSource;
+
+@Configuration
+public class TransactionConfig {
+
+    @Bean
+    public DataSourceTransactionManager transactionManager(
+            DataSource dataSource
+    ) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+    @Bean
+    public TransactionTemplate transactionTemplate(
+            DataSourceTransactionManager transactionManager
+    ) {
+        return new TransactionTemplate(transactionManager);
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>React에서 Axios로 API 호출하기</h2>
+                        </div>
+
+                        <p>
+                            React는 DataSource와 HikariCP를 직접 다루지 않습니다.
+                            하지만 React의 API 요청은 결국 Spring Boot 내부에서 DataSource와 HikariCP를 통해 DB에 접근합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>토큰 저장 함수</h3>
+                            <pre class="code-block"><code>export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem("accessToken", token);
+    sessionStorage.removeItem("accessToken");
+  } else {
+    sessionStorage.setItem("accessToken", token);
+    localStorage.removeItem("accessToken");
+  }
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken")
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem("accessToken");
+  sessionStorage.removeItem("accessToken");
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>import axios from "axios";
+import { getAccessToken, clearToken } from "../utils/tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 5000,
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) =&gt; response,
+  (error) =&gt; {
+    if (error.response?.status === 401) {
+      clearToken();
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>게시글 API 함수</h3>
+                            <pre class="code-block"><code>import apiClient from "./apiClient";
+
+export async function fetchPosts() {
+  const response = await apiClient.get("/api/jdbc/posts");
+  return response.data;
+}
+
+export async function fetchPost(id) {
+  const response = await apiClient.get(`/api/jdbc/posts/${id}`);
+  return response.data;
+}
+
+export async function createPost(form) {
+  const response = await apiClient.post("/api/jdbc/posts", form);
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>const form = {
+  title: "DataSource 공부",
+  content: "HikariCP와 Spring JDBC 연결 흐름을 정리합니다.",
+  writer: "hong"
+};
+
+await createPost(form);</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            DB 연결 오류는 처음에는 복잡해 보이지만,
+                            대부분 DB URL, 계정, Driver, Pool 고갈, SQL 문법, 제약 조건 문제로 나눌 수 있습니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">Failed to configure a DataSource</code></div>
+                            <div>DataSource를 만들 DB 설정이 부족하거나 잘못되었습니다.</div>
+                            <div>url, username, password, driver-class-name, DB Driver 의존성을 확인합니다.</div>
+
+                            <div><code class="inline-code">Cannot load driver class</code></div>
+                            <div>Oracle JDBC Driver 클래스를 찾지 못했습니다.</div>
+                            <div>ojdbc11 의존성과 Maven Update 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-01017</code></div>
+                            <div>DB 계정 또는 비밀번호가 틀렸습니다.</div>
+                            <div>username, password, 계정 잠금 여부, PDB 접속 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">ORA-12514 / ORA-12505</code></div>
+                            <div>Oracle Listener가 서비스명 또는 SID를 찾지 못했습니다.</div>
+                            <div>XEPDB1, XE, localhost, 1521, Listener 상태를 확인합니다.</div>
+
+                            <div><code class="inline-code">Connection is not available, request timed out</code></div>
+                            <div>HikariCP Pool에서 Connection을 빌리지 못했습니다.</div>
+                            <div>느린 쿼리, 트랜잭션 길이, Pool 크기, Connection leak을 확인합니다.</div>
+
+                            <div><code class="inline-code">Exception during pool initialization</code></div>
+                            <div>애플리케이션 시작 시 HikariCP가 초기 연결을 만들지 못했습니다.</div>
+                            <div>DB 서버 실행, URL, 계정, Driver, 방화벽을 확인합니다.</div>
+
+                            <div><code class="inline-code">SQLRecoverableException: IO Error</code></div>
+                            <div>DB 네트워크 연결 문제가 발생했습니다.</div>
+                            <div>DB 실행 여부, 포트, VPN, 방화벽, Listener를 확인합니다.</div>
+
+                            <div><code class="inline-code">BadSqlGrammarException</code></div>
+                            <div>SQL 문법이 잘못되었습니다.</div>
+                            <div>SQL 오타, 테이블명, 컬럼명, Oracle 문법을 확인합니다.</div>
+
+                            <div><code class="inline-code">DataIntegrityViolationException</code></div>
+                            <div>DB 제약 조건을 위반했습니다.</div>
+                            <div>NOT NULL, UNIQUE, FK, 문자열 길이 초과를 확인합니다.</div>
+
+                            <div><code class="inline-code">EmptyResultDataAccessException</code></div>
+                            <div>queryForObject()에서 조회 결과가 없습니다.</div>
+                            <div>결과가 없을 수 있으면 query()로 List를 받고 직접 처리합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. Oracle Driver 누락</h3>
+                                <p><code class="inline-code">ojdbc11</code> 의존성이 없으면<br>Oracle Driver를 찾지 못합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>2. JDBC Starter 누락</h3>
+                                <p>Spring JDBC와 JdbcTemplate을 사용하려면<br><code
+                                        class="inline-code">spring-boot-starter-jdbc</code>가 필요합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>3. JDBC URL 오타</h3>
+                                <p>SID 방식과 Service Name 방식을 혼동하면<br>ORA-12514, ORA-12505가<br>발생할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>4. YAML 들여쓰기 오류</h3>
+                                <p>spring.datasource 아래 설정이<br>들여쓰기 오류로 적용되지 않을 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>5. Pool 크기를 무조건 크게 잡음</h3>
+                                <p>서버 인스턴스 수와 DB 최대 세션 수를<br>함께 고려해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>6. Connection 반납 누락</h3>
+                                <p>순수 JDBC에서는 try-with-resources로<br>반드시 자원을 반납해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>7. @Transactional 누락</h3>
+                                <p>여러 DB 작업을 하나의 작업 단위로<br>묶어야 할 때는<br>Service에 @Transactional을 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>8. 조회 메서드에 readOnly 누락</h3>
+                                <p>조회 전용 Service 메서드는<br><code
+                                        class="inline-code">@Transactional(readOnly = true)</code>를<br>
+                                    고려합니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>회원가입</h3>
+                                <p>사용자 중복 확인, 회원 저장,<br>권한 저장에서 DB Connection이 사용됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>로그인</h3>
+                                <p>username으로 사용자 조회 후<br>비밀번호를 검증할 때<br>Connection Pool을 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>게시글 목록</h3>
+                                <p>목록 조회 API는 SELECT 쿼리를 실행하고<br>ResultSet을 DTO로 변환합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>주문 생성</h3>
+                                <p>주문 저장, 주문 상세 저장,<br>재고 차감이 하나의 트랜잭션으로 처리됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>관리자 통계</h3>
+                                <p>복잡한 집계 SQL은<br>JdbcTemplate으로<br>직접 작성하는 경우가 많습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>장애 대응</h3>
+                                <p>API 지연, Connection timeout,<br>DB 세션 초과 문제를<br>HikariCP 설정과 쿼리 성능에서 추적합니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. DataSource란 무엇인가요?</h3>
+                                <p>DB Connection을 얻기 위한 표준 인터페이스입니다. Spring Boot에서는 HikariDataSource 같은 구현체가 Bean으로 등록될
+                                    수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. HikariCP란 무엇인가요?</h3>
+                                <p>JDBC Connection Pool 구현체입니다. Connection을 미리 만들어 두고 요청마다 빌려주고 반납받습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. Connection Pool을 쓰는 이유는 무엇인가요?</h3>
+                                <p>매 요청마다 DB 연결을 새로 만들면 비용이 크기 때문에, 연결을 재사용해 성능과 안정성을 높이기 위해 사용합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. DriverManager와 DataSource의 차이는 무엇인가요?</h3>
+                                <p>DriverManager는 직접 Connection을 생성하는 방식이고, DataSource는 Spring이 관리하는 DB 연결 입구입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. JdbcTemplate은 무엇을 대신해주나요?</h3>
+                                <p>Connection 획득, PreparedStatement 생성, ResultSet 처리, 자원 반납 같은 JDBC 반복 코드를 줄여줍니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. close()를 호출하면 Connection이 끊기나요?</h3>
+                                <p>Connection Pool 환경에서는 보통 물리 연결 종료가 아니라 Pool에 반납하는 의미로 동작합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. @Transactional과 Connection은 어떤 관계인가요?</h3>
+                                <p>@Transactional은 트랜잭션 경계를 만들고 정상 종료 시 commit, 예외 발생 시 rollback을 수행한 뒤 Connection을
+                                    반납합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. JPA를 쓰면 DataSource를 몰라도 되나요?</h3>
+                                <p>아닙니다. JPA도 내부적으로 Hibernate, JDBC, DataSource, HikariCP 위에서 동작합니다.</p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>JDBC는 Java에서 DB에 접근하기 위한 표준 API입니다.</li>
+                            <li>DriverManager는 매번 직접 Connection을 만드는 기본 방식입니다.</li>
+                            <li>DataSource는 Spring에서 DB Connection을 얻는 표준 입구입니다.</li>
+                            <li>HikariCP는 Connection을 미리 만들어 두고 빌려주는 Connection Pool입니다.</li>
+                            <li>Connection Pool을 쓰면 API 요청마다 새 DB 연결을 만들지 않아도 됩니다.</li>
+                            <li><code class="inline-code">close()</code>는 Pool 환경에서 보통 Connection 반납을 의미합니다.</li>
+                            <li>JdbcTemplate은 JDBC 반복 코드를 줄여줍니다.</li>
+                            <li>@Transactional은 commit과 rollback을 Spring 방식으로 관리합니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>DataSource vs HikariCP</strong>
+                                <p>DataSource는 표준 입구이고,<br>HikariCP는<br>실제 Pool 구현체입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>DriverManager vs<br>DataSource</strong>
+                                <p>DriverManager는 직접 연결 생성,<br>DataSource는<br>Spring이 관리하는 연결 입구입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>close() 의미</strong>
+                                <p>Pool 환경에서는<br>물리 연결 종료가 아니라<br>반납으로 이해해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>maximum-pool-size</strong>
+                                <p>무조건 크게 잡는 값이 아니라<br>DB 세션 수와 함께 조정해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>JDBC vs JPA</strong>
+                                <p>JPA도 내부적으로는<br>JDBC, DataSource, HikariCP<br>위에서 동작합니다.</p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>12_jpa_entity_repository_crud.html</strong>입니다.<br>
+                            이번 단원에서 DataSource와 HikariCP로 DB 연결이 관리되는 방식을 배웠다면,
+                            다음 단원에서는 JPA가 그 연결 위에서 Entity를 저장하고 조회하는 방법을 정리합니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>DataSource와 HikariCP</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>JPA Entity와 Repository CRUD</strong>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>
