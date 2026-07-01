@@ -1,33 +1,1097 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 13_jpa_persistence_transaction</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/13_jpa_persistence_transaction.css">
-</head>
-<body class="springboot-page springboot-lesson-13">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 13. JPA 영속성 컨텍스트와 트랜잭션</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/13_jpa_persistence_transaction.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-13">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header persistence-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 13</p>
+                    <h1>JPA 영속성 컨텍스트와 트랜잭션</h1>
+
+                    <p class="chapter-description">
+                        <strong>영속성 컨텍스트</strong>는 JPA가 Entity를 보관하고 추적하는 작업 공간입니다.<br>
+                        <strong>@Transactional</strong>은 그 작업 공간이 유지되는 범위를 만들고,
+                        그 안에서 조회한 Entity는 <strong>Managed 상태</strong>가 됩니다.<br>
+                        그래서 수정 API에서 <code class="inline-code">save()</code>를 다시 호출하지 않아도,
+                        JPA가 <strong>Dirty Checking</strong>으로 변경을 감지하고
+                        <strong>Flush</strong> 시점에 UPDATE SQL을 만들어 DB에 반영할 수 있습니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="JPA 영속성 컨텍스트 핵심 키워드">
+                        <span>Persistence Context</span>
+                        <span>EntityManager</span>
+                        <span>1차 캐시</span>
+                        <span>Entity 상태</span>
+                        <span>Transient</span>
+                        <span>Managed</span>
+                        <span>Detached</span>
+                        <span>Removed</span>
+                        <span>쓰기 지연</span>
+                        <span>Flush</span>
+                        <span>Commit</span>
+                        <span>Dirty Checking</span>
+                        <span>@Transactional</span>
+                        <span>readOnly</span>
+                        <span>React PUT API</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>영속성 컨텍스트가 Entity를 보관하고 추적하는<br>JPA의 작업 공간이라는 점을 이해합니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>1차 캐시, 쓰기 지연 SQL 저장소, Flush, Dirty Checking의<br>내부 흐름을 설명할 수 있습니다.</p>
+                        </article>
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>React 수정 API에서 save() 없이<br>변경 감지가 일어나는 이유를 코드와 흐름으로 이해합니다.</p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>영속성 컨텍스트를 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            앞 단원에서는 <code class="inline-code">@Entity</code>와
+                            <code class="inline-code">JpaRepository</code>를 이용해서 CRUD API를 만드는 방법을 공부했습니다.<br>
+                            이번 단원에서는 그 CRUD가 내부에서 어떻게 동작하는지 봅니다.
+                            특히 수정 API에서 <code class="inline-code">postRepository.save(post)</code>를 다시 호출하지 않아도
+                            DB UPDATE가 발생하는 이유가 핵심입니다.<br>
+                            JPA는 Repository가 호출될 때 바로 DB에 SQL만 던지는 단순한 도구가 아닙니다.<br>
+                            중간에 <strong>영속성 컨텍스트</strong>라는 작업 공간을 두고,
+                            Entity를 1차 캐시에 보관하고, 처음 상태의 스냅샷을 저장하고,
+                            트랜잭션 커밋 시점에 변경된 부분을 감지합니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>Persistence Context</span>
+                                <h3>Entity 작업 공간</h3>
+                                <p>JPA가 Entity를 보관하고 추적하는<br>논리적 공간입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>1st Level Cache</span>
+                                <h3>1차 캐시</h3>
+                                <p>같은 트랜잭션 안에서 같은 Entity를<br>다시 조회할 때 재사용할 수 있는<br>내부 캐시입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Dirty Checking</span>
+                                <h3>변경 감지</h3>
+                                <p>Managed Entity의 처음 상태와 현재 상태를<br>비교해 UPDATE SQL을 생성합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Transaction</span>
+                                <h3>@Transactional</h3>
+                                <p>영속성 컨텍스트가 유지되고<br>Flush와 Commit이 일어나는 작업 범위입니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                JPA 수정 API의 핵심은 save()를 다시 호출하는 것이 아니라,
+                                @Transactional 범위 안에서 Managed Entity를 조회하고,
+                                그 Entity의 상태를 변경하는 것입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>React 수정 요청이 Dirty Checking으로 UPDATE 되는 흐름도</h2>
+                        </div>
+
+                        <p>
+                            React는 단순히 <code class="inline-code">PUT /api/posts/{id}</code> 요청을 보냅니다.<br>
+                            하지만 Spring Boot 내부에서는 기존 Entity를 조회하고, 영속성 컨텍스트가 Entity를 관리하며,
+                            트랜잭션 커밋 시점에 변경 감지가 일어납니다.
+                        </p>
+
+                        <div class="persistence-flow" aria-label="React 수정 요청이 Dirty Checking으로 UPDATE 되는 흐름도">
+                            <div class="flow-row top-flow">
+                                <article>
+                                    <span>1</span>
+                                    <strong>React PUT</strong>
+                                    <p>수정 폼 데이터를 JSON으로 전송합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>2</span>
+                                    <strong>Controller</strong>
+                                    <p>@RequestBody로<br>PostUpdateRequest를 받습니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>3</span>
+                                    <strong>Service</strong>
+                                    <p>@Transactional 범위 안에서<br>수정 로직을 실행합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>4</span>
+                                    <strong>findById</strong>
+                                    <p>기존 Entity를 조회해<br>Managed 상태로 만듭니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row bottom-flow">
+                                <article>
+                                    <span>5</span>
+                                    <strong>Entity Update</strong>
+                                    <p>post.update(title, content)로<br>객체 상태를 변경합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>6</span>
+                                    <strong>Dirty Checking</strong>
+                                    <p>스냅샷과 현재 상태를 비교합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>7</span>
+                                    <strong>Flush</strong>
+                                    <p>UPDATE SQL을 DB로 전송합니다.</p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>8</span>
+                                    <strong>Commit</strong>
+                                    <p>트랜잭션 변경을 최종 확정합니다.</p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="response-flow">
+                            <h3>한 줄 흐름</h3>
+                            <p>
+                                React PUT → @Transactional Service → Managed Entity 조회 → Entity 값 변경 → Dirty Checking →
+                                Flush → UPDATE SQL → Commit
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>Entity의 4가지 상태</h2>
+                        </div>
+
+                        <p>
+                            Entity는 영속성 컨텍스트와의 관계에 따라 상태가 달라집니다.
+                            Dirty Checking은 모든 Java 객체에서 일어나는 것이 아니라,
+                            <strong>영속성 컨텍스트가 관리하는 Managed Entity</strong>에서 의미가 있습니다.
+                        </p>
+
+                        <div class="state-grid">
+                            <article>
+                                <span>Transient / New</span>
+                                <h3>비영속 상태</h3>
+                                <p>new로 만든 순수 Java 객체입니다.<br>아직 JPA가 추적하지 않습니다.</p>
+                                <pre class="mini-code"><code>Post post = new Post(
+    "제목",
+    "내용",
+    "hong"
+);</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Managed</span>
+                                <h3>영속 상태</h3>
+                                <p>save() 또는 findById() 후<br>영속성 컨텍스트가 추적하는 상태입니다.</p>
+                                <pre class="mini-code"><code>Post post = postRepository
+    .findById(id)
+    .orElseThrow();</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Detached</span>
+                                <h3>준영속 상태</h3>
+                                <p>한때 관리되었지만<br>현재는 영속성 컨텍스트에서<br>분리된 상태입니다.</p>
+                                <pre class="mini-code"><code>// 트랜잭션 종료 후
+post.update("새 제목", "내용");
+// 자동 UPDATE 기대 불가</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Removed</span>
+                                <h3>삭제 상태</h3>
+                                <p>삭제 대상으로 표시된 상태입니다.<br>Flush 시 DELETE SQL이 나갈 수 있습니다.</p>
+                                <pre class="mini-code"><code>postRepository.delete(post);</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>1차 캐시와 쓰기 지연 SQL 저장소</h2>
+                        </div>
+
+                        <p>
+                            영속성 컨텍스트는 Entity를 1차 캐시에 보관합니다.
+                            같은 트랜잭션 안에서 같은 Entity를 다시 조회하면 DB를 다시 조회하지 않고
+                            캐시된 Entity를 반환할 수 있습니다.
+                        </p>
+
+                        <div class="cache-write-grid">
+                            <article>
+                                <span>1차 캐시</span>
+                                <h3>같은 Entity 재사용</h3>
+                                <p>
+                                    첫 번째 조회에서는 DB SELECT가 발생하고,<br>
+                                    두 번째 같은 id 조회에서는 1차 캐시의 Entity를 반환할 수 있습니다.
+                                </p>
+                                <pre class="mini-code"><code>Post post1 = repository
+    .findById(1L)
+    .orElseThrow();
+
+Post post2 = repository
+    .findById(1L)
+    .orElseThrow();
+
+post1 == post2 // true 가능</code></pre>
+                            </article>
+
+                            <article>
+                                <span>쓰기 지연</span>
+                                <h3>SQL을 잠시 모아둠</h3>
+                                <p>
+                                    save()를 호출하면 Entity를 영속성 컨텍스트에 올리고,<br>
+                                    INSERT SQL은 쓰기 지연 SQL 저장소에 쌓였다가 Flush 시점에 DB로 전송됩니다.
+                                </p>
+                                <pre class="mini-code"><code>Post post = new Post(...);
+
+postRepository.save(post);
+
+// INSERT SQL은
+// 커밋 직전 Flush 시점에
+// 나갈 수 있음</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="cache-diagram">
+                            <article>
+                                <strong>영속성 컨텍스트</strong>
+                                <p>1차 캐시와 쓰기 지연 SQL 저장소를 포함하는 JPA 작업 공간</p>
+                            </article>
+                            <article>
+                                <strong>1차 캐시</strong>
+                                <p>Post#1, Post#2 같은 Entity 객체 저장</p>
+                            </article>
+                            <article>
+                                <strong>쓰기 지연 SQL 저장소</strong>
+                                <p>INSERT, UPDATE, DELETE SQL을 Flush 전까지 보관</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card compare-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Flush와 Commit의 차이</h2>
+                        </div>
+
+                        <p>
+                            Flush와 Commit은 같은 개념이 아닙니다.
+                            Flush는 영속성 컨텍스트의 변경 내용을 SQL로 DB에 보내는 동작이고,
+                            Commit은 트랜잭션의 변경을 최종 확정하는 동작입니다.
+                        </p>
+
+                        <div class="compare-panel">
+                            <article>
+                                <span>동기화</span>
+                                <h3>Flush</h3>
+                                <p>영속성 컨텍스트의 변경 내용을 SQL로 DB에 전송합니다.</p>
+                                <pre class="mini-code"><code>entityManager.flush();</code></pre>
+                                <p>Flush가 되었다고 해서 트랜잭션이 확정된 것은 아닙니다.</p>
+                            </article>
+
+                            <article>
+                                <span>확정</span>
+                                <h3>Commit</h3>
+                                <p>트랜잭션의 변경을 최종 확정합니다.</p>
+                                <pre class="mini-code"><code>// @Transactional 메서드 정상 종료
+// → commit</code></pre>
+                                <p>Commit 전에 예외가 발생하면 Rollback될 수 있습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>중요한 구분</strong>
+                            <p>
+                                Flush는 SQL을 DB에 보내는 것이고, Commit은 그 변경을 확정하는 것입니다.
+                                Flush 후에도 트랜잭션이 Rollback되면 변경은 취소될 수 있습니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Spring Boot 코드 예제</h2>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Post Entity</h3>
+                            <pre class="code-block"><code>package com.example.studyapi.post.entity;
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "posts")
+public class Post {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_posts")
+    @SequenceGenerator(
+            name = "seq_posts",
+            sequenceName = "seq_posts",
+            allocationSize = 1
+    )
+    private Long id;
+
+    @Column(nullable = false, length = 100)
+    private String title;
+
+    @Lob
+    @Column(nullable = false)
+    private String content;
+
+    @Column(nullable = false, length = 50)
+    private String writer;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    protected Post() {
+    }
+
+    public Post(String title, String content, String writer) {
+        this.title = title;
+        this.content = content;
+        this.writer = writer;
+    }
+
+    public void update(String title, String content) {
+        if (title == null || title.isBlank()) {
+            throw new IllegalArgumentException("제목은 필수입니다.");
+        }
+
+        if (content == null || content.isBlank()) {
+            throw new IllegalArgumentException("내용은 필수입니다.");
+        }
+
+        this.title = title;
+        this.content = content;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public String getWriter() {
+        return writer;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>PostRepository</h3>
+                            <pre class="code-block"><code>package com.example.studyapi.post.repository;
+
+import com.example.studyapi.post.entity.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PostRepository extends JpaRepository&lt;Post, Long&gt; {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Request DTO와 Response DTO</h3>
+                            <pre class="code-block"><code>package com.example.studyapi.post.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record PostCreateRequest(
+        @NotBlank(message = "제목은 필수입니다.")
+        @Size(max = 100, message = "제목은 100자 이하로 입력하세요.")
+        String title,
+
+        @NotBlank(message = "내용은 필수입니다.")
+        String content,
+
+        @NotBlank(message = "작성자는 필수입니다.")
+        String writer
+) {
+}
+
+public record PostUpdateRequest(
+        @NotBlank(message = "제목은 필수입니다.")
+        @Size(max = 100, message = "제목은 100자 이하로 입력하세요.")
+        String title,
+
+        @NotBlank(message = "내용은 필수입니다.")
+        String content
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>PostResponse</h3>
+                            <pre class="code-block"><code>package com.example.studyapi.post.dto;
+
+import com.example.studyapi.post.entity.Post;
+
+import java.time.LocalDateTime;
+
+public record PostResponse(
+        Long id,
+        String title,
+        String content,
+        String writer,
+        LocalDateTime createdAt
+) {
+    public static PostResponse from(Post post) {
+        return new PostResponse(
+                post.getId(),
+                post.getTitle(),
+                post.getContent(),
+                post.getWriter(),
+                post.getCreatedAt()
+        );
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Service와 Controller 예제</h2>
+                        </div>
+
+                        <p>
+                            수정 메서드에서 핵심은 <code class="inline-code">@Transactional</code> 안에서 기존 Entity를 조회하고,<br>
+                            Entity의 상태를 변경하는 것입니다. 이때 <code class="inline-code">save()</code>를 다시 호출하지 않아도
+                            Dirty Checking으로 UPDATE SQL이 생성될 수 있습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>PostService</h3>
+                            <pre class="code-block"><code>package com.example.studyapi.post.service;
+
+import com.example.studyapi.post.dto.PostCreateRequest;
+import com.example.studyapi.post.dto.PostResponse;
+import com.example.studyapi.post.dto.PostUpdateRequest;
+import com.example.studyapi.post.entity.Post;
+import com.example.studyapi.post.exception.PostNotFoundException;
+import com.example.studyapi.post.repository.PostRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class PostService {
+
+    private final PostRepository postRepository;
+
+    @Transactional
+    public PostResponse create(PostCreateRequest request) {
+        Post post = new Post(
+                request.title(),
+                request.content(),
+                request.writer()
+        );
+
+        Post savedPost = postRepository.save(post);
+
+        return PostResponse.from(savedPost);
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;PostResponse&gt; findAll() {
+        return postRepository.findAll()
+                .stream()
+                .map(PostResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse findById(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -&gt; new PostNotFoundException(id));
+
+        return PostResponse.from(post);
+    }
+
+    @Transactional
+    public PostResponse update(Long id, PostUpdateRequest request) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -&gt; new PostNotFoundException(id));
+
+        post.update(request.title(), request.content());
+
+        return PostResponse.from(post);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -&gt; new PostNotFoundException(id));
+
+        postRepository.delete(post);
+    }
+
+    @Transactional(readOnly = true)
+    public void firstLevelCacheTest(Long id) {
+        Post post1 = postRepository.findById(id)
+                .orElseThrow(() -&gt; new PostNotFoundException(id));
+
+        Post post2 = postRepository.findById(id)
+                .orElseThrow(() -&gt; new PostNotFoundException(id));
+
+        System.out.println("같은 객체인가? " + (post1 == post2));
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>PostController</h3>
+                            <pre class="code-block"><code>package com.example.studyapi.post.controller;
+
+import com.example.studyapi.common.ApiResponse;
+import com.example.studyapi.post.dto.PostCreateRequest;
+import com.example.studyapi.post.dto.PostResponse;
+import com.example.studyapi.post.dto.PostUpdateRequest;
+import com.example.studyapi.post.service.PostService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/posts")
+@RequiredArgsConstructor
+public class PostController {
+
+    private final PostService postService;
+
+    @PostMapping
+    public ResponseEntity&lt;ApiResponse&lt;PostResponse&gt;&gt; create(
+            @Valid @RequestBody PostCreateRequest request
+    ) {
+        PostResponse response = postService.create(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("게시글이 등록되었습니다.", response));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity&lt;ApiResponse&lt;PostResponse&gt;&gt; update(
+            @PathVariable Long id,
+            @Valid @RequestBody PostUpdateRequest request
+    ) {
+        PostResponse response = postService.update(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("게시글이 수정되었습니다.", response)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity&lt;Void&gt; delete(
+            @PathVariable Long id
+    ) {
+        postService.delete(id);
+
+        return ResponseEntity.noContent().build();
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>등록, 수정, 삭제 내부 흐름</h2>
+                        </div>
+
+                        <div class="crud-flow-grid">
+                            <article>
+                                <span>Create</span>
+                                <h3>등록 흐름</h3>
+                                <p>new Entity → save() →<br>Transient에서 Managed →<br>쓰기 지연 SQL 저장소 → Flush → INSERT</p>
+                            </article>
+
+                            <article>
+                                <span>Update</span>
+                                <h3>수정 흐름</h3>
+                                <p>findById() → Managed Entity →<br>update() → Dirty Checking →<br>Flush → UPDATE</p>
+                            </article>
+
+                            <article>
+                                <span>Delete</span>
+                                <h3>삭제 흐름</h3>
+                                <p>findById() → Managed Entity →<br>delete() → Removed 상태 →<br>Flush → DELETE</p>
+                            </article>
+
+                            <article>
+                                <span>Read</span>
+                                <h3>조회 흐름</h3>
+                                <p>findById() → 1차 캐시 확인 →<br>없으면 SELECT → Entity 저장 → DTO 변환</p>
+                            </article>
+                        </div>
+
+                        <div class="dirty-checking-box">
+                            <h3>수정 API의 핵심</h3>
+                            <p>
+                                수정 API에서는 새 Entity를 만들어 save()하는 것이 아니라,
+                                기존 Entity를 findById()로 조회해 Managed 상태로 만든 뒤,
+                                Entity의 값을 변경하는 방식이 기본입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>React에서 Axios로 API 호출하기</h2>
+                        </div>
+
+                        <p>
+                            React는 JPA 영속성 컨텍스트를 직접 알 필요는 없습니다.<br>
+                            하지만 React의 수정 요청이 Spring Boot 내부에서 어떤 방식으로 UPDATE SQL이 되는지 이해하면,
+                            저장이 안 되는 문제나 트랜잭션 문제를 훨씬 빠르게 추적할 수 있습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>토큰 저장 함수</h3>
+                            <pre class="code-block"><code>export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem("accessToken", token);
+    sessionStorage.removeItem("accessToken");
+  } else {
+    sessionStorage.setItem("accessToken", token);
+    localStorage.removeItem("accessToken");
+  }
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken")
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem("accessToken");
+  sessionStorage.removeItem("accessToken");
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>import axios from "axios";
+import { getAccessToken, clearToken } from "../utils/tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 5000,
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+apiClient.interceptors.response.use(
+  (response) =&gt; response,
+  (error) =&gt; {
+    if (error.response?.status === 401) {
+      clearToken();
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>게시글 API 함수</h3>
+                            <pre class="code-block"><code>import apiClient from "./apiClient";
+
+export async function fetchPost(id) {
+  const response = await apiClient.get(`/api/posts/${id}`);
+  return response.data;
+}
+
+export async function createPost(form) {
+  const response = await apiClient.post("/api/posts", form);
+  return response.data;
+}
+
+export async function updatePost(id, form) {
+  const response = await apiClient.put(`/api/posts/${id}`, form);
+  return response.data;
+}
+
+export async function deletePost(id) {
+  await apiClient.delete(`/api/posts/${id}`);
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>수정 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>const form = {
+  title: "수정된 제목",
+  content: "수정된 내용",
+};
+
+const result = await updatePost(1, form);</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            영속성 컨텍스트와 트랜잭션 관련 오류는 대부분 Entity 상태, 트랜잭션 범위,
+                            지연 로딩, Detached Entity, readOnly 설정, CORS/인증 흐름에서 발생합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지 / 현상</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">LazyInitializationException</code></div>
+                            <div>영속성 컨텍스트가 닫힌 뒤 Lazy 연관 필드에 접근했습니다.</div>
+                            <div>Service 트랜잭션 안에서 DTO로 변환하고 Entity 직접 반환을 피합니다.</div>
+
+                            <div><code class="inline-code">detached entity passed to persist</code></div>
+                            <div>분리된 Entity를 새 Entity처럼 저장하려고 했습니다.</div>
+                            <div>기존 Entity는 findById로 조회해 Managed 상태로 만든 뒤 수정합니다.</div>
+
+                            <div><code class="inline-code">Not-null property references a transient value</code></div>
+                            <div>자식 Entity가 아직 저장되지 않은 부모 Entity를 참조합니다.</div>
+                            <div>부모를 먼저 저장하거나 기존 부모를 조회해 연결합니다.</div>
+
+                            <div><code class="inline-code">No EntityManager with<br>actual transaction available</code>
+                            </div>
+                            <div>트랜잭션이 필요한 작업을 트랜잭션 없이 실행했습니다.</div>
+                            <div>쓰기 작업 Service 메서드에 @Transactional이 있는지 확인합니다.</div>
+
+                            <div><code class="inline-code">TransactionRequiredException</code></div>
+                            <div>트랜잭션이 필요한 JPA 작업에 트랜잭션이 없습니다.</div>
+                            <div>Service 계층에 @Transactional을 적용합니다.</div>
+
+                            <div><code class="inline-code">No value present</code></div>
+                            <div>Optional이 비어 있는데 get()을 호출했습니다.</div>
+                            <div>findById(id).orElseThrow(...)로 처리합니다.</div>
+
+                            <div><code class="inline-code">UPDATE SQL이 안 나감</code></div>
+                            <div>Dirty Checking이 동작하지 않았을 가능성이 있습니다.</div>
+                            <div>@Transactional, Managed 상태, readOnly 여부, 실제 값 변경 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">INSERT SQL이 늦게 나감</code></div>
+                            <div>쓰기 지연 때문에 커밋 직전 Flush 시점에 SQL이 나갈 수 있습니다.</div>
+                            <div>정상 동작일 수 있으며 Flush와 Commit 차이를 확인합니다.</div>
+
+                            <div><code class="inline-code">모든 컬럼이 UPDATE됨</code></div>
+                            <div>JPA 기본 UPDATE 전략에 따라 여러 컬럼이 함께 업데이트될 수 있습니다.</div>
+                            <div>정말 필요한 경우에만 @DynamicUpdate를 검토합니다.</div>
+
+                            <div><code class="inline-code">CORS / 401</code></div>
+                            <div>수정 요청이 Controller까지 도달하지 못했을 수 있습니다.</div>
+                            <div>OPTIONS, Authorization 헤더, Security CORS 설정을 확인합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. 수정 시 새 Entity 생성</h3>
+                                <p>수정은 새 Entity를 만드는 것이 아니라<br>기존 Entity를 조회한 뒤<br>값을 변경하는 방식이 기본입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>2. @Transactional 누락</h3>
+                                <p>Dirty Checking과 Flush가<br>의도대로 동작하려면<br>Service 메서드에 트랜잭션 경계가 필요합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>3. readOnly에서 수정</h3>
+                                <p>@Transactional(readOnly = true)는<br>조회 전용입니다.<br>수정 메서드에 붙이면 안 됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>4. Detached Entity 수정</h3>
+                                <p>영속성 컨텍스트가<br>추적하지 않는 Entity를 변경해도<br>자동 UPDATE가 되지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>5. Entity 직접 반환</h3>
+                                <p>LazyInitializationException, 순환 참조,<br>민감 정보 노출 위험이 있습니다.<br>DTO로 반환합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>6. findById().get() 사용</h3>
+                                <p>값이 없으면 오류가 나므로<br>orElseThrow로 명확히 처리합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>7. setter 무분별 사용</h3>
+                                <p>Entity 상태 변경은<br>update(), use(), cancel()처럼<br>의미 있는 메서드로 제한하는 것이 좋습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>8. Flush와 Commit 혼동</h3>
+                                <p>Flush는 SQL 전송, Commit은<br>트랜잭션 확정입니다.<br>둘은 같은 개념이 아닙니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>게시글 수정 API</h3>
+                                <p>findById로 기존 게시글을 조회하고<br>update 메서드로 값을 변경하면<br>Dirty Checking으로 UPDATE됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>회원 프로필 수정</h3>
+                                <p>User Entity를 조회해<br>nickname, profileImageUrl 등을<br>변경하는 구조에 그대로 적용됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>주문 생성</h3>
+                                <p>주문 저장, 재고 차감, 결제 로그 저장을<br>하나의 @Transactional로 묶어야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>포인트 사용</h3>
+                                <p>지갑 잔액 차감과 사용 이력 저장은<br>함께 성공하거나 함께 rollback되어야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>예배 기록 수정</h3>
+                                <p>WorshipService와 TimetableItem을<br>조회한 뒤 Managed 상태에서 변경해야<br>수정 흐름이 안정적입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>성능 튜닝</h3>
+                                <p>조회 전용 메서드는 readOnly를 사용하고,<br>연관관계 조회는<br>다음 단원의 Lazy/N+1 문제와 연결됩니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. 영속성 컨텍스트란 무엇인가요?</h3>
+                                <p>JPA가 Entity를 보관하고 추적하는 논리적 작업 공간입니다. 1차 캐시, 쓰기 지연, Dirty Checking, Flush의 기반입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. 1차 캐시란 무엇인가요?</h3>
+                                <p>영속성 컨텍스트 내부의 Entity 저장소입니다. 같은 트랜잭션 안에서 같은 Entity를 다시 조회할 때 재사용할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. Entity의 상태에는 무엇이 있나요?</h3>
+                                <p>Transient, Managed, Detached, Removed가 있습니다. Dirty Checking은 Managed 상태에서 의미가 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. Dirty Checking이란 무엇인가요?</h3>
+                                <p>Managed Entity의 처음 스냅샷과 현재 상태를 비교해 변경이 있으면 UPDATE SQL을 생성하는 기능입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. 수정 API에서 save() 없이 UPDATE가 되는 이유는 무엇인가요?</h3>
+                                <p>@Transactional 범위 안에서 findById로 조회한 Entity가 Managed 상태이고, 값을 변경하면 Dirty Checking이
+                                    동작하기 때문입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. Flush와 Commit의 차이는 무엇인가요?</h3>
+                                <p>Flush는 SQL을 DB에 전송하는 동작이고, Commit은 트랜잭션 변경을 최종 확정하는 동작입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. @Transactional은 왜 필요한가요?</h3>
+                                <p>트랜잭션 경계를 만들고, 영속성 컨텍스트가 유지되는 범위와 Dirty Checking, Flush, commit/rollback을 관리하기 위해
+                                    필요합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. readOnly = true는 언제 사용하나요?</h3>
+                                <p>조회 전용 메서드에서 사용합니다. 불필요한 Flush와 Dirty Checking 부담을 줄이는 데 도움이 됩니다.</p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>영속성 컨텍스트는 JPA가 Entity를 보관하고 추적하는 작업 공간입니다.</li>
+                            <li>1차 캐시는 같은 트랜잭션 안에서 같은 Entity를 재사용할 수 있게 합니다.</li>
+                            <li>Entity 상태는 Transient, Managed, Detached, Removed로 나눌 수 있습니다.</li>
+                            <li>save() 후 INSERT SQL은 쓰기 지연 SQL 저장소에 쌓였다가 Flush 시점에 나갈 수 있습니다.</li>
+                            <li>Flush는 SQL 전송이고, Commit은 트랜잭션 확정입니다.</li>
+                            <li>Dirty Checking은 Managed Entity의 변경을 감지해 UPDATE SQL을 생성하는 기능입니다.</li>
+                            <li>수정 API의 핵심은 save()가 아니라 findById()로 Managed Entity를 조회하고 값을 변경하는 것입니다.</li>
+                            <li>@Transactional은 영속성 컨텍스트와 Dirty Checking이 동작하는 범위를 만듭니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>Flush vs Commit</strong>
+                                <p>Flush는 SQL 전송,<br>Commit은 변경 확정입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Managed vs Detached</strong>
+                                <p>Managed는 JPA가 추적하고,<br>Detached는<br>더 이상 추적하지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>save() vs Dirty Checking</strong>
+                                <p>등록은 save(),<br>수정은 조회 후<br>변경 감지가 기본 흐름입니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>1차 캐시 vs Redis</strong>
+                                <p>1차 캐시는<br>영속성 컨텍스트 내부 캐시이고<br>요청 간 공유 캐시가 아닙니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>readOnly 트랜잭션</strong>
+                                <p>조회 전용 메서드에 사용하고<br>수정 메서드에는 사용하지 않습니다.</p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>14_jpa_relationship_query_dto.html</strong>입니다.<br>
+                            이번 단원에서 영속성 컨텍스트와 트랜잭션을 이해했다면,<br>
+                            다음 단원에서는 Entity 간 연관관계, 지연 로딩, LazyInitializationException,
+                            N+1 문제, fetch join, DTO 변환, 페이징으로 확장합니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>JPA 영속성 컨텍스트와 트랜잭션</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>JPA 연관관계 · 쿼리 · DTO</strong>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>
