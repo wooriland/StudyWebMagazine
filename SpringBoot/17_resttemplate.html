@@ -1,33 +1,1320 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 17_resttemplate</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/17_resttemplate.css">
-</head>
-<body class="springboot-page springboot-lesson-17">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 17. RestTemplate</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/17_resttemplate.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-17">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header resttemplate-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 17</p>
+                    <h1>RestTemplate</h1>
+
+                    <p class="chapter-description">
+                        <strong>RestTemplate</strong>은 Spring Boot 서버 내부에서 다른 서버의 REST API를 호출할 때 사용하는
+                        <strong>동기 방식 HTTP 클라이언트</strong>입니다.<br>
+                        React에서 <code class="inline-code">Axios</code>가 브라우저의 API 호출 도구라면,
+                        Spring Boot에서는 <code class="inline-code">RestTemplate</code>이 서버 내부 HTTP 호출 도구입니다.<br>
+                        이번 단원에서는 <code class="inline-code">HttpHeaders</code>,
+                        <code class="inline-code">HttpEntity</code>,
+                        <code class="inline-code">exchange()</code>,
+                        <code class="inline-code">ResponseEntity</code>,
+                        <code class="inline-code">timeout</code>,
+                        <code class="inline-code">connection pool</code>을 중심으로
+                        서버 간 HTTP 통신 흐름을 정리합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="RestTemplate 핵심 키워드">
+                        <span>RestTemplate</span>
+                        <span>동기 HTTP Client</span>
+                        <span>HttpHeaders</span>
+                        <span>HttpEntity</span>
+                        <span>exchange()</span>
+                        <span>ResponseEntity</span>
+                        <span>GET</span>
+                        <span>POST</span>
+                        <span>Authorization</span>
+                        <span>Bearer Token</span>
+                        <span>DTO Mapping</span>
+                        <span>UriComponentsBuilder</span>
+                        <span>timeout</span>
+                        <span>connection pool</span>
+                        <span>ParameterizedTypeReference</span>
+                        <span>React Axios</span>
+                        <span>Python AI Server</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>
+                                RestTemplate이 왜 필요한지 이해하고,<br>
+                                React Axios와 서버 내부 HTTP 호출의 차이를<br>설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>
+                                HttpHeaders, HttpEntity, exchange, ResponseEntity의<br>역할을 구분하고
+                                GET/POST 요청 코드를 작성할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>
+                                timeout, connection pool, 인증 헤더, List 응답 처리,<br>오류 메시지 읽는 법을
+                                실무 관점으로 정리할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>RestTemplate을 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            RestTemplate은 <strong>Spring Boot 서버가 다른 서버에게 HTTP 요청을 보내는 도구</strong>입니다.<br>
+                            프론트엔드에서 React가 Axios로 Spring Boot API를 호출하듯이,<br>
+                            Spring Boot 서버 내부에서는 RestTemplate으로 외부 API, Python AI 서버, 결제 서버,
+                            공공데이터 서버, 다른 Spring 서버를 호출할 수 있습니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>Client</span>
+                                <h3>서버 내부 HTTP 클라이언트</h3>
+                                <p>
+                                    브라우저가 아니라<br>Spring Boot 서버 안에서 실행됩니다.<br>
+                                    서버가 서버에게 API 요청을 보낼 때<br>사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Template</span>
+                                <h3>HTTP 요청을 쉽게 만드는 틀</h3>
+                                <p>
+                                    URL, HTTP Method, Header, Body,<br>응답 타입을 정해
+                                    반복적인 HTTP 요청 코드를<br>일정한 패턴으로 작성하게 해줍니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Sync</span>
+                                <h3>동기 방식 호출</h3>
+                                <p>
+                                    요청을 보내면 응답이 올 때까지<br>현재 스레드가 기다립니다.<br>
+                                    그래서 timeout 설정이 중요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>DTO</span>
+                                <h3>JSON을 Java 객체로 변환</h3>
+                                <p>
+                                    외부 API의 JSON 응답을<br>Map으로 받을 수도 있지만,<br>
+                                    실무에서는 DTO로 받아<br>타입 안정성을 높이는 것이 좋습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                RestTemplate은 <strong>Spring Boot 서버 내부에서 외부 REST API를 호출하는 동기 HTTP 클라이언트</strong>입니다.
+                                핵심 흐름은 <code
+                                    class="inline-code">HttpHeaders → HttpEntity → exchange() → ResponseEntity</code>입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card compare-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>React Axios와 RestTemplate 비교</h2>
+                        </div>
+
+                        <p>
+                            Axios와 RestTemplate은 모두 HTTP 요청을 보내는 도구입니다.
+                            하지만 <strong>실행 위치와 목적</strong>이 다릅니다.
+                        </p>
+
+                        <div class="compare-panel">
+                            <article>
+                                <span>React Axios</span>
+                                <h3>브라우저에서 Spring Boot 호출</h3>
+                                <p>
+                                    사용자가 버튼을 누르거나 화면이 열릴 때,
+                                    React가 Spring Boot API에 요청을 보냅니다.
+                                </p>
+                                <pre class="mini-code"><code>axios.get("/api/posts");
+
+axios.post("/api/posts", {
+  title: "제목",
+  content: "내용"
+});</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Spring RestTemplate</span>
+                                <h3>Spring Boot 서버에서 외부 API 호출</h3>
+                                <p>
+                                    Spring Boot Service 내부에서 외부 서버, Python 서버,
+                                    공공데이터 API 등을 호출합니다.
+                                </p>
+                                <pre class="mini-code"><code>restTemplate.exchange(
+    url,
+    HttpMethod.GET,
+    entity,
+    PostResponse.class
+);</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="comparison-table">
+                            <div class="table-head">구분</div>
+                            <div class="table-head">React Axios</div>
+                            <div class="table-head">Spring RestTemplate</div>
+
+                            <div>실행 위치</div>
+                            <div>브라우저</div>
+                            <div>Spring Boot 서버 내부</div>
+
+                            <div>호출 방향</div>
+                            <div>React → Spring Boot</div>
+                            <div>Spring Boot → 외부 API / 다른 서버</div>
+
+                            <div>주요 목적</div>
+                            <div>화면에 필요한 데이터 조회/등록</div>
+                            <div>서버가 외부 데이터를 가져오거나 다른 시스템과 연동</div>
+
+                            <div>보안</div>
+                            <div>API Key를 넣으면 브라우저에 노출될 수 있음</div>
+                            <div>API Key를 서버 환경변수로 숨길 수 있음</div>
+
+                            <div>CORS 영향</div>
+                            <div>브라우저 CORS 영향을 받음</div>
+                            <div>서버 간 통신이라 브라우저 CORS 직접 영향은 적음</div>
+
+                            <div>토큰 처리</div>
+                            <div>localStorage/sessionStorage에서 꺼내<br>Authorization 헤더에 추가</div>
+                            <div>서버가 보관한 API Key/JWT를 HttpHeaders에 추가</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>RestTemplate 요청 흐름도</h2>
+                        </div>
+
+                        <p>
+                            RestTemplate 요청은 단순히 <code class="inline-code">restTemplate.exchange()</code> 한 줄로 끝나는 것처럼
+                            보이지만,
+                            실제로는 URL, Header, Body, 응답 타입을 차례대로 조립하는 과정입니다.
+                        </p>
+
+                        <div class="rest-flow" aria-label="RestTemplate HTTP 호출 흐름도">
+                            <div class="flow-row">
+                                <article>
+                                    <span>1</span>
+                                    <strong>URL 준비</strong>
+                                    <p>
+                                        호출할 외부 API 주소를 정합니다.<br>
+                                        query parameter가 있으면<br>UriComponentsBuilder로 안전하게 조립합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>2</span>
+                                    <strong>HttpHeaders</strong>
+                                    <p>
+                                        Content-Type, Accept, Authorization, X-API-KEY 같은<br>
+                                        요청 부가 정보를 담습니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>3</span>
+                                    <strong>HttpEntity</strong>
+                                    <p>
+                                        요청 header와 body를 하나로 묶습니다.<br>
+                                        GET은 body 없이 header만 담을 수 있습니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row">
+                                <article>
+                                    <span>4</span>
+                                    <strong>exchange()</strong>
+                                    <p>
+                                        URL, HTTP Method, HttpEntity, 응답 타입을 넣어<br>
+                                        실제 HTTP 요청을 보냅니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>5</span>
+                                    <strong>외부 API</strong>
+                                    <p>
+                                        외부 서버, 결제 서버, Python AI 서버,<br>
+                                        공공데이터 API 등이 요청을 처리합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>6</span>
+                                    <strong>ResponseEntity</strong>
+                                    <p>
+                                        statusCode, headers, body를 확인합니다.<br>
+                                        body는 DTO로 변환해 사용합니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="request-box">
+                            <h3>한 줄 요약</h3>
+                            <p>
+                                <code class="inline-code">HttpHeaders</code>는 요청 송장,
+                                <code class="inline-code">HttpEntity</code>는 송장과 물건이 들어 있는 택배 상자,
+                                <code class="inline-code">exchange()</code>는 택배 발송,
+                                <code class="inline-code">ResponseEntity</code>는 배송 결과와 받은 물건입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>핵심 클래스 카드</h2>
+                        </div>
+
+                        <p>
+                            RestTemplate 코드를 읽을 때 가장 먼저 구분해야 하는 클래스는
+                            <code class="inline-code">HttpHeaders</code>,
+                            <code class="inline-code">HttpEntity</code>,
+                            <code class="inline-code">ResponseEntity</code>입니다.
+                        </p>
+
+                        <div class="core-grid">
+                            <article>
+                                <span>HttpHeaders</span>
+                                <h3>요청 헤더</h3>
+                                <p>
+                                    Content-Type, Accept, Authorization 같은<br>
+                                    요청 부가 정보를 담습니다.
+                                </p>
+                                <pre class="mini-code"><code>HttpHeaders headers = new HttpHeaders();
+headers.setContentType(MediaType.APPLICATION_JSON);
+headers.setBearerAuth(token);</code></pre>
+                            </article>
+
+                            <article>
+                                <span>HttpEntity</span>
+                                <h3>요청 헤더 + 요청 바디</h3>
+                                <p>
+                                    헤더와 body를 묶어서 exchange()에 넘기는<br>
+                                    요청 상자 역할을 합니다.
+                                </p>
+                                <pre class="mini-code"><code>HttpEntity&lt;RequestDto&gt; entity =
+    new HttpEntity&lt;&gt;(requestDto, headers);</code></pre>
+                            </article>
+
+                            <article>
+                                <span>exchange()</span>
+                                <h3>HTTP 요청 실행</h3>
+                                <p>
+                                    GET, POST, PUT, DELETE를<br>모두 처리할 수 있는
+                                    가장 명확한<br>RestTemplate 호출 방식입니다.
+                                </p>
+                                <pre class="mini-code"><code>restTemplate.exchange(
+    url,
+    HttpMethod.POST,
+    entity,
+    ResponseDto.class
+);</code></pre>
+                            </article>
+
+                            <article>
+                                <span>ResponseEntity</span>
+                                <h3>응답 전체</h3>
+                                <p>
+                                    상태코드, 응답 헤더, 응답 body를<br>함께 담습니다.<br>
+                                    오류 처리와 디버깅에 중요합니다.
+                                </p>
+                                <pre class="mini-code"><code>response.getStatusCode();
+response.getHeaders();
+response.getBody();</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Spring Boot RestTemplate 코드 예제</h2>
+                        </div>
+
+                        <p>
+                            실무에서는 RestTemplate을 Service 메서드 안에서 매번
+                            <code class="inline-code">new RestTemplate()</code>으로 만들기보다,
+                            <code class="inline-code">@Configuration</code>에서 Bean으로 등록하고 주입받아 사용하는 구조가 좋습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) RestTemplateConfig - timeout 설정</h3>
+                            <pre class="code-block"><code>package com.example.study.global.config;
+
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.Duration;
+
+@Configuration
+public class RestTemplateConfig {
+
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .connectTimeout(Duration.ofSeconds(3))
+                .readTimeout(Duration.ofSeconds(5))
+                .build();
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) DTO - 요청/응답 객체</h3>
+                            <pre class="code-block"><code>package com.example.study.external.dto;
+
+public record ExternalPostCreateRequest(
+        String title,
+        String content,
+        Long writerId
+) {
+}
+
+public record ExternalPostResponse(
+        Long id,
+        String title,
+        String content,
+        Long writerId
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) Client - 외부 API 호출 전담 클래스</h3>
+                            <pre class="code-block"><code>package com.example.study.external.client;
+
+import com.example.study.external.dto.ExternalPostCreateRequest;
+import com.example.study.external.dto.ExternalPostResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class ExternalPostClient {
+
+    private final RestTemplate restTemplate;
+
+    public ExternalPostResponse getPost(Long id, String token) {
+        String url = "https://api.example.com/posts/{id}";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.setBearerAuth(token);
+
+        HttpEntity&lt;Void&gt; entity = new HttpEntity&lt;&gt;(headers);
+
+        try {
+            ResponseEntity&lt;ExternalPostResponse&gt; response =
+                    restTemplate.exchange(
+                            url,
+                            HttpMethod.GET,
+                            entity,
+                            ExternalPostResponse.class,
+                            id
+                    );
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new IllegalStateException("외부 API 호출 실패: " + response.getStatusCode());
+            }
+
+            if (response.getBody() == null) {
+                throw new IllegalStateException("외부 API 응답 body가 비어 있습니다.");
+            }
+
+            return response.getBody();
+
+        } catch (HttpStatusCodeException e) {
+            System.out.println("상태 코드: " + e.getStatusCode());
+            System.out.println("응답 바디: " + e.getResponseBodyAsString());
+            throw e;
+        }
+    }
+
+    public ExternalPostResponse createPost(ExternalPostCreateRequest request, String token) {
+        String url = "https://api.example.com/posts";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.setBearerAuth(token);
+
+        HttpEntity&lt;ExternalPostCreateRequest&gt; entity =
+                new HttpEntity&lt;&gt;(request, headers);
+
+        ResponseEntity&lt;ExternalPostResponse&gt; response =
+                restTemplate.exchange(
+                        url,
+                        HttpMethod.POST,
+                        entity,
+                        ExternalPostResponse.class
+                );
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new IllegalStateException("외부 API 등록 실패: " + response.getStatusCode());
+        }
+
+        if (response.getBody() == null) {
+            throw new IllegalStateException("외부 API 응답 body가 비어 있습니다.");
+        }
+
+        return response.getBody();
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) Controller - React가 호출하는 내 API</h3>
+                            <pre class="code-block"><code>package com.example.study.external.controller;
+
+import com.example.study.external.client.ExternalPostClient;
+import com.example.study.external.dto.ExternalPostCreateRequest;
+import com.example.study.external.dto.ExternalPostResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/external/posts")
+@RequiredArgsConstructor
+public class ExternalPostController {
+
+    private final ExternalPostClient externalPostClient;
+
+    @GetMapping("/{id}")
+    public ExternalPostResponse getPost(@PathVariable Long id) {
+        String token = "외부_API에서_요구하는_토큰";
+        return externalPostClient.getPost(id, token);
+    }
+
+    @PostMapping
+    public ExternalPostResponse createPost(
+            @RequestBody ExternalPostCreateRequest request
+    ) {
+        String token = "외부_API에서_요구하는_토큰";
+        return externalPostClient.createPost(request, token);
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>React Axios 연결 예제</h2>
+                        </div>
+
+                        <p>
+                            React는 외부 API를 직접 호출하지 않고, Spring Boot의
+                            <code class="inline-code">/api/external/posts</code>를 호출합니다.
+                            그러면 Spring Boot가 내부에서 RestTemplate으로 외부 API를 호출합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>// src/api/tokenStorage.js
+
+const ACCESS_TOKEN_KEY = "accessToken";
+
+export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>// src/api/apiClient.js
+
+import axios from "axios";
+import { getAccessToken } from "./tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  timeout: 5000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) API 함수</h3>
+                            <pre class="code-block"><code>// src/api/externalPostApi.js
+
+import apiClient from "./apiClient";
+
+export async function getExternalPost(id) {
+  const response = await apiClient.get(`/api/external/posts/${id}`);
+  return response.data;
+}
+
+export async function createExternalPost(form) {
+  const response = await apiClient.post("/api/external/posts", form);
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>// src/pages/PostCreatePage.jsx
+
+import { useState } from "react";
+import { createExternalPost } from "../api/externalPostApi";
+
+function PostCreatePage() {
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    writerId: 1,
+  });
+
+  const handleChange = (e) =&gt; {
+    const { name, value } = e.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) =&gt; {
+    e.preventDefault();
+
+    const requestDto = {
+      title: form.title,
+      content: form.content,
+      writerId: Number(form.writerId),
+    };
+
+    try {
+      const result = await createExternalPost(requestDto);
+      console.log("등록 결과:", result);
+      alert("등록 성공");
+    } catch (error) {
+      console.error(error);
+      alert("등록 실패");
+    }
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="title"
+        value={form.title}
+        onChange={handleChange}
+        placeholder="제목"
+      /&gt;
+
+      &lt;textarea
+        name="content"
+        value={form.content}
+        onChange={handleChange}
+        placeholder="내용"
+      /&gt;
+
+      &lt;input
+        name="writerId"
+        type="number"
+        value={form.writerId}
+        onChange={handleChange}
+      /&gt;
+
+      &lt;button type="submit"&gt;등록&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+export default PostCreatePage;</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>timeout과 connection pool 카드</h2>
+                        </div>
+
+                        <p>
+                            RestTemplate은 외부 서버 응답을 기다리는 구조이기 때문에
+                            <strong>timeout</strong>과 <strong>connection pool</strong> 개념이 중요합니다.
+                            외부 API가 느려지면 내 Spring Boot 서버의 응답도 함께 느려질 수 있습니다.
+                        </p>
+
+                        <div class="infra-grid">
+                            <article>
+                                <span>connectTimeout</span>
+                                <h3>연결 대기 시간</h3>
+                                <p>
+                                    외부 서버와 연결을 맺기까지<br>기다리는 시간입니다.<br>
+                                    서버 주소가 틀렸거나<br>대상 서버가 죽어 있으면 여기서 문제가 납니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>readTimeout</span>
+                                <h3>응답 대기 시간</h3>
+                                <p>
+                                    연결은 되었지만 외부 서버가<br>응답 데이터를 늦게 줄 때 적용됩니다.<br>
+                                    AI 분석 API, 파일 API는<br>더 길게 잡을 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>connection pool</span>
+                                <h3>HTTP 연결 재사용</h3>
+                                <p>
+                                    매번 새 연결을 만들지 않고,<br>기존 연결을 빌려 쓰고 반납하는 구조입니다.<br>
+                                    요청이 많아지는 실무 시스템에서 중요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>TIME_WAIT</span>
+                                <h3>연결 종료 후 대기 상태</h3>
+                                <p>
+                                    요청이 많고 연결을 계속 새로 만들면<br>TIME_WAIT 상태가 많이 쌓여<br>
+                                    자원 부족 문제가 생길 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>실무 주의</strong>
+                            <p>
+                                RestTemplate을 단순히 <code class="inline-code">new RestTemplate()</code>으로 쓰면 실습은 가능하지만,
+                                운영 환경에서는 timeout, connection pool, 에러 처리, 재시도 정책을 함께 고려해야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>List 응답 처리 카드</h2>
+                        </div>
+
+                        <p>
+                            외부 API가 배열 JSON을 내려줄 때 단순히 <code class="inline-code">List.class</code>로 받으면
+                            내부 요소가 DTO가 아니라 <code class="inline-code">LinkedHashMap</code>으로 들어갈 수 있습니다.
+                        </p>
+
+                        <div class="list-response-grid">
+                            <article>
+                                <span>주의</span>
+                                <h3>List.class 방식</h3>
+                                <p>
+                                    빠른 테스트는 가능하지만<br>List 안의 요소 타입이 명확하지 않습니다.<br>
+                                    DTO로 바로 다루기 어렵습니다.
+                                </p>
+                                <pre class="mini-code"><code>ResponseEntity&lt;List&gt; response =
+    restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        entity,
+        List.class
+    );</code></pre>
+                            </article>
+
+                            <article>
+                                <span>방법 1</span>
+                                <h3>배열로 받고 List 변환</h3>
+                                <p>
+                                    실습에서 이해하기 쉬운 방식입니다.<br>
+                                    응답 body를 DTO 배열로 받은 뒤 List로 바꿉니다.
+                                </p>
+                                <pre class="mini-code"><code>ResponseEntity&lt;PostResponse[]&gt; response =
+    restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        entity,
+        PostResponse[].class
+    );
+
+List&lt;PostResponse&gt; posts =
+    Arrays.asList(response.getBody());</code></pre>
+                            </article>
+
+                            <article>
+                                <span>방법 2</span>
+                                <h3>ParameterizedTypeReference</h3>
+                                <p>
+                                    제네릭 타입 정보를 유지해서<br>
+                                    List&lt;DTO&gt; 형태로 정확히 받을 때 사용합니다.
+                                </p>
+                                <pre class="mini-code"><code>ResponseEntity&lt;List&lt;PostResponse&gt;&gt; response =
+    restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        entity,
+        new ParameterizedTypeReference&lt;List&lt;PostResponse&gt;&gt;() {}
+    );</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>오류 메시지 카드</h2>
+                        </div>
+
+                        <p>
+                            RestTemplate 오류는 크게 네트워크 오류, HTTP 상태코드 오류, JSON 변환 오류,
+                            설정/의존성 오류로 나눠서 읽으면 됩니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지 / 현상</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">ResourceAccessException</code></div>
+                            <div>외부 서버 접근 실패 또는 네트워크 문제입니다.</div>
+                            <div>URL, 포트, 서버 실행 여부, 방화벽, timeout 설정을 확인합니다.</div>
+
+                            <div><code class="inline-code">Connection refused</code></div>
+                            <div>대상 서버가 연결을 거부했습니다.</div>
+                            <div>외부 서버가 실행 중인지, 포트가 맞는지 확인합니다.</div>
+
+                            <div><code class="inline-code">UnknownHostException</code></div>
+                            <div>도메인 주소를 찾지 못했습니다.</div>
+                            <div>URL 오타, DNS, 인터넷 연결 상태를 확인합니다.</div>
+
+                            <div><code class="inline-code">Connect timed out</code></div>
+                            <div>외부 서버와 연결을 맺는 데 시간이 초과되었습니다.</div>
+                            <div>connectTimeout, 서버 주소, 네트워크 상태를 확인합니다.</div>
+
+                            <div><code class="inline-code">Read timed out</code></div>
+                            <div>연결은 되었지만 응답이 늦었습니다.</div>
+                            <div>readTimeout, 외부 API 처리 지연, AI 분석 시간 등을 확인합니다.</div>
+
+                            <div><code class="inline-code">400 Bad Request</code></div>
+                            <div>요청 데이터가 외부 API 요구 형식과 다릅니다.</div>
+                            <div>DTO 필드명, 필수값, JSON 구조, 날짜/숫자 형식을 확인합니다.</div>
+
+                            <div><code class="inline-code">401 Unauthorized</code></div>
+                            <div>인증 정보가 없거나 틀렸습니다.</div>
+                            <div>Authorization 헤더, Bearer 접두사, 토큰 만료 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">403 Forbidden</code></div>
+                            <div>인증은 되었지만 권한이 없습니다.</div>
+                            <div>사용자 role, API Key 권한, 호출 허용 IP를 확인합니다.</div>
+
+                            <div><code class="inline-code">404 Not Found</code></div>
+                            <div>요청한 API 경로가 없습니다.</div>
+                            <div>URL, PathVariable, endpoint 문서와 실제 경로를 확인합니다.</div>
+
+                            <div><code class="inline-code">415 Unsupported Media Type</code></div>
+                            <div>Content-Type이 외부 API가 요구하는 형식과 다릅니다.</div>
+                            <div><code class="inline-code">headers.setContentType(MediaType.APPLICATION_JSON)</code> 설정을
+                                확인합니다.</div>
+
+                            <div><code class="inline-code">HttpMessageConversionException</code></div>
+                            <div>JSON을 DTO로 변환하지 못했습니다.</div>
+                            <div>DTO 필드 타입, 필드명, 중첩 구조, 배열/객체 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">LinkedHashMap cannot be cast</code></div>
+                            <div>List 응답을 DTO List로 잘못 처리했습니다.</div>
+                            <div>배열 응답 또는 ParameterizedTypeReference를 사용합니다.</div>
+
+                            <div><code class="inline-code">NoSuchBeanDefinitionException</code></div>
+                            <div>RestTemplate Bean을 찾지 못했습니다.</div>
+                            <div>RestTemplateConfig의 <code class="inline-code">@Bean</code> 등록과 컴포넌트 스캔 범위를 확인합니다.</div>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>오류 응답 body 확인 코드</h3>
+                            <pre class="code-block"><code>try {
+    ResponseEntity&lt;ExternalPostResponse&gt; response =
+            restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    ExternalPostResponse.class
+            );
+
+    return response.getBody();
+
+} catch (HttpStatusCodeException e) {
+    System.out.println("상태 코드: " + e.getStatusCode());
+    System.out.println("응답 헤더: " + e.getResponseHeaders());
+    System.out.println("응답 바디: " + e.getResponseBodyAsString());
+
+    throw e;
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>자주 하는 실수 카드</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. new RestTemplate()을 매번 생성</h3>
+                                <p>
+                                    메서드마다 새로 만들면 timeout, pool,<br>공통 설정을 관리하기 어렵습니다.<br>
+                                    Bean으로 등록하고 주입받아<br>사용하는 것이 좋습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. timeout 설정 누락</h3>
+                                <p>
+                                    외부 API가 멈추면<br>내 서버도 계속 기다릴 수 있습니다.<br>
+                                    connectTimeout과 readTimeout을<br>설정해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. Content-Type 누락</h3>
+                                <p>
+                                    JSON을 보내면서<br>Content-Type을 지정하지 않으면<br>
+                                    415 Unsupported Media Type이<br>발생할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. Authorization 헤더 누락</h3>
+                                <p>
+                                    인증이 필요한 API에 토큰을 보내지 않으면<br>
+                                    401 또는 403 오류가 발생할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. URL을 문자열 더하기로 조립</h3>
+                                <p>
+                                    한글, 공백, 특수문자가 들어가면<br>URL이 깨질 수 있습니다.<br>
+                                    UriComponentsBuilder를<br>사용하는 것이 안전합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. List.class로 DTO List를 기대</h3>
+                                <p>
+                                    List 내부 요소가<br>LinkedHashMap이 될 수 있습니다.<br>
+                                    배열 또는 ParameterizedTypeReference를<br>사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. 외부 API Key를 React에 작성</h3>
+                                <p>
+                                    React 코드는 브라우저에 노출됩니다.<br>
+                                    API Key는 Spring Boot 서버 환경변수로<br>관리하는 것이 좋습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. Controller에 외부 호출 로직 집중</h3>
+                                <p>
+                                    Controller는 요청/응답만 담당하고,<br>
+                                    외부 API 호출은 Client 또는 Service로<br>분리하는 것이 좋습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>9. 외부 API DTO를<br>그대로 프론트에 노출</h3>
+                                <p>
+                                    외부 API 구조가 바뀌면<br>내 프론트도 흔들립니다.<br>
+                                    내부 응답 DTO로 변환해서<br>반환하는 것이 안전합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>10. CORS와<br>RestTemplate 문제 혼동</h3>
+                                <p>
+                                    CORS는 브라우저 보안 정책입니다.<br>
+                                    Spring Boot가 RestTemplate으로<br>호출하는 서버 간 통신과는 성격이 다릅니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            RestTemplate은 단순한 예제용 기술이 아니라,
+                            Spring Boot 프로젝트가 외부 시스템과 연결되는 거의 모든 지점에서 등장할 수 있습니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>공공데이터 API</h3>
+                                <p>
+                                    법령, 주소, 날씨, 버스,<br>지하철, 통계 데이터를 가져와<br>
+                                    내 DB에 저장하거나<br>React 화면에 제공합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>결제 API</h3>
+                                <p>
+                                    결제 승인, 결제 취소,<br>영수증 조회 요청을
+                                    결제사 서버로 보내고<br>결과를 저장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Python AI 서버</h3>
+                                <p>
+                                    Spring Boot가 FastAPI 모델 서버에<br>추천, 분석, 점수 계산 요청을 보내고<br>
+                                    결과를 받아 DB에 저장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>MSA 내부 통신</h3>
+                                <p>
+                                    주문 서버가 회원 서버, 재고 서버,<br>알림 서버와 통신할 때<br>
+                                    서버 간 HTTP 호출이 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>외부 인증 API</h3>
+                                <p>
+                                    소셜 로그인, 사용자 정보 조회,<br>외부 권한 검증 API와 연동할 때<br>
+                                    인증 헤더 처리가 중요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>백엔드 프록시</h3>
+                                <p>
+                                    React에 외부 API Key를 노출하지 않고<br>
+                                    Spring Boot가 대신 외부 API를 호출해<br>안전하게 데이터를 전달합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>WorshipFlow</h3>
+                                <p>
+                                    Spring Boot가 Python 추천 서버의<br><code class="inline-code">/recommend</code>,
+                                    <code class="inline-code">/score</code> 엔드포인트를<br>호출하는 구조에 연결됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>포트폴리오 설명</h3>
+                                <p>
+                                    “React는 Spring Boot를 호출하고,<br>Spring Boot는 RestTemplate으로<br>AI 서버를 호출한다”는
+                                    구조를<br>설명할 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>면접 포인트 카드</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. RestTemplate이란 무엇인가요?</h3>
+                                <p>
+                                    Spring에서 제공하는 동기 방식 HTTP 클라이언트입니다.
+                                    Spring Boot 서버 내부에서 외부 REST API나 다른 서버 API를 호출할 때 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. Axios와 RestTemplate의 차이는 무엇인가요?</h3>
+                                <p>
+                                    Axios는 브라우저에서 실행되어 React가 Spring Boot API를 호출할 때 사용하고,
+                                    RestTemplate은 Spring Boot 서버 내부에서 외부 API를 호출할 때 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. RestTemplate의 기본 호출 흐름은 무엇인가요?</h3>
+                                <p>
+                                    URL 준비, HttpHeaders 작성, HttpEntity 생성, exchange 호출,
+                                    ResponseEntity에서 status/header/body 확인 순서입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. HttpHeaders는 무엇인가요?</h3>
+                                <p>
+                                    HTTP 요청의 부가 정보를 담는 객체입니다.
+                                    Content-Type, Accept, Authorization, X-API-KEY 등을 설정합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. HttpEntity는 무엇인가요?</h3>
+                                <p>
+                                    요청 header와 body를 함께 담는 객체입니다.
+                                    RestTemplate의 exchange()에 전달됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. exchange()를 사용하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    HTTP Method, URL, Header, Body, 응답 타입을 모두 명시적으로 제어할 수 있기 때문입니다.
+                                    GET, POST, PUT, DELETE를 한 패턴으로 처리할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. ResponseEntity는 무엇인가요?</h3>
+                                <p>
+                                    HTTP 응답 전체를 담는 객체입니다.
+                                    상태코드, 응답 헤더, 응답 body를 함께 확인할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. timeout 설정은 왜 중요한가요?</h3>
+                                <p>
+                                    외부 API가 응답하지 않을 때 서버가 무한정 기다리는 것을 막기 위해 필요합니다.
+                                    timeout이 없으면 요청 처리 스레드가 오래 점유되어 서비스가 느려질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. connection timeout과 read timeout의 차이는 무엇인가요?</h3>
+                                <p>
+                                    connection timeout은 외부 서버와 연결을 맺기까지 기다리는 시간이고,
+                                    read timeout은 연결 후 응답 데이터를 기다리는 시간입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. connection pool은 왜 필요한가요?</h3>
+                                <p>
+                                    HTTP 연결을 매번 새로 만들지 않고 재사용하기 위해 필요합니다.
+                                    성능을 높이고 연결 자원 고갈을 방지하는 데 도움이 됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. List.class로 응답을 받으면 어떤 문제가 생길 수 있나요?</h3>
+                                <p>
+                                    List 내부 요소가 DTO가 아니라 LinkedHashMap으로 들어갈 수 있습니다.
+                                    배열 응답이나 ParameterizedTypeReference를 사용하는 것이 좋습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. 외부 API Key는 어디에 두는 것이 좋나요?</h3>
+                                <p>
+                                    React 코드가 아니라 Spring Boot 서버 쪽에 두는 것이 좋습니다.
+                                    React에 작성하면 브라우저에서 노출될 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>RestTemplate은 Spring Boot 서버 내부에서 외부 REST API를 호출하는 동기 HTTP 클라이언트입니다.</li>
+                            <li>React Axios는 브라우저에서 Spring Boot를 호출하고, RestTemplate은 Spring Boot가 외부 서버를 호출합니다.</li>
+                            <li>RestTemplate 기본 흐름은 URL → HttpHeaders → HttpEntity → exchange() → ResponseEntity입니다.
+                            </li>
+                            <li>HttpHeaders는 Content-Type, Accept, Authorization 같은 요청 헤더를 담습니다.</li>
+                            <li>HttpEntity는 요청 header와 body를 함께 담는 요청 상자입니다.</li>
+                            <li>exchange()는 HTTP Method, URL, Header, Body, 응답 타입을 모두 제어할 수 있습니다.</li>
+                            <li>ResponseEntity는 statusCode, headers, body를 함께 담습니다.</li>
+                            <li>timeout을 설정하지 않으면 외부 API 지연이 내 서버 지연으로 이어질 수 있습니다.</li>
+                            <li>요청이 많은 서비스에서는 connection pool을 고려해야 합니다.</li>
+                            <li>List 응답은 List.class보다 배열 또는 ParameterizedTypeReference로 받는 것이 안전합니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>Axios vs RestTemplate</strong>
+                                <p>
+                                    Axios는 브라우저에서,<br>
+                                    RestTemplate은 Spring Boot 서버 내부에서 실행됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>HttpHeaders vs HttpEntity</strong>
+                                <p>
+                                    Headers는 부가 정보,<br>
+                                    Entity는 header와 body를 묶은 요청 상자입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Request Body vs Response Body</strong>
+                                <p>
+                                    Request Body는 내가 보내는 데이터,<br>
+                                    Response Body는 외부 API가 돌려준 데이터입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>401 vs 403</strong>
+                                <p>
+                                    401은 인증 실패,<br>
+                                    403은 인증은 되었지만 권한이 없는 상태입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>connectTimeout vs readTimeout</strong>
+                                <p>
+                                    connect는 연결 대기,<br>
+                                    read는 응답 데이터 대기 시간입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>List.class vs DTO 배열</strong>
+                                <p>
+                                    List.class는 LinkedHashMap 문제가 생길 수 있어<br>
+                                    DTO 배열이나 ParameterizedTypeReference가 안전합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>18_jwt_security.html</strong>입니다.<br>
+                            이번 단원에서 Spring Boot 서버가 RestTemplate으로 <strong>밖으로 나가는 HTTP 요청</strong>을 배웠다면,<br>
+                            다음 단원에서는 React가 보낸 JWT를 Spring Security가 검증하는
+                            <strong>안으로 들어오는 인증 요청</strong>을 배웁니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>RestTemplate</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>JWT 인증 + Spring Security</strong>
+                        </div>
+
+                        <div class="next-summary">
+                            <p>
+                                연결해서 보면 전체 구조는
+                                <code
+                                    class="inline-code">React → Axios → Spring Security Filter → Controller → Service → RestTemplate → 외부 API</code>
+                                흐름으로 이어집니다.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>
