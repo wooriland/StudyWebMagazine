@@ -1,33 +1,1417 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 18_filter_interceptor_aop</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/18_filter_interceptor_aop.css">
-</head>
-<body class="springboot-page springboot-lesson-18">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 18. Filter, Interceptor, AOP</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/18_filter_interceptor_aop.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-18">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header filter-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 18</p>
+                    <h1>Filter, Interceptor, AOP</h1>
+
+                    <p class="chapter-description">
+                        <strong>Filter, Interceptor, AOP</strong>는 Spring Boot 애플리케이션에서 반복되는 공통 로직을
+                        어느 위치에 배치할지 결정하는 핵심 기술입니다.<br>
+                        <code class="inline-code">Filter</code>는 DispatcherServlet에 도달하기 전 가장 바깥쪽에서 요청/응답을 가로채고,<br>
+                        <code class="inline-code">Interceptor</code>는 Controller 실행 전후를 가로채며,<br>
+                        <code class="inline-code">AOP</code>는 Service 같은 Spring Bean 메서드 실행 전후에 공통 로직을 적용합니다.<br>
+                        React에서 Axios로 API를 호출하면<br>Spring Boot 내부에서는
+                        <strong>Filter → DispatcherServlet → Interceptor → Controller → AOP → Service</strong>
+                        흐름으로 요청이 처리됩니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="Filter Interceptor AOP 핵심 키워드">
+                        <span>Filter</span>
+                        <span>Servlet Container</span>
+                        <span>Tomcat</span>
+                        <span>Filter Chain</span>
+                        <span>chain.doFilter()</span>
+                        <span>DispatcherServlet</span>
+                        <span>Interceptor</span>
+                        <span>preHandle()</span>
+                        <span>postHandle()</span>
+                        <span>afterCompletion()</span>
+                        <span>AOP</span>
+                        <span>Aspect</span>
+                        <span>Pointcut</span>
+                        <span>Advice</span>
+                        <span>@Around</span>
+                        <span>proceed()</span>
+                        <span>OncePerRequestFilter</span>
+                        <span>SecurityFilterChain</span>
+                        <span>React Axios</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>
+                                Filter, Interceptor, AOP가<br>각각 어느 위치에서 동작하는지<br>
+                                요청 처리 흐름 기준으로 설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>
+                                <code class="inline-code">chain.doFilter()</code>,
+                                <code class="inline-code">return true/false</code>,
+                                <code class="inline-code">joinPoint.proceed()</code>의 의미를<br>
+                                코드 흐름으로 이해할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>
+                                React Axios 요청, JWT 인증 Filter,<br>로그인 Interceptor,
+                                Service 실행 시간 AOP를<br>실무 구조로 연결할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>Filter, Interceptor, AOP를 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            Spring Boot 프로젝트에는 여러 기능에서 반복되는 공통 로직이 많습니다.<br>
+                            예를 들어 로그인 확인, JWT 토큰 검사, 권한 확인, 요청 로그 출력, 실행 시간 측정,
+                            CORS 처리, 인코딩 처리, 예외 로그 저장, 트랜잭션 처리 같은 로직입니다.<br>
+                            이런 코드를 모든 Controller와 Service에 직접 작성하면 비즈니스 로직이 지저분해지고,
+                            정책이 바뀔 때 여러 파일을 수정해야 합니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>Filter</span>
+                                <h3>가장 바깥쪽 요청 관문</h3>
+                                <p>
+                                    Servlet Container,<br>즉 Tomcat 레벨에서 동작합니다.
+                                    DispatcherServlet에 도달하기 전<br>요청/응답을 가로챕니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Interceptor</span>
+                                <h3>Controller 앞 요청 관문</h3>
+                                <p>
+                                    Spring MVC 영역에서 동작합니다.<br>
+                                    DispatcherServlet과 Controller 사이에서<br>요청을 가로챕니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>AOP</span>
+                                <h3>메서드 실행 관문</h3>
+                                <p>
+                                    Controller, Service, Repository 같은<br>Spring Bean의 메서드 실행 전후에<br>
+                                    공통 로직을 끼워 넣습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Common Logic</span>
+                                <h3>공통 로직 분리</h3>
+                                <p>
+                                    인증, 권한, 로깅, 성능 측정, 트랜잭션 같은<br>반복 코드를 분리해<br>
+                                    핵심 로직에 집중하게 합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                <code class="inline-code">Filter</code>는 Spring MVC 바깥쪽,
+                                <code class="inline-code">Interceptor</code>는 Controller 앞,
+                                <code class="inline-code">AOP</code>는 Spring Bean 메서드 앞뒤에서 공통 로직을 처리합니다.
+                            </p>
+                        </div>
+
+                        <div class="comparison-table">
+                            <div class="table-head">구분</div>
+                            <div class="table-head">동작 위치</div>
+                            <div class="table-head">대표 용도</div>
+
+                            <div>Filter</div>
+                            <div>Servlet Container / DispatcherServlet 전후</div>
+                            <div>JWT, CORS, 인코딩, 전체 요청 로그, IP 차단</div>
+
+                            <div>Interceptor</div>
+                            <div>Spring MVC / DispatcherServlet과 Controller 사이</div>
+                            <div>세션 로그인 체크, 관리자 URL 접근 제한, Controller 실행 시간 측정</div>
+
+                            <div>AOP</div>
+                            <div>Spring Bean 메서드 실행 전후</div>
+                            <div>Service 로깅, 트랜잭션, 성능 측정, 감사 로그</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>요청 처리 흐름도</h2>
+                        </div>
+
+                        <p>
+                            React에서 Axios로 Spring Boot API를 호출하면 요청은 바로 Controller로 들어가지 않습니다.<br>
+                            먼저 Servlet Container가 요청을 받고, Filter Chain을 통과한 뒤 DispatcherServlet,
+                            Interceptor, Controller, AOP, Service 순서로 흘러갑니다.
+                        </p>
+
+                        <div class="request-flow" aria-label="Filter Interceptor AOP 요청 흐름도">
+                            <div class="flow-row">
+                                <article>
+                                    <span>1</span>
+                                    <strong>React / Browser</strong>
+                                    <p>
+                                        Axios로 API 요청을 보냅니다.<br>
+                                        JWT가 있다면 Authorization 헤더에 담습니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>2</span>
+                                    <strong>Servlet Container</strong>
+                                    <p>
+                                        Tomcat이 가장 먼저 HTTP 요청을 받습니다.<br>
+                                        Spring MVC에 들어가기 전 단계입니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>3</span>
+                                    <strong>Filter Chain</strong>
+                                    <p>
+                                        JWT, CORS, 인코딩, 전체 요청 로그 등<br>
+                                        가장 바깥쪽 공통 처리를 수행합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row">
+                                <article>
+                                    <span>4</span>
+                                    <strong>DispatcherServlet</strong>
+                                    <p>
+                                        Spring MVC의 중앙 관문입니다.<br>
+                                        어떤 Controller가 요청을 처리할지 찾습니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>5</span>
+                                    <strong>Interceptor</strong>
+                                    <p>
+                                        Controller 실행 전후에 동작합니다.<br>
+                                        로그인 체크, 권한 확인, 실행 시간 측정에 사용합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>6</span>
+                                    <strong>Controller</strong>
+                                    <p>
+                                        요청 DTO를 받고 Service를 호출합니다.<br>
+                                        REST API에서는 JSON 응답을 반환합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row">
+                                <article>
+                                    <span>7</span>
+                                    <strong>AOP Proxy</strong>
+                                    <p>
+                                        Service 메서드 실행 전후를 감쌉니다.<br>
+                                        성능 측정, 감사 로그, 예외 로그를 처리합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>8</span>
+                                    <strong>Service</strong>
+                                    <p>
+                                        핵심 비즈니스 로직을 처리합니다.<br>
+                                        예배 기록 저장, 추천 생성, 게시글 등록 등이 여기에 해당합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>9</span>
+                                    <strong>Repository / DB</strong>
+                                    <p>
+                                        DB에 접근합니다.<br>
+                                        JPA Repository 또는 MyBatis, JDBC 등이 연결됩니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="flow-summary-box">
+                            <h3>요청 중단 포인트</h3>
+                            <div class="stop-grid">
+                                <article>
+                                    <strong>Filter</strong>
+                                    <p><code class="inline-code">chain.doFilter()</code>를 호출하지 않으면<br>다음 단계로 가지 않습니다.
+                                    </p>
+                                </article>
+                                <article>
+                                    <strong>Interceptor</strong>
+                                    <p><code class="inline-code">preHandle()</code>에서 <code
+                                            class="inline-code">false</code>를 반환하면<br>Controller로 가지 않습니다.</p>
+                                </article>
+                                <article>
+                                    <strong>AOP</strong>
+                                    <p><code class="inline-code">joinPoint.proceed()</code>를 호출하지 않으면<br>실제 메서드가 실행되지
+                                        않습니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>그림처럼 이해하기</h2>
+                        </div>
+
+                        <p>
+                            Filter, Interceptor, AOP는 모두 “가로채기”처럼 보이지만,
+                            어느 문 앞에서 가로채는지가 다릅니다.
+                        </p>
+
+                        <div class="analogy-grid">
+                            <article>
+                                <span>건물 입구 경비원</span>
+                                <h3>Filter</h3>
+                                <p>
+                                    건물에 들어오기 전 출입증과 위험 요소를 검사합니다.<br>
+                                    웹에서는 JWT 토큰, CORS, IP 차단, 인코딩처럼<br>가장 앞단 처리를 담당합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>엘리베이터 앞 안내 직원</span>
+                                <h3>Interceptor</h3>
+                                <p>
+                                    건물 안으로 들어온 뒤 특정 층이나<br>방에 들어갈 수 있는지 다시 확인합니다.<br>
+                                    웹에서는 로그인 여부, 관리자 URL 접근,<br>Controller 요청 로그를 담당합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>사무실 내부 업무 감시 장치</span>
+                                <h3>AOP</h3>
+                                <p>
+                                    실제 업무가 실행될 때<br>시작 시간, 종료 시간, 오류 여부를 기록합니다.<br>
+                                    웹에서는 Service 실행 시간, 트랜잭션, 감사 로그를 담당합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="decision-box">
+                            <h3>어디에 둘지 판단하는 기준</h3>
+                            <div class="decision-flow">
+                                <div>
+                                    <span>질문 1</span>
+                                    <strong>Spring MVC에 들어오기 전 처리해야 하나?</strong>
+                                    <p>그렇다면 Filter에 둡니다. 예: JWT, CORS, 인코딩</p>
+                                </div>
+
+                                <div>
+                                    <span>질문 2</span>
+                                    <strong>Controller 실행 전후<br>URL별로 처리해야 하나?</strong>
+                                    <p>그렇다면 Interceptor에 둡니다. 예: 세션 로그인, 관리자 경로</p>
+                                </div>
+
+                                <div>
+                                    <span>질문 3</span>
+                                    <strong>Service 메서드 실행 전후로 처리해야 하나?</strong>
+                                    <p>그렇다면 AOP에 둡니다. 예: 실행 시간, 트랜잭션, 감사 로그</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Spring Boot 코드 예제</h2>
+                        </div>
+
+                        <p>
+                            아래 예제는 Spring Boot 3 기준으로 작성했습니다.
+                            Spring Boot 3에서는 Servlet 관련 패키지가 <code class="inline-code">javax.servlet</code>가 아니라
+                            <code class="inline-code">jakarta.servlet</code>입니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) Gradle 의존성</h3>
+                            <pre class="code-block"><code>dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // AOP 사용 시 필요
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Security/JWT 단원과 연결할 경우
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) 테스트용 Controller</h3>
+                            <pre class="code-block"><code>package com.example.study.post.controller;
+
+import com.example.study.post.dto.PostCreateRequest;
+import com.example.study.post.dto.PostResponse;
+import com.example.study.post.service.PostService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/posts")
+@RequiredArgsConstructor
+public class PostController {
+
+    private final PostService postService;
+
+    @GetMapping
+    public List&lt;PostResponse&gt; findAll() {
+        return postService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public PostResponse findById(@PathVariable Long id) {
+        return postService.findById(id);
+    }
+
+    @PostMapping
+    public PostResponse create(@RequestBody PostCreateRequest request) {
+        return postService.create(request);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) DTO</h3>
+                            <pre class="code-block"><code>package com.example.study.post.dto;
+
+public record PostCreateRequest(
+        String title,
+        String content,
+        Long writerId
+) {
+}
+
+public record PostResponse(
+        Long id,
+        String title,
+        String content,
+        Long writerId
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) Service</h3>
+                            <pre class="code-block"><code>package com.example.study.post.service;
+
+import com.example.study.post.dto.PostCreateRequest;
+import com.example.study.post.dto.PostResponse;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PostService {
+
+    public List&lt;PostResponse&gt; findAll() {
+        return List.of(
+                new PostResponse(1L, "Filter 공부", "요청의 가장 앞단", 1L),
+                new PostResponse(2L, "Interceptor 공부", "Controller 앞단", 1L),
+                new PostResponse(3L, "AOP 공부", "Service 메서드 앞뒤", 1L)
+        );
+    }
+
+    public PostResponse findById(Long id) {
+        return new PostResponse(id, "Filter Interceptor AOP", "공통 로직 처리", 1L);
+    }
+
+    public PostResponse create(PostCreateRequest request) {
+        return new PostResponse(
+                100L,
+                request.title(),
+                request.content(),
+                request.writerId()
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) Filter - 요청/응답 로그</h3>
+                            <pre class="code-block"><code>package com.example.study.global.filter;
+
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
+
+public class RequestLoggingFilter implements Filter {
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+        System.out.println("[RequestLoggingFilter] init");
+    }
+
+    @Override
+    public void doFilter(ServletRequest request,
+                         ServletResponse response,
+                         FilterChain chain)
+            throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+
+        System.out.println("[Filter 전처리]");
+        System.out.println("HTTP Method: " + httpRequest.getMethod());
+        System.out.println("Request URI: " + httpRequest.getRequestURI());
+
+        // 이 코드를 호출해야 다음 Filter 또는 DispatcherServlet으로 요청이 넘어갑니다.
+        chain.doFilter(request, response);
+
+        System.out.println("[Filter 후처리]");
+    }
+
+    @Override
+    public void destroy() {
+        System.out.println("[RequestLoggingFilter] destroy");
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>6) FilterRegistrationBean - Filter 등록</h3>
+                            <pre class="code-block"><code>package com.example.study.global.config;
+
+import com.example.study.global.filter.RequestLoggingFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class FilterConfig {
+
+    @Bean
+    public FilterRegistrationBean&lt;RequestLoggingFilter&gt; requestLoggingFilter() {
+        FilterRegistrationBean&lt;RequestLoggingFilter&gt; registrationBean =
+                new FilterRegistrationBean&lt;&gt;();
+
+        registrationBean.setFilter(new RequestLoggingFilter());
+        registrationBean.addUrlPatterns("/api/*");
+        registrationBean.setOrder(1);
+        registrationBean.setName("requestLoggingFilter");
+
+        return registrationBean;
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>7) Interceptor - Controller 실행 시간 측정</h3>
+                            <pre class="code-block"><code>package com.example.study.global.interceptor;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+public class RuntimeInterceptor implements HandlerInterceptor {
+
+    private static final String START_TIME = "startTime";
+
+    @Override
+    public boolean preHandle(HttpServletRequest request,
+                             HttpServletResponse response,
+                             Object handler) throws Exception {
+
+        long startTime = System.currentTimeMillis();
+        request.setAttribute(START_TIME, startTime);
+
+        System.out.println("[Interceptor preHandle]");
+        System.out.println("URI: " + request.getRequestURI());
+        System.out.println("Handler: " + handler);
+
+        // true이면 Controller로 진행, false이면 Controller로 가지 않습니다.
+        return true;
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request,
+                                HttpServletResponse response,
+                                Object handler,
+                                Exception ex) throws Exception {
+
+        Long startTime = (Long) request.getAttribute(START_TIME);
+
+        if (startTime != null) {
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+
+            System.out.println("[Interceptor afterCompletion]");
+            System.out.println("URI: " + request.getRequestURI());
+            System.out.println("Controller 처리 시간: " + duration + "ms");
+        }
+
+        if (ex != null) {
+            System.out.println("요청 처리 중 예외 발생: " + ex.getMessage());
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>8) WebMvcConfig - Interceptor 등록</h3>
+                            <pre class="code-block"><code>package com.example.study.global.config;
+
+import com.example.study.global.interceptor.RuntimeInterceptor;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.*;
+
+@Configuration
+public class WebMvcConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new RuntimeInterceptor())
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/auth/**");
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>9) AOP - Service 실행 시간 측정</h3>
+                            <pre class="code-block"><code>package com.example.study.global.aop;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+public class ServiceRuntimeAspect {
+
+    @Around("execution(* com.example.study..service..*(..))")
+    public Object measureServiceTime(ProceedingJoinPoint joinPoint) throws Throwable {
+        String methodName = joinPoint.getSignature().toShortString();
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // 이 코드가 실제 대상 Service 메서드를 실행합니다.
+            Object result = joinPoint.proceed();
+
+            long endTime = System.currentTimeMillis();
+            System.out.println("[AOP] " + methodName + " 실행 시간: " + (endTime - startTime) + "ms");
+
+            return result;
+
+        } catch (Exception e) {
+            System.out.println("[AOP] " + methodName + " 실행 중 예외: " + e.getMessage());
+            throw e;
+        }
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>React Axios 연결 예제</h2>
+                        </div>
+
+                        <p>
+                            React는 Filter, Interceptor, AOP를 직접 호출하지 않습니다.<br>
+                            React는 Axios로 HTTP 요청을 보내고, 그 요청이 Spring Boot에 들어오면서
+                            Filter, Interceptor, Controller, AOP를 차례대로 통과합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>// src/api/tokenStorage.js
+
+const ACCESS_TOKEN_KEY = "accessToken";
+
+export function saveToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  );
+}
+
+export function clearToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>// src/api/apiClient.js
+
+import axios from "axios";
+import { getAccessToken } from "./tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  timeout: 5000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) API 함수</h3>
+                            <pre class="code-block"><code>// src/api/postApi.js
+
+import apiClient from "./apiClient";
+
+export async function fetchPosts() {
+  const response = await apiClient.get("/api/posts");
+  return response.data;
+}
+
+export async function fetchPost(id) {
+  const response = await apiClient.get(`/api/posts/${id}`);
+  return response.data;
+}
+
+export async function createPost(form) {
+  const response = await apiClient.post("/api/posts", form);
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>// src/pages/PostCreatePage.jsx
+
+import { useState } from "react";
+import { createPost } from "../api/postApi";
+
+function PostCreatePage() {
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    writerId: 1,
+  });
+
+  const handleChange = (e) =&gt; {
+    const { name, value } = e.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) =&gt; {
+    e.preventDefault();
+
+    const requestDto = {
+      title: form.title,
+      content: form.content,
+      writerId: Number(form.writerId),
+    };
+
+    try {
+      const result = await createPost(requestDto);
+      console.log("등록 결과:", result);
+      alert("게시글 등록 성공");
+    } catch (error) {
+      console.error(error);
+      alert("게시글 등록 실패");
+    }
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="title"
+        value={form.title}
+        onChange={handleChange}
+        placeholder="제목"
+      /&gt;
+
+      &lt;textarea
+        name="content"
+        value={form.content}
+        onChange={handleChange}
+        placeholder="내용"
+      /&gt;
+
+      &lt;input
+        name="writerId"
+        type="number"
+        value={form.writerId}
+        onChange={handleChange}
+      /&gt;
+
+      &lt;button type="submit"&gt;등록&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+export default PostCreatePage;</code></pre>
+                        </div>
+
+                        <div class="react-flow-box">
+                            <h3>React 요청이 Spring Boot 안에서 지나가는 흐름</h3>
+                            <p>
+                                <code class="inline-code">Axios POST /api/posts</code>
+                                →
+                                <code class="inline-code">Filter</code>
+                                →
+                                <code class="inline-code">Interceptor</code>
+                                →
+                                <code class="inline-code">@RequestBody DTO</code>
+                                →
+                                <code class="inline-code">AOP</code>
+                                →
+                                <code class="inline-code">Service</code>
+                                →
+                                <code class="inline-code">Repository</code>
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card security-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>JWT Filter와 다음 단원 연결 코드</h2>
+                        </div>
+
+                        <p>
+                            JWT 인증은 보통 Interceptor보다 Spring Security Filter에서 처리합니다.
+                            인증은 Controller에 도달하기 전에 처리되어야 하고,
+                            인증 결과를 <code class="inline-code">SecurityContextHolder</code>에 저장해야 하기 때문입니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) OncePerRequestFilter 기반 JWT Filter</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.jwt;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String token = jwtTokenProvider.resolveToken(request);
+
+        if (token != null &amp;&amp; jwtTokenProvider.validateToken(token)) {
+            var authentication = jwtTokenProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) SecurityFilterChain 등록</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.config;
+
+import com.example.study.auth.jwt.JwtAuthenticationFilter;
+import com.example.study.auth.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.*;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.*;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -&gt; csrf.disable())
+                .sessionManagement(session -&gt;
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -&gt; auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
+        return http.build();
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>주의</strong>
+                            <p>
+                                커스텀 Filter를 <code class="inline-code">@Component</code>로 Bean 등록하고,
+                                동시에 <code class="inline-code">addFilterBefore()</code>로 SecurityFilterChain에도 등록하면
+                                Filter가 두 번 실행될 수 있습니다.<br>JWT Filter는 보통 SecurityFilterChain 안에서 명확하게 등록합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>자주 하는 실수 카드</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. 세 기술의 위치를 구분하지 못함</h3>
+                                <p>
+                                    Filter는 DispatcherServlet 전,<br>
+                                    Interceptor는 Controller 전후,<br>
+                                    AOP는 Spring Bean 메서드 전후입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. chain.doFilter() 누락</h3>
+                                <p>
+                                    Filter에서 이 코드를 호출하지 않으면<br>요청이 다음 Filter나 Controller로<br>전달되지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. preHandle()에서 false 반환</h3>
+                                <p>
+                                    Interceptor에서 false를 반환하면<br>Controller가 실행되지 않습니다.<br>
+                                    정상 진행은 true입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. proceed() 누락</h3>
+                                <p>
+                                    AOP의 @Around에서<br>joinPoint.proceed()를 호출하지 않으면<br>실제 Service 메서드가 실행되지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. javax.servlet 사용</h3>
+                                <p>
+                                    Spring Boot 3에서는<br>javax.servlet이 아니라<br>jakarta.servlet 패키지를 사용해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. @WebFilter만 붙이고 스캔 누락</h3>
+                                <p>
+                                    @WebFilter 방식은 메인 클래스에<br>@ServletComponentScan이<br>필요할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. Filter 중복 등록</h3>
+                                <p>
+                                    @Component 등록과<br>addFilterBefore 등록을 동시에 하면<br>Filter가 두 번 실행될 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. JWT Filter 위치 오류</h3>
+                                <p>
+                                    JWT Filter는 보통<br>UsernamePasswordAuthenticationFilter<br>앞에 addFilterBefore로 등록합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>9. URL 패턴 오해</h3>
+                                <p>
+                                    /api/*와 /api/**는 다릅니다.<br>
+                                    하위 경로 전체를 잡으려면<br>보통 /api/**를 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>10. AOP Pointcut을 너무 넓게 작성</h3>
+                                <p>
+                                    execution(* com.example..*(..))처럼<br>너무 넓으면 원하지 않는 Bean까지<br>AOP가 적용될 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>11. REST API에서<br>postHandle만 믿음</h3>
+                                <p>
+                                    @RestController 응답은<br>ModelAndView가 없을 수 있습니다.<br>
+                                    응답 body 처리는<br>ResponseBodyAdvice나<br>ControllerAdvice도 고려합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>12. 내부 메서드 호출에 AOP 기대</h3>
+                                <p>
+                                    Spring AOP는 Proxy 기반이라<br>같은 클래스 내부 호출에는<br>적용되지 않을 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>오류 메시지 카드</h2>
+                        </div>
+
+                        <p>
+                            Filter, Interceptor, AOP 오류는 대부분 등록 누락, 패키지 변경, 진행 코드 누락,
+                            Security Filter 순서, Pointcut 문법 오류에서 발생합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지 / 현상</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">Cannot resolve symbol 'javax.servlet'</code></div>
+                            <div>Spring Boot 3에서 예전 Servlet 패키지를 사용했습니다.</div>
+                            <div><code class="inline-code">javax.servlet</code>를 <code
+                                    class="inline-code">jakarta.servlet</code>로 변경합니다.</div>
+
+                            <div>Filter 로그가 안 찍힘</div>
+                            <div>Filter가 등록되지 않았거나 URL 패턴이 맞지 않습니다.</div>
+                            <div>FilterRegistrationBean, @WebFilter,<br>@ServletComponentScan, addUrlPatterns를 확인합니다.
+                            </div>
+
+                            <div>요청이 Controller까지 가지 않음</div>
+                            <div>Filter, Interceptor, Security 중간에서 요청이 중단되었습니다.</div>
+                            <div><code class="inline-code">chain.doFilter()</code>, <code
+                                    class="inline-code">return true</code>, 401/403 응답 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">No qualifying bean of type...</code></div>
+                            <div>필요한 Bean이 Spring Container에 등록되지 않았습니다.</div>
+                            <div>@Component, @Configuration, @Bean, 패키지 스캔 범위를 확인합니다.</div>
+
+                            <div>AOP가 적용되지 않음</div>
+                            <div>Aspect 등록 또는 Pointcut 조건이 잘못되었을 수 있습니다.</div>
+                            <div>spring-boot-starter-aop, @Aspect, @Component, Pointcut 경로를 확인합니다.</div>
+
+                            <div><code
+                                    class="inline-code">ProceedingJoinPoint is<br>only supported for around advice</code>
+                            </div>
+                            <div>ProceedingJoinPoint를 @Around가 아닌<br>Advice에서 사용했습니다.</div>
+                            <div>ProceedingJoinPoint는 @Around에서 사용합니다.</div>
+
+                            <div><code class="inline-code">Pointcut is not well-formed</code></div>
+                            <div>Pointcut 표현식 문법이 잘못되었습니다.</div>
+                            <div><code class="inline-code">execution(* com.example..service..*(..))</code> 형식을 확인합니다.
+                            </div>
+
+                            <div>Filter가 두 번 실행됨</div>
+                            <div>Servlet Filter Chain과 Security Filter Chain에<br>중복 등록되었을 수 있습니다.</div>
+                            <div>@Component 자동 등록과 addFilterBefore 중복 등록을 확인합니다.</div>
+
+                            <div>React CORS 에러</div>
+                            <div>브라우저가 다른 출처 요청을 차단했습니다.</div>
+                            <div>SecurityConfig의 cors 설정, OPTIONS 허용, Authorization 헤더 허용을 확인합니다.</div>
+
+                            <div>401 Unauthorized</div>
+                            <div>인증 정보가 없거나 잘못되었습니다.</div>
+                            <div>React Authorization 헤더, Bearer 접두사, JWT 만료, JwtFilter 등록을 확인합니다.</div>
+
+                            <div>403 Forbidden</div>
+                            <div>인증은 되었지만 권한이 없습니다.</div>
+                            <div>Role, SecurityConfig requestMatchers, Interceptor 권한 체크를 확인합니다.</div>
+
+                            <div>Interceptor가 정적 리소스까지 잡음</div>
+                            <div>CSS, JS, 이미지 요청까지 Interceptor가 처리하고 있습니다.</div>
+                            <div><code
+                                    class="inline-code">excludePathPatterns("/css/**", "/js/**", "/images/**")</code>를
+                                설정합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            Filter, Interceptor, AOP는 단순한 이론이 아니라 실무 프로젝트 구조를 깔끔하게 만드는 핵심 도구입니다.<br>
+                            특히 JWT 인증, 관리자 권한, 예배 기록 저장 로그, PDF 생성 시간 측정, Python AI 서버 호출 로그와 직접 연결됩니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>JWT 인증</h3>
+                                <p>
+                                    React가 Authorization 헤더로 보낸<br>JWT를 Filter에서 검증하고<br>
+                                    SecurityContext에 인증 정보를 저장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>CORS 처리</h3>
+                                <p>
+                                    React와 Spring Boot 포트가 다를 때 발생하는<br>OPTIONS Preflight 요청을<br>
+                                    Security Filter 레벨에서 처리합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>세션 로그인 체크</h3>
+                                <p>
+                                    세션 기반 로그인 프로젝트에서는<br>Interceptor로 /mypage/**, /admin/**<br>접근을 제한할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>관리자 URL 제한</h3>
+                                <p>
+                                    /admin/**, /manager/** 같은 경로에<br>Interceptor 또는 Spring Security<br>권한 체크를 적용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>실행 시간 측정</h3>
+                                <p>
+                                    Controller 처리 시간은 Interceptor에서,<br>
+                                    Service 처리 시간은 AOP에서 측정하는 식으로<br>역할을 나눌 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>감사 로그</h3>
+                                <p>
+                                    게시글 삭제, 사용자 권한 변경,<br>예배 기록 수정 같은 중요한 작업은<br>
+                                    @AuditLog AOP로 기록할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>WorshipFlow</h3>
+                                <p>
+                                    예배 기록 저장, 추천 생성, PDF 생성,<br>Q-sheet 다운로드 요청에<br>
+                                    Filter, Interceptor, AOP를<br>적용할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>AI 서버 연동 로그</h3>
+                                <p>
+                                    Spring Boot가<br>Python AI 서버를 호출하는 Service에<br>AOP를 적용해
+                                    요청 시간과 실패 로그를<br>남길 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>면접 포인트 카드</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. Filter, Interceptor, AOP의 차이는 무엇인가요?</h3>
+                                <p>
+                                    Filter는 Servlet Container에서 DispatcherServlet 전후에 동작하고,
+                                    Interceptor는 Spring MVC에서 Controller 전후에 동작하며,
+                                    AOP는 Spring Bean 메서드 실행 전후에 동작합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. Filter는 언제 사용하나요?</h3>
+                                <p>
+                                    Spring MVC에 들어오기 전 전체 요청에 적용할 공통 처리에 사용합니다.
+                                    JWT 인증, CORS, 인코딩, 요청 로그, IP 차단이 대표 예시입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. Interceptor는 언제 사용하나요?</h3>
+                                <p>
+                                    Controller 실행 전후에 URL 패턴별 공통 처리가 필요할 때 사용합니다.
+                                    세션 로그인 체크, 관리자 경로 제한, Controller 실행 시간 측정에 적합합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. AOP는 언제 사용하나요?</h3>
+                                <p>
+                                    Service나 Repository 같은 Spring Bean 메서드 실행 전후에 공통 로직을 적용할 때 사용합니다.
+                                    트랜잭션, 실행 시간 측정, 감사 로그, 예외 로깅이 대표 예시입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. chain.doFilter()는 무엇인가요?</h3>
+                                <p>
+                                    다음 Filter 또는 DispatcherServlet으로 요청을 넘기는 코드입니다.
+                                    호출하지 않으면 요청은 Controller까지 가지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. preHandle()의 true와 false 차이는 무엇인가요?</h3>
+                                <p>
+                                    true를 반환하면 Controller로 진행하고,
+                                    false를 반환하면 요청이 중단되어 Controller가 실행되지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. joinPoint.proceed()는 무엇인가요?</h3>
+                                <p>
+                                    @Around Advice에서 실제 대상 메서드를 실행하는 코드입니다.
+                                    호출하지 않으면 Service 메서드가 실행되지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. JWT 인증은 어디에 구현하는 것이 좋나요?</h3>
+                                <p>
+                                    보통 Spring Security의 SecurityFilterChain 내부에 커스텀 Filter로 구현합니다.
+                                    Controller에 도달하기 전에 인증을 처리해야 하기 때문입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. OncePerRequestFilter를 사용하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    한 요청당 Filter가 한 번만 실행되도록 보장하기 위해 사용합니다.
+                                    JWT 인증 Filter에 자주 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. @Around를 많이 사용하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    메서드 실행 전과 실행 후를 모두 제어할 수 있기 때문입니다.
+                                    실행 시간 측정, 예외 처리, 결과 가공, 감사 로그에 유연합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. Controller 실행 시간과 Service 실행 시간은 각각 어디에서 측정하나요?</h3>
+                                <p>
+                                    Controller 실행 시간은 Interceptor에서 측정하기 좋고,
+                                    Service 비즈니스 로직 실행 시간은 AOP에서 측정하기 좋습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. CORS는 어디에서 처리하는 것이 좋나요?</h3>
+                                <p>
+                                    Spring Security를 사용하는 프로젝트라면 Security Filter Chain 레벨에서 처리하는 것이 좋습니다.
+                                    OPTIONS Preflight 요청이 Controller에 도달하기 전에 막힐 수 있기 때문입니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>Filter는 Servlet Container 영역에서 DispatcherServlet에 도달하기 전에 실행됩니다.</li>
+                            <li>Interceptor는 DispatcherServlet과 Controller 사이에서 실행됩니다.</li>
+                            <li>AOP는 Controller, Service, Repository 같은 Spring Bean 메서드 실행 전후에 동작합니다.</li>
+                            <li>Filter에서 다음 단계로 보내려면 <code class="inline-code">chain.doFilter(request, response)</code>를
+                                호출해야 합니다.</li>
+                            <li>Interceptor의 <code class="inline-code">preHandle()</code>은 true면 진행, false면 중단입니다.</li>
+                            <li>AOP의 <code class="inline-code">@Around</code>에서는 <code
+                                    class="inline-code">joinPoint.proceed()</code>가 실제 메서드 실행 코드입니다.</li>
+                            <li>JWT 인증은 보통 Interceptor보다 Spring Security Filter에서 처리합니다.</li>
+                            <li>Controller 처리 시간은 Interceptor, Service 처리 시간은 AOP에서 측정하기 좋습니다.</li>
+                            <li>Spring Boot 3에서는 <code class="inline-code">javax.servlet</code>가 아니라 <code
+                                    class="inline-code">jakarta.servlet</code>를 사용합니다.</li>
+                            <li>Filter, Interceptor, AOP는 공통 로직을 분리해 핵심 비즈니스 로직을 깨끗하게 유지하기 위한 기술입니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>Filter vs Interceptor</strong>
+                                <p>
+                                    Filter는 Spring MVC 바깥쪽,<br>
+                                    Interceptor는 Spring MVC 안쪽 Controller 앞입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Interceptor vs AOP</strong>
+                                <p>
+                                    Interceptor는 HTTP 요청과 Controller 중심,<br>
+                                    AOP는 Bean 메서드 실행 중심입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>chain.doFilter vs return true</strong>
+                                <p>
+                                    Filter는 chain.doFilter가 진행 코드이고,<br>
+                                    Interceptor는 return true가 진행 코드입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>return false vs 401/403</strong>
+                                <p>
+                                    return false는 Interceptor에서 요청을 멈추는 방식이고,<br>
+                                    401/403은 보안 필터나 권한 체크에서 응답할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>@Around vs @Before</strong>
+                                <p>
+                                    @Before는 실행 전만 처리하고,<br>
+                                    @Around는 실행 전후를 모두 제어합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>javax vs jakarta</strong>
+                                <p>
+                                    Spring Boot 3에서는 Servlet 관련 import가<br>
+                                    jakarta.servlet 패키지로 바뀌었습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>19_jwt_security.html</strong>입니다.<br>
+                            이번 단원에서 Filter, Interceptor, AOP의 위치와 역할을 배웠다면,
+                            다음 단원에서는 그중 <strong>Filter 영역</strong>을 활용해서
+                            React가 보낸 JWT 토큰을 Spring Security가 어떻게 검증하는지 학습합니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>Filter / Interceptor / AOP</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>JWT 인증 + Spring Security</strong>
+                        </div>
+
+                        <div class="next-summary">
+                            <p>
+                                전체 흐름은
+                                <code
+                                    class="inline-code">React → Axios → Authorization Header → Security Filter → Controller → Service</code>
+                                구조로 이어집니다.<br>이번 단원은 JWT Security를 이해하기 위한 요청 흐름 지도입니다.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>

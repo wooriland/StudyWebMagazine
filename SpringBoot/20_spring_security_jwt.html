@@ -1,33 +1,1554 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 20_spring_security_jwt</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/20_spring_security_jwt.css">
-</head>
-<body class="springboot-page springboot-lesson-20">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 20. Spring Security + JWT</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/20_spring_security_jwt.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-20">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header security-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 20</p>
+                    <h1>Spring Security + JWT 구현</h1>
+
+                    <p class="chapter-description">
+                        <strong>Spring Security + JWT</strong>는 React 사용자가 로그인한 뒤 발급받은 JWT를
+                        Spring Boot 서버가 검증하고, 인증된 사용자 요청으로 처리하게 만드는 실무형 인증 구조입니다.<br>
+                        React는 로그인 성공 후 토큰을 저장하고,
+                        <code class="inline-code">Axios Interceptor</code>로
+                        <code class="inline-code">Authorization: Bearer &lt;JWT&gt;</code> 헤더를 자동 추가합니다.<br>
+                        Spring Boot는 <code class="inline-code">SecurityFilterChain</code>에 등록된
+                        <code class="inline-code">JwtAuthenticationFilter</code>에서 토큰을 검증하고,<br>
+                        <code class="inline-code">UserDetailsService</code>로 DB 사용자를 조회한 뒤,
+                        <code class="inline-code">SecurityContextHolder</code>에 인증 정보를 저장합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="Spring Security JWT 핵심 키워드">
+                        <span>Spring Security</span>
+                        <span>JWT</span>
+                        <span>SecurityFilterChain</span>
+                        <span>JwtAuthenticationFilter</span>
+                        <span>OncePerRequestFilter</span>
+                        <span>JwtUtil</span>
+                        <span>UserDetailsService</span>
+                        <span>UserDetails</span>
+                        <span>AuthenticationManager</span>
+                        <span>PasswordEncoder</span>
+                        <span>BCrypt</span>
+                        <span>UsernamePasswordAuthenticationToken</span>
+                        <span>SecurityContextHolder</span>
+                        <span>STATELESS</span>
+                        <span>addFilterBefore</span>
+                        <span>CORS</span>
+                        <span>Axios Interceptor</span>
+                        <span>Bearer Token</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>
+                                React 로그인 요청부터<br>JWT 발급, 저장, 인증 API 호출까지의 전체 흐름을<br>
+                                한 번에 설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>
+                                SecurityFilterChain, JwtAuthenticationFilter,<br>JwtUtil,
+                                UserDetailsService, SecurityContextHolder의<br>역할을 구분할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>
+                                Spring Boot 3.x / Spring Security 6.x 방식의<br>Lambda DSL 설정,
+                                CORS 처리, Axios Interceptor 연결 코드를<br>작성할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>Spring Security + JWT를 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            JWT 개념만 알고 있으면 토큰이 무엇인지는 이해할 수 있습니다.
+                            하지만 실무에서는 토큰을 발급하는 것만으로 끝나지 않습니다.<br>
+                            <strong>로그인 성공 시 토큰을 발급하고, React가 그 토큰을 저장하고,
+                                이후 요청마다 토큰을 보내며, Spring Security가 Controller 전에 토큰을 검증하는 구조</strong>까지
+                            연결해야 실제 인증 시스템이 완성됩니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>SecurityFilterChain</span>
+                                <h3>보안 규칙 설정표</h3>
+                                <p>
+                                    어떤 URL을 열어둘지,<br>어떤 URL은 인증이 필요한지,<br>
+                                    JWT Filter를 어느 위치에 둘지 설정합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>JwtAuthenticationFilter</span>
+                                <h3>JWT 검사 게이트</h3>
+                                <p>
+                                    요청마다 Authorization 헤더를 확인하고,<br>
+                                    JWT를 검증한 뒤 인증 정보를<br>SecurityContextHolder에 저장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>UserDetailsService</span>
+                                <h3>사용자 명부 조회</h3>
+                                <p>
+                                    토큰에서 꺼낸 username으로<br>DB 사용자를 조회하고,<br>
+                                    Spring Security가 이해하는<br>UserDetails로 변환합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Axios Interceptor</span>
+                                <h3>React 요청 자동 보안 헤더</h3>
+                                <p>
+                                    React에서 API 요청을 보낼 때마다<br>저장된 JWT를 꺼내<br>
+                                    Authorization 헤더에 자동으로 붙입니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                Spring Security + JWT는
+                                <code
+                                    class="inline-code">React 로그인 → JWT 발급 → 토큰 저장 → Authorization 헤더 전송 → JwtAuthenticationFilter 검증 → SecurityContextHolder 저장 → Controller 실행</code><br>
+                                흐름을 완성하는 인증 구조입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>전체 인증 흐름도</h2>
+                        </div>
+
+                        <p>
+                            Spring Security + JWT의 흐름은 크게 두 번의 요청으로 이해하면 쉽습니다.
+                            첫 번째는 <strong>로그인 요청</strong>이고, 두 번째는 <strong>인증이 필요한 API 요청</strong>입니다.
+                        </p>
+
+                        <div class="security-flow" aria-label="Spring Security JWT 인증 흐름도">
+                            <div class="flow-row">
+                                <article>
+                                    <span>1</span>
+                                    <strong>React 로그인 요청</strong>
+                                    <p>
+                                        사용자가 아이디와 비밀번호를 입력하고<br>
+                                        <code class="inline-code">POST /api/auth/login</code> 요청을 보냅니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>2</span>
+                                    <strong>AuthenticationManager</strong>
+                                    <p>
+                                        Spring Security가 username/password를 검증합니다.<br>
+                                        실패하면 401 응답을 반환합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>3</span>
+                                    <strong>JWT 발급</strong>
+                                    <p>
+                                        인증 성공 시 JwtUtil이 username과 roles를 담아<br>
+                                        JWT를 생성합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row">
+                                <article>
+                                    <span>4</span>
+                                    <strong>React 토큰 저장</strong>
+                                    <p>
+                                        React는 응답받은 JWT를 localStorage 또는<br>sessionStorage에 저장합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>5</span>
+                                    <strong>Axios Interceptor</strong>
+                                    <p>
+                                        인증 API 요청마다<br>
+                                        <code class="inline-code">Authorization: Bearer &lt;JWT&gt;</code><br>
+                                        헤더를 자동으로 추가합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>6</span>
+                                    <strong>JwtAuthenticationFilter</strong>
+                                    <p>
+                                        Controller에 도달하기 전에 JWT를 추출하고,<br>
+                                        서명과 만료 시간을 검증합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row">
+                                <article>
+                                    <span>7</span>
+                                    <strong>UserDetailsService</strong>
+                                    <p>
+                                        토큰에서 추출한 username으로<br>DB 사용자를 조회하고
+                                        UserDetails를 생성합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>8</span>
+                                    <strong>Authentication 생성</strong>
+                                    <p>
+                                        UserDetails와 권한을 사용해<br>
+                                        UsernamePasswordAuthenticationToken을 생성합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>9</span>
+                                    <strong>SecurityContextHolder 저장</strong>
+                                    <p>
+                                        현재 요청을 인증된 사용자 요청으로 등록하고<br>
+                                        Controller로 요청을 넘깁니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="flow-summary-box">
+                            <h3>로그인 요청과 인증 요청 구분</h3>
+                            <div class="mini-flow-grid">
+                                <article>
+                                    <strong>로그인 요청</strong>
+                                    <p>
+                                        <code class="inline-code">POST /api/auth/login</code><br>
+                                        아직 토큰이 없으므로 <code class="inline-code">permitAll()</code> 대상입니다.
+                                    </p>
+                                </article>
+                                <article>
+                                    <strong>인증 요청</strong>
+                                    <p>
+                                        <code class="inline-code">GET /api/user/me</code><br>
+                                        JWT가 필요하므로 <code class="inline-code">authenticated()</code> 대상입니다.
+                                    </p>
+                                </article>
+                                <article>
+                                    <strong>권한 요청</strong>
+                                    <p>
+                                        <code class="inline-code">GET /api/admin/users</code><br>
+                                        인증뿐 아니라 <code class="inline-code">ROLE_ADMIN</code> 같은 권한이 필요합니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>그림처럼 이해하기</h2>
+                        </div>
+
+                        <p>
+                            Spring Security + JWT는 건물 출입 시스템처럼 이해하면 쉽습니다.
+                            로그인 API는 출입증 발급 창구이고, JWT는 출입증이며,
+                            JwtAuthenticationFilter는 입구 보안 게이트입니다.
+                        </p>
+
+                        <div class="analogy-grid">
+                            <article>
+                                <span>로그인 API</span>
+                                <h3>출입증 발급 창구</h3>
+                                <p>
+                                    사용자가 아이디와 비밀번호를 제시하면,<br>
+                                    서버가 DB와 비밀번호를 확인한 후<br>JWT 출입증을 발급합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>JWT</span>
+                                <h3>출입증</h3>
+                                <p>
+                                    사용자는 이후 API를 호출할 때마다<br>JWT 출입증을 제시합니다.<br>
+                                    서버는 이 출입증의 서명과<br>만료 시간을 검사합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>JwtAuthenticationFilter</span>
+                                <h3>입구 보안 게이트</h3>
+                                <p>
+                                    Controller에 들어가기 전에<br>출입증이 진짜인지 확인하고,<br>
+                                    현재 사용자를<br>SecurityContextHolder에 기록합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>UserDetailsService</span>
+                                <h3>직원 명부 조회</h3>
+                                <p>
+                                    토큰이 유효하더라도<br>DB에서 현재 사용자가 탈퇴했는지,<br>
+                                    정지되었는지, 권한이 바뀌었는지<br>다시 확인할 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="auth-compare-box">
+                            <h3>인증과 인가 구분</h3>
+                            <div class="auth-compare-grid">
+                                <article>
+                                    <strong>인증 Authentication</strong>
+                                    <p>
+                                        “너 누구야?”를 확인합니다.<br>
+                                        예: 로그인 성공, JWT 검증 성공
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <strong>인가 Authorization</strong>
+                                    <p>
+                                        “너 이 기능 쓸 수 있어?”를 확인합니다.<br>
+                                        예: ROLE_ADMIN만 관리자 API 접근
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Spring Boot 코드 예제</h2>
+                        </div>
+
+                        <p>
+                            아래 예제는 Spring Boot 3.x / Spring Security 6.x 기준으로
+                            JWT 로그인과 인증 API 호출 흐름을 구성하는 기본 코드입니다.<br>
+                            실무에서는 Refresh Token, 인증 예외 JSON 응답, 로그아웃, 권한 세분화까지 확장합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) Gradle 의존성</h3>
+                            <pre class="code-block"><code>dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) application.yml</h3>
+                            <pre class="code-block"><code>spring:
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
+    username: SPRING
+    password: SPRING
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 3600000</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) 사용자 엔티티</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.domain;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class AppUser {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(unique = true, nullable = false, length = 50)
+    private String username;
+
+    @Column(nullable = false)
+    private String password;
+
+    // 예: ROLE_USER 또는 ROLE_USER,ROLE_ADMIN
+    @Column(nullable = false)
+    private String roles;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) Repository</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.repository;
+
+import com.example.study.auth.domain.AppUser;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface AppUserRepository extends JpaRepository&lt;AppUser, Long&gt; {
+
+    Optional&lt;AppUser&gt; findByUsername(String username);
+
+    boolean existsByUsername(String username);
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) DTO</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.dto;
+
+public record AuthRequestDto(
+        String username,
+        String password
+) {
+}
+
+public record AuthResponseDto(
+        String token,
+        String tokenType
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>6) CustomUserDetailsService</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.service;
+
+import com.example.study.auth.domain.AppUser;
+import com.example.study.auth.repository.AppUserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.*;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final AppUserRepository appUserRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException {
+
+        AppUser user = appUserRepository.findByUsername(username)
+                .orElseThrow(() -&gt;
+                        new UsernameNotFoundException("User not found: " + username)
+                );
+
+        var authorities = Arrays.stream(user.getRoles().split(","))
+                .map(String::trim)
+                .map(SimpleGrantedAuthority::new)
+                .toList();
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                authorities
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>7) JwtUtil</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.jwt;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Date;
+
+@Component
+public class JwtUtil {
+
+    private final SecretKey key;
+    private final long jwtExpirationMs;
+
+    public JwtUtil(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration-ms}") long jwtExpirationMs
+    ) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.jwtExpirationMs = jwtExpirationMs;
+    }
+
+    public String generateToken(String username, Collection&lt;String&gt; roles) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + jwtExpirationMs);
+
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("roles", roles)
+                .setIssuedAt(now)
+                .setExpiration(expiration)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+
+        if (bearerToken != null &amp;&amp; bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+
+        return null;
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+
+            return true;
+
+        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
+            System.out.println("잘못된 JWT 서명입니다: " + e.getMessage());
+        } catch (ExpiredJwtException e) {
+            System.out.println("만료된 JWT입니다: " + e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            System.out.println("지원하지 않는 JWT입니다: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("JWT 문자열이 비어 있습니다: " + e.getMessage());
+        }
+
+        return false;
+    }
+
+    public String getUsernameFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>8) JwtAuthenticationFilter</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.jwt;
+
+import com.example.study.auth.service.CustomUserDetailsService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        String token = jwtUtil.resolveToken(request);
+
+        if (token != null
+                &amp;&amp; SecurityContextHolder.getContext().getAuthentication() == null) {
+
+            if (jwtUtil.validateToken(token)) {
+                String username = jwtUtil.getUsernameFromToken(token);
+
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(username);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>9) SecurityConfig</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.config;
+
+import com.example.study.auth.jwt.JwtAuthenticationFilter;
+import com.example.study.auth.jwt.JwtUtil;
+import com.example.study.auth.service.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.*;
+
+import java.util.List;
+
+@Configuration
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtUtil jwtUtil;
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration
+    ) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationFilter jwtFilter =
+                new JwtAuthenticationFilter(jwtUtil, userDetailsService);
+
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session -&gt;
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -&gt; auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
+        return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>10) AuthController</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.controller;
+
+import com.example.study.auth.domain.AppUser;
+import com.example.study.auth.dto.AuthRequestDto;
+import com.example.study.auth.dto.AuthResponseDto;
+import com.example.study.auth.jwt.JwtUtil;
+import com.example.study.auth.repository.AppUserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthenticationManager authenticationManager;
+    private final AppUserRepository appUserRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+
+    @PostMapping("/signup")
+    public ResponseEntity&lt;?&gt; signup(@RequestBody AuthRequestDto request) {
+        if (appUserRepository.existsByUsername(request.username())) {
+            return ResponseEntity.badRequest().body("이미 존재하는 아이디입니다.");
+        }
+
+        AppUser user = AppUser.builder()
+                .username(request.username())
+                .password(passwordEncoder.encode(request.password()))
+                .roles("ROLE_USER")
+                .build();
+
+        appUserRepository.save(user);
+
+        return ResponseEntity.ok("회원가입 성공");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity&lt;?&gt; login(@RequestBody AuthRequestDto request) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.username(),
+                            request.password()
+                    )
+            );
+
+            var principal =
+                    (org.springframework.security.core.userdetails.User)
+                            authentication.getPrincipal();
+
+            List&lt;String&gt; roles = principal.getAuthorities()
+                    .stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .toList();
+
+            String token = jwtUtil.generateToken(principal.getUsername(), roles);
+
+            return ResponseEntity.ok(
+                    new AuthResponseDto(token, "Bearer")
+            );
+
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body("아이디 또는 비밀번호가 일치하지 않습니다.");
+        }
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>11) 인증 사용자 API</h3>
+                            <pre class="code-block"><code>package com.example.study.user.controller;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/user")
+public class UserController {
+
+    @GetMapping("/me")
+    public UserProfileResponse me(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return new UserProfileResponse(userDetails.getUsername());
+    }
+
+    public record UserProfileResponse(
+            String username
+    ) {
+    }
+}</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>React Axios 연결 예제</h2>
+                        </div>
+
+                        <p>
+                            React는 로그인 후 JWT를 저장하고, 인증이 필요한 API 요청마다
+                            Authorization 헤더에 JWT를 붙여야 합니다.<br>
+                            요청마다 직접 헤더를 작성하면 실수가 많기 때문에 Axios Interceptor를 사용하는 것이 좋습니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 로그인 API 호출</h3>
+                            <pre class="code-block"><code>// src/api/authApi.js
+
+import axios from "axios";
+
+export async function login(username, password) {
+  const response = await axios.post("http://localhost:8080/api/auth/login", {
+    username,
+    password,
+  });
+
+  return response.data; // { token, tokenType }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>// src/api/tokenStorage.js
+
+const ACCESS_TOKEN_KEY = "accessToken";
+
+export function saveAccessToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  );
+}
+
+export function clearAccessToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>// src/api/apiClient.js
+
+import axios from "axios";
+import { getAccessToken } from "./tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  timeout: 5000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) 로그인 화면</h3>
+                            <pre class="code-block"><code>// src/pages/LoginPage.jsx
+
+import { useState } from "react";
+import { login } from "../api/authApi";
+import { saveAccessToken } from "../api/tokenStorage";
+
+function LoginPage() {
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    keepLogin: false,
+  });
+
+  const handleChange = (e) =&gt; {
+    const { name, value, type, checked } = e.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e) =&gt; {
+    e.preventDefault();
+
+    try {
+      const auth = await login(form.username, form.password);
+
+      saveAccessToken(auth.token, form.keepLogin);
+
+      alert("로그인 성공");
+    } catch (error) {
+      console.error(error);
+      alert("아이디 또는 비밀번호를 확인하세요.");
+    }
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="username"
+        value={form.username}
+        onChange={handleChange}
+        placeholder="아이디"
+      /&gt;
+
+      &lt;input
+        name="password"
+        type="password"
+        value={form.password}
+        onChange={handleChange}
+        placeholder="비밀번호"
+      /&gt;
+
+      &lt;label&gt;
+        &lt;input
+          name="keepLogin"
+          type="checkbox"
+          checked={form.keepLogin}
+          onChange={handleChange}
+        /&gt;
+        로그인 유지
+      &lt;/label&gt;
+
+      &lt;button type="submit"&gt;로그인&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+export default LoginPage;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) 인증 API 호출</h3>
+                            <pre class="code-block"><code>// src/api/userApi.js
+
+import apiClient from "./apiClient";
+
+export async function getMyInfo() {
+  const response = await apiClient.get("/api/user/me");
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>6) 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>// src/api/postApi.js
+
+import apiClient from "./apiClient";
+
+export async function createPost(form) {
+  const response = await apiClient.post("/api/posts", form);
+  return response.data;
+}
+
+// src/pages/PostCreatePage.jsx
+
+import { useState } from "react";
+import { createPost } from "../api/postApi";
+
+function PostCreatePage() {
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+  });
+
+  const handleChange = (e) =&gt; {
+    const { name, value } = e.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) =&gt; {
+    e.preventDefault();
+
+    const requestDto = {
+      title: form.title,
+      content: form.content,
+    };
+
+    try {
+      const result = await createPost(requestDto);
+      console.log("등록 결과:", result);
+      alert("게시글 등록 성공");
+    } catch (error) {
+      console.error(error);
+      alert("인증이 만료되었거나 등록에 실패했습니다.");
+    }
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="title"
+        value={form.title}
+        onChange={handleChange}
+        placeholder="제목"
+      /&gt;
+
+      &lt;textarea
+        name="content"
+        value={form.content}
+        onChange={handleChange}
+        placeholder="내용"
+      /&gt;
+
+      &lt;button type="submit"&gt;등록&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+export default PostCreatePage;</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>자주 하는 실수 카드</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. /api/auth/**를 열지 않음</h3>
+                                <p>
+                                    로그인과 회원가입은<br>토큰이 없는 상태에서 호출해야 합니다.<br>
+                                    인증 API를 permitAll로 열어두지 않으면<br>로그인 자체가 막힙니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. filterChain.doFilter() 누락</h3>
+                                <p>
+                                    JWT Filter에서 이 코드를 호출하지 않으면<br>다음 필터나 Controller로<br>요청이 넘어가지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. JWT Filter 등록 누락</h3>
+                                <p>
+                                    필터 클래스를 만들기만 하면<br>실행되지 않습니다.<br>
+                                    SecurityConfig에서 addFilterBefore로<br>등록해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. Filter 중복 등록</h3>
+                                <p>
+                                    @Component 등록과<br>addFilterBefore 등록을 동시에 하면<br>필터가 두 번 실행될 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. 예전 Security 문법 사용</h3>
+                                <p>
+                                    Spring Security 6에서는 antMatchers와<br>WebSecurityConfigurerAdapter가<br>제거되었습니다.
+                                    requestMatchers와 Lambda DSL을 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. 비밀번호 평문 저장</h3>
+                                <p>
+                                    비밀번호는 PasswordEncoder로<br>암호화해서 저장해야 합니다.<br>
+                                    BCryptPasswordEncoder를 많이 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. ROLE_ 접두사 혼동</h3>
+                                <p>
+                                    Spring Security 권한은 보통 ROLE_USER,<br>ROLE_ADMIN 형식으로 관리합니다.<br>
+                                    hasRole과 hasAuthority<br>차이를 주의해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. Authorization 헤더 형식 오류</h3>
+                                <p>
+                                    올바른 형식은<br>Authorization: Bearer &lt;JWT&gt;입니다.<br>
+                                    Bearer 뒤에는 반드시 공백이 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>9. React 응답 필드명 불일치</h3>
+                                <p>
+                                    서버 응답이 token인데<br>React에서 accessToken으로 읽으면<br>저장되지 않습니다.<br>
+                                    응답 필드명을 맞춰야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>10. CORS를<br>@CrossOrigin만으로 해결</h3>
+                                <p>
+                                    Security Filter에서 OPTIONS 요청이 막히면<br>Controller까지 도달하지 않습니다.<br>
+                                    SecurityConfig의 cors 설정이 중요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>11. OPTIONS 요청 차단</h3>
+                                <p>
+                                    Authorization 헤더와<br>application/json 요청은<br>Preflight를 유발할 수 있습니다.<br>
+                                    OPTIONS 요청을 허용해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>12. Secret Key 노출</h3>
+                                <p>
+                                    JWT Secret Key는<br>코드나 Git에 올리면 안 됩니다.<br>
+                                    application.yml에서는<br>환경변수로 읽는 구조가 안전합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>오류 메시지 카드</h2>
+                        </div>
+
+                        <p>
+                            Spring Security + JWT 오류는 대부분
+                            <strong>토큰 헤더 누락, 토큰 만료, 권한 부족, CORS, 필터 등록 누락,
+                                Bean 등록 누락, 예전 Security 문법 사용</strong>에서 발생합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지 / 현상</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">401 Unauthorized</code></div>
+                            <div>인증 실패입니다. 토큰이 없거나 유효하지 않습니다.</div>
+                            <div>Authorization 헤더, Bearer 공백, 토큰 만료, JWT Filter 등록 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">403 Forbidden</code></div>
+                            <div>인증은 되었지만 권한이 없습니다.</div>
+                            <div>DB roles, GrantedAuthority 변환, hasRole/hasAuthority 설정을 확인합니다.</div>
+
+                            <div><code class="inline-code">BadCredentialsException</code></div>
+                            <div>로그인 시 아이디 또는 비밀번호가 일치하지 않습니다.</div>
+                            <div>username 존재 여부, BCrypt 저장 여부, PasswordEncoder Bean을 확인합니다.</div>
+
+                            <div><code class="inline-code">UsernameNotFoundException</code></div>
+                            <div>UserDetailsService가 DB에서 사용자를 찾지 못했습니다.</div>
+                            <div>토큰의 sub, findByUsername, DB 사용자 데이터, Repository 대상을 확인합니다.</div>
+
+                            <div><code class="inline-code">ExpiredJwtException</code></div>
+                            <div>JWT 만료 시간이 지났습니다.</div>
+                            <div>다시 로그인하거나 Refresh Token 재발급 흐름을 구현합니다.</div>
+
+                            <div><code class="inline-code">MalformedJwtException</code></div>
+                            <div>JWT 형식이 잘못되었습니다.</div>
+                            <div>Header.Payload.Signature 구조인지, Bearer 제거 후 파싱하는지 확인합니다.</div>
+
+                            <div><code class="inline-code">SignatureException</code></div>
+                            <div>서명 검증에 실패했습니다.</div>
+                            <div>Secret Key 변경, 토큰 변조, 다른 서버 발급 토큰 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">WeakKeyException</code></div>
+                            <div>JWT Secret Key가 너무 짧습니다.</div>
+                            <div>HS256에 적합한 충분히 긴 Secret Key를 환경변수로 설정합니다.</div>
+
+                            <div><code class="inline-code">No qualifying bean of type AuthenticationManager</code></div>
+                            <div>AuthenticationManager Bean을 찾지 못했습니다.</div>
+                            <div>AuthenticationConfiguration을 이용한 Bean 등록을 확인합니다.</div>
+
+                            <div><code class="inline-code">No qualifying bean of type PasswordEncoder</code></div>
+                            <div>PasswordEncoder Bean이 없습니다.</div>
+                            <div>BCryptPasswordEncoder Bean 등록 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">Cannot resolve method antMatchers</code></div>
+                            <div>Spring Security 6에서 제거된 예전 문법을 사용했습니다.</div>
+                            <div>antMatchers 대신 requestMatchers를 사용합니다.</div>
+
+                            <div>React CORS 에러</div>
+                            <div>브라우저가 다른 출처 요청을 차단했습니다.</div>
+                            <div>cors 설정, allowedOrigins, allowedHeaders, OPTIONS 허용 여부를 확인합니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            Spring Security + JWT는 단순 로그인 예제를 넘어서
+                            사용자별 데이터 보호, 관리자 기능 제한, SPA 인증, 모바일 인증,<br>
+                            Swagger 인증 테스트, WorshipFlow 같은 실제 프로젝트 인증 구조에 그대로 연결됩니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>React + Spring Boot 로그인</h3>
+                                <p>
+                                    React 로그인 화면에서<br>Spring Boot 로그인 API를 호출하고,<br>
+                                    응답받은 JWT를 저장해<br>인증 API를 호출합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>사용자별 데이터 보호</h3>
+                                <p>
+                                    /api/user/me, /api/orders/my,<br>/api/worship-services/my 같은<br>API를
+                                    로그인 사용자 기준으로 보호합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>관리자 권한 API</h3>
+                                <p>
+                                    ROLE_ADMIN 권한을 가진 사용자만<br>/api/admin/** API에 접근하도록<br>설정할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>WorshipFlow 인증</h3>
+                                <p>
+                                    예배 기록 작성, 추천 생성,<br>큐시트 PDF 다운로드 요청에<br>JWT 인증을 적용할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Refresh Token 확장</h3>
+                                <p>
+                                    Access Token 만료 시<br>Refresh Token을 이용해<br>새 Access Token을 발급하는 구조로<br>확장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>로그아웃 처리</h3>
+                                <p>
+                                    클라이언트 토큰 삭제뿐 아니라<br>Refresh Token 무효화, 쿠키 만료,<br>블랙리스트를 고려합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Swagger 인증 테스트</h3>
+                                <p>
+                                    Swagger Authorize 버튼에<br>Bearer Token을 넣어<br>인증이 필요한 API를 테스트할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>모바일 앱 인증</h3>
+                                <p>
+                                    Android, iOS, Flutter 앱에서도<br>Bearer Token 방식으로<br>Spring Boot API 인증을 처리할 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>면접 포인트 카드</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. Spring Security + JWT 인증 흐름을 설명해 주세요.</h3>
+                                <p>
+                                    로그인 성공 시 서버가 JWT를 발급하고, React가 이를 저장합니다.<br>
+                                    이후 API 요청마다 Authorization 헤더에 Bearer Token을 담아 보내면
+                                    JwtAuthenticationFilter가 토큰을 검증하고 SecurityContextHolder에 인증 정보를 저장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. SecurityFilterChain은 무엇인가요?</h3>
+                                <p>
+                                    Spring Security의 보안 규칙을 설정하는 Bean입니다.
+                                    URL별 접근 권한, 세션 정책, CSRF, CORS, 커스텀 필터 위치를 설정합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. JwtAuthenticationFilter는 왜 필요한가요?</h3>
+                                <p>
+                                    Controller에 도달하기 전에 JWT를 검증하기 위해 필요합니다.
+                                    Controller마다 토큰 검증 코드를 반복하지 않도록 공통 인증 로직을 필터에서 처리합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. OncePerRequestFilter를 사용하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    JWT 검증은 요청 하나당 한 번만 실행되면 충분합니다.
+                                    OncePerRequestFilter는 같은 요청에서 필터가 중복 실행되는 것을 방지하는 데 적합합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. addFilterBefore는 왜 사용하나요?</h3>
+                                <p>
+                                    JWT 필터를 UsernamePasswordAuthenticationFilter보다 앞에 배치하기 위해 사용합니다.
+                                    인증 관련 필터는 순서가 중요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. UserDetailsService는 무엇인가요?</h3>
+                                <p>
+                                    DB에서 사용자 정보를 조회하고 Spring Security가 이해할 수 있는 UserDetails 객체로 변환하는 서비스입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. AuthenticationManager는 언제 사용하나요?</h3>
+                                <p>
+                                    로그인 시 사용자가 입력한 username/password를 검증할 때 사용합니다.
+                                    성공하면 Authentication 객체를 반환하고 실패하면 예외가 발생합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. SecurityContextHolder는 무엇인가요?</h3>
+                                <p>
+                                    현재 요청의 인증 정보를 저장하는 공간입니다.
+                                    인증 객체를 저장하면 Controller에서 @AuthenticationPrincipal로 현재 사용자를 받을 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. 왜 STATELESS를 설정하나요?</h3>
+                                <p>
+                                    JWT 인증은 서버 세션을 사용하지 않고 요청마다 토큰을 검증하는 구조이기 때문입니다.
+                                    세션을 만들지 않도록 STATELESS로 설정합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. JWT 기반 REST API에서 CSRF를 비활성화하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    일반적인 JWT Header 인증은 세션 쿠키 기반 인증과 다르게 동작합니다.<br>
+                                    서버 세션을 사용하지 않기 때문에 REST API에서는 보통 CSRF를 비활성화합니다.<br>
+                                    단, Refresh Token을 Cookie로 사용하면 별도 CSRF 전략이 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. 401과 403의 차이는 무엇인가요?</h3>
+                                <p>
+                                    401은 인증 실패입니다. 토큰이 없거나 잘못되었거나 만료된 경우입니다.
+                                    403은 인증은 되었지만 권한이 부족한 경우입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. Axios Interceptor는 왜 사용하나요?</h3>
+                                <p>
+                                    인증 API 요청마다 JWT를 Authorization 헤더에 자동으로 붙이기 위해 사용합니다.
+                                    요청마다 직접 헤더를 작성하는 중복과 실수를 줄일 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>Spring Security + JWT는 React 로그인부터 인증 API 호출까지 연결하는 인증 구조입니다.</li>
+                            <li>SecurityFilterChain은 URL별 접근 규칙, 세션 정책, CORS, JWT Filter 위치를 설정합니다.</li>
+                            <li>JwtAuthenticationFilter는 요청마다 JWT를 추출하고 검증합니다.</li>
+                            <li>JwtUtil은 JWT 생성, 추출, 검증, username 추출을 담당합니다.</li>
+                            <li>UserDetailsService는 DB 사용자를 조회해 UserDetails로 변환합니다.</li>
+                            <li>AuthenticationManager는 로그인 시 username/password를 검증합니다.</li>
+                            <li>PasswordEncoder는 비밀번호 암호화와 비교를 담당합니다.</li>
+                            <li>SecurityContextHolder는 현재 요청의 인증 정보를 저장합니다.</li>
+                            <li>JWT 기반 API는 보통 SessionCreationPolicy.STATELESS를 사용합니다.</li>
+                            <li>React는 Axios Interceptor로 Authorization: Bearer JWT 헤더를 자동 추가합니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>인증 vs 인가</strong>
+                                <p>
+                                    인증은 “너 누구야?”이고,<br>
+                                    인가는 “너 이 기능 쓸 수 있어?”입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>로그인 요청 vs 인증 요청</strong>
+                                <p>
+                                    로그인 요청은 토큰이 없으므로 permitAll이고,<br>
+                                    인증 요청은 JWT가 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>UserDetailsService vs UserDetails</strong>
+                                <p>
+                                    UserDetailsService는 DB 조회 서비스이고,<br>
+                                    UserDetails는 Security가 이해하는 사용자 정보입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>AuthenticationManager vs JwtFilter</strong>
+                                <p>
+                                    AuthenticationManager는 로그인 시 비밀번호 검증,<br>
+                                    JwtFilter는 이후 요청의 JWT 검증입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>401 vs 403</strong>
+                                <p>
+                                    401은 인증 실패,<br>
+                                    403은 인증 후 권한 부족입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>CORS vs JWT 오류</strong>
+                                <p>
+                                    React 콘솔 CORS 에러는 JWT 검증 문제가 아니라<br>
+                                    Security CORS 설정 문제일 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원에서는 이번 단원에서 만든 JWT 인증 기반을 바탕으로
+                            <strong>권한별 접근 제어, Refresh Token, 인증 예외 처리, 로그아웃, Swagger JWT 테스트</strong> 같은
+                            운영형 인증 기능으로 확장할 수 있습니다.
+                        </p>
+
+                        <div class="next-summary">
+                            <p>
+                                전체 흐름은
+                                <code
+                                    class="inline-code">React 로그인 → JWT 발급 → Axios Authorization 헤더 → JwtAuthenticationFilter → SecurityContextHolder → Controller</code>
+                                에서 시작하고,
+                                이후 Refresh Token, ROLE 기반 인가, 401/403 JSON 응답, 로그아웃 처리로 이어집니다.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>

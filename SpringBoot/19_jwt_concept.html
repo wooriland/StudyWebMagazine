@@ -1,33 +1,1360 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpringBoot - 19_jwt_concept</title>
 
-    <link rel="stylesheet" href="../css/00_nav.css">
-    <link rel="stylesheet" href="../css/study-theme.css">
-    <link rel="stylesheet" href="../css/SpringBoot/19_jwt_concept.css">
-</head>
-<body class="springboot-page springboot-lesson-19">
-    <div class="layout">
-        <nav class="side-nav" id="sideNav"></nav>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Spring Boot - 19. JWT 개념</title>
 
-        <div class="page-content">
-            <header class="page-header">
-                <!-- 단원 제목 영역 -->
-            </header>
+        <link rel="stylesheet" href="../css/00_nav.css">
+        <link rel="stylesheet" href="../css/study-theme.css">
+        <link rel="stylesheet" href="../css/SpringBoot/19_jwt_concept.css">
 
-            <main class="page-main">
-                <!-- 학습 본문 영역 -->
-            </main>
+        <script src="../js/00_nav.js" defer></script>
+    </head>
 
-            <aside class="side-note">
-                <!-- 학습 메모 영역 -->
-            </aside>
+    <body class="theme-springboot study-page springboot-page springboot-lesson-page springboot-lesson-19">
+        <div class="layout">
+            <nav class="side-nav" id="sideNav"></nav>
+
+            <div class="page-content">
+                <header class="page-header jwt-hero">
+                    <p class="chapter-label">Spring Boot - Chapter 19</p>
+                    <h1>JWT 개념</h1>
+
+                    <p class="chapter-description">
+                        <strong>JWT(Json Web Token)</strong>는 로그인 성공 후 서버가 발급하는
+                        <strong>서명된 인증 토큰</strong>입니다.<br>
+                        사용자는 이 토큰을 저장했다가 API 요청마다
+                        <code class="inline-code">Authorization: Bearer &lt;token&gt;</code> 헤더로 보내고,
+                        서버는 토큰의 <strong>서명과 만료 시간</strong>을 검증해 사용자를 식별합니다.<br>
+                        이번 단원에서는 <code class="inline-code">Header</code>,
+                        <code class="inline-code">Payload</code>,
+                        <code class="inline-code">Signature</code>,
+                        <code class="inline-code">Access Token</code>,
+                        <code class="inline-code">Refresh Token</code>,
+                        <code class="inline-code">Bearer</code>,
+                        <code class="inline-code">HttpOnly Cookie</code>를 중심으로<br>
+                        로그인 후 토큰 저장과 인증 요청 구조를 정리합니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="JWT 핵심 키워드">
+                        <span>JWT</span>
+                        <span>Json Web Token</span>
+                        <span>Header</span>
+                        <span>Payload</span>
+                        <span>Signature</span>
+                        <span>Claim</span>
+                        <span>sub</span>
+                        <span>iat</span>
+                        <span>exp</span>
+                        <span>HS256</span>
+                        <span>Secret Key</span>
+                        <span>Access Token</span>
+                        <span>Refresh Token</span>
+                        <span>Bearer</span>
+                        <span>Authorization Header</span>
+                        <span>HttpOnly Cookie</span>
+                        <span>Token Rotation</span>
+                        <span>React Axios</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>
+                                JWT가 왜 <code class="inline-code">Header.Payload.Signature</code> 구조인지 이해하고,<br>
+                                각 영역의 역할을 설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>
+                                Access Token, Refresh Token, Bearer, HttpOnly Cookie의<br>차이를 알고
+                                로그인 후 인증 요청 흐름을 설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>
+                                React에서 토큰을 저장하고 Axios 요청에 자동으로 붙이는 흐름과<br>
+                                Spring Boot의 JWT 검증 구조를 연결할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
+                </header>
+
+                <main>
+                    <section class="study-card concept-card">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>JWT를 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            JWT를 공부한다는 것은 단순히 긴 토큰 문자열을 외우는 것이 아닙니다.<br>
+                            <strong>로그인 성공 후 서버가 어떤 증명서를 만들어 주고, React가 그것을 어디에 저장하며,
+                                이후 API 요청마다 어떻게 인증 정보로 보내는지</strong>를 이해하는 것입니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>Token</span>
+                                <h3>서명된 인증 문자열</h3>
+                                <p>
+                                    JWT는 로그인 성공 후<br>서버가 발급하는 인증용 문자열입니다.<br>
+                                    서버는 나중에 이 문자열의 서명을 검증해<br>사용자를 식별합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Structure</span>
+                                <h3>Header.Payload.Signature</h3>
+                                <p>
+                                    JWT는 점(.)으로 구분된<br>세 영역으로 구성됩니다.<br>
+                                    Header는 타입과 알고리즘,<br>Payload는 사용자 정보,<br>Signature는 서명입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Request</span>
+                                <h3>Authorization Header</h3>
+                                <p>
+                                    React는 저장한 Access Token을<br>API 요청마다
+                                    Authorization 헤더에<br>Bearer 형식으로 담아 보냅니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Validation</span>
+                                <h3>서명과 만료 시간 검증</h3>
+                                <p>
+                                    서버는 토큰의 Signature와 exp를 확인합니다.<br>
+                                    변조되었거나 만료된 토큰이면<br>요청을 거부합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                JWT는 <strong>사용자의 로그인 상태를 증명하기 위해 서버가 발급하는 서명된 토큰</strong>이며,
+                                클라이언트는 이 토큰을 저장했다가 API 요청마다 함께 보냅니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card structure-card">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>JWT 구조 카드</h2>
+                        </div>
+
+                        <p>
+                            JWT는 하나의 문자열처럼 보이지만 실제로는
+                            <code class="inline-code">Header</code>,
+                            <code class="inline-code">Payload</code>,
+                            <code class="inline-code">Signature</code>
+                            세 부분으로 나뉩니다.
+                        </p>
+
+                        <div class="jwt-token-visual" aria-label="JWT Header Payload Signature 구조">
+                            <div class="token-part header-part">
+                                <span>Header</span>
+                                <strong>토큰 타입 + 알고리즘</strong>
+                                <p>typ: JWT<br>alg: HS256</p>
+                            </div>
+
+                            <div class="token-dot">.</div>
+
+                            <div class="token-part payload-part">
+                                <span>Payload</span>
+                                <strong>사용자 정보 + Claim</strong>
+                                <p>sub, roles iat, exp</p>
+                            </div>
+
+                            <div class="token-dot">.</div>
+
+                            <div class="token-part signature-part">
+                                <span>Signature</span>
+                                <strong>변조 방지 서명</strong>
+                                <p>Header + Payload + Secret Key</p>
+                            </div>
+                        </div>
+
+                        <div class="structure-grid">
+                            <article>
+                                <span>Header</span>
+                                <h3>표지</h3>
+                                <p>
+                                    이 토큰이 JWT이고 어떤 알고리즘으로 서명되었는지 알려줍니다.
+                                </p>
+                                <pre class="mini-code"><code>{
+  "typ": "JWT",
+  "alg": "HS256"
+}</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Payload</span>
+                                <h3>내용</h3>
+                                <p>
+                                    사용자 식별자, 권한, 발급 시간, 만료 시간 같은<br>Claim이 들어갑니다.<br>
+                                    단, 암호화가 아니므로 민감 정보는 넣으면 안 됩니다.
+                                </p>
+                                <pre class="mini-code"><code>{
+  "sub": "user1",
+  "roles": ["ROLE_USER"],
+  "iat": 1720000000,
+  "exp": 1720003600
+}</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Signature</span>
+                                <h3>위조 방지 도장</h3>
+                                <p>
+                                    Header와 Payload가 중간에 바뀌지 않았는지<br>확인하는 서명입니다.
+                                </p>
+                                <pre class="mini-code"><code>HMACSHA256(
+  base64UrlEncode(header) + "." +
+  base64UrlEncode(payload),
+  secretKey
+)</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <strong>주의</strong>
+                            <p>
+                                JWT의 Payload는 숨겨진 공간이 아닙니다.<br>
+                                Base64Url 인코딩일 뿐이므로 디코딩하면 내용을 볼 수 있습니다.<br>
+                                따라서 비밀번호, 주민등록번호, 계좌번호, 카드번호 같은 민감 정보는 절대 넣으면 안 됩니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card flow-card">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>로그인 후 JWT 인증 흐름도</h2>
+                        </div>
+
+                        <p>
+                            JWT 인증 흐름은 <strong>로그인 요청 → 토큰 발급 → 토큰 저장 → 인증 요청 → 서버 검증</strong>으로 이어집니다.
+                            React는 토큰을 저장하고, Spring Boot는 요청마다 들어오는 토큰을 검증합니다.
+                        </p>
+
+                        <div class="jwt-flow" aria-label="JWT 인증 흐름도">
+                            <div class="flow-row">
+                                <article>
+                                    <span>1</span>
+                                    <strong>로그인 요청</strong>
+                                    <p>
+                                        React가 username과 password를 담아<br>
+                                        <code class="inline-code">POST /api/auth/login</code> 요청을 보냅니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>2</span>
+                                    <strong>사용자 검증</strong>
+                                    <p>
+                                        Spring Boot가 DB에서 사용자를 조회하고<br>
+                                        비밀번호가 맞는지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>3</span>
+                                    <strong>JWT 발급</strong>
+                                    <p>
+                                        검증에 성공하면 서버가 Access Token과<br>
+                                        필요 시 Refresh Token을 발급합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="flow-row">
+                                <article>
+                                    <span>4</span>
+                                    <strong>토큰 저장</strong>
+                                    <p>
+                                        React가 Access Token을 저장합니다.<br>
+                                        Refresh Token은 HttpOnly Cookie로 저장하는 구조가<br>권장됩니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>5</span>
+                                    <strong>인증 요청</strong>
+                                    <p>
+                                        Axios가 API 요청마다<br>
+                                        <code class="inline-code">Authorization: Bearer &lt;token&gt;</code>
+                                        헤더를 추가합니다.
+                                    </p>
+                                </article>
+
+                                <div class="flow-arrow">→</div>
+
+                                <article>
+                                    <span>6</span>
+                                    <strong>서버 검증</strong>
+                                    <p>
+                                        Spring Security Filter가<br>토큰의 서명, 만료 시간,
+                                        사용자 정보를 검증합니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="analogy-grid">
+                            <article>
+                                <span>입장권 비유</span>
+                                <h3>JWT는 입장권</h3>
+                                <p>
+                                    로그인은 입장권 발급이고, API 요청은 놀이기구 입장입니다.<br>
+                                    서버는 요청마다 입장권이 진짜인지 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>신분증 비유</span>
+                                <h3>Payload는 신분 정보</h3>
+                                <p>
+                                    Payload에는 사용자 ID와 권한이 들어갑니다.<br>
+                                    하지만 누구나 볼 수 있으므로 민감 정보는 넣지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>도장 비유</span>
+                                <h3>Signature는 위조 방지 도장</h3>
+                                <p>
+                                    Payload를 누군가 바꾸면 도장이 맞지 않습니다.<br>
+                                    서버는 서명 검증 실패로 토큰을 거부합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card token-card">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Access Token, Refresh Token, Bearer, HttpOnly Cookie</h2>
+                        </div>
+
+                        <p>
+                            JWT 인증 구조에서 가장 많이 헷갈리는 부분은
+                            <strong>Access Token과 Refresh Token의 역할 분리</strong>입니다.
+                            Access Token은 API 요청에 사용하고, Refresh Token은 Access Token 재발급에 사용합니다.
+                        </p>
+
+                        <div class="token-grid">
+                            <article>
+                                <span>Access Token</span>
+                                <h3>API 요청 인증용</h3>
+                                <p>
+                                    서버 리소스에 접근할 권한을 증명합니다.<br>
+                                    보통 짧은 만료 시간을 가지며<br>Authorization 헤더에 담아 보냅니다.
+                                </p>
+                                <pre class="mini-code"><code>Authorization: Bearer &lt;AccessToken&gt;</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Refresh Token</span>
+                                <h3>Access Token 재발급용</h3>
+                                <p>
+                                    Access Token이 만료되었을 때<br>새 Access Token을 발급받기 위해 사용합니다.<br>
+                                    Access Token보다 긴 수명을 가집니다.
+                                </p>
+                                <pre class="mini-code"><code>POST /api/auth/refresh
+Cookie: refreshToken=...</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Bearer</span>
+                                <h3>토큰 인증 접두사</h3>
+                                <p>
+                                    Authorization 헤더에 토큰을 보낼 때<br>사용하는 표준적인 접두사입니다.<br>
+                                    Bearer 뒤에는 반드시 공백이 필요합니다.
+                                </p>
+                                <pre class="mini-code"><code>Authorization: Bearer eyJ...</code></pre>
+                            </article>
+
+                            <article>
+                                <span>HttpOnly Cookie</span>
+                                <h3>JavaScript 접근 차단</h3>
+                                <p>
+                                    JavaScript에서 읽을 수 없는 쿠키입니다.<br>
+                                    XSS로 Refresh Token이 탈취되는 위험을<br>줄이는 데 사용됩니다.
+                                </p>
+                                <pre class="mini-code"><code>Set-Cookie: refreshToken=...
+HttpOnly; SameSite=Lax</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="token-table">
+                            <div class="table-head">구분</div>
+                            <div class="table-head">Access Token</div>
+                            <div class="table-head">Refresh Token</div>
+
+                            <div>목적</div>
+                            <div>API 요청 인증</div>
+                            <div>Access Token 재발급</div>
+
+                            <div>수명</div>
+                            <div>짧음, 예: 15분~1시간</div>
+                            <div>김, 예: 7일~30일</div>
+
+                            <div>사용 빈도</div>
+                            <div>API 요청마다 사용</div>
+                            <div>재발급 요청 때 사용</div>
+
+                            <div>저장 위치</div>
+                            <div>메모리, sessionStorage, localStorage 등</div>
+                            <div>HttpOnly Cookie 권장</div>
+
+                            <div>탈취 위험</div>
+                            <div>만료 전까지 API 접근 가능</div>
+                            <div>새 Access Token을 계속 받을 수 있어 더 위험</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Spring Boot JWT 개념 코드 예제</h2>
+                        </div>
+
+                        <p>
+                            아래 코드는 JWT 개념을 이해하기 위한 최소 예제입니다.
+                            실제 JWT Security 구현은 다음 단원에서 Filter, SecurityConfig, UserDetailsService까지 확장합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) Gradle 의존성</h3>
+                            <pre class="code-block"><code>dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) application.yml</h3>
+                            <pre class="code-block"><code>jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration-ms: 3600000
+  refresh-token-expiration-ms: 1209600000</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) 로그인 요청/응답 DTO</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.dto;
+
+public record LoginRequest(
+        String username,
+        String password
+) {
+}
+
+public record LoginResponse(
+        String tokenType,
+        String accessToken
+) {
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) JwtTokenProvider</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.jwt;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.List;
+
+@Component
+public class JwtTokenProvider {
+
+    private final SecretKey secretKey;
+    private final long accessTokenExpirationMs;
+
+    public JwtTokenProvider(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.access-token-expiration-ms}") long accessTokenExpirationMs
+    ) {
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes());
+        this.accessTokenExpirationMs = accessTokenExpirationMs;
+    }
+
+    public String createAccessToken(String username, List&lt;String&gt; roles) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + accessTokenExpirationMs);
+
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("roles", roles)
+                .setIssuedAt(now)
+                .setExpiration(expiration)
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token);
+
+            return true;
+
+        } catch (ExpiredJwtException e) {
+            System.out.println("JWT 만료: " + e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            System.out.println("JWT 유효하지 않음: " + e.getMessage());
+        }
+
+        return false;
+    }
+
+    public String getUsername(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) AuthController - 로그인 성공 시 JWT 발급</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.controller;
+
+import com.example.study.auth.dto.LoginRequest;
+import com.example.study.auth.dto.LoginResponse;
+import com.example.study.auth.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @PostMapping("/login")
+    public ResponseEntity&lt;LoginResponse&gt; login(@RequestBody LoginRequest request) {
+        // 학습용 단순 예제
+        // 실무에서는 DB 조회 + PasswordEncoder.matches() 검증이 필요합니다.
+        if (!request.username().equals("user1") || !request.password().equals("pass1234")) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(
+                request.username(),
+                List.of("ROLE_USER")
+        );
+
+        return ResponseEntity.ok(
+                new LoginResponse("Bearer", accessToken)
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>6) TokenTestController - 학습용 토큰 검증</h3>
+                            <pre class="code-block"><code>package com.example.study.auth.controller;
+
+import com.example.study.auth.jwt.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/token-test")
+@RequiredArgsConstructor
+public class TokenTestController {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @GetMapping("/me")
+    public ResponseEntity&lt;?&gt; me(@RequestHeader("Authorization") String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Authorization 헤더가 없습니다.");
+        }
+
+        String token = authorizationHeader.substring(7);
+
+        if (!jwtTokenProvider.validateToken(token)) {
+            return ResponseEntity.status(401).body("유효하지 않은 토큰입니다.");
+        }
+
+        String username = jwtTokenProvider.getUsername(token);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "username", username,
+                        "message", "토큰 검증 성공"
+                )
+        );
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>7) Refresh Token을 HttpOnly Cookie로 내려주는 예제</h3>
+                            <pre class="code-block"><code>import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+
+ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+        .httpOnly(true)
+        .secure(false) // 로컬 개발 환경 false, HTTPS 운영 환경 true 권장
+        .sameSite("Lax")
+        .path("/api/auth/refresh")
+        .maxAge(14 * 24 * 60 * 60)
+        .build();
+
+return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+        .body(new LoginResponse("Bearer", accessToken));</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card code-example-card react-card">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>React Axios 연결 예제</h2>
+                        </div>
+
+                        <p>
+                            React는 로그인 후 받은 Access Token을 저장하고,
+                            Axios Interceptor를 사용해 인증이 필요한 API 요청마다
+                            <code class="inline-code">Authorization: Bearer &lt;token&gt;</code> 헤더를 자동으로 추가합니다.
+                        </p>
+
+                        <div class="code-section">
+                            <h3>1) 로그인 API 호출</h3>
+                            <pre class="code-block"><code>// src/api/authApi.js
+
+import axios from "axios";
+
+export async function login({ username, password }) {
+  const response = await axios.post("http://localhost:8080/api/auth/login", {
+    username,
+    password,
+  });
+
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>2) 토큰 저장 함수</h3>
+                            <pre class="code-block"><code>// src/api/tokenStorage.js
+
+const ACCESS_TOKEN_KEY = "accessToken";
+
+export function saveAccessToken(token, keepLogin) {
+  if (keepLogin) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
+export function getAccessToken() {
+  return (
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    sessionStorage.getItem(ACCESS_TOKEN_KEY)
+  );
+}
+
+export function clearAccessToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>3) Axios 공통 인스턴스</h3>
+                            <pre class="code-block"><code>// src/api/apiClient.js
+
+import axios from "axios";
+import { getAccessToken } from "./tokenStorage";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:8080",
+  timeout: 5000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+apiClient.interceptors.request.use(
+  (config) =&gt; {
+    const token = getAccessToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) =&gt; Promise.reject(error)
+);
+
+export default apiClient;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>4) 로그인 화면</h3>
+                            <pre class="code-block"><code>// src/pages/LoginPage.jsx
+
+import { useState } from "react";
+import { login } from "../api/authApi";
+import { saveAccessToken } from "../api/tokenStorage";
+
+function LoginPage() {
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    keepLogin: false,
+  });
+
+  const handleChange = (e) =&gt; {
+    const { name, value, type, checked } = e.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e) =&gt; {
+    e.preventDefault();
+
+    try {
+      const result = await login({
+        username: form.username,
+        password: form.password,
+      });
+
+      saveAccessToken(result.accessToken, form.keepLogin);
+
+      alert("로그인 성공");
+    } catch (error) {
+      console.error(error);
+      alert("아이디 또는 비밀번호를 확인하세요.");
+    }
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="username"
+        value={form.username}
+        onChange={handleChange}
+        placeholder="아이디"
+      /&gt;
+
+      &lt;input
+        name="password"
+        type="password"
+        value={form.password}
+        onChange={handleChange}
+        placeholder="비밀번호"
+      /&gt;
+
+      &lt;label&gt;
+        &lt;input
+          name="keepLogin"
+          type="checkbox"
+          checked={form.keepLogin}
+          onChange={handleChange}
+        /&gt;
+        로그인 유지
+      &lt;/label&gt;
+
+      &lt;button type="submit"&gt;로그인&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+export default LoginPage;</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>5) 인증 필요한 API 호출</h3>
+                            <pre class="code-block"><code>// src/api/userApi.js
+
+import apiClient from "./apiClient";
+
+export async function getMyInfo() {
+  const response = await apiClient.get("/api/user/me");
+  return response.data;
+}</code></pre>
+                        </div>
+
+                        <div class="code-section">
+                            <h3>6) 폼 입력값을 DTO로 보내기</h3>
+                            <pre class="code-block"><code>// src/api/postApi.js
+
+import apiClient from "./apiClient";
+
+export async function createPost(form) {
+  const response = await apiClient.post("/api/posts", form);
+  return response.data;
+}
+
+// src/pages/PostCreatePage.jsx
+
+import { useState } from "react";
+import { createPost } from "../api/postApi";
+
+function PostCreatePage() {
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+  });
+
+  const handleChange = (e) =&gt; {
+    const { name, value } = e.target;
+
+    setForm((prev) =&gt; ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) =&gt; {
+    e.preventDefault();
+
+    const requestDto = {
+      title: form.title,
+      content: form.content,
+    };
+
+    try {
+      const result = await createPost(requestDto);
+      console.log("등록 결과:", result);
+      alert("게시글 등록 성공");
+    } catch (error) {
+      console.error(error);
+      alert("게시글 등록 실패 또는 인증 만료");
+    }
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        name="title"
+        value={form.title}
+        onChange={handleChange}
+        placeholder="제목"
+      /&gt;
+
+      &lt;textarea
+        name="content"
+        value={form.content}
+        onChange={handleChange}
+        placeholder="내용"
+      /&gt;
+
+      &lt;button type="submit"&gt;등록&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+
+export default PostCreatePage;</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>자주 하는 실수 카드</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. Payload에 민감 정보 저장</h3>
+                                <p>
+                                    JWT Payload는 디코딩하면 볼 수 있습니다.<br>
+                                    비밀번호, 주민등록번호, 계좌번호,<br>카드번호를 넣으면 안 됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. JWT를 암호화로 오해</h3>
+                                <p>
+                                    일반적인 JWT는 암호화가 아니라<br>인코딩과 서명입니다.<br>
+                                    핵심은 숨김이 아니라 변조 검증입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. Access Token 만료 시간을<br>너무 길게 설정</h3>
+                                <p>
+                                    Access Token이 탈취되면<br>만료 전까지 API 접근이 가능합니다.<br>
+                                    짧게 유지하고<br>Refresh Token 구조를 고려합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. Refresh Token을<br>localStorage에 저장</h3>
+                                <p>
+                                    Refresh Token은<br>재발급 권한이 있어 더 위험합니다.<br>
+                                    실무에서는 HttpOnly Cookie 저장을<br>많이 고려합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. Bearer 접두사 누락</h3>
+                                <p>
+                                    서버가 startsWith("Bearer ")로 검사하면<br>Bearer가 없을 때 토큰을 추출하지 못합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. Bearer 뒤 공백 누락</h3>
+                                <p>
+                                    올바른 형식은<br>Authorization: Bearer &lt;token&gt;입니다.<br>
+                                    Bearer와 토큰 사이에는 공백이 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. Secret Key를 코드에 직접 작성</h3>
+                                <p>
+                                    Secret Key는 환경변수로 관리해야 합니다.<br>
+                                    Git에 올라가면<br>모든 토큰을 위조할 수 있는 위험이 생깁니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. Secret Key 길이 부족</h3>
+                                <p>
+                                    HS256에서는 충분히 긴 키가 필요합니다.<br>
+                                    너무 짧으면 WeakKeyException이<br>발생할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>9. 만료 처리 로직 누락</h3>
+                                <p>
+                                    Access Token은 반드시 만료됩니다.<br>
+                                    401 응답 감지, 재발급,<br>로그아웃 흐름을 준비해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>10. 로그아웃을<br>클라이언트 삭제만으로 끝냄</h3>
+                                <p>
+                                    Refresh Token을 운영한다면<br>서버 저장소 삭제, 블랙리스트, 쿠키 만료도<br>함께 고려해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>11. 토큰에 너무 많은 정보 저장</h3>
+                                <p>
+                                    JWT는 요청마다 Header에 실려 이동합니다.<br>
+                                    토큰이 커지면 모든 API 요청이 무거워집니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>12. CORS와 JWT 문제 혼동</h3>
+                                <p>
+                                    Authorization 헤더와 application/json은<br>Preflight를 유발할 수 있습니다.<br>
+                                    이때는 JWT가 아니라<br>CORS 설정 문제일 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>오류 메시지 카드</h2>
+                        </div>
+
+                        <p>
+                            JWT 오류는 대부분 <strong>헤더 형식 오류, 토큰 만료, 서명 불일치, Secret Key 문제,
+                                CORS 설정 문제</strong>에서 발생합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 메시지 / 현상</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인할 것</div>
+
+                            <div><code class="inline-code">401 Unauthorized</code></div>
+                            <div>인증 정보가 없거나 토큰이 유효하지 않습니다.</div>
+                            <div>Authorization 헤더, Bearer 접두사, 토큰 만료, JWT Filter 등록을 확인합니다.</div>
+
+                            <div><code class="inline-code">403 Forbidden</code></div>
+                            <div>인증은 되었지만 권한이 없습니다.</div>
+                            <div>Payload의 roles, GrantedAuthority 변환, SecurityConfig 권한 설정을 확인합니다.</div>
+
+                            <div><code class="inline-code">ExpiredJwtException</code></div>
+                            <div>토큰의 exp 시간이 지났습니다.</div>
+                            <div>Refresh Token으로 재발급하거나 다시 로그인해야 합니다.</div>
+
+                            <div><code class="inline-code">MalformedJwtException</code></div>
+                            <div>JWT 형식이 잘못되었습니다.</div>
+                            <div>Header.Payload.Signature 세 부분인지, 토큰 문자열이 잘리지 않았는지 확인합니다.</div>
+
+                            <div><code class="inline-code">SignatureException</code></div>
+                            <div>서명 검증에 실패했습니다.</div>
+                            <div>토큰 변조, Secret Key 불일치, 다른 서버에서 발급한 토큰인지 확인합니다.</div>
+
+                            <div><code class="inline-code">UnsupportedJwtException</code></div>
+                            <div>서버가 지원하지 않는 JWT 형식입니다.</div>
+                            <div>알고리즘, JWT/JWE 형식, 라이브러리 버전을 확인합니다.</div>
+
+                            <div><code class="inline-code">JWT String argument cannot be<br>null or empty</code></div>
+                            <div>토큰 문자열이 null이거나 비어 있습니다.</div>
+                            <div>React 저장소, Axios Interceptor, Authorization 헤더 전송 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">WeakKeyException</code></div>
+                            <div>Secret Key가 너무 짧습니다.</div>
+                            <div>HS256에 맞는 충분히 긴 Secret Key를 환경변수로 설정합니다.</div>
+
+                            <div>React CORS 에러</div>
+                            <div>브라우저가 다른 출처 요청을 차단했습니다.</div>
+                            <div>SecurityConfig의 cors 설정, OPTIONS 허용,<br>Authorization 헤더 허용을 확인합니다.</div>
+
+                            <div>토큰 저장이 안 됨</div>
+                            <div>로그인 응답 필드명과 React 코드의 필드명이 다를 수 있습니다.</div>
+                            <div>서버 응답이 token인지 accessToken인지 확인하고 저장 코드를 맞춥니다.</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>실무 연결 카드</h2>
+                        </div>
+
+                        <p>
+                            JWT는 SPA, 모바일 앱, REST API, 마이크로서비스, 외부 API 인증에서 자주 사용됩니다.
+                            특히 React + Spring Boot 구조에서는 로그인 후 API 요청 인증을 처리하는 핵심 기술입니다.
+                        </p>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>SPA 로그인</h3>
+                                <p>
+                                    React, Vue, Angular 같은<br>SPA에서 로그인 후 JWT를 저장하고<br>
+                                    API 요청마다 Authorization 헤더로 보냅니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>모바일 앱 인증</h3>
+                                <p>
+                                    Android, iOS 앱은 세션보다<br>토큰 기반 인증 구조가<br>자연스러운 경우가 많습니다.<br>
+                                    보안 저장소와 함께 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>마이크로서비스</h3>
+                                <p>
+                                    API Gateway에서 JWT를 검증하고<br>사용자 정보와 권한을<br>
+                                    여러 서비스에 전달하는 구조에 활용됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>외부 API 인증</h3>
+                                <p>
+                                    일부 외부 API는 Bearer Token을 요구합니다.<br>
+                                    Spring Boot의 RestTemplate이나<br>RestClient에서도 헤더로 설정할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>WorshipFlow 인증</h3>
+                                <p>
+                                    예배 기록 작성, 추천안 생성,<br>큐시트 다운로드 요청에
+                                    JWT 인증을 적용해<br>사용자별 접근을 제어할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>권한 기반 기능 분리</h3>
+                                <p>
+                                    ROLE_USER, ROLE_MANAGER,<br>ROLE_ADMIN처럼 권한을 나누어<br>
+                                    메뉴와 API 접근 범위를<br>다르게 설정할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Refresh Token Rotation</h3>
+                                <p>
+                                    Refresh Token을 재사용하지 않고<br>갱신할 때마다 새로 발급해<br>
+                                    탈취 위험을 줄이는 방식입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Swagger API 테스트</h3>
+                                <p>
+                                    Swagger Authorize 버튼에<br>Bearer Token을 입력해<br>
+                                    인증이 필요한 API를 테스트할 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>면접 포인트 카드</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. JWT란 무엇인가요?</h3>
+                                <p>
+                                    JWT는 JSON Web Token의 약자로, 로그인 성공 후 서버가 발급하는 서명된 인증 토큰입니다.
+                                    클라이언트는 이 토큰을 저장했다가 API 요청마다 함께 보냅니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. JWT는 어떤 구조인가요?</h3>
+                                <p>
+                                    JWT는 Header, Payload, Signature 세 부분으로 구성됩니다.
+                                    Header에는 타입과 알고리즘, Payload에는 Claim, Signature에는 변조 검증용 서명이 들어갑니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. Payload에는 무엇을 넣나요?</h3>
+                                <p>
+                                    사용자 식별자, 권한, 발급 시간, 만료 시간 같은 Claim을 넣습니다.
+                                    단, 암호화된 공간이 아니므로 비밀번호 같은 민감 정보는 넣으면 안 됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. Signature의 역할은 무엇인가요?</h3>
+                                <p>
+                                    Header와 Payload가 변조되지 않았는지 검증하는 역할입니다.
+                                    서버의 Secret Key로 다시 계산한 서명과 비교합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. JWT는 암호화인가요?</h3>
+                                <p>
+                                    일반적인 JWT는 암호화가 아니라 Base64Url 인코딩과 서명입니다.
+                                    Payload는 디코딩 가능하므로 민감 정보를 넣으면 안 됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. Access Token과 Refresh Token의 차이는 무엇인가요?</h3>
+                                <p>
+                                    Access Token은 API 요청 인증용이고 짧은 수명을 가집니다.
+                                    Refresh Token은 Access Token 재발급용이고 더 긴 수명을 가집니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. Bearer는 무엇인가요?</h3>
+                                <p>
+                                    Authorization 헤더에서 토큰 인증 방식을 나타내는 접두사입니다.
+                                    형식은 Authorization: Bearer &lt;JWT&gt;입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. HttpOnly Cookie는 무엇인가요?</h3>
+                                <p>
+                                    JavaScript로 접근할 수 없는 쿠키입니다.
+                                    Refresh Token 저장 시 XSS로 인한 탈취 위험을 줄이는 데 사용됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. JWT 방식과 세션 방식의 차이는 무엇인가요?</h3>
+                                <p>
+                                    세션 방식은 서버가 로그인 상태를 저장하고, JWT 방식은 클라이언트가 토큰을 저장해
+                                    요청마다 보내면 서버가 검증합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. JWT 로그아웃은 어떻게 처리하나요?</h3>
+                                <p>
+                                    단순 구조에서는 클라이언트 저장소의 토큰을 삭제합니다.
+                                    Refresh Token을 운영한다면 서버 저장소 삭제, 블랙리스트, 쿠키 만료도 함께 처리합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. JWT 사용 시 DB 조회가 필요 없나요?</h3>
+                                <p>
+                                    토큰만으로 사용자 식별은 가능하지만, 탈퇴, 정지, 권한 변경을 반영하려면
+                                    UserDetailsService로 DB를 다시 조회하는 구조를 많이 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. JWT 인증 흐름을 설명해 주세요.</h3>
+                                <p>
+                                    로그인 성공 후 서버가 JWT를 발급하고, React가 토큰을 저장한 뒤,
+                                    API 요청마다 Authorization 헤더에 Bearer Token을 담아 보내면
+                                    Spring Security Filter가 검증합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+
+                <aside class="side-note">
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+                        <h3>오늘의 암기 포인트</h3>
+                        <ul>
+                            <li>JWT는 JSON Web Token이며, 로그인 성공 후 서버가 발급하는 서명된 인증 토큰입니다.</li>
+                            <li>JWT 구조는 <code class="inline-code">Header.Payload.Signature</code>입니다.</li>
+                            <li>Header에는 토큰 타입과 서명 알고리즘이 들어갑니다.</li>
+                            <li>Payload에는 사용자 식별자, 권한, 발급 시간, 만료 시간 같은 Claim이 들어갑니다.</li>
+                            <li>Payload는 암호화가 아니므로 민감 정보를 넣으면 안 됩니다.</li>
+                            <li>Signature는 Header와 Payload가 변조되지 않았는지 검증하는 서명입니다.</li>
+                            <li>Access Token은 API 요청 인증용이고 짧은 수명을 가집니다.</li>
+                            <li>Refresh Token은 Access Token 재발급용이고 긴 수명을 가집니다.</li>
+                            <li>Bearer는 Authorization 헤더에 토큰을 실어 보낼 때 사용하는 접두사입니다.</li>
+                            <li>HttpOnly Cookie는 JavaScript로 읽을 수 없어 Refresh Token 저장에 자주 사용됩니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="memo-section warning-memo">
+                        <h3>헷갈리기 쉬운 개념</h3>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>인코딩 vs 암호화</strong>
+                                <p>
+                                    JWT Payload는 인코딩되어 있을 뿐입니다.<br>
+                                    디코딩하면 볼 수 있으므로 민감 정보 금지입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Signature vs Encryption</strong>
+                                <p>
+                                    Signature는 내용을 숨기는 것이 아니라<br>
+                                    변조 여부를 확인하는 서명입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Access vs Refresh</strong>
+                                <p>
+                                    Access Token은 API 요청용,<br>
+                                    Refresh Token은 Access Token 재발급용입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Bearer 공백</strong>
+                                <p>
+                                    <code class="inline-code">Bearer토큰</code>이 아니라<br>
+                                    <code class="inline-code">Bearer 토큰</code>처럼 공백이 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>localStorage vs HttpOnly</strong>
+                                <p>
+                                    localStorage는 사용이 쉽지만 XSS에 취약합니다.<br>
+                                    HttpOnly Cookie는 JavaScript 접근을 막습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>401 vs 403</strong>
+                                <p>
+                                    401은 인증 실패,<br>
+                                    403은 인증은 되었지만 권한이 없는 상태입니다.
+                                </p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section next-step">
+                        <h3>다음 단원 연결</h3>
+                        <p>
+                            다음 단원은 <strong>20_jwt_security.html</strong>입니다.<br>
+                            이번 단원에서 JWT 토큰 자체의 구조와 역할을 배웠다면,<br>
+                            다음 단원에서는 Spring Security의
+                            <code class="inline-code">JwtAuthenticationFilter</code>,
+                            <code class="inline-code">SecurityFilterChain</code>,
+                            <code class="inline-code">UserDetailsService</code>,
+                            <code class="inline-code">SecurityContextHolder</code>를 사용해
+                            실제 JWT 인증을 구현합니다.
+                        </p>
+
+                        <div class="next-flow">
+                            <span>현재 단원</span>
+                            <strong>JWT 개념</strong>
+                            <em>→</em>
+                            <span>다음 단원</span>
+                            <strong>JWT 인증 + Spring Security</strong>
+                        </div>
+
+                        <div class="next-summary">
+                            <p>
+                                전체 흐름은
+                                <code
+                                    class="inline-code">React 로그인 → JWT 발급 → Axios Authorization 헤더 → JwtAuthenticationFilter → SecurityContext 저장 → Controller</code>
+                                구조로 이어집니다.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
-    </div>
+    </body>
 
-    <script src="../js/00_nav.js" defer></script>
-</body>
 </html>
