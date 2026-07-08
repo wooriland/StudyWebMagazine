@@ -12,6 +12,35 @@
 
     const navGroups = [
         {
+            title: 'Dev Tools',
+            className: 'nav-group-tools',
+            items: [
+                {
+                    label: 'Git / GitHub',
+                    folder: 'GitGithub',
+                    children: [
+                        { label: '00. Git/GitHub 전체 로드맵', path: 'GitGithub/00_git_github_index.html', folder: 'GitGithub', match: 'page' },
+                        { label: '01. Git과 버전 관리 개념', path: 'GitGithub/01_git_version_control.html', folder: 'GitGithub', match: 'page' },
+                        { label: '02. Git 작업 공간 구조 이해', path: 'GitGithub/02_git_workflow_structure.html', folder: 'GitGithub', match: 'page' },
+                        { label: '03. Eclipse에서 Git 사용자 설정하기', path: 'GitGithub/03_git_eclipse_config.html', folder: 'GitGithub', match: 'page' },
+                        { label: '04. 로컬 저장소 만들기', path: 'GitGithub/04_git_local_repository.html', folder: 'GitGithub', match: 'page' },
+                        { label: '05. Add / Staging / Commit 기본 흐름', path: 'GitGithub/05_git_add_commit.html', folder: 'GitGithub', match: 'page' },
+                        { label: '06. 커밋 히스토리와 커밋 메시지', path: 'GitGithub/06_git_history_commit_message.html', folder: 'GitGithub', match: 'page' },
+                        { label: '07. Reset으로 이전 커밋 상태로 되돌리기', path: 'GitGithub/07_git_reset.html', folder: 'GitGithub', match: 'page' },
+                        { label: '08. Revert / Restore / Reset 비교', path: 'GitGithub/08_git_revert_restore.html', folder: 'GitGithub', match: 'page' },
+                        { label: '09. GitHub 원격 저장소 만들기', path: 'GitGithub/09_github_remote_repository.html', folder: 'GitGithub', match: 'page' },
+                        { label: '10. 로컬 저장소와 GitHub 연결하기', path: 'GitGithub/10_git_remote_push_token.html', folder: 'GitGithub', match: 'page' },
+                        { label: '11. 원격 저장소 프로젝트 가져오기', path: 'GitGithub/11_git_clone_import.html', folder: 'GitGithub', match: 'page' },
+                        { label: '12. Pull / Fetch / Merge로 버전 맞추기', path: 'GitGithub/12_git_pull_fetch_merge.html', folder: 'GitGithub', match: 'page' },
+                        { label: '13. Git 충돌 Conflict 해결하기', path: 'GitGithub/13_git_conflict.html', folder: 'GitGithub', match: 'page' },
+                        { label: '14. Branch 생성과 Merge', path: 'GitGithub/14_git_branch_merge.html', folder: 'GitGithub', match: 'page' },
+                        { label: '15. Fork / PR / Collaborator 팀 작업', path: 'GitGithub/15_github_team_workflow.html', folder: 'GitGithub', match: 'page' },
+                        { label: '16. CLI / VS Code / .gitignore 실무 정리', path: 'GitGithub/16_git_cli_vscode_gitignore.html', folder: 'GitGithub', match: 'page' }
+                    ]
+                }
+            ]
+        },
+        {
             title: 'DB',
             className: 'nav-group-db',
             items: [
@@ -332,6 +361,7 @@
             path.includes('/HTML5&CSS3/') ||
             path.includes('/JavaBasics/') ||
             path.includes('/DatabaseModeling/') ||
+            path.includes('/GitGithub/') ||
             path.includes('/ES6/') ||
             path.includes('/SpringBoot/') ||
             path.includes('/OracleSqlDeveloper/') ||
