@@ -4,6 +4,10 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <meta name="description"
+            content="Git Reset의 soft, mixed, hard 차이와 Eclipse Reset 조작, reflog 복구, Reset·Restore·Revert의 차이를 학습합니다.">
+
         <title>Git/GitHub - Reset으로 이전 커밋 상태로 되돌리기</title>
 
         <link rel="stylesheet" href="../css/00_nav.css">
@@ -18,67 +22,2583 @@
             <nav class="side-nav" id="sideNav"></nav>
 
             <div class="page-content">
-                <header class="page-header lesson-header">
+                <header class="page-header git-hero">
                     <p class="chapter-label">Git/GitHub - Chapter 07</p>
-                    <h1>07. Reset으로 이전 커밋 상태로 되돌리기</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step1에서 교안 내용을 바탕으로 자세히 공부할 예정입니다.
+
+                    <h1>Reset으로 이전 커밋 상태로 되돌리기</h1>
+
+                    <p class="chapter-description">
+                        <strong>Git Reset</strong>은 현재 브랜치와
+                        <code class="inline-code">HEAD</code>를 과거 Commit으로 이동시키는 기능입니다.<br>
+
+                        Reset 모드에 따라
+                        <code class="inline-code">Staging Area</code>와
+                        <code class="inline-code">Working Directory</code>까지
+                        함께 바뀔 수 있기 때문에,<br>
+                        실행 전에 어떤 변경을 남기고 어떤 변경을 버릴지 정확하게 판단해야 합니다.<br>
+
+                        이번 단원의 핵심 질문은
+                        <strong>
+                            “잘못 만든 Commit을 취소하면서 작업한 코드는 어디까지 남겨야 하는가?”
+                        </strong>
+                        입니다.
                     </p>
-                    <ul class="lesson-goals">
-                        <li>이 단원의 핵심 개념을 이해합니다.</li>
-                        <li>Git/GitHub 전체 흐름에서 이 단원의 위치를 파악합니다.</li>
-                        <li>Step2에서 개념, 흐름도, 실무 연결로 구조화할 준비를 합니다.</li>
-                    </ul>
+
+                    <div class="header-keywords" aria-label="Git Reset 핵심 키워드">
+                        <span>Reset</span>
+                        <span>Soft Reset</span>
+                        <span>Mixed Reset</span>
+                        <span>Hard Reset</span>
+                        <span>HEAD</span>
+                        <span>Branch</span>
+                        <span>Commit ID</span>
+                        <span>HEAD~1</span>
+                        <span>Staging Area</span>
+                        <span>Index</span>
+                        <span>Working Directory</span>
+                        <span>History Rewrite</span>
+                        <span>Backup Branch</span>
+                        <span>reflog</span>
+                        <span>ORIG_HEAD</span>
+                        <span>Restore</span>
+                        <span>Revert</span>
+                        <span>non-fast-forward</span>
+                        <span>push rejected</span>
+                        <span>Force Push</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>
+                                Reset이 HEAD, Index,<br>
+                                Working Directory 중 어디까지<br>
+                                변경하는지 설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>
+                                Eclipse와 CLI에서<br>
+                                soft, mixed, hard Reset을<br>
+                                구분하여 실행할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>
+                                Reset 전 안전 점검과<br>
+                                reflog를 이용한 복구 흐름,<br>
+                                공유 History의 위험성을 이해합니다.
+                            </p>
+                        </article>
+                    </div>
                 </header>
 
-                <main class="lesson-main">
-                    <section class="learning-card concept-card">
-                        <h2>1. 개념 설명 카드</h2>
-                        <p>Step1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
+                <main>
+                    <section class="study-card concept-card" id="reset-concept">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>Reset을 공부한다는 것</h2>
+                        </div>
+
+                        <p>
+                            Reset은 단순히 이전 파일을 보는 기능이 아닙니다.<br>
+                            현재 브랜치가 가리키는 Commit을 과거로 이동시키고,
+                            선택한 모드에 따라 다음 Commit을 준비하는 Index와
+                            실제 파일이 있는 Working Directory까지 바꾸는 기능입니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>Move</span>
+                                <h3>HEAD와 Branch 이동</h3>
+                                <p>
+                                    현재 브랜치가 가리키는 최신 Commit을<br>
+                                    지정한 과거 Commit으로 옮깁니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Keep</span>
+                                <h3>변경 보존 범위 결정</h3>
+                                <p>
+                                    취소한 Commit의 코드를<br>
+                                    Stage 상태, 파일 상태 또는<br>삭제 상태로 결정합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Rewrite</span>
+                                <h3>Local History 재구성</h3>
+                                <p>
+                                    잘못 만든 최근 Commit을 해제하고<br>
+                                    더 의미 있는 단위로 다시 만들 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Risk</span>
+                                <h3>데이터 손실 위험</h3>
+                                <p>
+                                    Hard Reset은 실제 파일까지<br>덮어쓸 수 있으므로
+                                    실행 전 점검과<br>백업이 필요합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>핵심 문장</strong>
+                            <p>
+                                Reset은
+                                <code class="inline-code">취소할 Commit을 지우는 버튼</code>이라기보다,
+                                <code class="inline-code">현재 브랜치가 가리킬 Commit을 다시 선택하는 기능</code>입니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card flow-card">
-                        <h2>2. 흐름도 카드</h2>
-                        <p>Step2에서 그림처럼 이해할 수 있도록 구조화할 예정입니다.</p>
+                    <section class="study-card reason-card" id="why-reset">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>Reset은 언제 필요할까?</h2>
+                        </div>
+
+                        <p>
+                            Commit을 만든 뒤 Message가 잘못되었거나,
+                            여러 목적의 파일이 하나의 Commit에 섞였다는 사실을 발견할 수 있습니다.<br>
+                            아직 다른 사람과 공유하지 않은 Local History라면 Reset을 이용해 Commit을 다시 구성할 수 있습니다.
+                        </p>
+
+                        <div class="reason-grid">
+                            <article>
+                                <span>Message</span>
+                                <h3>Commit Message 수정</h3>
+                                <p>
+                                    의미 없는 Message를 취소하고<br>
+                                    변경 목적이 보이는 Message로<br>다시 Commit합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Split</span>
+                                <h3>큰 Commit 나누기</h3>
+                                <p>
+                                    한 Commit에 섞인 기능, 문서,<br>스타일 변경을
+                                    여러 Commit으로 분리합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Squash</span>
+                                <h3>여러 Commit 합치기</h3>
+                                <p>
+                                    최근의 작은 WIP Commit들을<br>
+                                    하나의 의미 있는 Commit으로 다시 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Restage</span>
+                                <h3>Stage 대상 다시 선택</h3>
+                                <p>
+                                    Commit은 취소하되 파일은 남겨서<br>
+                                    Add 과정부터 다시 진행합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Discard</span>
+                                <h3>로컬 실험 완전 폐기</h3>
+                                <p>
+                                    필요 없는 실험 Commit과 파일 변경을<br>
+                                    모두 대상 Commit 상태로 되돌립니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Recover</span>
+                                <h3>깔끔한 History 만들기</h3>
+                                <p>
+                                    Push 전 Local History를 정리해<br>
+                                    팀원이 읽기 좋은 Commit 흐름을 만듭니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="bad-commit-scenario">
+                            <article>
+                                <span>잘못 만든 Commit C</span>
+                                <h3>update</h3>
+
+                                <pre class="mini-code"><code>포함된 변경:
+- 07_git_reset.html
+- 07_git_reset.css
+- README.md
+- temporary-note.txt
+- 관계없는 네비게이션 CSS</code></pre>
+                            </article>
+
+                            <strong>Reset 후 재구성</strong>
+
+                            <div class="better-history">
+                                <article>
+                                    <span>Commit C-1</span>
+                                    <h3>Add Git reset lesson</h3>
+                                    <p>Reset 단원의 HTML과 CSS만 포함합니다.</p>
+                                </article>
+
+                                <article>
+                                    <span>Commit C-2</span>
+                                    <h3>Update Git learning roadmap</h3>
+                                    <p>README 변경은 별도 Commit으로 분리합니다.</p>
+                                </article>
+                            </div>
+                        </div>
                     </section>
 
-                    <section class="learning-card practice-card">
-                        <h2>3. 실습 준비 카드</h2>
-                        <p>Eclipse, Git Bash, GitHub 실습 흐름을 정리할 예정입니다.</p>
+                    <section class="study-card area-card" id="three-areas">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>Reset을 이해하는 세 영역</h2>
+                        </div>
+
+                        <p>
+                            soft, mixed, hard의 차이는 세 영역 중 어디까지 대상 Commit 상태로 맞추는지에 따라 결정됩니다.
+                            먼저 HEAD, Staging Area, Working Directory의 역할을 다시 구분해야 합니다.
+                        </p>
+
+                        <div class="area-diagram">
+                            <article class="head-area">
+                                <span>1</span>
+                                <div>
+                                    <h3>HEAD / 현재 Branch</h3>
+                                    <p>현재 버전으로 취급하는 최신 Commit입니다.</p>
+                                </div>
+                            </article>
+
+                            <div class="area-arrow">↓</div>
+
+                            <article class="index-area">
+                                <span>2</span>
+                                <div>
+                                    <h3>Staging Area / Index</h3>
+                                    <p>다음 Commit에 포함할 준비가 된 내용입니다.</p>
+                                </div>
+                            </article>
+
+                            <div class="area-arrow">↓</div>
+
+                            <article class="worktree-area">
+                                <span>3</span>
+                                <div>
+                                    <h3>Working Directory</h3>
+                                    <p>개발자가 실제로 보고 수정하는 파일입니다.</p>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div class="area-role-grid">
+                            <article>
+                                <h3>HEAD가 바뀌면</h3>
+                                <p>
+                                    현재 Branch가 과거 Commit을 최신 버전으로 가리키게 됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Index가 바뀌면</h3>
+                                <p>
+                                    Staged Changes의 구성과 다음 Commit 대상이 달라집니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Working Directory가 바뀌면</h3>
+                                <p>
+                                    Eclipse에서 실제로 보는<br>HTML, CSS, Java 파일 내용이 달라집니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="diagram-box">
+                            <h3>Commit C 직후 세 영역</h3>
+
+                            <pre class="mini-code"><code>HEAD / Branch       → Commit C
+Staging Area        → Commit C 상태
+Working Directory   → Commit C 상태</code></pre>
+                        </div>
                     </section>
 
-                    <section class="learning-card command-card">
-                        <h2>4. 명령어 연결 카드</h2>
-                        <p>Eclipse 메뉴와 Git CLI 명령어를 연결해서 정리할 예정입니다.</p>
+                    <section class="study-card target-card" id="target-commit">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Reset 대상 Commit 선택하기</h2>
+                        </div>
+
+                        <p>
+                            Reset에서 가장 자주 하는 실수는 취소하려는 Commit을 선택하는 것입니다.
+                            Reset에서는 <strong>Reset 후 남길 마지막 Commit</strong>을 선택해야 합니다.
+                        </p>
+
+                        <div class="history-timeline">
+                            <article>
+                                <span>A</span>
+                                <p>Initial project</p>
+                            </article>
+
+                            <i></i>
+
+                            <article>
+                                <span>B</span>
+                                <p>Add Reset structure</p>
+                            </article>
+
+                            <i></i>
+
+                            <article>
+                                <span>C</span>
+                                <p>Add soft Reset</p>
+                            </article>
+
+                            <i></i>
+
+                            <article class="current-commit">
+                                <span>D</span>
+                                <p>Add hard Reset</p>
+                                <em>HEAD · main</em>
+                            </article>
+                        </div>
+
+                        <div class="target-case-grid">
+                            <article>
+                                <span>Case 1</span>
+                                <h3>D만 취소하고 싶다</h3>
+
+                                <pre class="mini-code"><code>남길 마지막 Commit
+→ C
+
+Reset 대상
+→ Commit C</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Case 2</span>
+                                <h3>C와 D를 취소하고 싶다</h3>
+
+                                <pre class="mini-code"><code>남길 마지막 Commit
+→ B
+
+Reset 대상
+→ Commit B</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Case 3</span>
+                                <h3>중간 C만 취소하고 D는 유지</h3>
+
+                                <pre class="mini-code"><code>Reset으로 처리하기 어려움
+
+다음 단원의
+Revert 검토</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>암기 문장</h3>
+                            <p>
+                                Reset에서는 <strong>없앨 Commit</strong>이 아니라
+                                <strong>Reset 이후 현재 Branch가 가리킬 Commit</strong>을 선택합니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card warning-card">
-                        <h2>5. 자주 하는 실수 카드</h2>
-                        <p>초보자가 헷갈리기 쉬운 부분을 정리할 예정입니다.</p>
+                    <section class="study-card modes-card" id="reset-modes">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Soft / Mixed / Hard 전체 비교</h2>
+                        </div>
+
+                        <p>
+                            세 Reset 모드는 모두 HEAD와 현재 Branch를 대상 Commit으로 이동합니다.
+                            차이는 Index와 Working Directory를 어디까지 함께 이동시키는가에 있습니다.
+                        </p>
+
+                        <div class="mode-grid">
+                            <article class="soft-mode">
+                                <span>SOFT</span>
+                                <h3>Commit만 취소</h3>
+
+                                <ul class="plain-list">
+                                    <li>HEAD 이동</li>
+                                    <li>Index 유지</li>
+                                    <li>Working Directory 유지</li>
+                                    <li>변경은 Staged 상태</li>
+                                </ul>
+
+                                <code>git reset --soft</code>
+                            </article>
+
+                            <article class="mixed-mode">
+                                <span>MIXED</span>
+                                <h3>Commit과 Stage 취소</h3>
+
+                                <ul class="plain-list">
+                                    <li>HEAD 이동</li>
+                                    <li>Index를 대상 상태로 변경</li>
+                                    <li>Working Directory 유지</li>
+                                    <li>변경은 Unstaged 상태</li>
+                                </ul>
+
+                                <code>git reset --mixed</code>
+                            </article>
+
+                            <article class="hard-mode">
+                                <span>HARD</span>
+                                <h3>Commit과 파일까지 되돌림</h3>
+
+                                <ul class="plain-list">
+                                    <li>HEAD 이동</li>
+                                    <li>Index를 대상 상태로 변경</li>
+                                    <li>Working Directory도 변경</li>
+                                    <li>변경 내용 손실 가능</li>
+                                </ul>
+
+                                <code>git reset --hard</code>
+                            </article>
+                        </div>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>구분</th>
+                                        <th>Soft</th>
+                                        <th>Mixed</th>
+                                        <th>Hard</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>HEAD / Branch 이동</td>
+                                        <td>이동</td>
+                                        <td>이동</td>
+                                        <td>이동</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Staging Area</td>
+                                        <td>현재 상태 유지</td>
+                                        <td>대상 Commit 상태</td>
+                                        <td>대상 Commit 상태</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Working Directory</td>
+                                        <td>현재 파일 유지</td>
+                                        <td>현재 파일 유지</td>
+                                        <td>대상 Commit 파일 상태</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>취소된 Commit의 변경</td>
+                                        <td>Staged Changes</td>
+                                        <td>Unstaged Changes</td>
+                                        <td>파일에서도 제거 가능</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>다시 Add 필요</td>
+                                        <td>일반적으로 불필요</td>
+                                        <td>필요</td>
+                                        <td>변경을 버렸다면 해당 없음</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>대표 목적</td>
+                                        <td>Message 수정·Commit 합치기</td>
+                                        <td>Commit 나누기·Stage 재선택</td>
+                                        <td>로컬 변경 완전 폐기</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>위험도</td>
+                                        <td>낮음</td>
+                                        <td>중간</td>
+                                        <td>높음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mode-state-columns">
+                            <article class="state-before">
+                                <span>Reset 전</span>
+                                <pre class="mini-code"><code>HEAD      C
+Index     C
+Worktree  C</code></pre>
+                            </article>
+
+                            <article class="state-soft">
+                                <span>Soft B</span>
+                                <pre class="mini-code"><code>HEAD      B
+Index     C
+Worktree  C</code></pre>
+                            </article>
+
+                            <article class="state-mixed">
+                                <span>Mixed B</span>
+                                <pre class="mini-code"><code>HEAD      B
+Index     B
+Worktree  C</code></pre>
+                            </article>
+
+                            <article class="state-hard">
+                                <span>Hard B</span>
+                                <pre class="mini-code"><code>HEAD      B
+Index     B
+Worktree  B</code></pre>
+                            </article>
+                        </div>
                     </section>
 
-                    <section class="learning-card interview-card">
-                        <h2>6. 면접 포인트 카드</h2>
-                        <p>면접 질문과 답변 형태로 정리할 예정입니다.</p>
+                    <section class="study-card soft-card" id="soft-reset">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Soft Reset — Commit만 취소하기</h2>
+                        </div>
+
+                        <p>
+                            Soft Reset은 HEAD와 현재 Branch만 과거 Commit으로 이동합니다.
+                            Index와 Working Directory는 유지되므로 취소된 Commit의 변경은
+                            Staged Changes에 남습니다.
+                        </p>
+
+                        <div class="reset-detail-layout">
+                            <article class="reset-history-panel">
+                                <span>History</span>
+
+                                <pre class="mini-code"><code>Reset 전
+
+A ── B ── C
+              ↑
+         HEAD, main
+
+git reset --soft B
+
+Reset 후
+
+A ── B
+       ↑
+  HEAD, main</code></pre>
+                            </article>
+
+                            <article class="reset-staging-panel soft-result">
+                                <span>Git Staging</span>
+                                <h3>Staged Changes</h3>
+
+                                <ul>
+                                    <li>07_git_reset.html 수정</li>
+                                    <li>07_git_reset.css 수정</li>
+                                </ul>
+
+                                <p>
+                                    Add를 다시 하지 않고
+                                    바로 새로운 Commit을 만들 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="use-case-grid">
+                            <article>
+                                <h3>Commit Message 다시 작성</h3>
+                                <p>
+                                    Commit 내용은 유지하면서 Message를 더 명확하게 작성합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>빠뜨린 파일 추가</h3>
+                                <p>
+                                    Commit을 취소한 뒤 누락된 파일을 Stage하고<br>다시 Commit합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>여러 Commit 합치기</h3>
+                                <p>
+                                    최근 Commit들의 변경을 Stage 상태로 모아<br>하나의 Commit으로 만듭니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>CLI 흐름</h3>
+
+                            <pre class="mini-code"><code>git reset --soft HEAD~1
+
+git status
+
+git commit -m "새로운 Commit Message"</code></pre>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>Soft Reset 암기</strong>
+                            <p>
+                                Commit 기록만 취소하고,
+                                취소된 Commit의 내용은
+                                <code class="inline-code">Staged Changes</code>에 남깁니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card mixed-card" id="mixed-reset">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Mixed Reset — Commit과 Stage 취소하기</h2>
+                        </div>
+
+                        <p>
+                            Mixed Reset은 HEAD와 Index를 대상 Commit 상태로 이동시키지만
+                            Working Directory의 실제 파일은 유지합니다.
+                            따라서 취소된 Commit의 변경은 Unstaged Changes에 남습니다.
+                        </p>
+
+                        <div class="reset-detail-layout">
+                            <article class="reset-history-panel">
+                                <span>History</span>
+
+                                <pre class="mini-code"><code>Reset 전
+
+A ── B ── C
+              ↑
+         HEAD, main
+
+git reset --mixed B
+
+Reset 후
+
+A ── B
+       ↑
+  HEAD, main</code></pre>
+                            </article>
+
+                            <article class="reset-staging-panel mixed-result">
+                                <span>Git Staging</span>
+                                <h3>Unstaged Changes</h3>
+
+                                <ul>
+                                    <li>07_git_reset.html 수정</li>
+                                    <li>07_git_reset.css 수정</li>
+                                    <li>README.md 수정</li>
+                                </ul>
+
+                                <p>
+                                    필요한 파일을 다시 골라
+                                    Add to Index부터 진행해야 합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="use-case-grid">
+                            <article>
+                                <h3>큰 Commit 나누기</h3>
+                                <p>
+                                    하나의 Commit에 섞인 변경을 목적별로 다시 Stage합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>관계없는 파일 제외</h3>
+                                <p>
+                                    잘못 포함된 README나 임시 파일을<br>다음 Commit에서 제외합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Add 과정부터 재검토</h3>
+                                <p>
+                                    어떤 파일이 다음 Commit에 들어갈지 처음부터 다시 선택합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>CLI 흐름</h3>
+
+                            <pre class="mini-code"><code>git reset --mixed HEAD~1
+
+# --mixed는 기본값이므로 다음과 같음
+git reset HEAD~1
+
+git status
+
+git add GitGithub/07_git_reset.html
+git add css/GitGithub/07_git_reset.css
+
+git diff --staged
+git commit -m "Add Git reset lesson"</code></pre>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>Mixed Reset 암기</strong>
+                            <p>
+                                Commit과 Stage 상태를 취소하지만,
+                                실제 파일 변경은
+                                <code class="inline-code">Unstaged Changes</code>로 남깁니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card hard-card" id="hard-reset">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>Hard Reset — 실제 파일까지 되돌리기</h2>
+                        </div>
+
+                        <p>
+                            Hard Reset은 HEAD, Index, Working Directory를 모두 대상 Commit 상태로 맞춥니다.<br>
+                            취소된 Commit의 변경과 아직 Commit하지 않은 추적 파일 변경까지 잃을 수 있으므로
+                            가장 주의해야 하는 Reset 모드입니다.
+                        </p>
+
+                        <div class="reset-detail-layout">
+                            <article class="reset-history-panel">
+                                <span>History</span>
+
+                                <pre class="mini-code"><code>Reset 전
+
+A ── B ── C
+              ↑
+         HEAD, main
+
+git reset --hard B
+
+Reset 후
+
+A ── B
+       ↑
+  HEAD, main</code></pre>
+                            </article>
+
+                            <article class="reset-staging-panel hard-result">
+                                <span>Working Directory</span>
+                                <h3>Commit B 당시 상태</h3>
+
+                                <ul>
+                                    <li>Staged Changes 없음</li>
+                                    <li>Unstaged Changes 없음</li>
+                                    <li>파일 내용이 B 시점으로 변경</li>
+                                </ul>
+
+                                <p>
+                                    Commit C에서 작성한 추적 파일 변경은
+                                    Working Directory에서도 사라질 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="danger-grid">
+                            <article>
+                                <span>Tracked</span>
+                                <h3>미Commit 추적 파일 변경</h3>
+                                <p>
+                                    아직 Commit하지 않은 수정 내용이<br>대상 Commit 상태로 덮어써질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Staged</span>
+                                <h3>Staged Changes</h3>
+                                <p>
+                                    Index에만 올려둔 변경도<br>대상 Commit 상태로 되돌아갑니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Untracked</span>
+                                <h3>방해되는 Untracked 경로</h3>
+                                <p>
+                                    대상 파일을 복원하는 데 방해되는 경로는<br>제거되거나 덮어써질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Commit</span>
+                                <h3>대상 이후 Commit</h3>
+                                <p>
+                                    현재 Branch에서 더 이상<br>도달할 수 없는 상태가 될 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="command-box danger-command">
+                            <h3>CLI 흐름</h3>
+
+                            <pre class="mini-code"><code>git status
+git log --oneline --decorate -5
+
+git branch backup-before-hard-reset
+
+git reset --hard HEAD~1
+
+git status
+git log --oneline --decorate -5</code></pre>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>Hard Reset은 Ctrl + Z가 아니다</h3>
+                            <p>
+                                Commit되어 있던 과거 위치는 reflog에서 찾을 가능성이 있지만,
+                                한 번도 Commit하지 않은 Working Directory 변경은 Git History에 존재하지 않습니다.<br>
+                                Hard Reset 전에 반드시 상태 확인과 백업을 진행해야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card eclipse-card" id="eclipse-reset">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>Eclipse에서 Reset하는 전체 흐름</h2>
+                        </div>
+
+                        <p>
+                            Eclipse에서는 History View에서 돌아갈 Commit을 선택한 뒤
+                            Soft, Mixed, Hard Reset을 실행할 수 있습니다.<br>
+                            Commit 단위 Reset은 선택한 파일 하나가 아니라 Repository 전체에 영향을 줄 수 있습니다.
+                        </p>
+
+                        <div class="eclipse-flow" aria-label="Eclipse Reset 전체 흐름">
+                            <article>
+                                <span>1</span>
+                                <strong>Commit 여러 개 준비</strong>
+                                <p>Reset 결과를 비교할 수 있도록<br>연습용 Commit을 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <strong>Git Staging 확인</strong>
+                                <p>Staged와 Unstaged 변경이 없는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <strong>현재 Branch 확인</strong>
+                                <p>Reset으로 이동할 Branch가 맞는지<br>확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <strong>Show In History</strong>
+                                <p>프로젝트 우클릭 → Team →<br>Show In History로 이동합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <strong>대상 Commit 선택</strong>
+                                <p>취소할 Commit이 아니라<br>남길 마지막 Commit을 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>6</span>
+                                <strong>Reset 모드 선택</strong>
+                                <p>Soft, Mixed, Hard 중<br>보존 범위에 맞는 모드를 고릅니다.</p>
+                            </article>
+
+                            <article>
+                                <span>7</span>
+                                <strong>경고 확인</strong>
+                                <p>특히 Hard Reset의<br>파일 손실 경고를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>8</span>
+                                <strong>결과 검증</strong>
+                                <p>History, Git Staging과<br>실제 파일을 다시 확인합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="eclipse-path-grid">
+                            <article>
+                                <h3>History 열기</h3>
+
+                                <pre class="mini-code"><code>프로젝트 우클릭
+  → Team
+  → Show In History</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Reset 실행</h3>
+
+                                <pre class="mini-code"><code>대상 Commit 우클릭
+  → Reset
+  → Soft / Mixed / Hard</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Git Staging 열기</h3>
+
+                                <pre class="mini-code"><code>Window
+  → Show View
+  → Other
+  → Git
+  → Git Staging</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="eclipse-result-grid">
+                            <article class="soft-result-card">
+                                <span>Soft</span>
+                                <h3>Staged Changes 확인</h3>
+                                <p>취소한 Commit의 변경이 Stage된 상태인지 확인합니다.</p>
+                            </article>
+
+                            <article class="mixed-result-card">
+                                <span>Mixed</span>
+                                <h3>Unstaged Changes 확인</h3>
+                                <p>취소한 Commit의 변경이 파일 상태로 남았는지 확인합니다.</p>
+                            </article>
+
+                            <article class="hard-result-card">
+                                <span>Hard</span>
+                                <h3>실제 파일 확인</h3>
+                                <p>파일 내용이 대상 Commit 시점으로 바뀌었는지 확인합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Repository 전체 영향</h3>
+                            <p>
+                                하나의 Git Repository 안에 여러 Eclipse 프로젝트가 들어 있다면,
+                                Reset은 그 Repository에 속한 다른 프로젝트 파일에도 영향을 줄 수 있습니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card cli-card" id="cli-reset">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>CLI 명령어와 연결하기</h2>
+                        </div>
+
+                        <p>
+                            Eclipse의 Reset 메뉴는 CLI의
+                            <code class="inline-code">git reset</code> 명령과 연결됩니다.
+                            실행 전 상태 확인, 백업 Branch, 실행 후 검증 명령까지 함께 익혀야 합니다.
+                        </p>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>목적</th>
+                                        <th>명령어</th>
+                                        <th>의미</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>현재 상태 확인</td>
+                                        <td><code>git status</code></td>
+                                        <td>Staged, Unstaged, Untracked 변경을 확인합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>현재 Branch 확인</td>
+                                        <td><code>git branch --show-current</code></td>
+                                        <td>Reset할 Branch가 맞는지 확인합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>최근 History 확인</td>
+                                        <td><code>git log --oneline --graph --decorate -10</code></td>
+                                        <td>현재 HEAD와 대상 Commit을 확인합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Soft Reset</td>
+                                        <td><code>git reset --soft CommitID</code></td>
+                                        <td>변경을 Staged 상태로 유지합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Mixed Reset</td>
+                                        <td><code>git reset --mixed CommitID</code></td>
+                                        <td>변경을 Unstaged 상태로 유지합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>기본 Mixed Reset</td>
+                                        <td><code>git reset CommitID</code></td>
+                                        <td>옵션 생략 시 기본적으로 Mixed입니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Hard Reset</td>
+                                        <td><code>git reset --hard CommitID</code></td>
+                                        <td>Index와 실제 파일까지 대상 Commit 상태로 맞춥니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>한 Commit 이전</td>
+                                        <td><code>HEAD~1</code></td>
+                                        <td>첫 번째 Parent 방향으로 한 단계 이전입니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Backup Branch</td>
+                                        <td><code>git branch backup-before-reset</code></td>
+                                        <td>Reset 전 Commit 위치를 별도 Branch로 보존합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>과거 HEAD 기록</td>
+                                        <td><code>git reflog</code></td>
+                                        <td>Reset 전 HEAD 이동 기록을 확인합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Reset 전 위치</td>
+                                        <td><code>git show ORIG_HEAD</code></td>
+                                        <td>Reset 전 Branch 끝을 확인합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>파일 Unstage</td>
+                                        <td><code>git restore --staged 파일명</code></td>
+                                        <td>HEAD 이동 없이 Stage만 해제합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>파일 변경 취소</td>
+                                        <td><code>git restore 파일명</code></td>
+                                        <td>특정 파일의 Working Directory 변경을 복원합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>공유 Commit 취소</td>
+                                        <td><code>git revert CommitID</code></td>
+                                        <td>취소 내용을 새 Commit으로 기록합니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="head-relative-grid">
+                            <article>
+                                <span>HEAD</span>
+                                <h3>현재 Commit D</h3>
+                                <p>현재 Branch가 가리키는 최신 Commit입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>HEAD~1</span>
+                                <h3>Commit C</h3>
+                                <p>첫 번째 Parent 방향으로 한 단계 이전입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>HEAD~2</span>
+                                <h3>Commit B</h3>
+                                <p>첫 번째 Parent 방향으로 두 단계 이전입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>HEAD~3</span>
+                                <h3>Commit A</h3>
+                                <p>첫 번째 Parent 방향으로 세 단계 이전입니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="command-example-grid">
+                            <article>
+                                <h3>Soft Reset</h3>
+
+                                <pre class="mini-code"><code>git reset --soft HEAD~1
+git status
+git commit -m "새 Message"</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Mixed Reset</h3>
+
+                                <pre class="mini-code"><code>git reset HEAD~1
+git status
+git add 필요한파일
+git commit -m "새 Message"</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Hard Reset</h3>
+
+                                <pre class="mini-code"><code>git status
+git branch backup-before-reset
+git reset --hard HEAD~1</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card safety-card" id="reset-safety">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>Reset 실행 전 안전 점검</h2>
+                        </div>
+
+                        <p>
+                            Reset의 핵심은 실행 명령보다 실행 전 판단입니다.
+                            특히 Hard Reset은 미Commit 변경을 잃게 할 수 있으므로
+                            다음 순서를 습관으로 만들어야 합니다.
+                        </p>
+
+                        <div class="safety-flow">
+                            <article>
+                                <span>1</span>
+                                <strong>Repository 확인</strong>
+                                <p>현재 올바른 저장소에서<br>작업 중인지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <strong>Branch 확인</strong>
+                                <p>Reset으로 이동할 현재 Branch를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <strong>Status 확인</strong>
+                                <p>Staged, Unstaged, Untracked<br>변경을 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <strong>History 확인</strong>
+                                <p>현재 HEAD와<br>돌아갈 Commit ID를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <strong>Push 여부 확인</strong>
+                                <p>대상 Commit이<br>이미 GitHub에 공유되었는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>6</span>
+                                <strong>Backup Branch</strong>
+                                <p>Reset 전 최신 Commit을<br>별도 Branch로 보존합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>7</span>
+                                <strong>모드 선택</strong>
+                                <p>코드를 Stage, 파일 또는 삭제 상태 중<br>어디에 남길지 정합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>8</span>
+                                <strong>실행 후 검증</strong>
+                                <p>History, Staging과 실제 파일을<br>다시 확인합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="backup-branch-diagram">
+                            <article class="backup-before">
+                                <span>Reset 전</span>
+
+                                <pre class="mini-code"><code>A ── B ── C
+              ↑
+main
+backup-before-reset</code></pre>
+                            </article>
+
+                            <strong>main을 B로 Reset</strong>
+
+                            <article class="backup-after">
+                                <span>Reset 후</span>
+
+                                <pre class="mini-code"><code>A ── B
+       ↑
+      main
+       \
+        C
+        ↑
+backup-before-reset</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="checklist-panel">
+                            <h3>실행 전 체크리스트</h3>
+
+                            <div class="reset-checklist">
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    현재 Repository가 맞습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    현재 Branch를 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    git status를 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    Staged Changes를 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    Unstaged Changes를 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    돌아갈 Commit ID를 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    대상 이후 Commit 내용을 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    Push 여부를 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    Backup Branch를 만들었습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    Hard Reset의 파일 손실을 이해했습니다.
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card result-card" id="reset-results">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>Reset 후 나타나는 정상 상태</h2>
+                        </div>
+
+                        <p>
+                            Reset 후 <code>git status</code>에 변경이 표시된다고 해서 실패한 것은 아닙니다.
+                            선택한 모드에 따라 Staged 또는 Unstaged 상태가 나타나는 것이 정상입니다.
+                        </p>
+
+                        <div class="status-result-grid">
+                            <article class="soft-status">
+                                <span>Soft Reset</span>
+                                <h3>Changes to be committed</h3>
+
+                                <pre class="mini-code"><code>Changes to be committed:
+  modified: 07_git_reset.html
+  modified: 07_git_reset.css</code></pre>
+
+                                <p>
+                                    취소된 Commit의 변경이
+                                    Staged 상태로 남았다는 의미입니다.
+                                </p>
+                            </article>
+
+                            <article class="mixed-status">
+                                <span>Mixed Reset</span>
+                                <h3>Changes not staged for commit</h3>
+
+                                <pre class="mini-code"><code>Changes not staged for commit:
+  modified: 07_git_reset.html
+  modified: 07_git_reset.css</code></pre>
+
+                                <p>
+                                    파일은 남아 있지만
+                                    다시 Add해야 한다는 의미입니다.
+                                </p>
+                            </article>
+
+                            <article class="hard-status">
+                                <span>Hard Reset</span>
+                                <h3>HEAD is now at...</h3>
+
+                                <pre class="mini-code"><code>HEAD is now at b222222
+Add soft reset explanation
+
+nothing to commit,
+working tree clean</code></pre>
+
+                                <p>
+                                    HEAD, Index, Working Directory가<br>
+                                    대상 Commit 상태로 맞춰졌다는 의미입니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="file-reset-box">
+                            <h3>Commit Reset과 파일 Unstage는 다르다</h3>
+
+                            <div class="file-reset-grid">
+                                <article>
+                                    <span>Commit 단위</span>
+                                    <pre class="mini-code"><code>git reset --mixed HEAD~1</code></pre>
+                                    <p>
+                                        HEAD와 Branch를 이동시키고
+                                        History를 변경합니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <span>파일 단위</span>
+                                    <pre class="mini-code"><code>git restore --staged README.md</code></pre>
+                                    <p>
+                                        HEAD를 이동시키지 않고
+                                        README만 Unstage합니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <span>파일 복원</span>
+                                    <pre class="mini-code"><code>git restore README.md</code></pre>
+                                    <p>
+                                        Branch History는 유지하고<br>
+                                        Working Directory의 파일을 복원합니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card recovery-card" id="reset-recovery">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>잘못 Reset했을 때 복구하기</h2>
+                        </div>
+
+                        <p>
+                            Reset 전 Commit은 즉시 완전히 사라지는 것이 아니라,
+                            로컬 reflog에 이전 HEAD 위치가 남아 있을 수 있습니다.
+                            복구가 필요하다면 추가 작업을 멈추고 먼저 reflog를 확인합니다.
+                        </p>
+
+                        <div class="reflog-box">
+                            <h3>git reflog 결과 예시</h3>
+
+                            <pre class="mini-code"><code>b71d205 HEAD@{0}: reset: moving to HEAD~2
+d92f810 HEAD@{1}: commit: Add hard reset warning
+a41c2e7 HEAD@{2}: commit: Add mixed reset example</code></pre>
+
+                            <p>
+                                현재 위치는 <code class="inline-code">b71d205</code>이고,
+                                Reset 전 위치는 <code class="inline-code">d92f810</code>임을 확인할 수 있습니다.
+                            </p>
+                        </div>
+
+                        <div class="recovery-flow">
+                            <article>
+                                <span>1</span>
+                                <h3>작업 중단</h3>
+                                <p>추가 Reset, Rebase,<br>Pull을 반복하지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <h3>reflog 확인</h3>
+                                <p>Reset 전 HEAD가 가리키던<br>Commit을 찾습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <h3>복구 Branch 생성</h3>
+                                <p>해당 Commit을 가리키는<br>Branch를 먼저 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <h3>내용 검토</h3>
+                                <p>복구 Branch에서 파일과<br>History가 맞는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <h3>필요 시 원래 위치 복구</h3>
+                                <p>검토 후 main을 원래<br>Commit으로 이동시킵니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="recovery-command-grid">
+                            <article>
+                                <h3>reflog에서 Commit 찾기</h3>
+
+                                <pre class="mini-code"><code>git reflog</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>복구 Branch 만들기</h3>
+
+                                <pre class="mini-code"><code>git branch recovery-before-reset d92f810</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>복구 Branch 확인</h3>
+
+                                <pre class="mini-code"><code>git switch recovery-before-reset
+
+git log --oneline --decorate -5</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>ORIG_HEAD 보존</h3>
+
+                                <pre class="mini-code"><code>git show ORIG_HEAD
+
+git branch recovery-orig-head ORIG_HEAD</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="recovery-limit-grid">
+                            <article>
+                                <span>복구 가능성이 있음</span>
+                                <ul class="plain-list">
+                                    <li>Reset으로 Branch에서 떨어진 Commit</li>
+                                    <li>과거 HEAD가 가리키던 Commit</li>
+                                    <li>Rebase 전 Commit 위치</li>
+                                </ul>
+                            </article>
+
+                            <article>
+                                <span>복구가 보장되지 않음</span>
+                                <ul class="plain-list">
+                                    <li>한 번도 Commit하지 않은 코드</li>
+                                    <li>저장하지 않은 편집기 내용</li>
+                                    <li>Hard Reset으로 버린 미Commit 변경</li>
+                                </ul>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>reflog는 영구 백업이 아니다</h3>
+                            <p>
+                                reflog는 로컬 Reference의 이동 기록이며 시간이 지나면 정리될 수 있습니다.
+                                중요한 작업은 Backup Branch와 정상적인 Commit으로 보존해야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card compare-card" id="reset-restore-revert">
+                        <div class="card-title-row">
+                            <span class="card-number">14</span>
+                            <h2>Reset / Restore / Revert 비교하기</h2>
+                        </div>
+
+                        <p>
+                            세 명령은 모두 “되돌리기”처럼 보이지만
+                            변경하는 대상과 History에 미치는 영향이 완전히 다릅니다.
+                        </p>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>구분</th>
+                                        <th>Restore</th>
+                                        <th>Reset</th>
+                                        <th>Revert</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>주요 대상</td>
+                                        <td>파일과 Index</td>
+                                        <td>HEAD, Index, Working Directory</td>
+                                        <td>특정 Commit의 변경</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Branch / HEAD 이동</td>
+                                        <td>이동하지 않음</td>
+                                        <td>대상 Commit으로 이동</td>
+                                        <td>현재 위치 유지</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>새 Commit 생성</td>
+                                        <td>생성하지 않음</td>
+                                        <td>생성하지 않음</td>
+                                        <td>취소용 Commit 생성</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>History 영향</td>
+                                        <td>History 유지</td>
+                                        <td>History 재작성 가능</td>
+                                        <td>History 유지</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>대표 사용 시점</td>
+                                        <td>Commit 전 파일 복원</td>
+                                        <td>공유 전 Local Commit 정리</td>
+                                        <td>Push된 공유 Commit 취소</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>대표 명령</td>
+                                        <td><code>git restore 파일명</code></td>
+                                        <td><code>git reset --mixed HEAD~1</code></td>
+                                        <td><code>git revert CommitID</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="undo-diagram-grid">
+                            <article class="restore-diagram">
+                                <span>Restore</span>
+                                <h3>파일만 되돌림</h3>
+
+                                <pre class="mini-code"><code>History
+A → B → C
+
+파일 변경
+Modified → Restore
+
+History는 그대로</code></pre>
+                            </article>
+
+                            <article class="reset-diagram">
+                                <span>Reset</span>
+                                <h3>Branch를 과거로 이동</h3>
+
+                                <pre class="mini-code"><code>전
+A → B → C
+
+B로 Reset
+
+후
+A → B</code></pre>
+                            </article>
+
+                            <article class="revert-diagram">
+                                <span>Revert</span>
+                                <h3>취소용 새 Commit 추가</h3>
+
+                                <pre class="mini-code"><code>전
+A → B → C
+
+B를 Revert
+
+후
+A → B → C → Revert-B</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>선택 기준</strong>
+                            <p>
+                                Commit 전 파일 문제는 <code class="inline-code">Restore</code>,
+                                공유 전 Local History 정리는 <code class="inline-code">Reset</code>,
+                                이미 Push한 공유 Commit 취소는 <code class="inline-code">Revert</code>를 우선 검토합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card remote-card" id="reset-remote">
+                        <div class="card-title-row">
+                            <span class="card-number">15</span>
+                            <h2>Push된 History에 Reset이 위험한 이유</h2>
+                        </div>
+
+                        <p>
+                            Local과 Remote가 같은 Commit C를 가리키는 상태에서
+                            Local만 B로 Reset하면 두 History가 달라집니다.<br>
+                            일반 Push는 원격 Commit C를 잃게 만들 수 있으므로 거절될 수 있습니다.
+                        </p>
+
+                        <div class="remote-history-grid">
+                            <article>
+                                <span>Reset 전</span>
+                                <h3>Local과 Remote가 같음</h3>
+
+                                <pre class="mini-code"><code>Local main
+A → B → C
+
+Remote origin/main
+A → B → C</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Local Reset 후</span>
+                                <h3>Local만 과거로 이동</h3>
+
+                                <pre class="mini-code"><code>Local main
+A → B
+
+Remote origin/main
+A → B → C</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Push 결과</span>
+                                <h3>non-fast-forward rejected</h3>
+
+                                <pre class="mini-code"><code>! [rejected] main -> main
+(non-fast-forward)</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="force-push-warning">
+                            <article>
+                                <h3>Force Push를 하면</h3>
+                                <p>
+                                    Remote Branch가 Local B를 가리키도록 강제로 이동하면서<br>
+                                    Remote Commit C가 공유 Branch History에서 제거될 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>팀원에게 생기는 문제</h3>
+                                <p>
+                                    팀원은 여전히 C가 포함된 History를 가지고 있어<br>
+                                    같은 main Branch가 서로 다른 기록을 가지게 됩니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="safe-rule-grid">
+                            <article>
+                                <span>Local Only</span>
+                                <h3>아직 Push하지 않은 개인 Commit</h3>
+                                <p>Reset으로 정리할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Shared</span>
+                                <h3>이미 Push한 공유 Commit</h3>
+                                <p>Revert를 우선 검토합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Main</span>
+                                <h3>여러 사람이 사용하는 main</h3>
+                                <p>Reset과 Force Push를 함부로 사용하지 않습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>Push rejected는 안전장치다</h3>
+                            <p>
+                                Reset 후 Push가 거절되는 것은 Git이 Remote History 손실을 막고 있다는 의미일 수 있습니다.<br>
+                                무조건 Force Push하지 말고, 공유된 변경이라면 Revert를 사용해야 하는 상황인지 먼저 판단합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card" id="reset-mistakes">
+                        <div class="card-title-row">
+                            <span class="card-number">16</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <p>
+                            Reset은 명령어 자체보다 대상 Commit과 보존 범위를 잘못 판단해서 문제가 발생하는 경우가 많습니다.
+                        </p>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. 취소할 Commit을 선택</h3>
+                                <p>
+                                    C를 취소하고 B까지 남기려면<br>
+                                    C가 아니라 B를 선택해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. Soft와 Mixed를 반대로 기억</h3>
+                                <p>
+                                    Soft는 Stage 유지,<br>
+                                    Mixed는 Stage를 해제합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. Hard에서도 코드가 남는다고 생각</h3>
+                                <p>
+                                    Hard는 실제 파일까지<br>대상 Commit 상태로 덮어씁니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. 옵션 없는 Reset은<br>아무 영향이 없다고 생각</h3>
+                                <p>
+                                    옵션을 생략하면 기본적으로<br>Mixed Reset입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. 파일 하나에만 적용된다고 생각</h3>
+                                <p>
+                                    Commit 단위 Reset은<br>Repository 전체에 영향을 줄 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. 중간 Commit<br>하나만 없애려고 Reset</h3>
+                                <p>
+                                    대상 이후 모든 Commit이<br>현재 Branch에서 제외될 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. status를 확인하지 않음</h3>
+                                <p>
+                                    Hard Reset으로 아직 Commit하지 않은<br>작업을 잃을 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. Backup Branch 없이<br>Hard Reset</h3>
+                                <p>
+                                    Reset 전 Commit을 가리키는<br>Branch를 만들면 복구가 쉬워집니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>9. Untracked 파일은<br>무조건 안전하다고 생각</h3>
+                                <p>
+                                    대상 파일 복원에 방해되는 경로는<br>제거되거나 덮어써질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>10. Ctrl + Z로 되돌릴 수 있다고 생각</h3>
+                                <p>
+                                    Git Reset은 일반 편집기 Undo와 다른<br>History 작업입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>11. reflog가<br>모든 파일을 복구한다고 생각</h3>
+                                <p>
+                                    reflog는 Commit 위치를 기록하며<br>미Commit 파일 내용을 보장하지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>12. 잘못 Reset 후 계속 다른 작업 실행</h3>
+                                <p>
+                                    먼저 reflog와 전체 History를 확인해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>13. Push된 main을 Reset</h3>
+                                <p>
+                                    팀원의 History와<br>서로 다른 main이 만들어질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>14. rejected되자 Force Push</h3>
+                                <p>
+                                    Remote Commit과 팀원의 작업을<br>제거할 위험이 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>15. Soft Reset 결과가<br>항상 단순하다고 생각</h3>
+                                <p>
+                                    기존 Staged·Unstaged 변경이 있으면<br>상태가 섞일 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>16. Mixed 후<br>Modified 표시를 실패라고 생각</h3>
+                                <p>
+                                    변경을 파일로 남기는<br>Mixed Reset의 정상 결과입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>17. working tree clean이면<br>Untracked도 모두 삭제됐다고 생각</h3>
+                                <p>
+                                    Ignore 설정과 Untracked 상태를<br>별도로 확인해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>18. ORIG_HEAD가<br>영원히 유지된다고 생각</h3>
+                                <p>
+                                    이후 Reset, Merge, Pull 작업에 의해<br>다른 값으로 바뀔 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card" id="reset-errors">
+                        <div class="card-title-row">
+                            <span class="card-number">17</span>
+                            <h2>오류 메시지와 상태 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            Reset 관련 메시지는 명령 실패인지, Reset 성공 후의 정상 상태인지 구분해서 읽어야 합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 / 상태</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인 및 해결 방향</div>
+
+                            <div><code class="inline-code">not a git repository</code></div>
+                            <div>현재 위치가 Git 저장소가 아닙니다.</div>
+                            <div>프로젝트 경로와 .git 존재 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">bad revision 'HEAD~3'</code></div>
+                            <div>요청한 이전 Commit이 존재하지 않습니다.</div>
+                            <div>git log에서 Commit 개수와 HEAD를 확인합니다.</div>
+
+                            <div><code class="inline-code">unknown revision</code></div>
+                            <div>Commit ID, Branch 또는 Tag를 찾을 수 없습니다.</div>
+                            <div>ID 오타, 현재 Repository와 Fetch 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">ambiguous argument</code></div>
+                            <div>Revision과 파일 경로가 모호하거나 존재하지 않습니다.</div>
+                            <div>더 긴 ID와 `-- 파일경로` 형식을 사용합니다.</div>
+
+                            <div><code class="inline-code">Changes to be committed</code></div>
+                            <div>Soft Reset 후 변경이 Staged 상태로 남았습니다.</div>
+                            <div>정상 결과이며 바로 다시 Commit할 수 있습니다.</div>
+
+                            <div><code class="inline-code">Changes not staged for commit</code></div>
+                            <div>Mixed Reset 후 변경이 Unstaged 상태로 남았습니다.</div>
+                            <div>정상 결과이며 필요한 파일을 다시 Add합니다.</div>
+
+                            <div><code class="inline-code">HEAD is now at ...</code></div>
+                            <div>HEAD와 Branch가 대상 Commit으로 이동했습니다.</div>
+                            <div>History, Git Staging과 실제 파일을 확인합니다.</div>
+
+                            <div><code class="inline-code">push rejected</code></div>
+                            <div>Reset 후 Local과 Remote History가 달라졌을 수 있습니다.</div>
+                            <div>Force Push보다 Revert가 필요한 상황인지 확인합니다.</div>
+
+                            <div><code class="inline-code">non-fast-forward</code></div>
+                            <div>Remote History를 잃을 수 있는 Push입니다.</div>
+                            <div>Remote Commit과 공유 여부를 확인합니다.</div>
+
+                            <div>Hard Reset 후 파일 사라짐</div>
+                            <div>Working Directory가 대상 Commit 상태로 되돌아갔습니다.</div>
+                            <div>Commit된 변경이면 reflog를 확인합니다.</div>
+
+                            <div>Conflict</div>
+                            <div>Reset 후 Pull, Merge 또는<br>Revert 과정에서 변경이 겹쳤습니다.</div>
+                            <div>충돌을 해결한 뒤 Add하고 Commit 또는 Continue합니다.</div>
+
+                            <div><code class="inline-code">403 Permission</code></div>
+                            <div>GitHub 저장소 접근 인증 또는 권한 문제입니다.</div>
+                            <div>Token, 계정, Remote URL과 저장소 권한을 확인합니다.</div>
+
+                            <div><code class="inline-code">HEAD detached at ...</code></div>
+                            <div>HEAD가 Branch가 아니라 특정 Commit을 직접 가리킵니다.</div>
+                            <div>작업 보존이 필요하면 새 Branch를 만듭니다.</div>
+                        </div>
+
+                        <div class="debug-box">
+                            <h3>Reset 문제를 확인하는 순서</h3>
+
+                            <ol>
+                                <li>현재 올바른 Git Repository인지 확인합니다.</li>
+                                <li><code class="inline-code">git branch --show-current</code>로 Branch를 확인합니다.</li>
+                                <li><code class="inline-code">git status</code>로 현재 변경을 확인합니다.</li>
+                                <li><code class="inline-code">git log --oneline --all</code>로 대상 Commit을 확인합니다.</li>
+                                <li>Reset 모드가 Soft, Mixed, Hard 중 무엇이었는지 확인합니다.</li>
+                                <li>History에서 HEAD 위치를 확인합니다.</li>
+                                <li>Git Staging에서 Staged·Unstaged 상태를 확인합니다.</li>
+                                <li>잘못 Reset했다면 추가 작업 전에 <code class="inline-code">git reflog</code>를 확인합니다.</li>
+                                <li>Push가 거절되었다면 Force Push 전에 공유 History인지 확인합니다.</li>
+                            </ol>
+                        </div>
+
+                        <div class="detached-box">
+                            <h3>Detached HEAD 상태의 작업을 보존하는 방법</h3>
+
+                            <pre class="mini-code"><code>git switch -c recovery/reset-work</code></pre>
+
+                            <p>
+                                과거 Commit을 직접 Checkout한 상태에서 작업했다면
+                                새 Branch를 만들어 해당 Commit과 새 작업을 보존할 수 있습니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card" id="reset-practice">
+                        <div class="card-title-row">
+                            <span class="card-number">18</span>
+                            <h2>안전한 Reset 실습과 실무 연결</h2>
+                        </div>
+
+                        <p>
+                            Reset은 설명만 읽는 것보다 같은 파일에 Commit을 세 개 만든 뒤
+                            각 모드의 <code>git status</code> 결과와 파일 내용을 비교해야 이해하기 쉽습니다.
+                        </p>
+
+                        <div class="practice-commit-grid">
+                            <article>
+                                <span>Commit A</span>
+                                <h3>Add reset practice file</h3>
+
+                                <pre class="mini-code"><code>Version A</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Commit B</span>
+                                <h3>Add version B</h3>
+
+                                <pre class="mini-code"><code>Version A
+Version B</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Commit C</span>
+                                <h3>Add version C</h3>
+
+                                <pre class="mini-code"><code>Version A
+Version B
+Version C</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="practice-command">
+                            <h3>실습용 Commit 생성</h3>
+
+                            <pre class="mini-code"><code># Commit A
+git add reset-practice.txt
+git commit -m "Add reset practice file"
+
+# 파일에 Version B 추가
+git add reset-practice.txt
+git commit -m "Add version B"
+
+# 파일에 Version C 추가
+git add reset-practice.txt
+git commit -m "Add version C"
+
+git log --oneline
+git branch reset-practice-backup</code></pre>
+                        </div>
+
+                        <div class="practice-mode-grid">
+                            <article>
+                                <span>Soft 실습</span>
+                                <pre class="mini-code"><code>git reset --soft HEAD~1
+git status</code></pre>
+                                <p>Version C 변경이 Staged인지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Mixed 실습</span>
+                                <pre class="mini-code"><code>git reset --mixed HEAD~1
+git status</code></pre>
+                                <p>Version C 변경이 Unstaged인지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Hard 실습</span>
+                                <pre class="mini-code"><code>git reset --hard HEAD~1
+git status</code></pre>
+                                <p>파일에서 Version C가 사라졌는지 확인합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="practice-grid">
+                            <article>
+                                <h3>학습 매거진</h3>
+                                <span>HTML / CSS</span>
+                                <p>
+                                    잘못 묶인 HTML, CSS,<br>README 변경을 Mixed Reset 후<br>목적별로 다시 Commit합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>React 프로젝트</h3>
+                                <span>Frontend</span>
+                                <p>
+                                    로그인 API, 홈 CSS, 문서 변경을<br>각각의 Commit으로 분리합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Spring Boot 프로젝트</h3>
+                                <span>Backend</span>
+                                <p>
+                                    큰 회원 기능 Commit을 API, Migration,<br>Test 단위로 재구성합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>로컬 실험</h3>
+                                <span>Experiment</span>
+                                <p>
+                                    필요 없는 실험 Branch의 Commit과<br>코드를 Hard Reset으로 폐기할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>WIP Commit 합치기</h3>
+                                <span>Squash</span>
+                                <p>
+                                    Push 전 여러 임시 Commit을<br>Soft Reset 후 하나의 Commit으로<br>다시 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>팀 프로젝트</h3>
+                                <span>Team</span>
+                                <p>
+                                    공유된 main에는 Reset보다<br>Revert를 우선 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>복구 연습</h3>
+                                <span>Recovery</span>
+                                <p>
+                                    잘못 Reset한 뒤 reflog에서<br>이전 Commit을 찾아 복구 Branch를 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Code Review</h3>
+                                <span>History</span>
+                                <p>
+                                    Push 전 History를<br>의미 있는 Commit 단위로 정리합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="real-work-box">
+                            <h3>실무용 Reset 전·후 루틴</h3>
+
+                            <div class="real-work-grid">
+                                <article>
+                                    <strong>Repository</strong>
+                                    <p>작업 중인 저장소가 맞는지 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Branch</strong>
+                                    <p>Reset으로 이동할 Branch를 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Status</strong>
+                                    <p>미Commit 변경을 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>History</strong>
+                                    <p>현재 HEAD와 대상 Commit을 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Push 여부</strong>
+                                    <p>이미 공유된 Commit인지 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Backup Branch</strong>
+                                    <p>Reset 전 Commit을<br>별도 이름으로 보존합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Reset Mode</strong>
+                                    <p>Stage, 파일, 삭제 중<br>원하는 결과를 선택합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>검증</strong>
+                                    <p>Reset 후 status, log와 파일을<br>다시 확인합니다.</p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card" id="interview">
+                        <div class="card-title-row">
+                            <span class="card-number">19</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. Git Reset이란 무엇인가요?</h3>
+                                <p>
+                                    현재 Branch와 HEAD를 특정 Commit으로 이동시키는 명령입니다.
+                                    모드에 따라 Staging Area와 Working Directory까지 대상 Commit 상태로 바꿀 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. Reset 대상 Commit은 어떻게 선택하나요?</h3>
+                                <p>
+                                    취소할 Commit이 아니라 Reset 후 남길 마지막 Commit을 선택합니다.
+                                    C를 취소하고 B까지 유지하려면 B를 대상으로 선택합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. Soft Reset은 무엇인가요?</h3>
+                                <p>
+                                    HEAD와 현재 Branch만 이동시키고 Index와 Working Directory는 유지합니다.
+                                    취소된 Commit의 변경은 Staged 상태로 남습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. Mixed Reset은 무엇인가요?</h3>
+                                <p>
+                                    HEAD와 Index를 대상 Commit 상태로 이동시키지만 Working Directory는 유지합니다.
+                                    변경은 Unstaged 상태로 남습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. Hard Reset은 무엇인가요?</h3>
+                                <p>
+                                    HEAD, Index, Working Directory를 모두 대상 Commit 상태로 맞춥니다.
+                                    미Commit 변경까지 사라질 수 있어 위험합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. git reset의 기본 모드는 무엇인가요?</h3>
+                                <p>
+                                    Mixed입니다. 따라서 git reset HEAD~1은
+                                    일반적으로 git reset --mixed HEAD~1과 같은 의미입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. Soft, Mixed, Hard를 한 문장씩 설명해보세요.</h3>
+                                <p>
+                                    Soft는 Commit만 취소하고 Stage를 유지합니다.
+                                    Mixed는 Commit과 Stage를 취소하고 파일을 유지합니다.
+                                    Hard는 Commit, Stage와 파일 변경까지 대상 상태로 되돌립니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. Reset 이후 Commit은 즉시 완전히 삭제되나요?</h3>
+                                <p>
+                                    현재 Branch에서 도달할 수 없게 되어 일반 History에서 보이지 않을 수 있지만,
+                                    reflog나 다른 Branch가 해당 Commit을 가리킬 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. HEAD~1은 무엇인가요?</h3>
+                                <p>
+                                    현재 HEAD에서 첫 번째 Parent 방향으로 한 단계 이전 Commit을 의미합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. Merge Commit에서 HEAD~1은 무엇인가요?</h3>
+                                <p>
+                                    Merge Commit의 첫 번째 Parent 방향으로 한 단계 이전 Commit입니다.
+                                    복잡한 History에서는 정확한 Commit ID를 사용하는 편이 안전합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. Reset과 Restore의 차이는 무엇인가요?</h3>
+                                <p>
+                                    Reset은 Commit 단위로 사용하면 Branch와 HEAD를 이동시킵니다.
+                                    Restore는 파일이나 Index를 복원하며 Branch History를 이동시키지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. Reset과 Revert의 차이는 무엇인가요?</h3>
+                                <p>
+                                    Reset은 Branch를 과거로 이동하여 History를 재구성합니다.
+                                    Revert는 특정 Commit의 변경을 취소하는 새 Commit을 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q13. Push한 Commit에는 왜 Revert가 안전한가요?</h3>
+                                <p>
+                                    기존 History를 삭제하지 않고 취소용 새 Commit을 추가하므로
+                                    Remote와 팀원이 가진 History 연결을 유지할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q14. Reset 후 Push가 rejected되는 이유는 무엇인가요?</h3>
+                                <p>
+                                    Remote는 Reset 전의 최신 Commit을 가리키지만
+                                    Local은 과거 Commit으로 이동하여 non-fast-forward 상태가 되었기 때문입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q15. 바로 Force Push하면 안 되는 이유는 무엇인가요?</h3>
+                                <p>
+                                    Remote History를 덮어써 팀원의 Commit이나
+                                    그 Commit을 기반으로 한 작업을 제거할 수 있기 때문입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q16. 잘못 Reset했을 때 어떻게 복구하나요?</h3>
+                                <p>
+                                    git reflog에서 Reset 전 HEAD 위치를 찾고,
+                                    먼저 해당 Commit을 가리키는 복구 Branch를 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q17. reflog는 무엇인가요?</h3>
+                                <p>
+                                    로컬에서 HEAD와 Branch 같은 Reference가
+                                    언제 어느 Commit으로 이동했는지 기록한 로그입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q18. reflog가 모든 파일을 복구하나요?</h3>
+                                <p>
+                                    아닙니다. reflog는 Commit 위치를 기록합니다.
+                                    한 번도 Commit하지 않은 Working Directory 변경은 복구되지 않을 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q19. ORIG_HEAD란 무엇인가요?</h3>
+                                <p>
+                                    Reset이나 Merge 같은 일부 작업 전에
+                                    기존 Branch 끝을 임시로 기록하는 Reference입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q20. Backup Branch를 만드는 이유는 무엇인가요?</h3>
+                                <p>
+                                    Reset 전 최신 Commit을 계속 가리키게 하여
+                                    Reset 이후에도 기존 History에 쉽게 접근하기 위해서입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q21. Commit 단위 Reset은 파일 하나에만 적용되나요?</h3>
+                                <p>
+                                    아닙니다. 현재 Repository의 Branch, Index와 Working Directory에 영향을 줄 수 있습니다.
+                                    특정 파일만 되돌리려면 Restore를 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q22. Mixed Reset은 언제 유용한가요?</h3>
+                                <p>
+                                    잘못 구성된 Commit을 취소하고 파일은 유지하면서
+                                    어떤 파일을 다시 Stage할지 처음부터 선택하고 싶을 때 유용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q23. Soft Reset은 언제 유용한가요?</h3>
+                                <p>
+                                    Stage 구성을 유지한 채 Message를 다시 작성하거나
+                                    최근 여러 Commit을 하나로 합쳐 다시 Commit할 때 유용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q24. Hard Reset 전 무엇을 확인해야 하나요?</h3>
+                                <p>
+                                    현재 Repository와 Branch, Staged·Unstaged 변경,
+                                    대상 Commit, Push 여부와 Backup Branch를 확인해야 합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card next-card" id="next-lesson">
+                        <div class="card-title-row">
+                            <span class="card-number">20</span>
+                            <h2>다음 단원으로 연결</h2>
+                        </div>
+
+                        <p>
+                            이번 단원에서는 현재 Branch를 과거 Commit으로 이동하여
+                            Local History를 다시 구성하는 Reset을 공부했습니다.<br>
+                            다음 단원에서는 기존 History를 유지한 채 특정 Commit의 변경을 취소하는 Revert를 공부합니다.
+                        </p>
+
+                        <div class="current-state-grid">
+                            <article>
+                                <strong>Reset 대상</strong>
+                                <p>남길 마지막 Commit을 선택할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Soft</strong>
+                                <p>변경을 Staged 상태로 보존할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Mixed</strong>
+                                <p>변경을 Unstaged 상태로 보존할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Hard</strong>
+                                <p>실제 파일까지 대상 Commit으로 되돌릴 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Recovery</strong>
+                                <p>reflog와 Backup Branch로 Commit을 복구할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Remote Safety</strong>
+                                <p>Push된 History에는 Reset을 지양해야 함을 이해했습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="next-flow">
+                            <span>History 확인</span>
+                            <span>취소할 Commit 선택</span>
+                            <span>Revert Commit 실행</span>
+                            <span>반대 변경 적용</span>
+                            <span>취소용 Commit 생성</span>
+                            <span>History 유지</span>
+                        </div>
+
+                        <div class="revert-preview">
+                            <article>
+                                <h3>Reset</h3>
+                                <pre class="mini-code"><code>A → B → C
+    ↓ Reset B
+A → B</code></pre>
+                                <p>Branch를 과거로 이동합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Revert</h3>
+                                <pre class="mini-code"><code>A → B → C
+    ↓ Revert B
+A → B → C → Revert-B</code></pre>
+                                <p>기존 History 위에 취소용 Commit을 추가합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="next-link-box">
+                            <a href="./08_git_revert.html">
+                                다음 단원: 08. Revert로 특정 커밋의 변경 취소하기 →
+                            </a>
+                        </div>
                     </section>
                 </main>
 
                 <aside class="side-note">
-                    <h2>오늘의 학습 메모</h2>
+                    <h2>학습 메모</h2>
 
-                    <div>
+                    <div class="memo-section">
                         <h3>오늘의 암기 포인트</h3>
-                        <p>이 영역은 Step1과 Step2 완료 후 암기 포인트를 정리할 예정입니다.</p>
+
+                        <ul>
+                            <li>Reset은 현재 Branch와 HEAD를 특정 Commit으로 이동합니다.</li>
+                            <li>Reset에서는 취소할 Commit이 아니라 남길 마지막 Commit을 선택합니다.</li>
+                            <li>Soft는 HEAD만 이동하고 변경을 Staged 상태로 남깁니다.</li>
+                            <li>Mixed는 HEAD와 Index를 이동하고 변경을 Unstaged 상태로 남깁니다.</li>
+                            <li>Mixed는 git reset의 기본 모드입니다.</li>
+                            <li>Hard는 HEAD, Index, Working Directory를 대상 Commit 상태로 맞춥니다.</li>
+                            <li>Hard Reset은 미Commit 변경을 잃게 할 수 있습니다.</li>
+                            <li>Commit 단위 Reset은 Repository 전체에 영향을 줄 수 있습니다.</li>
+                            <li>Reset 전 Commit은 reflog에서 찾을 가능성이 있습니다.</li>
+                            <li>reflog는 미Commit 파일 변경을 보존하는 백업 기능이 아닙니다.</li>
+                            <li>공유 전 Local History는 Reset으로 정리할 수 있습니다.</li>
+                            <li>Push된 공유 History에는 Revert를 우선 고려합니다.</li>
+                        </ul>
                     </div>
 
-                    <div>
+                    <div class="memo-section warning-memo">
                         <h3>헷갈리기 쉬운 개념</h3>
-                        <p>이 영역은 비슷한 Git/GitHub 개념을 비교해서 정리할 예정입니다.</p>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>취소할 Commit vs 남길 Commit</strong>
+                                <p>
+                                    Reset에서는 취소할 Commit이 아니라<br>
+                                    Reset 후 Branch가 가리킬 Commit을 선택합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Soft vs Mixed</strong>
+                                <p>
+                                    Soft는 Stage 유지,
+                                    Mixed는 Stage 해제입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Mixed vs Hard</strong>
+                                <p>
+                                    Mixed는 파일을 유지하고,<br>
+                                    Hard는 파일까지 대상 상태로 바꿉니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Reset vs Restore</strong>
+                                <p>
+                                    Reset은 History를 이동하고,
+                                    Restore는 파일을 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Reset vs Revert</strong>
+                                <p>
+                                    Reset은 Branch를 과거로 이동하고,<br>
+                                    Revert는 취소용 새 Commit을 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>reflog vs 파일 백업</strong>
+                                <p>
+                                    reflog는 Commit 위치 기록이며<br>
+                                    미Commit 파일 백업은 아닙니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>main vs origin/main</strong>
+                                <p>
+                                    Reset 후 Local main과 Remote origin/main이<br>
+                                    다른 Commit을 가리킬 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>rejected vs Commit 실패</strong>
+                                <p>
+                                    Reset 후 Push rejected는<br>
+                                    Local Commit 생성 실패가 아니라 History 차이 문제입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Hard Reset vs git clean</strong>
+                                <p>
+                                    Hard Reset은 모든 Untracked 파일을 정리하는<br>전용 명령이 아닙니다.
+                                </p>
+                            </article>
+                        </div>
                     </div>
 
-                    <div>
+                    <div class="memo-section checklist-memo">
+                        <h3>Hard Reset 전 최종 체크</h3>
+
+                        <div class="aside-checklist">
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 Repository를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 Branch를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                git status를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                필요한 파일을 별도 보관했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                대상 Commit ID를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                대상 이후 Commit 내용을 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Backup Branch를 만들었습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                해당 History가 공유되지 않았음을 확인했습니다.
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="memo-section recovery-memo">
+                        <h3>복구용 빠른 명령어</h3>
+
+                        <pre class="mini-code"><code>git reflog
+
+git branch recovery-before-reset CommitID
+
+git switch recovery-before-reset
+
+git show ORIG_HEAD</code></pre>
+
+                        <p>
+                            잘못 Reset했다면 추가 작업을 멈추고
+                            먼저 이전 Commit을 가리키는 복구 Branch를 만드는 것이 안전합니다.
+                        </p>
+                    </div>
+
+                    <div class="memo-section final-summary">
                         <h3>다음 단원 연결</h3>
-                        <p>이 영역은 다음 단원과 이어지는 학습 흐름을 정리할 예정입니다.</p>
+
+                        <p>
+                            다음 단원에서는 이미 Push된 Commit을 안전하게 취소하기 위해
+                            <code class="inline-code">Revert</code>를 사용합니다.
+                            Revert는 기존 History를 지우지 않고 취소용 새 Commit을 생성합니다.
+                        </p>
+
+                        <div class="project-checklist">
+                            <article>
+                                <strong>이번 단원</strong>
+                                <p>
+                                    Local History를 과거로 이동시키는 Reset과
+                                    soft, mixed, hard의 차이를 공부했습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>다음 단원</strong>
+                                <p>
+                                    기존 History를 유지하면서
+                                    특정 Commit의 변경만 취소하는 Revert를 공부합니다.
+                                </p>
+                            </article>
+                        </div>
                     </div>
                 </aside>
             </div>
