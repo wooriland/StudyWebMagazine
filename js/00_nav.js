@@ -267,6 +267,12 @@
             const childGroupIsActive = isCurrentCategory(item);
             const details = document.createElement('details');
             details.className = 'nav-sub-group';
+            const categoryClassName = getCategoryClassName(item.folder);
+
+            if (categoryClassName) {
+                details.classList.add('nav-category-' + categoryClassName);
+            }
+
             details.open = childGroupIsActive;
 
             const summary = document.createElement('summary');
@@ -354,6 +360,26 @@
         }
 
         return isCurrentPage(item.path) || currentPath.includes('/' + normalizePath(item.folder) + '/');
+    }
+
+    function getCategoryClassName(folder) {
+        if (!folder) {
+            return '';
+        }
+
+        const folderName = normalizePath(folder).toLowerCase();
+        const categoryClassNames = {
+            'databasemodeling': 'databasemodeling',
+            'es6': 'es6',
+            'gitgithub': 'gitgithub',
+            'html5&css3': 'html5-css3',
+            'javabasics': 'javabasics',
+            'oraclesqldeveloper': 'oraclesqldeveloper',
+            'react': 'react',
+            'springboot': 'springboot'
+        };
+
+        return categoryClassNames[folderName] || folderName.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }
 
     function getRootPrefix(path) {

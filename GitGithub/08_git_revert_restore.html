@@ -4,6 +4,10 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <meta name="description"
+            content="Git Restore, Revert, Reset의 차이와 Eclipse 파일 복원, Revert Commit, Conflict 해결, 안전한 되돌리기 기준을 학습합니다.">
+
         <title>Git/GitHub - Revert / Restore / Reset 비교</title>
 
         <link rel="stylesheet" href="../css/00_nav.css">
@@ -18,67 +22,3043 @@
             <nav class="side-nav" id="sideNav"></nav>
 
             <div class="page-content">
-                <header class="page-header lesson-header">
+                <header class="page-header git-hero">
                     <p class="chapter-label">Git/GitHub - Chapter 08</p>
-                    <h1>08. Revert / Restore / Reset 비교</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step1에서 교안 내용을 바탕으로 자세히 공부할 예정입니다.
+
+                    <h1>Revert / Restore / Reset 비교</h1>
+
+                    <p class="chapter-description">
+                        Git에는 하나의 <strong>Undo 버튼</strong> 대신
+                        <code class="inline-code">Restore</code>,
+                        <code class="inline-code">Revert</code>,
+                        <code class="inline-code">Reset</code>이라는
+                        서로 다른 되돌리기 도구가 있습니다.<br>
+
+                        세 명령은 되돌리는 대상과 History에 미치는 영향이 다르기 때문에,
+                        파일 상태, Commit 여부, Push 여부를 먼저 확인한 뒤 선택해야 합니다.<br>
+
+                        이번 단원의 핵심 질문은
+                        <strong>
+                            “되돌리려는 대상은 파일인가, Commit인가, Branch History인가?”
+                        </strong>
+                        입니다.
                     </p>
-                    <ul class="lesson-goals">
-                        <li>이 단원의 핵심 개념을 이해합니다.</li>
-                        <li>Git/GitHub 전체 흐름에서 이 단원의 위치를 파악합니다.</li>
-                        <li>Step2에서 개념, 흐름도, 실무 연결로 구조화할 준비를 합니다.</li>
-                    </ul>
+
+                    <div class="header-keywords" aria-label="되돌리기 핵심 키워드">
+                        <span>Restore</span>
+                        <span>Revert</span>
+                        <span>Reset</span>
+                        <span>Working Directory</span>
+                        <span>Staging Area</span>
+                        <span>Index</span>
+                        <span>HEAD</span>
+                        <span>Commit ID</span>
+                        <span>History</span>
+                        <span>Tracked</span>
+                        <span>Untracked</span>
+                        <span>Replace With</span>
+                        <span>Revert Commit</span>
+                        <span>Conflict</span>
+                        <span>git revert --continue</span>
+                        <span>git revert --abort</span>
+                        <span>git restore --staged</span>
+                        <span>git restore --source</span>
+                        <span>Patch</span>
+                        <span>Shared History</span>
+                        <span>Force Push</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>
+                                Restore, Revert, Reset이<br>
+                                각각 어떤 대상을 되돌리는지<br>
+                                정확하게 구분할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>
+                                Eclipse와 CLI에서<br>
+                                파일 복원, Unstage, Commit 취소를<br>
+                                안전하게 실행할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>
+                                Push 여부와 협업 상태에 따라<br>
+                                History를 보존하는 안전한 방법을<br>
+                                선택할 수 있습니다.
+                            </p>
+                        </article>
+                    </div>
                 </header>
 
-                <main class="lesson-main">
-                    <section class="learning-card concept-card">
-                        <h2>1. 개념 설명 카드</h2>
-                        <p>Step1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
+                <main>
+                    <section class="study-card concept-card" id="undo-concept">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>Git에 되돌리기 명령이 여러 개인 이유</h2>
+                        </div>
+
+                        <p>
+                            Git은 단순히 현재 파일 하나만 관리하지 않습니다.<br>
+                            실제로 수정 중인 파일, 다음 Commit에 들어갈 상태,
+                            이미 만들어진 Commit, Branch가 가리키는 History를 각각 따로 관리합니다.<br>
+
+                            따라서 “되돌린다”는 말도 무엇을 되돌리는지에 따라 의미가 달라집니다.
+                        </p>
+
+                        <div class="concept-grid">
+                            <article>
+                                <span>File</span>
+                                <h3>현재 파일을 되돌린다</h3>
+                                <p>
+                                    아직 Commit하지 않은 Working Directory의<br>
+                                    파일 내용을 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Stage</span>
+                                <h3>Stage 상태를 되돌린다</h3>
+                                <p>
+                                    Add한 파일을 Staging Area에서 내리되<br>
+                                    파일 수정 내용은 유지합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Commit</span>
+                                <h3>Commit의 효과를 취소한다</h3>
+                                <p>
+                                    특정 Commit이 만든 변경을 반대로 적용한<br>
+                                    새로운 Commit을 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>History</span>
+                                <h3>Branch History를 되돌린다</h3>
+                                <p>
+                                    현재 Branch가 가리키는 Commit을<br>
+                                    과거 Commit으로 이동합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="undo-map">
+                            <article class="restore-tone">
+                                <span>RESTORE</span>
+                                <h3>파일 또는 Index 복원</h3>
+                                <p>
+                                    Commit 전 파일 실수와<br>
+                                    잘못 Stage한 파일을 정리합니다.
+                                </p>
+                            </article>
+
+                            <article class="revert-tone">
+                                <span>REVERT</span>
+                                <h3>취소용 새 Commit 생성</h3>
+                                <p>
+                                    이미 공유된 특정 Commit의 효과를<br>
+                                    History를 보존하며 취소합니다.
+                                </p>
+                            </article>
+
+                            <article class="reset-tone">
+                                <span>RESET</span>
+                                <h3>Branch를 과거로 이동</h3>
+                                <p>
+                                    아직 공유하지 않은 Local History를<br>
+                                    과거 Commit부터 다시 구성합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>세 명령을 한 문장으로 구분하기</strong>
+                            <p>
+                                <code class="inline-code">Restore</code>는 파일을 복원하고,
+                                <code class="inline-code">Revert</code>는 Commit의 효과를 취소하며,
+                                <code class="inline-code">Reset</code>은 Branch의 위치를 바꿉니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card flow-card">
-                        <h2>2. 흐름도 카드</h2>
-                        <p>Step2에서 그림처럼 이해할 수 있도록 구조화할 예정입니다.</p>
+                    <section class="study-card decision-card" id="undo-decision">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>어떤 명령을 선택해야 할까?</h2>
+                        </div>
+
+                        <p>
+                            명령어보다 먼저 확인해야 하는 것은
+                            <strong>Commit 여부</strong>와
+                            <strong>공유 여부</strong>입니다.
+                        </p>
+
+                        <div class="decision-flow" aria-label="되돌리기 명령 선택 흐름">
+                            <article>
+                                <span>질문 1</span>
+                                <h3>아직 Commit하지 않았는가?</h3>
+                                <p>
+                                    Working Directory 또는 Staging Area의 문제라면
+                                    Restore를 먼저 검토합니다.
+                                </p>
+                            </article>
+
+                            <div class="decision-arrow">→</div>
+
+                            <article>
+                                <span>질문 2</span>
+                                <h3>이미 Commit했는가?</h3>
+                                <p>
+                                    Commit을 만들었다면
+                                    Reset 또는 Revert 중에서 선택합니다.
+                                </p>
+                            </article>
+
+                            <div class="decision-arrow">→</div>
+
+                            <article>
+                                <span>질문 3</span>
+                                <h3>GitHub에 Push했는가?</h3>
+                                <p>
+                                    이미 공유된 History라면
+                                    Revert를 우선 사용합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="decision-grid">
+                            <article class="restore-choice">
+                                <span>Commit 전</span>
+                                <h3>파일 수정 취소</h3>
+                                <pre class="mini-code"><code>git restore 파일명</code></pre>
+                            </article>
+
+                            <article class="restore-choice">
+                                <span>Commit 전</span>
+                                <h3>Add만 취소</h3>
+                                <pre class="mini-code"><code>git restore --staged 파일명</code></pre>
+                            </article>
+
+                            <article class="revert-choice">
+                                <span>Commit 후 · 공유됨</span>
+                                <h3>특정 Commit 취소</h3>
+                                <pre class="mini-code"><code>git revert CommitID</code></pre>
+                            </article>
+
+                            <article class="reset-choice">
+                                <span>Commit 후 · 공유 전</span>
+                                <h3>Local History 재구성</h3>
+                                <pre class="mini-code"><code>git reset --mixed HEAD~1</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="question-grid">
+                            <article>
+                                <h3>파일 하나의 문제인가?</h3>
+                                <p>Restore를 먼저 검토합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>특정 Commit의 영향만 취소할 것인가?</h3>
+                                <p>Revert를 먼저 검토합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>Branch를 과거로 옮길 것인가?</h3>
+                                <p>Reset을 검토합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>팀원이 같은 History를 사용 중인가?</h3>
+                                <p>Reset보다 Revert가 안전합니다.</p>
+                            </article>
+                        </div>
                     </section>
 
-                    <section class="learning-card practice-card">
-                        <h2>3. 실습 준비 카드</h2>
-                        <p>Eclipse, Git Bash, GitHub 실습 흐름을 정리할 예정입니다.</p>
+                    <section class="study-card state-card" id="three-states">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>파일 하나에 존재하는 세 가지 상태</h2>
+                        </div>
+
+                        <p>
+                            Restore를 정확히 이해하려면 하나의 파일이
+                            HEAD, Staging Area, Working Directory에 각각 다른 내용으로 존재할 수 있다는 점을 알아야 합니다.
+                        </p>
+
+                        <div class="state-stack">
+                            <article class="head-state">
+                                <span>1</span>
+                                <div>
+                                    <h3>HEAD의 파일</h3>
+                                    <p>마지막 Commit에 저장된 확정 버전입니다.</p>
+                                </div>
+                            </article>
+
+                            <div class="state-arrow">↓ Commit 기준</div>
+
+                            <article class="index-state">
+                                <span>2</span>
+                                <div>
+                                    <h3>Staging Area의 파일</h3>
+                                    <p>다음 Commit에 들어갈 준비가 된 버전입니다.</p>
+                                </div>
+                            </article>
+
+                            <div class="state-arrow">↓ 실제 편집</div>
+
+                            <article class="worktree-state">
+                                <span>3</span>
+                                <div>
+                                    <h3>Working Directory의 파일</h3>
+                                    <p>Eclipse에서 현재 보고 수정하는 최신 버전입니다.</p>
+                                </div>
+                            </article>
+                        </div>
+
+                        <div class="state-snapshot-grid">
+                            <article>
+                                <span>HEAD</span>
+                                <h3>lesson.html</h3>
+                                <pre class="mini-code"><code>&lt;h1&gt;Git 학습&lt;/h1&gt;</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Index</span>
+                                <h3>lesson.html</h3>
+                                <pre class="mini-code"><code>&lt;h1&gt;Git Restore 학습&lt;/h1&gt;</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Working Directory</span>
+                                <h3>lesson.html</h3>
+                                <pre class="mini-code"><code>&lt;h1&gt;Git Restore / Revert 학습&lt;/h1&gt;</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>Restore를 이해하는 핵심</strong>
+                            <p>
+                                Restore는 어떤 위치의 파일을
+                                <code class="inline-code">어떤 Source의 파일 내용으로 바꿀 것인지</code>
+                                결정하는 명령입니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card command-card">
-                        <h2>4. 명령어 연결 카드</h2>
-                        <p>Eclipse 메뉴와 Git CLI 명령어를 연결해서 정리할 예정입니다.</p>
+                    <section class="study-card restore-card" id="restore-basic">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Restore — Commit 전 파일을 복원하기</h2>
+                        </div>
+
+                        <p>
+                            <code class="inline-code">git restore</code>는 파일이나 Index를
+                            Git이 알고 있는 기준 상태로 복원합니다.<br>
+
+                            현재 Branch와 HEAD는 이동하지 않으며,
+                            새 Commit도 자동으로 만들지 않습니다.
+                        </p>
+
+                        <div class="restore-feature-grid">
+                            <article>
+                                <span>History</span>
+                                <h3>Commit History 유지</h3>
+                                <p>
+                                    Branch와 기존 Commit은 바뀌지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Worktree</span>
+                                <h3>파일 내용 복원</h3>
+                                <p>
+                                    Working Directory 파일을<br>
+                                    Index 또는 특정 Commit 상태로 바꿉니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Index</span>
+                                <h3>Stage 취소</h3>
+                                <p>
+                                    잘못 Add한 파일을 Index에서 내리되<br>
+                                    수정 내용은 유지할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Source</span>
+                                <h3>과거 버전 가져오기</h3>
+                                <p>
+                                    Branch는 유지하고 특정 Commit의 파일만<br>
+                                    현재 작업으로 가져올 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="restore-case-grid">
+                            <article>
+                                <span>Case 1</span>
+                                <h3>Stage하지 않은 수정 취소</h3>
+
+                                <pre class="mini-code"><code>HEAD      A
+Index     A
+Worktree  B
+
+git restore file.html
+
+HEAD      A
+Index     A
+Worktree  A</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Case 2</span>
+                                <h3>Stage 이후 추가 수정 취소</h3>
+
+                                <pre class="mini-code"><code>HEAD      A
+Index     B
+Worktree  C
+
+git restore file.html
+
+HEAD      A
+Index     B
+Worktree  B</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Case 3</span>
+                                <h3>삭제한 Tracked 파일 복원</h3>
+
+                                <pre class="mini-code"><code>파일 삭제
+  ↓
+git restore file.html
+  ↓
+Index 버전으로 복원</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>git restore 파일명은 무조건 HEAD 복원이 아니다</h3>
+                            <p>
+                                기본 형태의 <code class="inline-code">git restore 파일명</code>은
+                                Working Directory를 <strong>Index의 파일 내용</strong>으로 복원합니다.
+                                HEAD 상태를 명확히 사용하려면
+                                <code class="inline-code">--source=HEAD</code>를 지정할 수 있습니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card warning-card">
-                        <h2>5. 자주 하는 실수 카드</h2>
-                        <p>초보자가 헷갈리기 쉬운 부분을 정리할 예정입니다.</p>
+                    <section class="study-card restore-options-card" id="restore-options">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Restore 옵션과 상태 변화</h2>
+                        </div>
+
+                        <p>
+                            Restore는 <code>--staged</code>, <code>--worktree</code>, <code>--source</code>,
+                            <code>--patch</code> 옵션을 조합하여
+                            복원 대상과 복원 원본을 결정합니다.
+                        </p>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>목적</th>
+                                        <th>명령어</th>
+                                        <th>결과</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>Working Directory 수정 취소</td>
+                                        <td><code>git restore 파일명</code></td>
+                                        <td>Working Directory를 Index 내용으로 복원합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Add만 취소</td>
+                                        <td><code>git restore --staged 파일명</code></td>
+                                        <td>Index를 HEAD 상태로 복원하고 파일 수정은 유지합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Stage와 파일 모두 취소</td>
+                                        <td>
+                                            <code>
+                                                git restore --source=HEAD --staged --worktree 파일명
+                                            </code>
+                                        </td>
+                                        <td>Index와 Working Directory 모두 HEAD 상태로 복원합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>과거 Commit 파일 가져오기</td>
+                                        <td><code>git restore --source=CommitID 파일명</code></td>
+                                        <td>Branch는 유지하고 해당 파일만 과거 버전으로 바꿉니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>이전 Commit 파일 가져오기</td>
+                                        <td><code>git restore --source=HEAD~1 파일명</code></td>
+                                        <td>파일을 바로 이전 Commit 버전으로 바꿉니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>일부 변경만 취소</td>
+                                        <td><code>git restore -p 파일명</code></td>
+                                        <td>Diff Hunk를 선택하여 일부만 복원합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>현재 폴더 전체 복원</td>
+                                        <td><code>git restore .</code></td>
+                                        <td>현재 폴더 아래 여러 Tracked 파일 변경을 복원합니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="restore-option-grid">
+                            <article class="restore-tone">
+                                <span>--staged</span>
+                                <h3>Stage만 취소</h3>
+
+                                <pre class="mini-code"><code>git restore --staged README.md</code></pre>
+
+                                <p>
+                                    README 수정은 남아 있지만<br>
+                                    Staged Changes에서 Unstaged Changes로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article class="restore-tone">
+                                <span>--source</span>
+                                <h3>복원 원본 지정</h3>
+
+                                <pre class="mini-code"><code>git restore --source=a41c2e7 lesson.html</code></pre>
+
+                                <p>
+                                    현재 Branch는 그대로 두고<br>
+                                    lesson.html만 지정한 Commit 버전으로 가져옵니다.
+                                </p>
+                            </article>
+
+                            <article class="restore-tone">
+                                <span>--patch</span>
+                                <h3>일부 Hunk만 복원</h3>
+
+                                <pre class="mini-code"><code>git restore -p lesson.html</code></pre>
+
+                                <p>
+                                    제목과 본문은 유지하고<br>
+                                    임시 디버그 코드만 선택적으로 취소할 수 있습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="patch-example">
+                            <article>
+                                <h3>파일의 세 가지 변경</h3>
+
+                                <ul class="plain-list">
+                                    <li>제목 수정</li>
+                                    <li>본문 설명 추가</li>
+                                    <li>임시 디버그 로그 추가</li>
+                                </ul>
+                            </article>
+
+                            <strong>Patch 선택</strong>
+
+                            <article>
+                                <h3>최종 결과</h3>
+
+                                <ul class="plain-list">
+                                    <li>제목 수정 유지</li>
+                                    <li>본문 설명 유지</li>
+                                    <li>디버그 로그만 Restore</li>
+                                </ul>
+                            </article>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>Restore도 데이터 손실이 발생할 수 있다</h3>
+                            <p>
+                                Restore로 버린 미Commit 변경은 Commit History에 존재하지 않을 수 있습니다.
+                                실행 전 <code class="inline-code">git diff</code>와
+                                <code class="inline-code">git diff --staged</code>로
+                                사라질 내용을 반드시 확인합니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card interview-card">
-                        <h2>6. 면접 포인트 카드</h2>
-                        <p>면접 질문과 답변 형태로 정리할 예정입니다.</p>
+                    <section class="study-card eclipse-restore-card" id="eclipse-restore">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Eclipse에서 Restore하기</h2>
+                        </div>
+
+                        <p>
+                            Eclipse EGit에서는 CLI의 <code>git restore</code> 대신
+                            파일의 <code class="inline-code">Replace With</code> 메뉴를 주로 사용합니다.
+                        </p>
+
+                        <div class="eclipse-path-grid">
+                            <article>
+                                <span>Index</span>
+                                <h3>File in Git Index</h3>
+
+                                <pre class="mini-code"><code>파일 우클릭
+  → Replace With
+  → File in Git Index</code></pre>
+
+                                <p>
+                                    Add 이후 추가로 수정한 Working Directory 변경만 취소합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>HEAD</span>
+                                <h3>HEAD 버전으로 복원</h3>
+
+                                <pre class="mini-code"><code>파일 우클릭
+  → Replace With
+  → HEAD</code></pre>
+
+                                <p>
+                                    선택 파일을 현재 HEAD Commit의 파일 내용으로 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Commit</span>
+                                <h3>특정 Commit 버전 복원</h3>
+
+                                <pre class="mini-code"><code>파일 우클릭
+  → Replace With
+  → Commit</code></pre>
+
+                                <p>
+                                    선택한 과거 Commit의 파일 내용을<br>현재 Working Directory로 가져옵니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Reference</span>
+                                <h3>Branch 또는 Tag에서 복원</h3>
+
+                                <pre class="mini-code"><code>파일 우클릭
+  → Replace With
+  → Branch, Tag or Reference</code></pre>
+
+                                <p>
+                                    Branch를 전환하지 않고 다른 Reference의 파일만 가져옵니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Previous</span>
+                                <h3>이전 Revision 복원</h3>
+
+                                <pre class="mini-code"><code>파일 우클릭
+  → Replace With
+  → Previous Revision</code></pre>
+
+                                <p>
+                                    해당 파일이 수정된 이전 Revision을 찾아 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Unstage</span>
+                                <h3>Staging Area에서 내리기</h3>
+
+                                <pre class="mini-code"><code>Git Staging
+  → Staged Changes
+  → 파일 선택
+  → Remove from Git Index</code></pre>
+
+                                <p>
+                                    파일 수정은 유지하면서 Add 상태만 취소합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="eclipse-restore-flow">
+                            <article>
+                                <span>1</span>
+                                <strong>파일 선택</strong>
+                                <p>복원할 파일 범위를<br>정확히 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <strong>Compare 확인</strong>
+                                <p>현재 파일에서<br>사라질 변경을 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <strong>Replace With 선택</strong>
+                                <p>Index, HEAD, Commit 중<br>기준을 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <strong>파일 내용 검증</strong>
+                                <p>Editor에서<br>복원 결과를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <strong>Git Staging 확인</strong>
+                                <p>Staged와 Unstaged 상태를<br>다시 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>6</span>
+                                <strong>필요하면 Commit</strong>
+                                <p>과거 파일을 가져왔다면<br>현재 변경으로<br>Commit합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Previous Revision의 범위를 확인한다</h3>
+                            <p>
+                                파일 하나가 아니라 폴더나 프로젝트 전체에 Previous Revision을 적용하면
+                                예상보다 많은 파일이 바뀔 수 있습니다.
+                                초보 단계에서는 파일 단위로 복원하는 것이 안전합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card revert-card" id="revert-concept">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Revert — Commit의 효과를 취소하는 새 Commit</h2>
+                        </div>
+
+                        <p>
+                            Revert는 과거 Commit을 삭제하지 않습니다.
+                            대상 Commit이 만들었던 변경을 반대로 적용하고,
+                            그 결과를 새로운 Commit으로 기록합니다.
+                        </p>
+
+                        <div class="revert-history">
+                            <article>
+                                <span>A</span>
+                                <p>Initial project</p>
+                            </article>
+
+                            <i></i>
+
+                            <article class="target-revert">
+                                <span>B</span>
+                                <p>Add login button</p>
+                                <em>Revert 대상</em>
+                            </article>
+
+                            <i></i>
+
+                            <article>
+                                <span>C</span>
+                                <p>Update login style</p>
+                            </article>
+
+                            <i></i>
+
+                            <article class="revert-commit">
+                                <span>R</span>
+                                <p>Revert "Add login button"</p>
+                                <em>새 Commit</em>
+                            </article>
+                        </div>
+
+                        <div class="revert-principle-grid">
+                            <article>
+                                <span>Keep</span>
+                                <h3>원본 Commit 유지</h3>
+                                <p>
+                                    취소 대상 Commit은<br>History에서 삭제되지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Inverse</span>
+                                <h3>반대 변경 적용</h3>
+                                <p>
+                                    대상 Commit의 Patch를<br>반대 방향으로 적용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>New Commit</span>
+                                <h3>취소용 Commit 생성</h3>
+                                <p>
+                                    취소 사실이 새로운 Commit으로 기록됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Shared</span>
+                                <h3>공유 History에 적합</h3>
+                                <p>
+                                    기존 Commit 연결을 유지하므로<br>팀 작업에 안전합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="latest-middle-grid">
+                            <article>
+                                <h3>최신 Commit C를 Revert</h3>
+
+                                <pre class="mini-code"><code>전
+A → B → C
+
+git revert HEAD
+
+후
+A → B → C → Revert-C</code></pre>
+
+                                <p>
+                                    파일 상태는 B와 비슷해질 수 있지만
+                                    C와 Revert-C가 모두 History에 남습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>중간 Commit B를 Revert</h3>
+
+                                <pre class="mini-code"><code>전
+A → B → C → D
+
+git revert B
+
+후
+A → B → C → D → Revert-B</code></pre>
+
+                                <p>
+                                    C와 D는 유지하면서
+                                    B의 효과만 취소하려고 시도합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>Revert의 핵심</strong>
+                            <p>
+                                Revert는 과거로 이동하는 기능이 아니라,
+                                <code class="inline-code">현재 History 위에 취소 사실을 기록하는 기능</code>입니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card eclipse-revert-card" id="eclipse-revert">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>Eclipse에서 Revert Commit 실행하기</h2>
+                        </div>
+
+                        <p>
+                            Eclipse에서는 History View에서 실제로 취소할 Commit을 선택하고
+                            <code class="inline-code">Revert Commit</code>을 실행합니다.
+                        </p>
+
+                        <div class="selection-compare">
+                            <article class="reset-selection">
+                                <span>RESET</span>
+                                <h3>남길 마지막 Commit 선택</h3>
+
+                                <pre class="mini-code"><code>C를 취소하고 B까지 남김
+→ B 선택</code></pre>
+                            </article>
+
+                            <article class="revert-selection">
+                                <span>REVERT</span>
+                                <h3>실제 취소할 Commit 선택</h3>
+
+                                <pre class="mini-code"><code>B의 변경을 취소함
+→ B 선택</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="eclipse-revert-flow" aria-label="Eclipse Revert Commit 흐름">
+                            <article>
+                                <span>1</span>
+                                <strong>Working Tree 확인</strong>
+                                <p>Staged와 Unstaged 변경이 없는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <strong>현재 Branch 확인</strong>
+                                <p>Revert Commit이<br>생성될 Branch를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <strong>Show In History</strong>
+                                <p>프로젝트 우클릭 → Team →<br>Show In History를 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <strong>Commit Diff 확인</strong>
+                                <p>취소할 Commit의 실제 변경 파일과<br>코드를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <strong>Revert Commit 실행</strong>
+                                <p>대상 Commit 우클릭 →<br>Revert Commit을 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>6</span>
+                                <strong>History 확인</strong>
+                                <p>취소용 새 Commit이<br>생성되었는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>7</span>
+                                <strong>실행·테스트</strong>
+                                <p>Revert 후 프로젝트 기능을 다시 테스트합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>8</span>
+                                <strong>Push</strong>
+                                <p>Revert Commit을 일반 Commit처럼<br>Remote에 Push합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="eclipse-revert-path">
+                            <article>
+                                <h3>History 열기</h3>
+
+                                <pre class="mini-code"><code>프로젝트 우클릭
+  → Team
+  → Show In History</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Revert 실행</h3>
+
+                                <pre class="mini-code"><code>취소할 Commit 우클릭
+  → Revert Commit</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>결과 확인</h3>
+
+                                <pre class="mini-code"><code>History
+  → 새 Revert Commit
+
+Changed Files
+  → 반대 변경 확인</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card conflict-card" id="revert-conflict">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>Revert Conflict는 왜 발생할까?</h2>
+                        </div>
+
+                        <p>
+                            중간 Commit이 만든 코드를 이후 Commit이 다시 수정하거나 사용했다면,
+                            과거 Commit의 변경만 분리해 취소하기 어려울 수 있습니다.
+                        </p>
+
+                        <div class="conflict-scenario">
+                            <article>
+                                <span>Commit B</span>
+                                <h3>로그인 버튼 추가</h3>
+                                <p>화면에 로그인 버튼을 처음 만듭니다.</p>
+                            </article>
+
+                            <div class="conflict-arrow">→</div>
+
+                            <article>
+                                <span>Commit C</span>
+                                <h3>버튼 색상 변경</h3>
+                                <p>B에서 만든 버튼의 스타일을 수정합니다.</p>
+                            </article>
+
+                            <div class="conflict-arrow">→</div>
+
+                            <article>
+                                <span>Commit D</span>
+                                <h3>클릭 이벤트 추가</h3>
+                                <p>B에서 만든 버튼에 JavaScript 동작을 연결합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="conflict-question">
+                            <h3>이 상태에서 Commit B를 Revert한다면?</h3>
+
+                            <div>
+                                <span>버튼을 완전히 삭제할 것인가?</span>
+                                <span>C의 색상 코드는 어떻게 처리할 것인가?</span>
+                                <span>D의 클릭 이벤트는 유지할 것인가?</span>
+                            </div>
+                        </div>
+
+                        <div class="conflict-code">
+                            <h3>Conflict 표시 예시</h3>
+
+                            <pre class="mini-code"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+현재 Branch의 로그인 버튼 코드
+=======
+Revert가 적용하려는 반대 변경
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; parent of a41c2e7</code></pre>
+                        </div>
+
+                        <div class="conflict-flow">
+                            <article>
+                                <span>1</span>
+                                <strong>git status 확인</strong>
+                                <p>충돌 파일과 Revert<br>진행 상태를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <strong>충돌 파일 열기</strong>
+                                <p>HEAD 영역과 Revert<br>영역을 비교합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <strong>최종 코드 결정</strong>
+                                <p>현재 기능 요구사항에 맞는<br>코드를 직접 작성합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <strong>표시 제거·저장</strong>
+                                <p>Conflict Marker를<br>모두 삭제하고 저장합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <strong>git add</strong>
+                                <p>해결한 파일을<br>Staging Area에 올립니다.</p>
+                            </article>
+
+                            <article>
+                                <span>6</span>
+                                <strong>Revert 계속</strong>
+                                <p>git revert --continue로<br>작업을 완료합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>CLI Conflict 해결 흐름</h3>
+
+                            <pre class="mini-code"><code>git status
+
+# 충돌 파일을 직접 수정하고 저장
+git add 충돌파일
+
+git revert --continue</code></pre>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>충돌 파일을 수정하는 것만으로는 끝나지 않는다</h3>
+                            <p>
+                                파일 수정 후 반드시 <code class="inline-code">git add</code>로
+                                해결 상태를 등록하고,
+                                <code class="inline-code">git revert --continue</code>로
+                                진행 중인 Revert를 완료해야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card revert-command-card" id="revert-commands">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>Revert 명령어와 진행 상태 관리</h2>
+                        </div>
+
+                        <p>
+                            기본 Revert 외에도 Commit Message 편집 여부,
+                            자동 Commit 여부, Conflict 진행 상태를 제어하는 옵션이 있습니다.
+                        </p>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>목적</th>
+                                        <th>명령어</th>
+                                        <th>의미</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>특정 Commit Revert</td>
+                                        <td><code>git revert CommitID</code></td>
+                                        <td>반대 변경을 적용한 새 Commit을 생성합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>최신 Commit Revert</td>
+                                        <td><code>git revert HEAD</code></td>
+                                        <td>현재 HEAD Commit의 효과를 취소합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Message 편집 생략</td>
+                                        <td><code>git revert --no-edit CommitID</code></td>
+                                        <td>Git의 기본 Revert Message를 그대로 사용합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>자동 Commit 생략</td>
+                                        <td><code>git revert --no-commit CommitID</code></td>
+                                        <td>반대 변경만 Index와 Working Directory에 적용합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Conflict 해결 후 계속</td>
+                                        <td><code>git revert --continue</code></td>
+                                        <td>해결된 파일을 기준으로 Revert를 완료합니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>진행 중 Revert 취소</td>
+                                        <td><code>git revert --abort</code></td>
+                                        <td>Revert 시작 전 상태로 돌아갑니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>현재 항목 건너뛰기</td>
+                                        <td><code>git revert --skip</code></td>
+                                        <td>여러 Commit Revert에서 현재 Commit을 건너뜁니다.</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Sequencer 종료</td>
+                                        <td><code>git revert --quit</code></td>
+                                        <td>진행 정보를 종료하고 현재 파일 상태는 남길 수 있습니다.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="advanced-grid">
+                            <article class="revert-tone">
+                                <span>--no-edit</span>
+                                <h3>기본 Message 사용</h3>
+
+                                <pre class="mini-code"><code>git revert --no-edit a41c2e7</code></pre>
+
+                                <p>
+                                    편집기를 열지 않고 Git이 만든 기본 Message로
+                                    Revert Commit을 생성합니다.
+                                </p>
+                            </article>
+
+                            <article class="revert-tone">
+                                <span>--no-commit</span>
+                                <h3>변경을 먼저 검토</h3>
+
+                                <pre class="mini-code"><code>git revert --no-commit a41c2e7
+
+git status
+git diff --staged</code></pre>
+
+                                <p>
+                                    반대 변경을 확인하고 테스트한 뒤
+                                    직접 Commit할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article class="revert-tone">
+                                <span>--abort</span>
+                                <h3>Revert 취소</h3>
+
+                                <pre class="mini-code"><code>git revert --abort</code></pre>
+
+                                <p>
+                                    Conflict 해결을 포기하거나 대상 Commit을<br>
+                                    잘못 선택했을 때 시작 전 상태로 돌아갑니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="revert-again-box">
+                            <article>
+                                <span>원래 Commit B</span>
+                                <h3>기능 추가</h3>
+                            </article>
+
+                            <strong>→ Revert →</strong>
+
+                            <article>
+                                <span>Revert Commit R</span>
+                                <h3>B의 기능 취소</h3>
+                            </article>
+
+                            <strong>→ R을 Revert →</strong>
+
+                            <article>
+                                <span>Revert Commit RR</span>
+                                <h3>B 기능 재적용 효과</h3>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>공유된 Revert를 다시 되돌리는 방법</strong>
+                            <p>
+                                이미 Push한 Revert Commit을 없애기 위해 Shared Branch를 Reset하지 말고,
+                                Revert Commit 자체를 다시 Revert하여 새로운 기록으로 남기는 방법을 우선 사용합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card merge-revert-card" id="merge-revert">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>Merge Commit Revert는 왜 더 어려울까?</h2>
+                        </div>
+
+                        <p>
+                            일반 Commit은 Parent가 하나지만,
+                            Merge Commit은 둘 이상의 Parent를 가질 수 있습니다.
+                            따라서 어느 Parent를 기준선으로 삼을지 지정해야 합니다.
+                        </p>
+
+                        <div class="merge-history-box">
+                            <pre class="mini-code"><code>A ── B ── C ───────── M
+      \               /
+       D ── E ───────</code></pre>
+
+                            <div class="merge-parent-grid">
+                                <article>
+                                    <span>Parent 1</span>
+                                    <h3>Mainline</h3>
+                                    <p>일반적으로 Merge를 받은 현재 Branch의 흐름입니다.</p>
+                                </article>
+
+                                <article>
+                                    <span>Parent 2</span>
+                                    <h3>Merged Branch</h3>
+                                    <p>기능 개발 Branch의 흐름일 수 있습니다.</p>
+                                </article>
+                            </div>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>Merge Commit Revert 예시</h3>
+
+                            <pre class="mini-code"><code>git show --summary MergeCommitID
+
+git revert -m 1 MergeCommitID</code></pre>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>초보 단계에서는 임의로 실행하지 않는다</h3>
+                            <p>
+                                Merge Commit Revert는 이후 같은 Branch를 다시 Merge할 때
+                                Git이 어떤 변경을 이미 처리한 것으로 판단하는지에도 영향을 줄 수 있습니다.<br>
+                                Parent 관계와 팀의 Branch 전략을 확인한 뒤 진행해야 합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card reset-recap-card" id="reset-recap">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>Reset 핵심 복습</h2>
+                        </div>
+
+                        <p>
+                            Reset은 파일 하나를 복원하는 기능이 아니라
+                            현재 Branch와 HEAD를 대상 Commit으로 이동하는 기능입니다.
+                        </p>
+
+                        <div class="reset-history-recap">
+                            <article>
+                                <span>Reset 전</span>
+
+                                <pre class="mini-code"><code>A → B → C
+        ↑
+   HEAD, main</code></pre>
+                            </article>
+
+                            <strong>B로 Reset</strong>
+
+                            <article>
+                                <span>Reset 후</span>
+
+                                <pre class="mini-code"><code>A → B
+    ↑
+HEAD, main</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="reset-recap-grid">
+                            <article class="soft-recap">
+                                <span>SOFT</span>
+                                <h3>Commit만 취소</h3>
+
+                                <pre class="mini-code"><code>HEAD      B
+Index     C
+Worktree  C</code></pre>
+
+                                <p>취소된 변경은 Staged 상태로 남습니다.</p>
+                            </article>
+
+                            <article class="mixed-recap">
+                                <span>MIXED</span>
+                                <h3>Commit과 Stage 취소</h3>
+
+                                <pre class="mini-code"><code>HEAD      B
+Index     B
+Worktree  C</code></pre>
+
+                                <p>취소된 변경은 Unstaged 상태로 남습니다.</p>
+                            </article>
+
+                            <article class="hard-recap">
+                                <span>HARD</span>
+                                <h3>파일까지 되돌림</h3>
+
+                                <pre class="mini-code"><code>HEAD      B
+Index     B
+Worktree  B</code></pre>
+
+                                <p>취소된 변경과 미Commit 변경을 잃을 수 있습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Reset 사용 기준</h3>
+                            <p>
+                                Reset은 아직 다른 사람과 공유하지 않은 Local History를 정리할 때 사용합니다.
+                                이미 Push된 Shared Branch에서는 Revert를 우선 검토합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card compare-card" id="full-comparison">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>Restore / Revert / Reset 전체 비교</h2>
+                        </div>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>구분</th>
+                                        <th>Restore</th>
+                                        <th>Revert</th>
+                                        <th>Reset</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>중심 대상</td>
+                                        <td>파일, Index</td>
+                                        <td>특정 Commit의 변경</td>
+                                        <td>HEAD, Branch, Index, Worktree</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>주요 사용 시점</td>
+                                        <td>Commit 전</td>
+                                        <td>Commit 후, 특히 공유 후</td>
+                                        <td>Commit 후, 공유 전</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Branch / HEAD 이동</td>
+                                        <td>이동하지 않음</td>
+                                        <td>이동하지 않음</td>
+                                        <td>대상 Commit으로 이동</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>새 Commit 자동 생성</td>
+                                        <td>생성하지 않음</td>
+                                        <td>취소용 Commit 생성</td>
+                                        <td>생성하지 않음</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>기존 History</td>
+                                        <td>유지</td>
+                                        <td>유지</td>
+                                        <td>재작성 가능</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>중간 Commit 취소</td>
+                                        <td>해당 없음</td>
+                                        <td>가능</td>
+                                        <td>이후 Commit도 영향</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Working Directory 영향</td>
+                                        <td>선택한 파일</td>
+                                        <td>반대 Patch가 적용되는 파일</td>
+                                        <td>모드에 따라 Repository 전체</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>대표 위험</td>
+                                        <td>미Commit 파일 변경 손실</td>
+                                        <td>Conflict와 기능 의존 문제</td>
+                                        <td>History와 파일 손실</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>공유 Commit에 적합</td>
+                                        <td>파일 작업에 사용 가능</td>
+                                        <td>적합</td>
+                                        <td>주의</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>대표 명령</td>
+                                        <td><code>git restore 파일명</code></td>
+                                        <td><code>git revert CommitID</code></td>
+                                        <td><code>git reset --mixed HEAD~1</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="undo-diagram-grid">
+                            <article class="restore-diagram">
+                                <span>Restore</span>
+                                <h3>파일만 복원</h3>
+
+                                <pre class="mini-code"><code>History
+A → B → C
+
+Working Directory
+Modified → Restore
+
+History는 그대로</code></pre>
+                            </article>
+
+                            <article class="revert-diagram">
+                                <span>Revert</span>
+                                <h3>취소용 Commit 추가</h3>
+
+                                <pre class="mini-code"><code>전
+A → B → C
+
+B를 Revert
+
+후
+A → B → C → Revert-B</code></pre>
+                            </article>
+
+                            <article class="reset-diagram">
+                                <span>Reset</span>
+                                <h3>Branch를 과거로 이동</h3>
+
+                                <pre class="mini-code"><code>전
+A → B → C
+
+B로 Reset
+
+후
+A → B</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="history-meaning-grid">
+                            <article>
+                                <h3>Hard Reset 후</h3>
+
+                                <pre class="mini-code"><code>A → B</code></pre>
+
+                                <p>
+                                    파일 상태는 B와 같으며
+                                    C는 현재 Branch에서 제외될 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>C Revert 후</h3>
+
+                                <pre class="mini-code"><code>A → B → C → Revert-C</code></pre>
+
+                                <p>
+                                    파일 상태는 B와 비슷할 수 있지만
+                                    C가 있었고 취소했다는 사실이 남습니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>같은 파일 상태라도 History는 다르다</strong>
+                            <p>
+                                Reset과 Revert의 최종 파일 내용이 비슷해 보여도,
+                                Reset은 History를 다시 구성하고
+                                Revert는 취소 사실을 History에 기록합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card scenario-card" id="safe-choice">
+                        <div class="card-title-row">
+                            <span class="card-number">14</span>
+                            <h2>상황별 안전한 선택 기준</h2>
+                        </div>
+
+                        <div class="scenario-grid">
+                            <article class="restore-scenario">
+                                <span>상황 1</span>
+                                <h3>방금 파일을 잘못 수정했다</h3>
+
+                                <p>아직 Add하지 않은<br>Working Directory 변경입니다.</p>
+
+                                <pre class="mini-code"><code>git diff -- 파일명
+git restore 파일명</code></pre>
+                            </article>
+
+                            <article class="restore-scenario">
+                                <span>상황 2</span>
+                                <h3>잘못 Add한 파일을 빼고 싶다</h3>
+
+                                <p>파일 수정은 유지하고 Stage만 취소합니다.</p>
+
+                                <pre class="mini-code"><code>git restore --staged 파일명</code></pre>
+                            </article>
+
+                            <article class="restore-scenario">
+                                <span>상황 3</span>
+                                <h3>과거 파일 하나만 가져오고 싶다</h3>
+
+                                <p>현재 Branch는 유지하고<br>특정 파일만 복원합니다.</p>
+
+                                <pre class="mini-code"><code>git restore --source=CommitID 파일명</code></pre>
+                            </article>
+
+                            <article class="reset-scenario">
+                                <span>상황 4</span>
+                                <h3>마지막 Commit을 잘못 만들었다</h3>
+
+                                <p>아직 Push하지 않은<br>개인 Local Commit입니다.</p>
+
+                                <pre class="mini-code"><code>git reset --mixed HEAD~1</code></pre>
+                            </article>
+
+                            <article class="revert-scenario">
+                                <span>상황 5</span>
+                                <h3>Push된 오류 Commit을 취소한다</h3>
+
+                                <p>팀원이 사용할 수 있는 공유 History입니다.</p>
+
+                                <pre class="mini-code"><code>git revert CommitID
+git push</code></pre>
+                            </article>
+
+                            <article class="revert-scenario">
+                                <span>상황 6</span>
+                                <h3>중간 Commit만 취소한다</h3>
+
+                                <p>이후 Commit을 유지하면서<br>특정 Commit의 효과만 취소합니다.</p>
+
+                                <pre class="mini-code"><code>git revert 중간CommitID</code></pre>
+                            </article>
+
+                            <article class="reset-scenario">
+                                <span>상황 7</span>
+                                <h3>로컬 실험을 완전히 폐기한다</h3>
+
+                                <p>Push하지 않았고<br>파일 변경도 필요하지 않습니다.</p>
+
+                                <pre class="mini-code"><code>git branch backup-experiment
+git reset --hard 실험전CommitID</code></pre>
+                            </article>
+
+                            <article class="revert-scenario">
+                                <span>상황 8</span>
+                                <h3>배포된 기능을 긴급 취소한다</h3>
+
+                                <p>배포 History를 남기고<br>취소 사실을 추적해야 합니다.</p>
+
+                                <pre class="mini-code"><code>git show 오류CommitID
+git revert 오류CommitID</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="choice-table">
+                            <div class="choice-head">확인 질문</div>
+                            <div class="choice-head">예</div>
+                            <div class="choice-head">아니요</div>
+
+                            <div>아직 Commit 전인가?</div>
+                            <div>Restore 검토</div>
+                            <div>다음 질문</div>
+
+                            <div>파일 하나의 문제인가?</div>
+                            <div>Restore 검토</div>
+                            <div>다음 질문</div>
+
+                            <div>이미 Push했는가?</div>
+                            <div>Revert 우선</div>
+                            <div>Reset 가능성 검토</div>
+
+                            <div>중간 Commit만 취소해야 하는가?</div>
+                            <div>Revert</div>
+                            <div>다음 질문</div>
+
+                            <div>이후 Commit도 버려야 하는가?</div>
+                            <div>Reset 가능</div>
+                            <div>Revert 검토</div>
+
+                            <div>파일 변경을 유지해야 하는가?</div>
+                            <div>Soft / Mixed Reset</div>
+                            <div>Hard Reset 신중 검토</div>
+
+                            <div>팀원이 History를 사용 중인가?</div>
+                            <div>Reset 지양</div>
+                            <div>팀 정책에 따라 판단</div>
+                        </div>
+                    </section>
+
+                    <section class="study-card remote-card" id="shared-history">
+                        <div class="card-title-row">
+                            <span class="card-number">15</span>
+                            <h2>공유 History에서는 왜 Revert가 안전할까?</h2>
+                        </div>
+
+                        <p>
+                            이미 GitHub에 Push한 Commit을 Reset하면
+                            Local Branch와 Remote Branch가 서로 다른 History를 가질 수 있습니다.
+                        </p>
+
+                        <div class="remote-history-grid">
+                            <article>
+                                <span>Push 완료 상태</span>
+                                <h3>Local과 Remote가 같음</h3>
+
+                                <pre class="mini-code"><code>Local main
+A → B → C
+
+Remote origin/main
+A → B → C</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Local Reset 후</span>
+                                <h3>Local만 과거로 이동</h3>
+
+                                <pre class="mini-code"><code>Local main
+A → B
+
+Remote origin/main
+A → B → C</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Revert 사용 시</span>
+                                <h3>History가 앞으로 진행</h3>
+
+                                <pre class="mini-code"><code>Local main
+A → B → C → Revert-C
+
+Remote에 일반 Push 가능</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="remote-safety-grid">
+                            <article>
+                                <span>Local Only</span>
+                                <h3>Push 전 개인 Commit</h3>
+                                <p>
+                                    Reset과 Amend로<br>History를 정리할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Feature Branch</span>
+                                <h3>이미 Review 중인 Branch</h3>
+                                <p>
+                                    History 재작성 전에<br>팀 규칙과 PR 상태를 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Shared Main</span>
+                                <h3>여러 사람이 사용하는 main</h3>
+                                <p>
+                                    Reset과 Force Push보다<br>Revert를 우선합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Production</span>
+                                <h3>이미 배포된 Commit</h3>
+                                <p>
+                                    Revert Commit,<br>테스트와 재배포 흐름을 사용합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>Force Push는 일반적인 되돌리기 방법이 아니다</h3>
+                            <p>
+                                Reset 후 Push가 rejected되었다고 바로 Force Push하면
+                                Remote Commit과 팀원의 작업을 제거할 수 있습니다.
+                                공유된 오류 Commit이라면 Revert를 먼저 검토합니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card rm-card" id="rm-restore">
+                        <div class="card-title-row">
+                            <span class="card-number">16</span>
+                            <h2>git rm과 Restore의 차이</h2>
+                        </div>
+
+                        <p>
+                            <code>rm</code>과 <code>restore</code>는 모두 파일을 대상으로 하지만 목적이 반대입니다.
+                            <code>rm</code>은 삭제를 Git 변경으로 만들고, <code>restore</code>는 Git이 알고 있는 상태로 파일을 복원합니다.
+                        </p>
+
+                        <div class="rm-restore-grid">
+                            <article class="rm-tone">
+                                <span>git rm</span>
+                                <h3>파일 삭제를 Commit 대상으로 등록</h3>
+
+                                <pre class="mini-code"><code>git rm old-file.txt
+
+git commit -m "Remove obsolete file"</code></pre>
+
+                                <p>
+                                    Working Directory와 Index에서 파일을 제거하고<br>
+                                    다음 Commit에 삭제 변경을 포함합니다.
+                                </p>
+                            </article>
+
+                            <article class="rm-tone">
+                                <span>git rm --cached</span>
+                                <h3>파일은 남기고 추적만 중단</h3>
+
+                                <pre class="mini-code"><code>git rm --cached config.local</code></pre>
+
+                                <p>
+                                    Working Directory 파일은 유지하고<br>
+                                    Index와 Git 추적 대상에서 제외합니다.
+                                </p>
+                            </article>
+
+                            <article class="restore-tone">
+                                <span>git restore</span>
+                                <h3>파일 변경을 복원</h3>
+
+                                <pre class="mini-code"><code>git restore old-file.txt</code></pre>
+
+                                <p>
+                                    삭제 변경을 만드는 것이 아니라<br>
+                                    Git이 알고 있는 파일 상태로 복원합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <strong>rm과 restore 암기</strong>
+                            <p>
+                                <code class="inline-code">git rm</code>은 삭제를 기록하고,
+                                <code class="inline-code">git restore</code>는 파일 상태를 되돌립니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card cli-card" id="cli-summary">
+                        <div class="card-title-row">
+                            <span class="card-number">17</span>
+                            <h2>CLI 명령어 전체 연결</h2>
+                        </div>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>분류</th>
+                                        <th>목적</th>
+                                        <th>명령어</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td>공통 확인</td>
+                                        <td>현재 변경 상태</td>
+                                        <td><code>git status</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>공통 확인</td>
+                                        <td>현재 Branch</td>
+                                        <td><code>git branch --show-current</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>공통 확인</td>
+                                        <td>최근 Commit History</td>
+                                        <td><code>git log --oneline --graph --decorate -10</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>공통 확인</td>
+                                        <td>특정 Commit 변경</td>
+                                        <td><code>git show CommitID</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Restore</td>
+                                        <td>Working Directory 복원</td>
+                                        <td><code>git restore 파일명</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Restore</td>
+                                        <td>Unstage</td>
+                                        <td><code>git restore --staged 파일명</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Restore</td>
+                                        <td>과거 파일 가져오기</td>
+                                        <td><code>git restore --source=CommitID 파일명</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Restore</td>
+                                        <td>일부 Hunk 복원</td>
+                                        <td><code>git restore -p 파일명</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Revert</td>
+                                        <td>특정 Commit 취소</td>
+                                        <td><code>git revert CommitID</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Revert</td>
+                                        <td>최신 Commit 취소</td>
+                                        <td><code>git revert HEAD</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Revert</td>
+                                        <td>Conflict 해결 후 계속</td>
+                                        <td><code>git revert --continue</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Revert</td>
+                                        <td>진행 중 Revert 취소</td>
+                                        <td><code>git revert --abort</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Reset</td>
+                                        <td>Commit만 취소</td>
+                                        <td><code>git reset --soft HEAD~1</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Reset</td>
+                                        <td>Commit과 Stage 취소</td>
+                                        <td><code>git reset --mixed HEAD~1</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Reset</td>
+                                        <td>파일까지 대상 상태로 복원</td>
+                                        <td><code>git reset --hard HEAD~1</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>삭제</td>
+                                        <td>파일 삭제를 Stage</td>
+                                        <td><code>git rm 파일명</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>삭제</td>
+                                        <td>추적만 중단</td>
+                                        <td><code>git rm --cached 파일명</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="preflight-grid">
+                            <article>
+                                <h3>Restore 전</h3>
+
+                                <pre class="mini-code"><code>git status
+git diff
+git diff --staged</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Revert 전</h3>
+
+                                <pre class="mini-code"><code>git status
+git branch --show-current
+git show CommitID</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Reset 전</h3>
+
+                                <pre class="mini-code"><code>git status
+git log --oneline -10
+git branch backup-before-reset</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="postflight-grid">
+                            <article>
+                                <h3>Restore 후</h3>
+
+                                <pre class="mini-code"><code>git status
+git diff
+git diff --staged</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Revert 후</h3>
+
+                                <pre class="mini-code"><code>git status
+git show HEAD
+git log --oneline -5</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Reset 후</h3>
+
+                                <pre class="mini-code"><code>git status
+git log --oneline -5
+git reflog -5</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card" id="common-mistakes">
+                        <div class="card-title-row">
+                            <span class="card-number">18</span>
+                            <h2>자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. 세 명령을 모두 과거 이동으로 생각</h3>
+                                <p>
+                                    Restore는 파일, Revert는 Commit 효과,<br>
+                                    Reset은 Branch 위치를 대상으로 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>2. Restore는<br>항상 HEAD 복원이라고 생각</h3>
+                                <p>
+                                    기본 git restore 파일명은 Index 내용을<br>
+                                    Working Directory에 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>3. --staged가<br>파일 수정도 지운다고 생각</h3>
+                                <p>
+                                    Stage만 취소하고<br>Working Directory 수정은 유지합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>4. Restore는 언제든<br>다시 취소할 수 있다고 생각</h3>
+                                <p>
+                                    미Commit 변경은 Git History에 없으므로<br>
+                                    복구하기 어려울 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>5. Untracked 파일도<br>Restore 가능하다고 생각</h3>
+                                <p>
+                                    Git이 추적한 적이 없는 파일에는<br>
+                                    복원할 Git 원본이 없습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>6. git restore .을 무심코 실행</h3>
+                                <p>
+                                    현재 폴더 아래 여러 파일의 미Stage 변경이<br>
+                                    한 번에 사라질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>7. Revert하면<br>Commit이 삭제된다고 생각</h3>
+                                <p>
+                                    대상 Commit은 유지되고<br>취소용 새 Commit이 추가됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>8. Revert하면<br>Branch가 과거로 이동한다고 생각</h3>
+                                <p>
+                                    Revert Commit이<br>현재 HEAD 위에 추가되므로<br>
+                                    Branch는 앞으로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>9. Revert 대상 선택을<br>Reset과 같게 생각</h3>
+                                <p>
+                                    Reset은 남길 Commit,<br>
+                                    Revert는 실제 취소할 Commit을 선택합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>10. 중간 Commit Revert는<br>항상 자동 성공</h3>
+                                <p>
+                                    이후 Commit이 같은 코드에 의존하면<br>
+                                    Conflict가 발생할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>11. 충돌 파일만 수정하고 끝냄</h3>
+                                <p>
+                                    git add 후 git revert --continue까지<br>실행해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>12. Revert 중<br>일반 Commit을 먼저 실행</h3>
+                                <p>
+                                    먼저 git status로<br>Revert Sequence 상태를 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>13. Revert 취소에<br>Hard Reset부터 사용</h3>
+                                <p>
+                                    진행 중 Revert는<br>git revert --abort로 취소합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>14. 공유된 Revert를 Reset으로 삭제</h3>
+                                <p>
+                                    Revert Commit을 다시 Revert하여<br>
+                                    취소 기록을 보존하는 편이 안전합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>15. Reset과 Revert 결과가<br>같다고 생각</h3>
+                                <p>
+                                    파일 상태가 비슷해도<br>History 의미는 완전히 다릅니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>16. Push된 Commit에<br>Reset 후 Force Push</h3>
+                                <p>
+                                    Remote Commit과 팀원의 작업을<br>제거할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>17. Revert는 Conflict가 없어<br>무조건 안전</h3>
+                                <p>
+                                    History는 보존하지만<br>코드 의존성과 Conflict 위험은 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>18. --no-commit 후 Commit을 잊음</h3>
+                                <p>
+                                    반대 변경만 적용되므로<br>검토 후 직접 Commit해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>19. Merge Commit을<br>일반 Commit처럼 Revert</h3>
+                                <p>
+                                    Mainline Parent 지정과<br>이후 Merge 영향을 검토해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>20. 잘못된 Branch에서 Revert</h3>
+                                <p>
+                                    Revert Commit은<br>현재 체크아웃된 Branch에 생성됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>21. Message만 보고 Revert</h3>
+                                <p>
+                                    git show로 실제 Changed Files와<br>Diff를 확인해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>22. git rm --cached와<br>Unstage를 혼동</h3>
+                                <p>
+                                    rm --cached는 추적 중단,<br>
+                                    restore --staged는 이번 Stage만 취소합니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card" id="undo-errors">
+                        <div class="card-title-row">
+                            <span class="card-number">19</span>
+                            <h2>오류 메시지와 상태 읽는 법</h2>
+                        </div>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 / 상태</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인 및 해결 방향</div>
+
+                            <div><code class="inline-code">pathspec ... did not match</code></div>
+                            <div>파일 경로가 틀렸거나 Git이 모르는 파일입니다.</div>
+                            <div>파일명, 대소문자, 현재 폴더와 git ls-files를 확인합니다.</div>
+
+                            <div><code class="inline-code">bad revision</code></div>
+                            <div>Commit ID 또는 Reference를 찾을 수 없습니다.</div>
+                            <div>git log --all과 Fetch 여부를 확인합니다.</div>
+
+                            <div>Restore 후 출력 없음</div>
+                            <div>성공해도 별도 메시지가 없을 수 있습니다.</div>
+                            <div>git status와 git diff로 결과를 확인합니다.</div>
+
+                            <div><code class="inline-code">path ... is unmerged</code></div>
+                            <div>파일이 Conflict 상태입니다.</div>
+                            <div>git status를 확인하고 수동으로 충돌을 해결합니다.</div>
+
+                            <div><code class="inline-code">local changes would be overwritten</code></div>
+                            <div>현재 미Commit 변경을 덮어쓸 위험이 있습니다.</div>
+                            <div>변경을 Commit하거나 별도로 보관한 뒤 다시 실행합니다.</div>
+
+                            <div><code class="inline-code">could not revert</code></div>
+                            <div>Revert 반대 Patch를 자동으로 적용하지 못했습니다.</div>
+                            <div>Conflict 해결 후 Add하고 git revert --continue를 실행합니다.</div>
+
+                            <div><code class="inline-code">currently reverting a commit</code></div>
+                            <div>진행 중인 Revert Sequence가 있습니다.</div>
+                            <div>Continue, Abort, Skip 중 필요한 동작을 선택합니다.</div>
+
+                            <div><code class="inline-code">merge but no -m option was given</code></div>
+                            <div>Merge Commit의 Mainline Parent를 지정하지 않았습니다.</div>
+                            <div>Parent 관계를 확인한 뒤 -m 옵션을 사용합니다.</div>
+
+                            <div><code class="inline-code">nothing to commit</code></div>
+                            <div>적용할 반대 변경이 남지 않았을 수 있습니다.</div>
+                            <div>현재 상태와 진행 중 Sequence를 확인합니다.</div>
+
+                            <div><code class="inline-code">push rejected</code></div>
+                            <div>Remote가 앞서 있거나 History가 달라졌습니다.</div>
+                            <div>Fetch 후 Graph를 확인하고 Remote 변경을 통합합니다.</div>
+
+                            <div><code class="inline-code">non-fast-forward</code></div>
+                            <div>Remote History 손실 가능성이 있는 Push입니다.</div>
+                            <div>무조건 Force Push하지 말고 공유 여부를 확인합니다.</div>
+
+                            <div><code class="inline-code">403 Permission</code></div>
+                            <div>GitHub 인증 또는 저장소 권한 문제입니다.</div>
+                            <div>계정, Token, Credential과 Remote URL을 확인합니다.</div>
+                        </div>
+
+                        <div class="debug-box">
+                            <h3>문제를 확인하는 순서</h3>
+
+                            <ol>
+                                <li>현재 올바른 Repository인지 확인합니다.</li>
+                                <li><code class="inline-code">git branch --show-current</code>로 Branch를 확인합니다.</li>
+                                <li><code class="inline-code">git status</code>로 진행 중 작업을 확인합니다.</li>
+                                <li>파일 작업이면 <code class="inline-code">git diff</code>를 확인합니다.</li>
+                                <li>Commit 작업이면 <code class="inline-code">git show CommitID</code>를 확인합니다.</li>
+                                <li>Conflict라면 Marker를 제거하고 최종 코드를 작성합니다.</li>
+                                <li>Revert 진행 중이면 Continue 또는 Abort를 선택합니다.</li>
+                                <li>Push 오류라면 Local 되돌리기와 Remote 동기화 문제를 구분합니다.</li>
+                            </ol>
+                        </div>
+
+                        <div class="status-reading-grid">
+                            <article>
+                                <h3>Revert 진행 중 계속</h3>
+
+                                <pre class="mini-code"><code>git add 해결파일
+git revert --continue</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Revert 전체 취소</h3>
+
+                                <pre class="mini-code"><code>git revert --abort</code></pre>
+                            </article>
+
+                            <article>
+                                <h3>Remote 상태 확인</h3>
+
+                                <pre class="mini-code"><code>git fetch
+git log --oneline --graph --decorate --all</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card" id="undo-practice">
+                        <div class="card-title-row">
+                            <span class="card-number">20</span>
+                            <h2>Restore와 Revert 안전 실습</h2>
+                        </div>
+
+                        <p>
+                            중요한 프로젝트가 아닌 테스트 저장소에서
+                            `undo-practice.txt` 파일을 사용해 세 개의 Commit을 만듭니다.
+                        </p>
+
+                        <div class="practice-commit-grid">
+                            <article>
+                                <span>Commit A</span>
+                                <h3>Add undo practice file</h3>
+
+                                <pre class="mini-code"><code>Base</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Commit B</span>
+                                <h3>Add feature B</h3>
+
+                                <pre class="mini-code"><code>Base
+Feature B</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Commit C</span>
+                                <h3>Add feature C</h3>
+
+                                <pre class="mini-code"><code>Base
+Feature B
+Feature C</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="practice-command">
+                            <h3>실습용 Commit 만들기</h3>
+
+                            <pre class="mini-code"><code># Commit A
+git add undo-practice.txt
+git commit -m "Add undo practice file"
+
+# Feature B 추가
+git add undo-practice.txt
+git commit -m "Add feature B"
+
+# Feature C 추가
+git add undo-practice.txt
+git commit -m "Add feature C"
+
+git log --oneline</code></pre>
+                        </div>
+
+                        <div class="practice-section">
+                            <h3>Restore 실습 1 — Unstaged 변경 취소</h3>
+
+                            <ol>
+                                <li>파일에 <code class="inline-code">Temporary change</code>를 추가합니다.</li>
+                                <li>아직 Add하지 않습니다.</li>
+                                <li><code class="inline-code">git diff</code>로 변경을 확인합니다.</li>
+                                <li><code class="inline-code">git restore undo-practice.txt</code>를 실행합니다.</li>
+                                <li>Temporary change가 사라졌는지 확인합니다.</li>
+                            </ol>
+
+                            <pre class="mini-code"><code>git status
+git diff
+git restore undo-practice.txt
+git status</code></pre>
+                        </div>
+
+                        <div class="practice-section">
+                            <h3>Restore 실습 2 — Stage만 취소</h3>
+
+                            <ol>
+                                <li>파일에 <code class="inline-code">Staged practice</code>를 추가합니다.</li>
+                                <li>파일을 Add합니다.</li>
+                                <li><code class="inline-code">git restore --staged</code>로 Stage를 취소합니다.</li>
+                                <li>파일 수정은 유지되는지 확인합니다.</li>
+                            </ol>
+
+                            <pre class="mini-code"><code>git add undo-practice.txt
+
+git restore --staged undo-practice.txt
+
+git status</code></pre>
+                        </div>
+
+                        <div class="practice-section">
+                            <h3>Restore 실습 3 — 과거 파일 가져오기</h3>
+
+                            <pre class="mini-code"><code>git restore --source=HEAD~1 undo-practice.txt
+
+git status
+git diff
+
+# 현재 HEAD 버전으로 다시 복원
+git restore --source=HEAD undo-practice.txt</code></pre>
+                        </div>
+
+                        <div class="practice-section">
+                            <h3>Revert 실습 1 — 최신 Commit 취소</h3>
+
+                            <pre class="mini-code"><code>git revert HEAD
+
+git log --oneline
+git show HEAD</code></pre>
+
+                            <p>
+                                History에는 Commit C와 Revert-C가 모두 남고,
+                                파일에서는 Feature C가 취소된 상태를 확인합니다.
+                            </p>
+                        </div>
+
+                        <div class="practice-section">
+                            <h3>Revert 실습 2 — Revert의 Revert</h3>
+
+                            <pre class="mini-code"><code>git revert HEAD
+
+git log --oneline
+git show HEAD</code></pre>
+
+                            <p>
+                                가장 최근 Revert Commit을 다시 Revert하여
+                                Feature C가 재적용되는 효과를 확인합니다.
+                            </p>
+                        </div>
+
+                        <div class="practice-section">
+                            <h3>Revert 실습 3 — 중간 Commit 취소</h3>
+
+                            <pre class="mini-code"><code>git log --oneline
+
+git revert Feature_B_CommitID</code></pre>
+
+                            <p>
+                                Feature C가 Feature B에 의존한다면 Conflict가 발생할 수 있습니다.
+                            </p>
+
+                            <pre class="mini-code"><code>git status
+
+# 충돌 파일 수정 후
+git add undo-practice.txt
+git revert --continue
+
+# 실습을 취소할 때
+git revert --abort</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card work-card" id="real-work">
+                        <div class="card-title-row">
+                            <span class="card-number">21</span>
+                            <h2>실무 프로젝트와 연결하기</h2>
+                        </div>
+
+                        <div class="work-grid">
+                            <article>
+                                <h3>학습 매거진 파일 수정 실수</h3>
+                                <span>Restore</span>
+                                <p>
+                                    아직 Commit하지 않은 08 단원 HTML 수정이 잘못되었다면
+                                    Diff 확인 후 해당 파일만 Restore합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>잘못 Stage한 네비게이션 CSS</h3>
+                                <span>Restore --staged</span>
+                                <p>
+                                    단원 CSS와 관계없는 00_nav.css를 Stage했다면
+                                    파일 수정은 유지하고 Stage만 취소합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>과거 카드 디자인 복원</h3>
+                                <span>Restore --source</span>
+                                <p>
+                                    현재 History는 유지하면서 과거 Commit의
+                                    CSS 파일만 가져와 현재 변경으로 Commit합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Push된 잘못된 단원 취소</h3>
+                                <span>Revert</span>
+                                <p>
+                                    GitHub main에 Push된 오류 단원은
+                                    Revert Commit을 만들고 테스트 후 Push합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>React 로그인 장애</h3>
+                                <span>Revert</span>
+                                <p>
+                                    이미 배포된 검증 로직 Commit을 Revert하고
+                                    로그인 성공·실패·Token 만료 흐름을 테스트합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Spring Boot 배포 오류</h3>
+                                <span>Revert</span>
+                                <p>
+                                    공유된 회원가입 검증 Commit을 Revert하고
+                                    Unit Test와 Integration Test를 다시 실행합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>잘못 구성한 Local Commit</h3>
+                                <span>Reset</span>
+                                <p>
+                                    아직 Push하지 않은 큰 Commit을 Mixed Reset 후
+                                    기능·문서·스타일 Commit으로 분리합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>실험 Branch 완전 폐기</h3>
+                                <span>Hard Reset</span>
+                                <p>
+                                    Push하지 않은 실험이고 변경이 필요 없을 때만
+                                    Backup Branch를 만든 뒤 Hard Reset합니다.
+                                </p>
+                            </article>
+                        </div>
+
+                        <div class="database-warning">
+                            <h3>Database Migration은 Git Revert만으로 끝나지 않는다</h3>
+
+                            <p>
+                                Git Revert는 Migration 파일의 Git 변경을 취소합니다.
+                                이미 운영 Database에서 Migration이 실행되었다면
+                                실제 Schema와 Data는 자동으로 이전 상태가 되지 않습니다.
+                            </p>
+
+                            <div>
+                                <span>역 Migration 작성</span>
+                                <span>Schema 복구 Script</span>
+                                <span>Data Backup 확인</span>
+                                <span>배포 순서 조정</span>
+                            </div>
+                        </div>
+
+                        <div class="real-work-box">
+                            <h3>실무용 공통 루틴</h3>
+
+                            <div class="real-work-grid">
+                                <article>
+                                    <strong>Repository</strong>
+                                    <p>현재 올바른 저장소인지 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Branch</strong>
+                                    <p>되돌리기 결과가 적용될 Branch를 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Status</strong>
+                                    <p>현재 미Commit 변경과 진행 중 작업을 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Diff</strong>
+                                    <p>Restore로 사라질 파일 변경을 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>History</strong>
+                                    <p>Revert 또는 Reset 대상 Commit을 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>Push 여부</strong>
+                                    <p>이미 공유된 Commit인지 확인합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>실행·테스트</strong>
+                                    <p>되돌리기 후 전체 기능을 다시 검증합니다.</p>
+                                </article>
+
+                                <article>
+                                    <strong>결과 기록</strong>
+                                    <p>새 Commit과 Remote 상태를 최종 확인합니다.</p>
+                                </article>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card" id="interview">
+                        <div class="card-title-row">
+                            <span class="card-number">22</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. Restore, Revert, Reset의 차이는 무엇인가요?</h3>
+                                <p>
+                                    Restore는 파일이나 Index를 복원하며 Branch를 이동하지 않습니다.
+                                    Revert는 특정 Commit의 변경을 취소하는 새 Commit을 만듭니다.
+                                    Reset은 현재 Branch가 가리키는 Commit을 이동시켜 History를 변경할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. git restore 파일명은 어디에서 파일을 가져오나요?</h3>
+                                <p>
+                                    별도의 Source와 --staged를 지정하지 않은 기본 형태에서는
+                                    Index의 내용을 Working Directory에 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. git restore --staged 파일명은 무엇을 하나요?</h3>
+                                <p>
+                                    Index를 기본적으로 HEAD 상태로 복원하여 Stage를 취소합니다.
+                                    Working Directory의 파일 수정은 유지됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. Stage와 파일 변경을 모두 취소하려면 어떻게 하나요?</h3>
+                                <p>
+                                    git restore --source=HEAD --staged --worktree 파일명을 사용할 수 있습니다.
+                                    Index와 Working Directory가 모두 HEAD 상태로 복원됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. 특정 Commit의 파일 하나만 가져오려면 어떻게 하나요?</h3>
+                                <p>
+                                    git restore --source=CommitID 파일명을 사용합니다.
+                                    현재 Branch는 이동하지 않고 해당 파일만 지정한 Commit 버전으로 바뀝니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. git restore -p는 무엇인가요?</h3>
+                                <p>
+                                    파일 전체가 아니라 Diff Hunk를 하나씩 확인하며
+                                    일부 변경만 선택적으로 Restore하는 Patch 모드입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. Untracked 파일도 Restore할 수 있나요?</h3>
+                                <p>
+                                    한 번도 Add하거나 Commit하지 않은 파일은
+                                    Git이 알고 있는 복원 원본이 없으므로 일반적으로 Restore할 수 없습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. Revert란 무엇인가요?</h3>
+                                <p>
+                                    특정 Commit이 도입한 변경을 반대로 적용하고
+                                    그 결과를 새로운 Commit으로 기록하는 명령입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. Revert하면 대상 Commit이 삭제되나요?</h3>
+                                <p>
+                                    아닙니다. 대상 Commit은 History에 그대로 남고
+                                    취소용 Revert Commit이 추가됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. Revert하면 Branch가 과거로 이동하나요?</h3>
+                                <p>
+                                    아닙니다. 현재 HEAD 위에 새 Revert Commit이 만들어지므로
+                                    Branch는 앞으로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. Reset과 Revert의 대상 선택 기준은 어떻게 다른가요?</h3>
+                                <p>
+                                    Reset에서는 이동 후 남길 마지막 Commit을 선택하고,
+                                    Revert에서는 실제 변경을 취소할 Commit을 선택합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. 중간 Commit만 취소하려면 무엇을 사용하나요?</h3>
+                                <p>
+                                    Revert를 사용합니다.
+                                    이후 Commit을 유지하면서 대상 Commit의 효과만 취소하는 새 Commit을 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q13. Revert Conflict가 발생하는 이유는 무엇인가요?</h3>
+                                <p>
+                                    취소할 Commit의 코드가 이후 Commit에서 다시 수정되었거나,
+                                    이후 변경이 그 코드에 의존하여 Git이 자동으로 반대 Patch를 적용하기 어렵기 때문입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q14. Revert Conflict는 어떻게 해결하나요?</h3>
+                                <p>
+                                    최종 코드를 직접 작성하고 Conflict Marker를 제거한 뒤
+                                    git add와 git revert --continue를 실행합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q15. 진행 중 Revert를 취소하려면 어떻게 하나요?</h3>
+                                <p>
+                                    git revert --abort를 사용하여
+                                    Revert 시작 전 상태로 돌아갑니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q16. git revert --no-edit은 무엇인가요?</h3>
+                                <p>
+                                    Git이 생성한 기본 Revert Commit Message를
+                                    별도 편집 없이 그대로 사용하는 옵션입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q17. git revert --no-commit은 무엇인가요?</h3>
+                                <p>
+                                    반대 변경을 Index와 Working Directory에 적용하지만
+                                    Revert Commit은 자동으로 만들지 않는 옵션입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q18. Revert Commit을 다시 Revert하면 어떻게 되나요?</h3>
+                                <p>
+                                    첫 번째 Revert의 효과를 취소하므로
+                                    원래 Commit의 변경이 다시 적용되는 효과가 날 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q19. Merge Commit Revert에 -m 옵션이 필요한 이유는 무엇인가요?</h3>
+                                <p>
+                                    Merge Commit은 Parent가 둘 이상이므로
+                                    어느 Parent를 Mainline으로 볼지 지정해야 하기 때문입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q20. Push된 Commit에는 왜 Revert가 적합한가요?</h3>
+                                <p>
+                                    기존 History를 삭제하지 않고 취소용 새 Commit을 추가하므로
+                                    Remote와 팀원이 가진 History 연결을 유지할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q21. Revert는 항상 Conflict 없이 안전한가요?</h3>
+                                <p>
+                                    아닙니다. History 보존 측면에서는 안전하지만
+                                    코드 의존성과 이후 수정 때문에 Conflict가 발생할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q22. Reset은 언제 사용하는 것이 적절한가요?</h3>
+                                <p>
+                                    아직 Push하지 않은 개인 Local Commit을 다시 구성하거나
+                                    최근 Commit을 합치고 나눌 때 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q23. Hard Reset의 위험은 무엇인가요?</h3>
+                                <p>
+                                    HEAD, Index, Working Directory를 모두 대상 Commit 상태로 맞추므로
+                                    미Commit 추적 파일 변경까지 잃을 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q24. git rm과 git restore의 차이는 무엇인가요?</h3>
+                                <p>
+                                    git rm은 파일 삭제를 Git 변경으로 만들고,
+                                    git restore는 파일을 Git이 알고 있는 상태로 복원합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q25. Eclipse에서 Restore에 해당하는 기능은 무엇인가요?</h3>
+                                <p>
+                                    주로 파일 우클릭 후 Replace With 메뉴를 사용합니다.
+                                    File in Git Index, HEAD, Commit, Branch·Tag·Reference 등을 선택할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q26. Eclipse에서 Revert는 어떻게 실행하나요?</h3>
+                                <p>
+                                    Team → Show In History에서 실제 취소할 Commit을 선택한 뒤
+                                    Revert Commit을 실행합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q27. 같은 파일 상태여도 Reset과 Revert가 다른 이유는 무엇인가요?</h3>
+                                <p>
+                                    Reset은 Branch History를 과거로 이동시키고,
+                                    Revert는 기존 Commit과 취소 사실을 모두 History에 남기기 때문입니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card next-card" id="next-lesson">
+                        <div class="card-title-row">
+                            <span class="card-number">23</span>
+                            <h2>다음 단원으로 연결</h2>
+                        </div>
+
+                        <p>
+                            이번 단원까지 Local Repository 안에서 파일 변경, Commit History,
+                            안전한 되돌리기 방법을 모두 공부했습니다.<br>
+
+                            다음 단원에서는 Local Repository를 GitHub Remote Repository와 연결하고
+                            Commit History를 외부에 공유하는 방법을 공부합니다.
+                        </p>
+
+                        <div class="current-state-grid">
+                            <article>
+                                <strong>Restore</strong>
+                                <p>Commit 전 파일과 Stage 상태를 복원할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Revert</strong>
+                                <p>공유된 Commit을 취소하는 새 Commit을 만들 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Reset</strong>
+                                <p>공유 전 Local History를 과거부터 다시 구성할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Conflict</strong>
+                                <p>Revert 충돌을 해결하고 작업을 계속할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Shared History</strong>
+                                <p>Push 이후에는 History 보존이 중요함을 이해했습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Safety</strong>
+                                <p>Commit 여부와 공유 여부로 안전한 도구를 선택할 수 있습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="next-flow">
+                            <span>GitHub 저장소 생성</span>
+                            <span>Remote URL 확인</span>
+                            <span>origin 등록</span>
+                            <span>Local Branch 연결</span>
+                            <span>첫 Push</span>
+                            <span>Local / Remote 비교</span>
+                        </div>
+
+                        <div class="remote-preview">
+                            <article>
+                                <h3>Local Repository</h3>
+
+                                <pre class="mini-code"><code>Working Directory
+      ↓ Add
+Staging Area
+      ↓ Commit
+Local Repository</code></pre>
+                            </article>
+
+                            <div class="remote-arrow">Push →</div>
+
+                            <article>
+                                <h3>GitHub Remote Repository</h3>
+
+                                <pre class="mini-code"><code>origin/main
+A → B → C
+
+팀원과 공유되는 History</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="next-link-box">
+                            <a href="./09_git_remote_repository.html">
+                                다음 단원: 09. GitHub 원격 저장소 만들기와 연결하기 →
+                            </a>
+                        </div>
                     </section>
                 </main>
 
                 <aside class="side-note">
-                    <h2>오늘의 학습 메모</h2>
+                    <h2>학습 메모</h2>
 
-                    <div>
+                    <div class="memo-section">
                         <h3>오늘의 암기 포인트</h3>
-                        <p>이 영역은 Step1과 Step2 완료 후 암기 포인트를 정리할 예정입니다.</p>
+
+                        <ul>
+                            <li>Restore는 파일이나 Index를 복원합니다.</li>
+                            <li>Restore는 현재 Branch를 이동하지 않습니다.</li>
+                            <li>git restore 파일명은 기본적으로 Index 내용을 Working Directory에 복원합니다.</li>
+                            <li>git restore --staged 파일명은 Stage만 취소하고 파일 수정은 유지합니다.</li>
+                            <li>git restore --source=CommitID 파일명은 과거 버전의 파일을 가져옵니다.</li>
+                            <li>git restore -p는 일부 Hunk만 선택적으로 취소합니다.</li>
+                            <li>Revert는 특정 Commit의 반대 변경을 새 Commit으로 기록합니다.</li>
+                            <li>Revert는 기존 Commit을 삭제하지 않습니다.</li>
+                            <li>Revert에서는 실제 취소할 Commit을 선택합니다.</li>
+                            <li>Conflict 해결 후 git add와 git revert --continue를 실행합니다.</li>
+                            <li>진행 중 Revert를 취소하려면 git revert --abort를 사용합니다.</li>
+                            <li>Reset은 현재 Branch와 HEAD를 과거 Commit으로 이동합니다.</li>
+                            <li>Push된 공유 Commit에는 Reset보다 Revert를 우선합니다.</li>
+                        </ul>
                     </div>
 
-                    <div>
+                    <div class="memo-section warning-memo">
                         <h3>헷갈리기 쉬운 개념</h3>
-                        <p>이 영역은 비슷한 Git/GitHub 개념을 비교해서 정리할 예정입니다.</p>
+
+                        <div class="confuse-list">
+                            <article>
+                                <strong>Restore vs Revert</strong>
+                                <p>
+                                    Restore는 파일,
+                                    Revert는 Commit의 효과를 대상으로 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Revert vs Reset</strong>
+                                <p>
+                                    Revert는 새 Commit을 만들고,
+                                    Reset은 Branch를 과거로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>restore vs restore --staged</strong>
+                                <p>
+                                    기본 Restore는 파일을 복원하고,
+                                    --staged는 Add 상태를 취소합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Reset 대상 vs Revert 대상</strong>
+                                <p>
+                                    Reset은 남길 Commit,
+                                    Revert는 실제 취소할 Commit을 선택합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>파일 상태 vs History</strong>
+                                <p>
+                                    파일 내용이 같아도 Reset과 Revert History는 다릅니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Tracked vs Untracked</strong>
+                                <p>
+                                    Git이 추적한 적 없는 파일은 Restore 원본이 없습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Conflict 해결 vs 완료</strong>
+                                <p>
+                                    파일 수정 후 Add와 Revert Continue까지 해야 완료됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>Revert Abort vs Hard Reset</strong>
+                                <p>
+                                    진행 중 Revert 취소에는 먼저 --abort를 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>rm --cached vs Unstage</strong>
+                                <p>
+                                    rm --cached는 추적 중단,
+                                    restore --staged는 이번 Stage만 취소합니다.
+                                </p>
+                            </article>
+                        </div>
                     </div>
 
-                    <div>
+                    <div class="memo-section command-memo">
+                        <h3>빠른 명령어</h3>
+
+                        <div class="quick-command-grid">
+                            <article>
+                                <strong>파일 수정 취소</strong>
+                                <code>git restore 파일명</code>
+                            </article>
+
+                            <article>
+                                <strong>Unstage</strong>
+                                <code>git restore --staged 파일명</code>
+                            </article>
+
+                            <article>
+                                <strong>과거 파일 가져오기</strong>
+                                <code>git restore --source=CommitID 파일명</code>
+                            </article>
+
+                            <article>
+                                <strong>특정 Commit 취소</strong>
+                                <code>git revert CommitID</code>
+                            </article>
+
+                            <article>
+                                <strong>Revert 계속</strong>
+                                <code>git revert --continue</code>
+                            </article>
+
+                            <article>
+                                <strong>Revert 취소</strong>
+                                <code>git revert --abort</code>
+                            </article>
+
+                            <article>
+                                <strong>Mixed Reset</strong>
+                                <code>git reset --mixed HEAD~1</code>
+                            </article>
+
+                            <article>
+                                <strong>현재 상태</strong>
+                                <code>git status</code>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section checklist-memo">
+                        <h3>되돌리기 전 최종 체크</h3>
+
+                        <div class="aside-checklist">
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 Repository를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 Branch를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                git status를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                사라질 Diff를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Commit 여부를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Push 여부를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                팀원이 History를 사용 중인지 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Restore, Revert, Reset 중 올바른 도구를 선택했습니다.
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="memo-section final-summary">
                         <h3>다음 단원 연결</h3>
-                        <p>이 영역은 다음 단원과 이어지는 학습 흐름을 정리할 예정입니다.</p>
+
+                        <p>
+                            다음 단원에서는 GitHub에 Remote Repository를 만들고,
+                            Local Repository와 <code class="inline-code">origin</code>을 연결한 뒤
+                            Commit History를 Push합니다.
+                        </p>
+
+                        <div class="project-checklist">
+                            <article>
+                                <strong>이번 단원</strong>
+                                <p>
+                                    파일 상태, Commit 여부, Push 여부에 따라
+                                    안전한 되돌리기 방법을 선택했습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <strong>다음 단원</strong>
+                                <p>
+                                    Local History를 GitHub Remote Repository에
+                                    연결하고 공유하는 방법을 공부합니다.
+                                </p>
+                            </article>
+                        </div>
                     </div>
                 </aside>
             </div>
