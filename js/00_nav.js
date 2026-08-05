@@ -8,7 +8,9 @@
     }
 
     const currentPath = normalizePath(window.location.pathname);
-    const rootPrefix = getRootPrefix(currentPath);
+    const currentNavCategory = document.body?.dataset.navCategory || '';
+    const currentNavItem = document.body?.dataset.navItem || '';
+    const rootPrefix = sideNav.dataset.root || getRootPrefix(currentPath);
 
     const navGroups = [
         {
@@ -159,6 +161,125 @@
                         { label: '18. Filter·Interceptor·AOP', path: 'SpringBoot/18_filter_interceptor_aop.html', folder: 'SpringBoot', match: 'page' },
                         { label: '19. JWT 개념', path: 'SpringBoot/19_jwt_concept.html', folder: 'SpringBoot', match: 'page' },
                         { label: '20. Spring Security + JWT', path: 'SpringBoot/20_spring_security_jwt.html', folder: 'SpringBoot', match: 'page' }
+                    ]
+                }
+            ]
+        },
+        {
+            title: 'Python & Data',
+            className: 'nav-group-python-data',
+            items: [
+                {
+                    label: 'Python Basics / 파이썬 기초',
+                    folder: 'PythonData',
+                    children: [
+                        { label: '00. Python Basics / 파이썬 기초', path: 'PythonData/PythonBasic/00_python_basic_index.html', folder: 'PythonData', match: 'page' },
+                        { label: '01. Python과 데이터 학습 개요', path: 'PythonData/PythonBasic/01_python_overview.html', folder: 'PythonData', match: 'page' },
+                        { label: '02. Python 개발 환경 구성', path: 'PythonData/PythonBasic/02_python_environment.html', folder: 'PythonData', match: 'page' },
+                        { label: '03. REPL과 스크립트 실행', path: 'PythonData/PythonBasic/03_python_repl_script.html', folder: 'PythonData', match: 'page' },
+                        { label: '04. 문법 구조와 들여쓰기', path: 'PythonData/PythonBasic/04_python_syntax_indentation.html', folder: 'PythonData', match: 'page' },
+                        { label: '05. 주석과 pass', path: 'PythonData/PythonBasic/05_python_comments_pass.html', folder: 'PythonData', match: 'page' },
+                        { label: '06. 변수와 객체 이해', path: 'PythonData/PythonBasic/06_python_variables_objects.html', folder: 'PythonData', match: 'page' },
+                        { label: '07. 기본 자료형', path: 'PythonData/PythonBasic/07_python_data_types.html', folder: 'PythonData', match: 'page' },
+                        { label: '08. 연산자', path: 'PythonData/PythonBasic/08_python_operators.html', folder: 'PythonData', match: 'page' },
+                        { label: '09. 문자열 기초', path: 'PythonData/PythonBasic/09_python_string.html', folder: 'PythonData', match: 'page' },
+                        { label: '10. 문자열 메서드와 포맷팅', path: 'PythonData/PythonBasic/10_python_string_methods_format.html', folder: 'PythonData', match: 'page' },
+                        { label: '11. 조건문', path: 'PythonData/PythonBasic/11_python_condition.html', folder: 'PythonData', match: 'page' },
+                        { label: '12. 반복문', path: 'PythonData/PythonBasic/12_python_loop.html', folder: 'PythonData', match: 'page' },
+                        { label: '13. break와 continue', path: 'PythonData/PythonBasic/13_python_break_continue.html', folder: 'PythonData', match: 'page' },
+                        { label: '14. 리스트', path: 'PythonData/PythonBasic/14_python_list.html', folder: 'PythonData', match: 'page' },
+                        { label: '15. 리스트 컴프리헨션', path: 'PythonData/PythonBasic/15_python_list_comprehension.html', folder: 'PythonData', match: 'page' },
+                        { label: '16. 튜플', path: 'PythonData/PythonBasic/16_python_tuple.html', folder: 'PythonData', match: 'page' },
+                        { label: '17. 딕셔너리', path: 'PythonData/PythonBasic/17_python_dictionary.html', folder: 'PythonData', match: 'page' },
+                        { label: '18. 세트', path: 'PythonData/PythonBasic/18_python_set.html', folder: 'PythonData', match: 'page' },
+                        { label: '19. 함수', path: 'PythonData/PythonBasic/19_python_function.html', folder: 'PythonData', match: 'page' },
+                        { label: '20. 함수 인자', path: 'PythonData/PythonBasic/20_python_function_arguments.html', folder: 'PythonData', match: 'page' },
+                        { label: '21. lambda, scope, built-in', path: 'PythonData/PythonBasic/21_python_lambda_scope_builtin.html', folder: 'PythonData', match: 'page' },
+                        { label: '22. 모듈과 패키지', path: 'PythonData/PythonBasic/22_python_module_package.html', folder: 'PythonData', match: 'page' },
+                        { label: '23. __name__과 pip', path: 'PythonData/PythonBasic/23_python_name_pip.html', folder: 'PythonData', match: 'page' },
+                        { label: '24. 예외 처리', path: 'PythonData/PythonBasic/24_python_exception.html', folder: 'PythonData', match: 'page' },
+                        { label: '25. 타입 힌트', path: 'PythonData/PythonBasic/25_python_type_hint.html', folder: 'PythonData', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'Python Database / 파이썬 데이터베이스',
+                    folder: 'PythonData',
+                    children: [
+                        { label: '00. Python Database / 파이썬 데이터베이스', path: 'PythonData/PythonDatabase/00_python_database_index.html', folder: 'PythonData', match: 'page' },
+                        { label: '01. SQLite와 데이터베이스 개요', path: 'PythonData/PythonDatabase/01_database_sqlite_overview.html', folder: 'PythonData', match: 'page' },
+                        { label: '02. SQLite 테이블과 DDL', path: 'PythonData/PythonDatabase/02_sqlite_table_ddl.html', folder: 'PythonData', match: 'page' },
+                        { label: '03. SQLite CRUD 함수화', path: 'PythonData/PythonDatabase/03_sqlite_crud_function.html', folder: 'PythonData', match: 'page' },
+                        { label: '04. Python DB-API 구조', path: 'PythonData/PythonDatabase/04_python_dbapi_structure.html', folder: 'PythonData', match: 'page' },
+                        { label: '05. Python SQLite 연결', path: 'PythonData/PythonDatabase/05_python_sqlite_connect.html', folder: 'PythonData', match: 'page' },
+                        { label: '06. SQL 파라미터 처리', path: 'PythonData/PythonDatabase/06_python_sqlite_parameter.html', folder: 'PythonData', match: 'page' },
+                        { label: '07. 조회와 트랜잭션 처리', path: 'PythonData/PythonDatabase/07_python_database_fetch_transaction.html', folder: 'PythonData', match: 'page' },
+                        { label: '08. MySQL 환경과 SQL', path: 'PythonData/PythonDatabase/08_mysql_environment_sql.html', folder: 'PythonData', match: 'page' },
+                        { label: '09. MySQL 사용자와 권한', path: 'PythonData/PythonDatabase/09_mysql_user_privilege.html', folder: 'PythonData', match: 'page' },
+                        { label: '10. PyMySQL 연동', path: 'PythonData/PythonDatabase/10_python_pymysql.html', folder: 'PythonData', match: 'page' },
+                        { label: '11. Python Oracle 연동', path: 'PythonData/PythonDatabase/11_python_oracle.html', folder: 'PythonData', match: 'page' },
+                        { label: '12. Python Database 프로젝트', path: 'PythonData/PythonDatabase/12_python_database_project.html', folder: 'PythonData', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'Web Crawling / 웹크롤링',
+                    folder: 'PythonData',
+                    children: [
+                        { label: '00. Web Crawling / 웹크롤링', path: 'PythonData/WebCrawling/00_web_crawling_index.html', folder: 'PythonData', match: 'page' },
+                        { label: '01. 웹크롤링 개발 환경', path: 'PythonData/WebCrawling/01_crawling_environment.html', folder: 'PythonData', match: 'page' },
+                        { label: '02. Crawling, Scraping, HTTP', path: 'PythonData/WebCrawling/02_crawling_scraping_http.html', folder: 'PythonData', match: 'page' },
+                        { label: '03. urllib request', path: 'PythonData/WebCrawling/03_urllib_request.html', folder: 'PythonData', match: 'page' },
+                        { label: '04. URL parse와 Header', path: 'PythonData/WebCrawling/04_urllib_parse_header.html', folder: 'PythonData', match: 'page' },
+                        { label: '05. Requests와 HTTP 요청', path: 'PythonData/WebCrawling/05_requests_http.html', folder: 'PythonData', match: 'page' },
+                        { label: '06. BeautifulSoup 파싱', path: 'PythonData/WebCrawling/06_beautifulsoup_parse.html', folder: 'PythonData', match: 'page' },
+                        { label: '07. BeautifulSoup 선택자', path: 'PythonData/WebCrawling/07_beautifulsoup_selector.html', folder: 'PythonData', match: 'page' },
+                        { label: '08. 정적 웹 페이지 수집', path: 'PythonData/WebCrawling/08_static_web_scraping.html', folder: 'PythonData', match: 'page' },
+                        { label: '09. Selenium 브라우저 제어', path: 'PythonData/WebCrawling/09_selenium_browser.html', folder: 'PythonData', match: 'page' },
+                        { label: '10. Selenium Wait와 동적 페이지', path: 'PythonData/WebCrawling/10_selenium_wait_dynamic.html', folder: 'PythonData', match: 'page' },
+                        { label: '11. Selenium 로그인 처리', path: 'PythonData/WebCrawling/11_selenium_login.html', folder: 'PythonData', match: 'page' },
+                        { label: '12. Scrapy Shell과 프로젝트', path: 'PythonData/WebCrawling/12_scrapy_shell_project.html', folder: 'PythonData', match: 'page' },
+                        { label: '13. Scrapy Spider와 Pipeline', path: 'PythonData/WebCrawling/13_scrapy_spider_pipeline.html', folder: 'PythonData', match: 'page' },
+                        { label: '14. 크롤링 데이터 파이프라인', path: 'PythonData/WebCrawling/14_crawling_data_pipeline.html', folder: 'PythonData', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'Data Analysis / 데이터 분석',
+                    folder: 'PythonData',
+                    children: [
+                        { label: '00. Data Analysis / 데이터 분석', path: 'PythonData/DataAnalysis/00_data_analysis_index.html', folder: 'PythonData', match: 'page' },
+                        { label: '01. 데이터 분석 개발 환경', path: 'PythonData/DataAnalysis/01_data_analysis_environment.html', folder: 'PythonData', match: 'page' },
+                        { label: '02. NumPy ndarray', path: 'PythonData/DataAnalysis/02_numpy_ndarray.html', folder: 'PythonData', match: 'page' },
+                        { label: '03. NumPy 배열 생성', path: 'PythonData/DataAnalysis/03_numpy_array_create.html', folder: 'PythonData', match: 'page' },
+                        { label: '04. NumPy 인덱싱과 슬라이싱', path: 'PythonData/DataAnalysis/04_numpy_index_slice.html', folder: 'PythonData', match: 'page' },
+                        { label: '05. NumPy 연산과 Broadcasting', path: 'PythonData/DataAnalysis/05_numpy_operation_broadcast.html', folder: 'PythonData', match: 'page' },
+                        { label: '06. NumPy reshape', path: 'PythonData/DataAnalysis/06_numpy_reshape.html', folder: 'PythonData', match: 'page' },
+                        { label: '07. NumPy 결합과 분리', path: 'PythonData/DataAnalysis/07_numpy_combine_split.html', folder: 'PythonData', match: 'page' },
+                        { label: '08. NumPy 파일 처리와 정렬', path: 'PythonData/DataAnalysis/08_numpy_file_sort.html', folder: 'PythonData', match: 'page' },
+                        { label: '09. Pandas Series와 DataFrame', path: 'PythonData/DataAnalysis/09_pandas_series_dataframe.html', folder: 'PythonData', match: 'page' },
+                        { label: '10. Pandas 데이터 선택', path: 'PythonData/DataAnalysis/10_pandas_selection.html', folder: 'PythonData', match: 'page' },
+                        { label: '11. 결측치와 Reindex', path: 'PythonData/DataAnalysis/11_pandas_missing_reindex.html', folder: 'PythonData', match: 'page' },
+                        { label: '12. Apply와 통계', path: 'PythonData/DataAnalysis/12_pandas_apply_statistics.html', folder: 'PythonData', match: 'page' },
+                        { label: '13. 문자열 처리와 정렬', path: 'PythonData/DataAnalysis/13_pandas_string_sort.html', folder: 'PythonData', match: 'page' },
+                        { label: '14. Concat, Merge, GroupBy', path: 'PythonData/DataAnalysis/14_pandas_concat_merge_groupby.html', folder: 'PythonData', match: 'page' },
+                        { label: '15. 시계열 데이터', path: 'PythonData/DataAnalysis/15_pandas_timeseries.html', folder: 'PythonData', match: 'page' },
+                        { label: '16. 범주형 데이터와 프로젝트', path: 'PythonData/DataAnalysis/16_pandas_categorical_project.html', folder: 'PythonData', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'Data Visualization / 데이터 시각화',
+                    folder: 'PythonData',
+                    children: [
+                        { label: '00. Data Visualization / 데이터 시각화', path: 'PythonData/DataVisualization/00_data_visualization_index.html', folder: 'PythonData', match: 'page' },
+                        { label: '01. 데이터 시각화 개념', path: 'PythonData/DataVisualization/01_visualization_concept.html', folder: 'PythonData', match: 'page' },
+                        { label: '02. Matplotlib 구조', path: 'PythonData/DataVisualization/02_matplotlib_structure.html', folder: 'PythonData', match: 'page' },
+                        { label: '03. Matplotlib 선 그래프', path: 'PythonData/DataVisualization/03_matplotlib_line.html', folder: 'PythonData', match: 'page' },
+                        { label: '04. Matplotlib Subplot', path: 'PythonData/DataVisualization/04_matplotlib_subplot.html', folder: 'PythonData', match: 'page' },
+                        { label: '05. Matplotlib 산점도', path: 'PythonData/DataVisualization/05_matplotlib_scatter.html', folder: 'PythonData', match: 'page' },
+                        { label: '06. Matplotlib 막대 그래프', path: 'PythonData/DataVisualization/06_matplotlib_bar.html', folder: 'PythonData', match: 'page' },
+                        { label: '07. Matplotlib 파이 그래프', path: 'PythonData/DataVisualization/07_matplotlib_pie.html', folder: 'PythonData', match: 'page' },
+                        { label: '08. Seaborn 분포 그래프', path: 'PythonData/DataVisualization/08_seaborn_distribution.html', folder: 'PythonData', match: 'page' },
+                        { label: '09. Seaborn 관계 그래프', path: 'PythonData/DataVisualization/09_seaborn_relation.html', folder: 'PythonData', match: 'page' },
+                        { label: '10. Seaborn 범주 그래프', path: 'PythonData/DataVisualization/10_seaborn_category.html', folder: 'PythonData', match: 'page' },
+                        { label: '11. 시각화 대시보드', path: 'PythonData/DataVisualization/11_visualization_dashboard.html', folder: 'PythonData', match: 'page' }
                     ]
                 }
             ]
@@ -355,6 +476,14 @@
             return item.children.some(isCurrentCategory);
         }
 
+        if (item.navItem && item.navItem === currentNavItem) {
+            return true;
+        }
+
+        if (item.folder && currentNavCategory === normalizePath(item.folder).toLowerCase()) {
+            return true;
+        }
+
         if (item.match === 'page') {
             return isCurrentPage(item.path);
         }
@@ -375,6 +504,7 @@
             'html5&css3': 'html5-css3',
             'javabasics': 'javabasics',
             'oraclesqldeveloper': 'oraclesqldeveloper',
+            'pythondata': 'pythondata',
             'react': 'react',
             'springboot': 'springboot'
         };
@@ -383,6 +513,23 @@
     }
 
     function getRootPrefix(path) {
+        const legacyPythonDataMarker = '/html/PythonData/';
+        const pythonDataMarker = '/PythonData/';
+
+        if (path.includes(legacyPythonDataMarker)) {
+            const relativePath = path.split(legacyPythonDataMarker)[1] || '';
+            const depth = relativePath.split('/').filter(Boolean).length + 1;
+
+            return '../'.repeat(depth);
+        }
+
+        if (path.includes(pythonDataMarker)) {
+            const relativePath = path.split(pythonDataMarker)[1] || '';
+            const depth = relativePath.split('/').filter(Boolean).length;
+
+            return '../'.repeat(depth);
+        }
+
         if (
             path.includes('/HTML5&CSS3/') ||
             path.includes('/JavaBasics/') ||

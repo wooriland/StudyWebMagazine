@@ -3,86 +3,2997 @@
 
     <head>
         <meta charset="UTF-8">
+
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <meta name="description"
+            content="Git Branch의 개념과 HEAD 이동, Eclipse에서 Branch 생성과 전환, 기능 작업, main Merge, Fast-forward, Merge Commit, Conflict, Push와 Branch 삭제 흐름을 학습합니다.">
+
         <title>Git/GitHub - Branch 생성과 Merge</title>
 
         <link rel="stylesheet" href="../css/00_nav.css">
+
         <link rel="stylesheet" href="../css/study-theme.css">
+
         <link rel="stylesheet" href="../css/GitGithub/14_git_branch_merge.css">
 
         <script src="../js/00_nav.js" defer></script>
     </head>
 
     <body class="theme-gitgithub study-page gitgithub-page gitgithub-lesson-page gitgithub-lesson-14">
+
         <div class="layout">
+
             <nav class="side-nav" id="sideNav"></nav>
 
             <div class="page-content">
-                <header class="page-header lesson-header">
-                    <p class="chapter-label">Git/GitHub - Chapter 14</p>
-                    <h1>14. Branch 생성과 Merge</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step1에서 교안 내용을 바탕으로 자세히 공부할 예정입니다.
+
+                <!-- =====================================================
+                     HEADER
+                     ===================================================== -->
+
+                <header class="page-header git-hero">
+
+                    <p class="chapter-label">
+                        Git/GitHub - Chapter 14
                     </p>
-                    <ul class="lesson-goals">
-                        <li>이 단원의 핵심 개념을 이해합니다.</li>
-                        <li>Git/GitHub 전체 흐름에서 이 단원의 위치를 파악합니다.</li>
-                        <li>Step2에서 개념, 흐름도, 실무 연결로 구조화할 준비를 합니다.</li>
-                    </ul>
+
+                    <h1>Branch 생성과 Merge</h1>
+
+                    <p class="chapter-description">
+                        하나의 <strong>main</strong>에서 모든 기능을 바로 개발하면
+                        미완성 코드와 테스트 실패가 기준 Branch에 섞일 수 있습니다.<br>
+
+                        Git Branch를 사용하면 안정적인 main은 그대로 유지한 채,
+                        <strong>feature/login</strong>,
+                        <strong>feature/payment</strong> 같은 독립적인 작업선에서
+                        기능을 개발할 수 있습니다.<br>
+
+                        기능 개발이 끝난 뒤에는 main으로 돌아와
+                        기능 Branch의 Commit History를 Merge하고,
+                        Build와 Test를 거친 결과만 GitHub에 Push합니다.<br>
+
+                        이번 단원의 중심 질문은
+                        <strong>
+                            “왜 main에서 모든 기능을 직접 개발하지 않고,
+                            별도의 Branch에서 작업한 뒤 다시 Merge해야 할까?”
+                        </strong>
+                        입니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="Branch 생성과 Merge 핵심 키워드">
+
+                        <span>Branch</span>
+                        <span>main</span>
+                        <span>master</span>
+                        <span>feature/login</span>
+                        <span>HEAD</span>
+                        <span>Pointer</span>
+                        <span>Working Directory</span>
+                        <span>Index</span>
+                        <span>Switch</span>
+                        <span>Checkout</span>
+                        <span>Start Point</span>
+                        <span>Local Branch</span>
+                        <span>Remote Branch</span>
+                        <span>Remote Tracking Branch</span>
+                        <span>Upstream</span>
+                        <span>Merge</span>
+                        <span>Fast-forward</span>
+                        <span>Merge Commit</span>
+                        <span>Conflict</span>
+                        <span>Push HEAD</span>
+                        <span>Pull Request</span>
+                        <span>Branch Delete</span>
+                        <span>Detached HEAD</span>
+
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+
+                        <article>
+                            <strong>학습 목표 1</strong>
+
+                            <p>
+                                Branch가 프로젝트 복사본이 아니라<br>
+                                Commit을 가리키는 포인터라는 점을<br>
+                                설명할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+
+                            <p>
+                                Eclipse에서 Branch 생성·전환,<br>
+                                기능 작업과 Commit을<br>
+                                순서대로 실행할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+
+                            <p>
+                                main으로 돌아와 기능 Branch를 Merge하고<br>
+                                결과 확인·Test·Push·Branch 정리까지<br>
+                                완료할 수 있습니다.
+                            </p>
+                        </article>
+
+                    </div>
+
                 </header>
 
-                <main class="lesson-main">
-                    <section class="learning-card concept-card">
-                        <h2>1. 개념 설명 카드</h2>
-                        <p>Step1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
+                <!-- =====================================================
+                     MAIN
+                     ===================================================== -->
+
+                <main>
+
+                    <!-- 01 -->
+                    <section class="study-card branch-section-card" id="lesson-overview">
+
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>이번 단원의 전체 흐름</h2>
+                        </div>
+
+                        <p>
+                            이번 단원은 안정적인 기준 Branch에서 기능 작업을 분리하고,
+                            완성된 기능만 다시 통합하는 과정을 학습합니다.
+                        </p>
+
+                        <div class="lesson-flow">
+
+                            <article class="flow-step tone-blue">
+                                <span>1</span>
+
+                                <h3>main 최신화</h3>
+
+                                <p>
+                                    기준 Branch와 Remote의
+                                    최신 상태를 확인합니다.
+                                </p>
+
+                                <code>Pull main</code>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article class="flow-step tone-purple">
+                                <span>2</span>
+
+                                <h3>Branch 생성</h3>
+
+                                <p>
+                                    main의 최신 Commit에서
+                                    기능 Branch를 만듭니다.
+                                </p>
+
+                                <code>feature/login</code>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article class="flow-step tone-warn">
+                                <span>3</span>
+
+                                <h3>기능 개발</h3>
+
+                                <p>
+                                    기능 파일을 만들고
+                                    Add와 Commit을 반복합니다.
+                                </p>
+
+                                <code>Edit → Commit</code>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article class="flow-step tone-green">
+                                <span>4</span>
+
+                                <h3>main Merge</h3>
+
+                                <p>
+                                    main으로 돌아와
+                                    기능 Branch를 통합합니다.
+                                </p>
+
+                                <code>Merge feature</code>
+                            </article>
+
+                            <div class="flow-arrow">→</div>
+
+                            <article class="flow-step tone-remote">
+                                <span>5</span>
+
+                                <h3>검증과 공유</h3>
+
+                                <p>
+                                    Build와 Test 후
+                                    main을 Push하고 Branch를 정리합니다.
+                                </p>
+
+                                <code>Test → Push</code>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>핵심 문장</h3>
+
+                            <p>
+                                Branch는 안정적인 main을 유지하면서 기능을 독립적으로 개발하기 위한 작업선이며,
+                                Merge는 그 작업선에서 만든 Commit History를 기준 Branch에 통합하는 과정입니다.
+                            </p>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card flow-card">
-                        <h2>2. 흐름도 카드</h2>
-                        <p>Step2에서 그림처럼 이해할 수 있도록 구조화할 예정입니다.</p>
+                    <!-- 02 -->
+                    <section class="study-card branch-section-card" id="why-branch">
+
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>왜 main에서 바로 개발하지 않는가?</h2>
+                        </div>
+
+                        <div class="main-feature-compare">
+
+                            <article class="direct-main-panel">
+
+                                <span>main에서 직접 개발</span>
+
+                                <h3>기준 Branch가 불안정해짐</h3>
+
+                                <ul class="plain-list">
+                                    <li>미완성 기능이 main에 포함됩니다.</li>
+                                    <li>컴파일 오류와 테스트 실패가 섞일 수 있습니다.</li>
+                                    <li>실험 코드와 디버깅 코드가 기준 코드에 남습니다.</li>
+                                    <li>기능을 폐기할 때 History 정리가 어려워집니다.</li>
+                                    <li>다른 팀원의 작업과 충돌 범위가 커질 수 있습니다.</li>
+                                </ul>
+                            </article>
+
+                            <article class="feature-branch-panel">
+
+                                <span>기능 Branch에서 개발</span>
+
+                                <h3>main과 기능 작업을 분리</h3>
+
+                                <ul class="plain-list">
+                                    <li>main은 실행 가능한 기준 상태를 유지합니다.</li>
+                                    <li>미완성 기능은 기능 Branch에만 존재합니다.</li>
+                                    <li>기능별 Commit History를 분리할 수 있습니다.</li>
+                                    <li>완성되지 않은 기능은 Merge하지 않을 수 있습니다.</li>
+                                    <li>Code Review와 테스트 범위를 명확히 할 수 있습니다.</li>
+                                </ul>
+                            </article>
+
+                        </div>
+
+                        <div class="branch-purpose-grid">
+
+                            <article>
+                                <span>안정성</span>
+                                <strong>main 보호</strong>
+                                <p>검증된 기준 코드를 유지합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>독립성</span>
+                                <strong>기능 분리</strong>
+                                <p>미완성 기능을 별도로 개발합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>추적성</span>
+                                <strong>History 분리</strong>
+                                <p>기능별 변경 이유를 확인할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>협업</span>
+                                <strong>Review와 CI</strong>
+                                <p>기능 Branch 단위로 검토하고 테스트합니다.</p>
+                            </article>
+
+                        </div>
+
                     </section>
 
-                    <section class="learning-card practice-card">
-                        <h2>3. 실습 준비 카드</h2>
-                        <p>Eclipse, Git Bash, GitHub 실습 흐름을 정리할 예정입니다.</p>
+                    <!-- 03 -->
+                    <section class="study-card branch-section-card" id="branch-pointer">
+
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>Branch는 프로젝트 복사본이 아니라 포인터다</h2>
+                        </div>
+
+                        <p>
+                            Branch를 만들 때 프로젝트 폴더 전체가 복사되는 것이 아닙니다.
+                            Branch는 특정 Commit을 가리키는 이름 있는 포인터입니다.
+                        </p>
+
+                        <div class="pointer-before-after">
+
+                            <article class="pointer-before">
+
+                                <span>Branch 생성 전</span>
+
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+         main</code></pre>
+
+                                <p>
+                                    main이 최신 Commit C를 가리킵니다.
+                                </p>
+                            </article>
+
+                            <div class="pointer-transform">
+
+                                <strong>새 Branch 생성</strong>
+                                <span>→</span>
+                            </div>
+
+                            <article class="pointer-after">
+
+                                <span>Branch 생성 후</span>
+
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+   main, feature/login</code></pre>
+
+                                <p>
+                                    같은 Commit C를 가리키는
+                                    새로운 Branch 이름만 추가됩니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="branch-light-grid">
+
+                            <article>
+                                <h3>Commit 객체 공유</h3>
+                                <p>
+                                    main과 feature/login은 기존 Commit과 파일 객체를
+                                    함께 사용합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>빠른 생성</h3>
+                                <p>
+                                    프로젝트 전체를 복사하지 않으므로
+                                    Branch 생성 자체는 빠릅니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Branch별 새 Commit</h3>
+                                <p>
+                                    Branch마다 달라진 작업은
+                                    새로운 Commit으로 추가됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>이름 있는 작업선</h3>
+                                <p>
+                                    Branch 이름을 통해 작업 목적과
+                                    현재 위치를 구분할 수 있습니다.
+                                </p>
+                            </article>
+
+                        </div>
+
                     </section>
 
-                    <section class="learning-card command-card">
-                        <h2>4. 명령어 연결 카드</h2>
-                        <p>Eclipse 메뉴와 Git CLI 명령어를 연결해서 정리할 예정입니다.</p>
+                    <!-- 04 -->
+                    <section class="study-card branch-section-card" id="head-and-commit">
+
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>HEAD와 Branch의 이동</h2>
+                        </div>
+
+                        <div class="head-state-grid">
+
+                            <article class="head-state main-head">
+
+                                <span>처음 상태</span>
+
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+       HEAD → main</code></pre>
+
+                                <p>
+                                    HEAD는 현재 작업 Branch인 main을 가리킵니다.
+                                </p>
+                            </article>
+
+                            <article class="head-state feature-head">
+
+                                <span>기능 Branch 전환</span>
+
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+        main
+          ↑
+HEAD → feature/login</code></pre>
+
+                                <p>
+                                    새 Commit이 없으므로 두 Branch는 같은 C를 가리킵니다.
+                                </p>
+                            </article>
+
+                            <article class="head-state feature-commit">
+
+                                <span>기능 Commit 생성</span>
+
+                                <pre class="mini-code"><code>A ── B ── C ── D ── E
+          ↑            ↑
+        main     HEAD → feature/login</code></pre>
+
+                                <p>
+                                    새로운 Commit D와 E는 feature/login에만 연결됩니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="head-rule-box">
+
+                            <h3>Commit이 추가되는 위치</h3>
+
+                            <div class="head-rule-flow">
+                                <span>HEAD</span>
+                                <i>→</i>
+                                <span>현재 Branch</span>
+                                <i>→</i>
+                                <span>새 Commit</span>
+                            </div>
+
+                            <p>
+                                현재 Branch가 main이면 main에 Commit이 추가되고,
+                                현재 Branch가 feature/login이면 feature/login에 Commit이 추가됩니다.
+                            </p>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>작업 전에 현재 Branch를 확인합니다</h3>
+
+                            <p>
+                                현재 Branch를 확인하지 않으면 기능 작업을 실수로 main에 Commit할 수 있습니다.
+                            </p>
+
+                            <pre class="mini-code"><code>git branch --show-current
+git status</code></pre>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card warning-card">
-                        <h2>5. 자주 하는 실수 카드</h2>
-                        <p>초보자가 헷갈리기 쉬운 부분을 정리할 예정입니다.</p>
+                    <!-- 05 -->
+                    <section class="study-card branch-section-card" id="working-directory">
+
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Branch 전환과 Working Directory 변화</h2>
+                        </div>
+
+                        <p>
+                            일반적인 Git Repository는 하나의 Working Directory를 사용합니다.
+                            Branch를 전환하면 같은 프로젝트 폴더의 파일 상태가 대상 Branch에 맞게 변경됩니다.
+                        </p>
+
+                        <div class="worktree-flow">
+
+                            <article class="worktree-branch feature-worktree">
+
+                                <span>feature/login</span>
+
+                                <pre class="mini-code"><code>LoginController.java
+LoginService.java
+login.html</code></pre>
+
+                                <p>
+                                    기능 Branch Commit에 존재하는 파일입니다.
+                                </p>
+                            </article>
+
+                            <div class="worktree-switch">
+
+                                <strong>Switch Branch</strong>
+                                <span>⇄</span>
+
+                                <code>HEAD 이동</code>
+                            </div>
+
+                            <article class="worktree-branch main-worktree">
+
+                                <span>main</span>
+
+                                <pre class="mini-code"><code>기능 Branch 파일이
+보이지 않을 수 있음</code></pre>
+
+                                <p>
+                                    main Commit에는 아직 로그인 파일이 없기 때문입니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="switch-internal-grid">
+
+                            <article>
+                                <span>1</span>
+                                <h3>변경 상태 검사</h3>
+                                <p>현재 미Commit 변경의 손실 가능성을 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <h3>HEAD 이동</h3>
+                                <p>HEAD가 대상 Branch를 가리키도록 변경됩니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <h3>Index 갱신</h3>
+                                <p>Index가 대상 Branch의 상태로 변경됩니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <h3>Working Tree 갱신</h3>
+                                <p>실제 파일이 대상 Commit 상태로 펼쳐집니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>파일이 사라진 것이 아닙니다</h3>
+
+                            <p>
+                                Branch 전환 후 파일이 보이지 않는 것은 현재 Branch Commit에 그 파일이 없기 때문입니다.
+                                원래 기능 Branch로 돌아가면 다시 나타납니다.
+                            </p>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card interview-card">
-                        <h2>6. 면접 포인트 카드</h2>
-                        <p>면접 질문과 답변 형태로 정리할 예정입니다.</p>
+                    <!-- 06 -->
+                    <section class="study-card branch-section-card" id="create-vs-switch">
+
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Branch 생성과 전환은 다른 작업이다</h2>
+                        </div>
+
+                        <div class="create-switch-grid">
+
+                            <article class="create-only-card">
+
+                                <span>CREATE ONLY</span>
+
+                                <h3>Branch만 생성</h3>
+
+                                <pre class="mini-code"><code>git branch feature/login</code></pre>
+
+                                <p>
+                                    feature/login은 만들어지지만
+                                    현재 Branch와 HEAD는 main에 남습니다.
+                                </p>
+                            </article>
+
+                            <article class="switch-only-card">
+
+                                <span>SWITCH ONLY</span>
+
+                                <h3>기존 Branch로 전환</h3>
+
+                                <pre class="mini-code"><code>git switch feature/login</code></pre>
+
+                                <p>
+                                    이미 존재하는 feature/login으로
+                                    HEAD와 Working Directory를 이동합니다.
+                                </p>
+                            </article>
+
+                            <article class="create-switch-card">
+
+                                <span>CREATE + SWITCH</span>
+
+                                <h3>생성과 전환을 한 번에</h3>
+
+                                <pre class="mini-code"><code>git switch -c feature/login</code></pre>
+
+                                <p>
+                                    새 Branch를 만들고
+                                    바로 해당 Branch로 전환합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="legacy-command">
+
+                            <h3>기존에 널리 사용된 명령</h3>
+
+                            <pre class="mini-code"><code>git checkout -b feature/login</code></pre>
+
+                            <p>
+                                새 Branch 생성과 전환을 함께 수행합니다.
+                                이번 교안에서는 의미가 더 명확한 <code>git switch -c</code>도 함께 연결합니다.
+                            </p>
+
+                        </div>
+
                     </section>
+
+                    <!-- 07 -->
+                    <section class="study-card branch-section-card" id="main-master-naming">
+
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>main · master와 Branch 이름 규칙</h2>
+                        </div>
+
+                        <div class="main-master-grid">
+
+                            <article>
+                                <span>main</span>
+                                <p>
+                                    최근 많은 Repository에서 사용하는
+                                    기본 Branch 이름입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>master</span>
+                                <p>
+                                    기존 프로젝트와 첨부 교안에서
+                                    사용되는 기본 Branch 이름입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>기능 차이</span>
+                                <p>
+                                    main과 master는 기능적으로 특별한 차이가 없으며
+                                    둘 다 Branch 이름입니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="branch-name-grid">
+
+                            <article>
+                                <strong>기능 개발</strong>
+                                <code>feature/login</code>
+                                <code>feature/payment</code>
+                            </article>
+
+                            <article>
+                                <strong>버그 수정</strong>
+                                <code>fix/login-validation</code>
+                                <code>fix/payment-timeout</code>
+                            </article>
+
+                            <article>
+                                <strong>긴급 수정</strong>
+                                <code>hotfix/security-patch</code>
+                                <code>hotfix/payment-error</code>
+                            </article>
+
+                            <article>
+                                <strong>리팩터링</strong>
+                                <code>refactor/user-service</code>
+                                <code>refactor/package-structure</code>
+                            </article>
+
+                            <article>
+                                <strong>문서 작업</strong>
+                                <code>docs/readme</code>
+                                <code>docs/api-guide</code>
+                            </article>
+
+                            <article>
+                                <strong>배포 준비</strong>
+                                <code>release/1.0.0</code>
+                                <code>release/1.1.0</code>
+                            </article>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>현재 Repository의 실제 Branch 이름을 확인합니다</h3>
+
+                            <pre class="mini-code"><code>git branch --show-current</code></pre>
+
+                            <p>
+                                프로젝트가 master를 사용한다면 이후 명령의 main을 master로 바꾸어 적용합니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 08 -->
+                    <section class="study-card branch-section-card" id="branch-start-point">
+
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>Branch를 어느 Commit에서 시작할 것인가?</h2>
+                        </div>
+
+                        <div class="start-point-compare">
+
+                            <article class="correct-start">
+
+                                <span>올바른 시작점</span>
+
+                                <pre class="mini-code"><code>main 최신화
+→ feature/login 생성</code></pre>
+
+                                <div class="start-history">
+                                    <code>A ── B ── C</code>
+                                    <strong>main, feature/login</strong>
+                                </div>
+
+                                <p>
+                                    최신 main의 기능과 수정 사항을 포함한 상태에서 시작합니다.
+                                </p>
+                            </article>
+
+                            <article class="wrong-start">
+
+                                <span>잘못된 시작점 가능성</span>
+
+                                <pre class="mini-code"><code>feature/payment에서
+feature/login 생성</code></pre>
+
+                                <div class="start-history">
+                                    <code>main → payment → login</code>
+                                    <strong>의도하지 않은 Commit 포함</strong>
+                                </div>
+
+                                <p>
+                                    로그인 Branch에 결제 기능 Commit이 포함될 수 있습니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="safe-create-flow">
+
+                            <article>
+                                <span>01</span>
+                                <h3>main 전환</h3>
+                                <code>git switch main</code>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>Remote 최신화</h3>
+                                <code>git pull --no-rebase</code>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>상태 확인</h3>
+                                <code>git status</code>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <h3>Branch 생성</h3>
+                                <code>git switch -c feature/login</code>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 09 -->
+                    <section class="study-card branch-section-card" id="eclipse-create-branch">
+
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>Eclipse에서 Branch 만들기</h2>
+                        </div>
+
+                        <div class="menu-path-box">
+                            <strong>교안 기준 메뉴 경로</strong>
+
+                            <code>
+                                프로젝트 우클릭 → Team → Switch To → New Branch
+                            </code>
+                        </div>
+
+                        <div class="eclipse-step-grid">
+
+                            <article>
+                                <span>01</span>
+                                <h3>현재 Branch 확인</h3>
+                                <p>프로젝트명 옆에 main 또는 master가 표시되는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>Working Tree 확인</h3>
+                                <p>Git Staging에 미Commit 변경이 없는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>main 최신화</h3>
+                                <p>Remote 변경이 있다면 Team → Pull을 실행합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <h3>New Branch 열기</h3>
+                                <p>Team → Switch To → New Branch를 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <h3>Branch Name 입력</h3>
+                                <p><code>feature/login</code>처럼 목적이 드러나는 이름을 작성합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <h3>Start Point 확인</h3>
+                                <p>최신 main의 HEAD에서 시작하는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>07</span>
+                                <h3>Checkout 옵션 확인</h3>
+                                <p>생성 후 새 Branch로 바로 전환하는 옵션을 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>08</span>
+                                <h3>현재 Branch 재확인</h3>
+                                <p>프로젝트 장식이 feature/login으로 바뀌었는지 확인합니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="eclipse-result-grid">
+
+                            <article>
+                                <span>Project Explorer</span>
+                                <strong>sample-project [feature/login]</strong>
+                            </article>
+
+                            <article>
+                                <span>Git Repositories</span>
+                                <strong>Local → feature/login</strong>
+                            </article>
+
+                            <article>
+                                <span>HEAD</span>
+                                <strong>HEAD → feature/login</strong>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 10 -->
+                    <section class="study-card branch-section-card" id="feature-work">
+
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>기능 Branch에서 작업하고 Commit하기</h2>
+                        </div>
+
+                        <div class="feature-files">
+
+                            <article>
+                                <span>Java</span>
+                                <code>LoginController.java</code>
+                                <code>LoginService.java</code>
+                                <code>LoginRequest.java</code>
+                            </article>
+
+                            <article>
+                                <span>View</span>
+                                <code>login.html</code>
+                                <code>login.css</code>
+                                <code>login.js</code>
+                            </article>
+
+                            <article>
+                                <span>간단 실습</span>
+                                <code>login-feature.txt</code>
+                                <p>로그인 기능을 개발하고 있습니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="feature-commit-flow">
+
+                            <article>
+                                <span>1</span>
+                                <h3>파일 생성·수정</h3>
+                                <p>기능에 필요한 코드와 화면을 작성합니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>2</span>
+                                <h3>실행·테스트</h3>
+                                <p>현재 작업 단위가 정상인지 확인합니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>3</span>
+                                <h3>Add to Index</h3>
+                                <p>다음 Commit에 포함할 변경을 Stage합니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>4</span>
+                                <h3>Commit</h3>
+                                <p>현재 feature/login Branch에 버전을 만듭니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="commit-message-grid">
+
+                            <article>
+                                <code>feat: add login page</code>
+                                <p>로그인 화면을 추가한 Commit</p>
+                            </article>
+
+                            <article>
+                                <code>feat: add login validation</code>
+                                <p>입력값 검증을 추가한 Commit</p>
+                            </article>
+
+                            <article>
+                                <code>test: add login service test</code>
+                                <p>로그인 서비스 테스트를 추가한 Commit</p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>개인 Local Merge 실습</h3>
+
+                            <p>
+                                기능 Branch에서는 Add와 Commit까지만 수행하고,
+                                main으로 돌아가 Merge한 뒤 main을 Push할 수 있습니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 11 -->
+                    <section class="study-card branch-section-card" id="switch-main">
+
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>기능 작업 후 main으로 돌아가기</h2>
+                        </div>
+
+                        <div class="switch-check-grid">
+
+                            <article>
+                                <span>01</span>
+                                <h3>현재 작업 확인</h3>
+                                <code>git status</code>
+                                <p>Unstaged 또는 Staged 변경이 남아 있는지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>Commit 완료</h3>
+                                <code>git commit</code>
+                                <p>기능 작업을 의미 있는 Commit으로 정리합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>main 전환</h3>
+                                <code>git switch main</code>
+                                <p>HEAD와 Working Directory를 main 상태로 이동합니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="menu-path-box main-switch-menu">
+                            <strong>Eclipse 메뉴</strong>
+
+                            <code>
+                                프로젝트 우클릭 → Team → Switch To → main
+                            </code>
+                        </div>
+
+                        <div class="branch-file-visibility">
+
+                            <article class="feature-visible">
+
+                                <span>feature/login</span>
+
+                                <pre class="mini-code"><code>login-feature.txt
+LoginController.java
+login.html</code></pre>
+
+                                <p>기능 Branch에서만 존재하는 파일입니다.</p>
+                            </article>
+
+                            <div class="visibility-arrow">→</div>
+
+                            <article class="main-hidden">
+
+                                <span>main 전환 직후</span>
+
+                                <pre class="mini-code"><code>기능 파일이
+보이지 않을 수 있음</code></pre>
+
+                                <p>main에는 아직 해당 Commit이 Merge되지 않았습니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 12 -->
+                    <section class="study-card branch-section-card" id="merge-direction">
+
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>Merge 방향을 정확히 이해하기</h2>
+                        </div>
+
+                        <div class="merge-direction-grid">
+
+                            <article class="merge-to-main">
+
+                                <span>기능을 main에 반영</span>
+
+                                <h3>현재 Branch: main</h3>
+
+                                <pre class="mini-code"><code>git switch main
+git merge feature/login</code></pre>
+
+                                <div class="direction-arrow">
+                                    <strong>feature/login</strong>
+                                    <i>→</i>
+                                    <strong>main</strong>
+                                </div>
+
+                                <p>
+                                    완성된 로그인 기능을 기준 Branch에 넣는 작업입니다.
+                                </p>
+                            </article>
+
+                            <article class="merge-main-to-feature">
+
+                                <span>최신 main을 기능 Branch에 반영</span>
+
+                                <h3>현재 Branch: feature/login</h3>
+
+                                <pre class="mini-code"><code>git switch feature/login
+git merge main</code></pre>
+
+                                <div class="direction-arrow">
+                                    <strong>main</strong>
+                                    <i>→</i>
+                                    <strong>feature/login</strong>
+                                </div>
+
+                                <p>
+                                    기능 개발 중 최신 main 변경을 가져오는 작업입니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="merge-rule">
+
+                            <strong>Merge의 절대 원칙</strong>
+
+                            <p>
+                                현재 Checkout된 Branch가 Merge 결과를 받습니다.
+                            </p>
+
+                            <pre class="mini-code"><code>현재 Branch + 병합 대상 Branch
+→ 현재 Branch에 결과 반영</code></pre>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 13 -->
+                    <section class="study-card branch-section-card" id="eclipse-merge">
+
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>Eclipse에서 기능 Branch Merge하기</h2>
+                        </div>
+
+                        <div class="menu-path-box merge-menu">
+                            <strong>교안 기준 메뉴 흐름</strong>
+
+                            <code>
+                                main 전환 → 프로젝트 우클릭 → Team → Merge
+                                → Local → feature/login → Merge
+                            </code>
+                        </div>
+
+                        <div class="eclipse-merge-flow">
+
+                            <article>
+                                <span>01</span>
+                                <h3>main 전환</h3>
+                                <p>Merge 결과를 받을 기준 Branch로 이동합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>main 최신화</h3>
+                                <p>필요하면 origin/main의 최신 변경을 반영합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>Merge 메뉴</h3>
+                                <p>프로젝트 우클릭 → Team → Merge를 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <h3>Local 영역</h3>
+                                <p>Remote Tracking이 아닌 Local Branch 목록을 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <h3>기능 Branch 선택</h3>
+                                <p><code>feature/login</code>을 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <h3>Merge 실행</h3>
+                                <p>결과 상태와 변경 파일을 확인합니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="merge-precheck">
+
+                            <article>
+                                <strong>현재 Branch</strong>
+                                <span>main</span>
+                            </article>
+
+                            <article>
+                                <strong>Merge 대상</strong>
+                                <span>feature/login</span>
+                            </article>
+
+                            <article>
+                                <strong>예상 결과</strong>
+                                <span>기능 변경이 main에 반영</span>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 14 -->
+                    <section class="study-card branch-section-card" id="merge-results">
+
+                        <div class="card-title-row">
+                            <span class="card-number">14</span>
+                            <h2>Merge 결과 다섯 가지 읽기</h2>
+                        </div>
+
+                        <div class="merge-result-grid">
+
+                            <article class="result-card up-to-date-result">
+
+                                <span>ALREADY UP TO DATE</span>
+
+                                <h3>합칠 새 Commit 없음</h3>
+
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+   main, feature/login</code></pre>
+
+                                <p>
+                                    기능 Branch에 main이 모르는 새 Commit이 없습니다.
+                                </p>
+                            </article>
+
+                            <article class="result-card fast-forward-result">
+
+                                <span>FAST-FORWARD</span>
+
+                                <h3>main 포인터만 이동</h3>
+
+                                <pre class="mini-code"><code>A ── B ── C ── D ── E
+          ↑            ↑
+        main        feature
+
+Merge 후:
+main → E</code></pre>
+
+                                <p>
+                                    새 Merge Commit 없이 main이 기능 Branch 끝까지 이동합니다.
+                                </p>
+                            </article>
+
+                            <article class="result-card merge-commit-result">
+
+                                <span>MERGE COMMIT</span>
+
+                                <h3>갈라진 History 통합</h3>
+
+                                <pre class="mini-code"><code>          D ── E
+         /      \
+A ── B ── C      M
+         \      /
+          F ────</code></pre>
+
+                                <p>
+                                    main과 기능 Branch 양쪽에 Commit이 있어 통합 Commit이 생깁니다.
+                                </p>
+                            </article>
+
+                            <article class="result-card conflict-result">
+
+                                <span>CONFLICTING</span>
+
+                                <h3>수동 해결 필요</h3>
+
+                                <pre class="mini-code"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+main 내용
+=======
+feature 내용
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/login</code></pre>
+
+                                <p>
+                                    같은 파일의 같은 영역을 서로 다르게 수정했습니다.
+                                </p>
+                            </article>
+
+                            <article class="result-card failed-result">
+
+                                <span>FAILED</span>
+
+                                <h3>Merge 조건 확인</h3>
+
+                                <pre class="mini-code"><code>Working Tree
+Branch Name
+Merge 진행 상태
+Ref 확인</code></pre>
+
+                                <p>
+                                    현재 작업 상태와 Merge 대상 설정을 확인해야 합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 15 -->
+                    <section class="study-card branch-section-card" id="fast-forward-vs-merge-commit">
+
+                        <div class="card-title-row">
+                            <span class="card-number">15</span>
+                            <h2>Fast-forward와 Merge Commit 비교</h2>
+                        </div>
+
+                        <div class="merge-strategy-compare">
+
+                            <article class="fast-forward-panel">
+
+                                <span>FAST-FORWARD</span>
+
+                                <h3>History가 직선으로 이어짐</h3>
+
+                                <pre class="mini-code"><code>A ── B ── C ── D ── E
+                         ↑
+                       main</code></pre>
+
+                                <ul class="plain-list">
+                                    <li>main에 별도 Commit이 없을 때 가능합니다.</li>
+                                    <li>새 Merge Commit을 만들지 않습니다.</li>
+                                    <li>History가 단순하게 보입니다.</li>
+                                    <li>기능 Branch 통합 지점은 덜 명확할 수 있습니다.</li>
+                                </ul>
+                            </article>
+
+                            <article class="merge-commit-panel">
+
+                                <span>MERGE COMMIT</span>
+
+                                <h3>Branch 통합 지점이 기록됨</h3>
+
+                                <pre class="mini-code"><code>          D ── E
+         /      \
+A ── B ── C      M
+         \      /
+          F ────</code></pre>
+
+                                <ul class="plain-list">
+                                    <li>양쪽 Branch가 각각 진행했을 때 만들어질 수 있습니다.</li>
+                                    <li>두 개의 부모 Commit을 가집니다.</li>
+                                    <li>기능 Branch 통합 지점이 History에 남습니다.</li>
+                                    <li>Merge가 많으면 Graph가 복잡해질 수 있습니다.</li>
+                                </ul>
+                            </article>
+
+                        </div>
+
+                        <div class="command-box">
+                            <h3>Merge Commit을 명시적으로 남기는 옵션</h3>
+
+                            <pre class="mini-code"><code>git merge --no-ff feature/login</code></pre>
+
+                            <p>
+                                이번 기본 실습에서는 일반 <code>git merge feature/login</code>을 사용합니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 16 -->
+                    <section class="study-card branch-section-card" id="branch-conflict">
+
+                        <div class="card-title-row">
+                            <span class="card-number">16</span>
+                            <h2>Branch Merge에서 Conflict가 발생한 경우</h2>
+                        </div>
+
+                        <div class="branch-conflict-example">
+
+                            <article class="main-conflict-side">
+
+                                <span>main</span>
+
+                                <pre class="mini-code"><code>로그인 버튼 색상은
+파란색입니다.</code></pre>
+                            </article>
+
+                            <div class="conflict-plus">+</div>
+
+                            <article class="feature-conflict-side">
+
+                                <span>feature/login</span>
+
+                                <pre class="mini-code"><code>로그인 버튼 색상은
+초록색입니다.</code></pre>
+                            </article>
+
+                            <div class="conflict-equal">=</div>
+
+                            <article class="conflict-marker-side">
+
+                                <span>Conflict</span>
+
+                                <pre class="mini-code"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+파란색
+=======
+초록색
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/login</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="conflict-resolve-flow">
+
+                            <article>
+                                <span>1</span>
+                                <h3>충돌 파일 확인</h3>
+                                <p>Git Staging과 Project Explorer에서 찾습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>2</span>
+                                <h3>변경 의도 비교</h3>
+                                <p>main과 feature/login의 변경 이유를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>3</span>
+                                <h3>최종 코드 작성</h3>
+                                <p>Marker를 제거하고 올바른 결과를 작성합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>4</span>
+                                <h3>Add와 Commit</h3>
+                                <p>Conflict 해결 결과를 Merge Commit으로 확정합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>5</span>
+                                <h3>Build와 Test</h3>
+                                <p>통합된 코드의 실제 동작을 검증합니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 17 -->
+                    <section class="study-card branch-section-card" id="full-eclipse-practice">
+
+                        <div class="card-title-row">
+                            <span class="card-number">17</span>
+                            <h2>Eclipse Branch 전체 실습</h2>
+                        </div>
+
+                        <div class="full-practice-grid">
+
+                            <article>
+                                <span>01</span>
+                                <h3>main 확인</h3>
+                                <p>프로젝트 장식과 Git Repositories에서 현재 Branch를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>main 최신화</h3>
+                                <p>Team → Pull로 Remote 최신 변경을 반영합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>New Branch</h3>
+                                <p>Team → Switch To → New Branch를 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <h3>이름 입력</h3>
+                                <p><code>feature/login</code>을 입력하고 Checkout합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <h3>기능 파일 생성</h3>
+                                <p><code>login-feature.txt</code> 또는 Java 파일을 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <h3>Add to Index</h3>
+                                <p>기능 변경을 Staging Area에 등록합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>07</span>
+                                <h3>Commit</h3>
+                                <p><code>feat: add login feature</code>로 Local Commit합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>08</span>
+                                <h3>History 확인</h3>
+                                <p>main과 feature/login의 포인터 위치를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>09</span>
+                                <h3>main 복귀</h3>
+                                <p>Team → Switch To → main을 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>10</span>
+                                <h3>Merge 메뉴</h3>
+                                <p>Team → Merge에서 Local feature/login을 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>11</span>
+                                <h3>결과 판독</h3>
+                                <p>Fast-forward, Merged, Conflict 중 무엇인지 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>12</span>
+                                <h3>Build·Test·Push</h3>
+                                <p>기능을 검증한 뒤 main을 GitHub로 Push합니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="practice-code-result">
+
+                            <article>
+                                <span>기능 Branch 파일</span>
+
+                                <pre class="mini-code"><code>login-feature.txt
+
+로그인 기능을 개발하고 있습니다.</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Commit Message</span>
+
+                                <pre class="mini-code"><code>feat: add login feature</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Merge 후 main</span>
+
+                                <pre class="mini-code"><code>main에서도
+login-feature.txt 확인</code></pre>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 18 -->
+                    <section class="study-card branch-section-card" id="cli-flow">
+
+                        <div class="card-title-row">
+                            <span class="card-number">18</span>
+                            <h2>CLI 전체 실습 흐름</h2>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>Branch 생성부터 Merge와 삭제까지</h3>
+
+                            <pre class="mini-code"><code># 현재 상태 확인
+git status
+git branch --show-current
+
+# main 최신화
+git switch main
+git pull --no-rebase origin main
+
+# 기능 Branch 생성과 전환
+git switch -c feature/login
+
+# 기능 개발 후 Stage
+git add .
+
+# 기능 Commit
+git commit -m "feat: add login feature"
+
+# 추가 Commit
+git add .
+git commit -m "feat: add login validation"
+
+# Branch History 확인
+git log --oneline --decorate --graph --all
+
+# 선택: 기능 Branch를 GitHub에 Push
+git push -u origin feature/login
+
+# main으로 복귀
+git switch main
+
+# main 최신화
+git pull --no-rebase origin main
+
+# 기능 Branch Merge
+git merge feature/login
+
+# 결과 확인
+git status
+git log --oneline --decorate --graph --all
+
+# Windows Gradle Build
+.\gradlew.bat clean build
+
+# main Push
+git push origin main
+
+# Local 기능 Branch 안전 삭제
+git branch -d feature/login
+
+# 선택: Remote 기능 Branch 삭제
+git push origin --delete feature/login</code></pre>
+                        </div>
+
+                        <div class="command-detail-grid">
+
+                            <article>
+                                <strong>현재 Branch</strong>
+                                <code>git branch --show-current</code>
+                            </article>
+
+                            <article>
+                                <strong>전체 Branch</strong>
+                                <code>git branch -a</code>
+                            </article>
+
+                            <article>
+                                <strong>생성과 전환</strong>
+                                <code>git switch -c feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>Branch 전환</strong>
+                                <code>git switch main</code>
+                            </article>
+
+                            <article>
+                                <strong>History</strong>
+                                <code>git log --graph --all</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge</strong>
+                                <code>git merge feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge 중단</strong>
+                                <code>git merge --abort</code>
+                            </article>
+
+                            <article>
+                                <strong>기능 Branch Push</strong>
+                                <code>git push -u origin feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>Local 삭제</strong>
+                                <code>git branch -d feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>Remote 삭제</strong>
+                                <code>git push origin --delete feature/login</code>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 19 -->
+                    <section class="study-card branch-section-card" id="eclipse-cli-mapping">
+
+                        <div class="card-title-row">
+                            <span class="card-number">19</span>
+                            <h2>Eclipse 조작과 CLI 연결</h2>
+                        </div>
+
+                        <div class="table-shell">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>Eclipse 조작</th>
+                                        <th>Git 내부 의미</th>
+                                        <th>CLI 연결</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <td>Switch To → New Branch</td>
+                                        <td>새 Branch 생성과 전환</td>
+                                        <td><code>git switch -c feature/login</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Start Point 지정</td>
+                                        <td>Branch가 시작할 Commit 선택</td>
+                                        <td><code>git switch -c 브랜치 시작점</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Switch To → feature/login</td>
+                                        <td>HEAD를 기능 Branch로 이동</td>
+                                        <td><code>git switch feature/login</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>파일 생성·수정</td>
+                                        <td>현재 Branch Working Tree 변경</td>
+                                        <td>편집기 작업</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Add to Index</td>
+                                        <td>변경 사항을 Stage</td>
+                                        <td><code>git add 파일명</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Commit</td>
+                                        <td>현재 Branch에 Commit 추가</td>
+                                        <td><code>git commit -m "메시지"</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Show in History</td>
+                                        <td>Branch 포인터와 Commit Graph 확인</td>
+                                        <td><code>git log --graph --all</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Switch To → main</td>
+                                        <td>HEAD와 Working Tree를 main으로 이동</td>
+                                        <td><code>git switch main</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Team → Merge</td>
+                                        <td>선택 Branch를 현재 Branch에 통합</td>
+                                        <td><code>git merge feature/login</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Push HEAD</td>
+                                        <td>현재 main History를 Remote에 전송</td>
+                                        <td><code>git push</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Delete Branch</td>
+                                        <td>Local Branch 포인터 제거</td>
+                                        <td><code>git branch -d feature/login</code></td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 20 -->
+                    <section class="study-card branch-section-card" id="local-remote-branch">
+
+                        <div class="card-title-row">
+                            <span class="card-number">20</span>
+                            <h2>Local Branch와 Remote Branch 구분</h2>
+                        </div>
+
+                        <div class="local-remote-grid">
+
+                            <article class="local-branch-panel">
+
+                                <span>LOCAL BRANCH</span>
+
+                                <h3>내 컴퓨터에서 직접 작업</h3>
+
+                                <pre class="mini-code"><code>main
+feature/login
+feature/payment</code></pre>
+
+                                <p>
+                                    Commit과 Merge를 직접 수행하는 Local 작업 Branch입니다.
+                                </p>
+                            </article>
+
+                            <article class="remote-branch-panel">
+
+                                <span>REMOTE TRACKING</span>
+
+                                <h3>마지막 Fetch 시점의 원격 상태</h3>
+
+                                <pre class="mini-code"><code>origin/main
+origin/feature/login
+origin/feature/payment</code></pre>
+
+                                <p>
+                                    GitHub Branch의 상태를 Local Repository에서 나타냅니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="remote-branch-flow">
+
+                            <article>
+                                <span>Local 생성</span>
+                                <code>git switch -c feature/login</code>
+                                <p>아직 GitHub에는 기능 Branch가 없습니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>Remote Push</span>
+                                <code>git push -u origin feature/login</code>
+                                <p>GitHub에 feature/login Branch가 만들어집니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>Upstream 설정</span>
+                                <code>feature/login ↔ origin/feature/login</code>
+                                <p>이후 git push와 git pull을 간단히 사용할 수 있습니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 21 -->
+                    <section class="study-card branch-section-card" id="branch-delete">
+
+                        <div class="card-title-row">
+                            <span class="card-number">21</span>
+                            <h2>Merge 후 Branch 정리하기</h2>
+                        </div>
+
+                        <p>
+                            Merge가 끝나도 기능 Branch는 자동으로 삭제되지 않습니다.
+                            Merge와 Branch 삭제는 별개의 작업입니다.
+                        </p>
+
+                        <div class="delete-command-grid">
+
+                            <article class="safe-delete">
+
+                                <span>SAFE DELETE</span>
+
+                                <h3>Local Branch 안전 삭제</h3>
+
+                                <pre class="mini-code"><code>git branch -d feature/login</code></pre>
+
+                                <p>
+                                    Merge되지 않은 Commit이 있으면
+                                    삭제를 거절할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article class="force-delete">
+
+                                <span>FORCE DELETE</span>
+
+                                <h3>Local Branch 강제 삭제</h3>
+
+                                <pre class="mini-code"><code>git branch -D feature/login</code></pre>
+
+                                <p>
+                                    Merge되지 않은 Commit도 제거할 수 있으므로
+                                    주의해야 합니다.
+                                </p>
+                            </article>
+
+                            <article class="remote-delete">
+
+                                <span>REMOTE DELETE</span>
+
+                                <h3>GitHub Branch 삭제</h3>
+
+                                <pre class="mini-code"><code>git push origin --delete feature/login</code></pre>
+
+                                <p>
+                                    Local 삭제와 Remote 삭제는
+                                    서로 다른 작업입니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="delete-checklist">
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                기능이 main에 정상적으로 Merge되었습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Build와 Test가 성공했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                main을 Remote Repository에 Push했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                추가 작업과 Pull Request가 남아 있지 않습니다.
+                            </label>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 22 -->
+                    <section class="study-card branch-section-card" id="errors">
+
+                        <div class="card-title-row">
+                            <span class="card-number">22</span>
+                            <h2>Branch 오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <div class="error-table">
+
+                            <div class="table-head">오류 / 상태</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">해결 방향</div>
+
+                            <div>
+                                <code>branch already exists</code>
+                            </div>
+                            <div>
+                                같은 이름의 Local Branch가 이미 존재합니다.
+                            </div>
+                            <div>
+                                기존 Branch로 전환하거나 다른 이름을 사용합니다.
+                            </div>
+
+                            <div>
+                                <code>pathspec did not match</code>
+                            </div>
+                            <div>
+                                입력한 Branch나 Ref를 찾지 못했습니다.
+                            </div>
+                            <div>
+                                Branch 이름과 Fetch 상태를 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>local changes would be overwritten</code>
+                            </div>
+                            <div>
+                                Branch 전환 시 미Commit 수정이 손실될 수 있습니다.
+                            </div>
+                            <div>
+                                Commit, Stash 또는 Restore 후 전환합니다.
+                            </div>
+
+                            <div>
+                                <code>untracked files would be overwritten</code>
+                            </div>
+                            <div>
+                                미추적 파일과 전환 대상 파일 경로가 충돌합니다.
+                            </div>
+                            <div>
+                                파일을 Commit, 백업 또는 삭제합니다.
+                            </div>
+
+                            <div>
+                                <code>not something we can merge</code>
+                            </div>
+                            <div>
+                                Merge 대상 Branch나 Ref를 찾지 못했습니다.
+                            </div>
+                            <div>
+                                <code>git branch -a</code>로 목록을 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>Already up to date</code>
+                            </div>
+                            <div>
+                                병합 대상에 새로운 Commit이 없습니다.
+                            </div>
+                            <div>
+                                오류가 아니며 추가 Merge가 필요 없습니다.
+                            </div>
+
+                            <div>
+                                <code>Fast-forward</code>
+                            </div>
+                            <div>
+                                현재 Branch 포인터가 병합 대상 끝으로 이동했습니다.
+                            </div>
+                            <div>
+                                정상 결과이며 파일과 History를 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>CONFLICT (content)</code>
+                            </div>
+                            <div>
+                                두 Branch가 같은 영역을 서로 다르게 수정했습니다.
+                            </div>
+                            <div>
+                                최종 코드를 작성하고 Add·Commit합니다.
+                            </div>
+
+                            <div>
+                                <code>MERGE_HEAD exists</code>
+                            </div>
+                            <div>
+                                이전 Merge가 아직 완료되지 않았습니다.
+                            </div>
+                            <div>
+                                현재 Merge를 완료하거나 Abort합니다.
+                            </div>
+
+                            <div>
+                                <code>branch is not fully merged</code>
+                            </div>
+                            <div>
+                                삭제하려는 Branch에 미통합 Commit이 남아 있습니다.
+                            </div>
+                            <div>
+                                Merge 여부를 확인하고 안전 삭제를 판단합니다.
+                            </div>
+
+                            <div>
+                                <code>cannot delete checked out branch</code>
+                            </div>
+                            <div>
+                                현재 사용 중인 Branch를 삭제하려고 했습니다.
+                            </div>
+                            <div>
+                                main 등 다른 Branch로 전환한 뒤 삭제합니다.
+                            </div>
+
+                            <div>
+                                <code>has no upstream branch</code>
+                            </div>
+                            <div>
+                                Local Branch에 연결된 Remote Branch가 없습니다.
+                            </div>
+                            <div>
+                                <code>git push -u origin 브랜치명</code>을 실행합니다.
+                            </div>
+
+                            <div>
+                                <code>non-fast-forward</code>
+                            </div>
+                            <div>
+                                Remote Branch에 Local이 모르는 Commit이 있습니다.
+                            </div>
+                            <div>
+                                Fetch 또는 Pull 후 통합하고 다시 Push합니다.
+                            </div>
+
+                            <div>
+                                <code>403</code>
+                            </div>
+                            <div>
+                                계정 또는 PAT에 Push 권한이 없습니다.
+                            </div>
+                            <div>
+                                인증 정보와 Repository 권한을 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>protected branch</code>
+                            </div>
+                            <div>
+                                main 직접 Push가 Branch 보호 규칙으로 금지되었습니다.
+                            </div>
+                            <div>
+                                기능 Branch를 Push하고 Pull Request를 사용합니다.
+                            </div>
+
+                        </div>
+
+                        <div class="error-category-grid">
+
+                            <article>
+                                <span>CREATE</span>
+                                <p>already exists</p>
+                            </article>
+
+                            <article>
+                                <span>SWITCH</span>
+                                <p>local changes overwritten</p>
+                            </article>
+
+                            <article>
+                                <span>MERGE</span>
+                                <p>not something, conflict</p>
+                            </article>
+
+                            <article>
+                                <span>DELETE</span>
+                                <p>not fully merged</p>
+                            </article>
+
+                            <article>
+                                <span>REMOTE</span>
+                                <p>upstream, rejected, 403</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 23 -->
+                    <section class="study-card branch-section-card" id="mistakes">
+
+                        <div class="card-title-row">
+                            <span class="card-number">23</span>
+                            <h2>초보자가 자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+
+                            <article>
+                                <h3>1. Branch를 폴더 복사본으로 생각</h3>
+                                <p>Branch는 프로젝트 전체 복사가 아니라 Commit 포인터입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>2. 현재 Branch를 확인하지 않음</h3>
+                                <p>기능 작업을 실수로 main에 Commit할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>3. 오래된 main에서 Branch 생성</h3>
+                                <p>최신 Remote 변경이 빠져 나중에 Conflict가 커질 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>4. Branch만 만들고 전환하지 않음</h3>
+                                <p><code>git branch</code>는 생성만 하고 HEAD를 이동하지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>5. 잘못된 Start Point 사용</h3>
+                                <p>다른 기능 Branch의 Commit이 새 Branch에 포함될 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>6. 기능 Commit이 main에 자동 반영된다고 생각</h3>
+                                <p>main에 반영하려면 명시적인 Merge가 필요합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>7. Merge 방향을 반대로 실행</h3>
+                                <p>기능을 main에 넣으려면 main에서 feature Branch를 Merge합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>8. 미Commit 변경 상태에서 Switch</h3>
+                                <p>파일 손실 위험 때문에 Branch 전환이 거절될 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>9. 전환 후 파일이 삭제됐다고 오해</h3>
+                                <p>현재 Branch Commit에 없는 파일이 보이지 않는 것입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>10. Merge 결과 상태를 확인하지 않음</h3>
+                                <p>Fast-forward, Merge Commit, Conflict를 구분해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>11. Merge 성공 후 테스트 생략</h3>
+                                <p>텍스트 통합 성공과 프로그램 정상 동작은 다릅니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>12. Local Branch가 GitHub에도 자동 생성된다고 생각</h3>
+                                <p>Remote Branch는 Push해야 생성됩니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>13. Merge 직후 강제 삭제</h3>
+                                <p>Build, Test와 main Push를 확인한 뒤 Branch를 삭제합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>14. Local과 Remote Branch를 동일하게 생각</h3>
+                                <p>feature/login과 origin/feature/login은 역할이 다릅니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>15. 하나의 Branch에 모든 기능을 넣음</h3>
+                                <p>Review와 Merge가 가능한 작은 작업 단위로 나눕니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>16. Detached HEAD에서 Commit</h3>
+                                <p>HEAD가 Branch가 아닌 Commit을 직접 가리키는지 확인합니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 24 -->
+                    <section class="study-card branch-section-card" id="practical-use">
+
+                        <div class="card-title-row">
+                            <span class="card-number">24</span>
+                            <h2>개인·팀 프로젝트 실무 연결</h2>
+                        </div>
+
+                        <div class="practical-grid">
+
+                            <article class="tone-blue">
+
+                                <span>개인 프로젝트</span>
+
+                                <h3>안정 버전과 실험 기능 분리</h3>
+
+                                <pre class="mini-code"><code>main
+feature/ai-analysis
+feature/pdf-export</code></pre>
+
+                                <p>
+                                    새로운 기능이 실패해도 main의 시연 가능한 버전을 유지합니다.
+                                </p>
+                            </article>
+
+                            <article class="tone-green">
+
+                                <span>팀 프로젝트</span>
+
+                                <h3>개발자별 기능 작업 분리</h3>
+
+                                <pre class="mini-code"><code>개발자 A → feature/login
+개발자 B → feature/payment
+개발자 C → feature/report</code></pre>
+
+                                <p>
+                                    기능별 Commit과 검토 범위를 분리할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article class="tone-purple">
+
+                                <span>Pull Request</span>
+
+                                <h3>Review 후 main Merge</h3>
+
+                                <pre class="mini-code"><code>Feature Push
+→ PR
+→ Review
+→ CI
+→ Merge</code></pre>
+
+                                <p>
+                                    중요한 Branch에 바로 Push하지 않고 검토 절차를 거칩니다.
+                                </p>
+                            </article>
+
+                            <article class="tone-warn">
+
+                                <span>Release·Hotfix</span>
+
+                                <h3>배포와 긴급 수정 분리</h3>
+
+                                <pre class="mini-code"><code>release/1.0.0
+hotfix/security-patch</code></pre>
+
+                                <p>
+                                    목적에 따라 별도 Branch에서 배포 준비와 긴급 수정을 진행합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="professional-workflow">
+
+                            <article>
+                                <span>작업 시작</span>
+                                <strong>main 최신화</strong>
+                            </article>
+
+                            <article>
+                                <span>작업 분리</span>
+                                <strong>Feature Branch</strong>
+                            </article>
+
+                            <article>
+                                <span>기능 개발</span>
+                                <strong>Small Commit</strong>
+                            </article>
+
+                            <article>
+                                <span>원격 공유</span>
+                                <strong>Feature Push</strong>
+                            </article>
+
+                            <article>
+                                <span>검토</span>
+                                <strong>Pull Request</strong>
+                            </article>
+
+                            <article>
+                                <span>통합</span>
+                                <strong>Review + CI + Merge</strong>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 25 -->
+                    <section class="study-card branch-section-card" id="pull-request">
+
+                        <div class="card-title-row">
+                            <span class="card-number">25</span>
+                            <h2>Branch에서 Pull Request로 연결</h2>
+                        </div>
+
+                        <p>
+                            이번 단원에서는 Local Repository 안에서 직접 main으로 Merge했습니다.
+                            팀 프로젝트에서는 기능 Branch를 GitHub에 Push한 뒤 Pull Request로 검토받는 흐름을 많이 사용합니다.
+                        </p>
+
+                        <div class="pull-request-flow">
+
+                            <article>
+                                <span>1</span>
+                                <h3>Local Feature</h3>
+                                <code>feature/login</code>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>2</span>
+                                <h3>Remote Push</h3>
+                                <code>origin/feature/login</code>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>3</span>
+                                <h3>Pull Request</h3>
+                                <code>feature → main</code>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>4</span>
+                                <h3>Review와 CI</h3>
+                                <code>Approve + Test</code>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>5</span>
+                                <h3>main Merge</h3>
+                                <code>Merge 완료</code>
+                            </article>
+
+                        </div>
+
+                        <div class="pr-benefit-grid">
+
+                            <article>
+                                <strong>코드 리뷰</strong>
+                                <p>팀원이 변경 내용을 확인하고 의견을 남깁니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>자동 테스트</strong>
+                                <p>CI를 통해 Build와 Test를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>main 보호</strong>
+                                <p>검증되지 않은 코드가 기준 Branch에 바로 들어가는 것을 막습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>변경 기록</strong>
+                                <p>기능 제안과 검토, 승인 과정을 History로 남깁니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 26 -->
+                    <section class="study-card branch-section-card" id="interview-points">
+
+                        <div class="card-title-row">
+                            <span class="card-number">26</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+
+                            <article>
+                                <h3>Q1. Git Branch란 무엇인가요?</h3>
+
+                                <p>
+                                    특정 Commit을 가리키는 이름 있는 이동 가능한 포인터입니다.
+                                    현재 Branch에서 Commit하면 해당 Branch가 새 Commit으로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. Branch를 만들면 프로젝트 폴더가 복사되나요?</h3>
+
+                                <p>
+                                    아닙니다. Branch는 기존 Commit 객체를 공유하는 가벼운 참조이며,
+                                    Branch 전환 시 Working Directory가 해당 Commit 상태로 변경됩니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. HEAD란 무엇인가요?</h3>
+
+                                <p>
+                                    현재 Checkout된 Branch 또는 Commit을 가리키는 포인터입니다.
+                                    일반적인 Branch 작업에서는 HEAD가 현재 Branch를 가리킵니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. Branch 생성과 전환의 차이는 무엇인가요?</h3>
+
+                                <p>
+                                    Branch 생성은 새로운 포인터를 만드는 작업이고,
+                                    전환은 HEAD와 Working Directory를 해당 Branch 상태로 이동시키는 작업입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. 기능 Branch를 main에 합치는 순서는 무엇인가요?</h3>
+
+                                <p>
+                                    먼저 main으로 전환한 뒤 <code>git merge feature/login</code>을 실행합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. 왜 main으로 먼저 전환해야 하나요?</h3>
+
+                                <p>
+                                    Merge 결과는 현재 Checkout된 Branch에 반영되기 때문입니다.
+                                    기능을 main에 넣으려면 main이 현재 Branch여야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. Fast-forward Merge란 무엇인가요?</h3>
+
+                                <p>
+                                    현재 Branch가 병합 대상 Branch의 과거 Commit을 가리키고 있어
+                                    새 Merge Commit 없이 Branch 포인터만 앞으로 이동하는 Merge입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. Merge Commit은 언제 만들어지나요?</h3>
+
+                                <p>
+                                    현재 Branch와 병합 대상 Branch가 공통 조상 이후 각각 다른 Commit을 가지고 있어
+                                    두 History를 통합할 때 만들어질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. 기능 Branch에서 Commit하면 main도 바뀌나요?</h3>
+
+                                <p>
+                                    아닙니다. Commit은 현재 HEAD가 연결된 기능 Branch에만 추가됩니다.
+                                    main에 반영하려면 Merge가 필요합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. Local Branch를 만들면 GitHub에도 자동으로 생성되나요?</h3>
+
+                                <p>
+                                    아닙니다. Remote Branch를 만들려면
+                                    <code>git push -u origin feature/login</code>처럼 Push해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. Merge 후 기능 Branch는 자동 삭제되나요?</h3>
+
+                                <p>
+                                    아닙니다. Merge와 Branch 삭제는 별도의 작업입니다.
+                                    검증 후 필요 없을 때 삭제합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. `git branch -d`와 `-D`의 차이는 무엇인가요?</h3>
+
+                                <p>
+                                    `-d`는 Merge되지 않은 Commit이 있으면 삭제를 거절하는 안전 삭제이고,
+                                    `-D`는 강제로 삭제합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q13. Branch 전환이 거절되는 이유는 무엇인가요?</h3>
+
+                                <p>
+                                    미Commit 변경이 대상 Branch의 파일 상태로 인해 덮어써질 위험이 있으면
+                                    Git이 전환을 거절할 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q14. Pull Request와 Branch는 어떤 관계인가요?</h3>
+
+                                <p>
+                                    Branch는 독립적인 작업선을 만드는 Git 기능이고,
+                                    Pull Request는 기능 Branch 변경을 검토하고 대상 Branch에 통합하도록 요청하는 협업 기능입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q15. Detached HEAD란 무엇인가요?</h3>
+
+                                <p>
+                                    HEAD가 Branch가 아니라 특정 Commit을 직접 가리키는 상태입니다.
+                                    이 상태의 Commit을 보관하려면 새 Branch를 만들어 연결해야 합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 27 -->
+                    <section class="study-card branch-section-card" id="memory-points">
+
+                        <div class="card-title-row">
+                            <span class="card-number">27</span>
+                            <h2>시험·면접·실습 전 암기 포인트</h2>
+                        </div>
+
+                        <div class="memory-grid">
+
+                            <article>
+                                <span>01</span>
+                                <p>Branch는 프로젝트 복사본이 아니라 Commit을 가리키는 포인터입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <p>HEAD는 현재 작업 중인 Branch를 가리킵니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <p>새 Commit은 현재 HEAD가 연결된 Branch에 추가됩니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <p>Branch 생성과 Branch 전환은 다른 작업입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <p>git switch -c는 Branch 생성과 전환을 함께 수행합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <p>Branch 전환 시 HEAD, Index, Working Directory가 바뀝니다.</p>
+                            </article>
+
+                            <article>
+                                <span>07</span>
+                                <p>기능 Branch의 Commit은 main에 자동 반영되지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>08</span>
+                                <p>기능을 main에 반영하려면 main에서 기능 Branch를 Merge합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>09</span>
+                                <p>Merge 결과를 받는 Branch는 현재 Checkout된 Branch입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>10</span>
+                                <p>main이 움직이지 않았다면 Fast-forward Merge가 될 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>11</span>
+                                <p>양쪽 Branch가 진행했다면 Merge Commit이 만들어질 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>12</span>
+                                <p>Branch Merge에서도 같은 영역을 수정하면 Conflict가 발생할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>13</span>
+                                <p>Local Branch를 만들었다고 GitHub Branch가 자동 생성되지는 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>14</span>
+                                <p>Merge 후에도 기능 Branch는 자동 삭제되지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>15</span>
+                                <p>Merge 후 Build와 Test를 수행한 뒤 main을 Push합니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 28 -->
+                    <section class="study-card branch-section-card" id="next-lesson">
+
+                        <div class="card-title-row">
+                            <span class="card-number">28</span>
+                            <h2>다음 단원으로 연결</h2>
+                        </div>
+
+                        <p>
+                            이번 단원에서는 Local Repository 안에서 기능 Branch를 만들고,
+                            완성한 기능을 직접 main에 Merge했습니다.
+                        </p>
+
+                        <div class="next-preview">
+
+                            <article class="current-lesson">
+
+                                <span>이번 단원</span>
+
+                                <h3>Local Branch와 Merge</h3>
+
+                                <pre class="mini-code"><code>main
+→ feature/login 생성
+→ 기능 개발
+→ Commit
+→ main Merge
+→ Push</code></pre>
+                            </article>
+
+                            <div class="next-preview-arrow">
+
+                                <strong>팀 검토 과정으로 확장</strong>
+
+                                <span>→</span>
+                            </div>
+
+                            <article class="following-lesson">
+
+                                <span>다음 학습</span>
+
+                                <h3>Remote Branch와 Pull Request</h3>
+
+                                <pre class="mini-code"><code>Feature Push
+→ Pull Request
+→ Code Review
+→ CI Test
+→ main Merge</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="next-question-grid">
+
+                            <article>
+                                <strong>Remote Branch</strong>
+                                <p>기능 Branch를 GitHub에 어떻게 올리는가?</p>
+                            </article>
+
+                            <article>
+                                <strong>Pull Request</strong>
+                                <p>왜 바로 main에 Merge하지 않고 검토를 요청하는가?</p>
+                            </article>
+
+                            <article>
+                                <strong>Code Review</strong>
+                                <p>팀원은 어떤 기준으로 변경 내용을 확인하는가?</p>
+                            </article>
+
+                            <article>
+                                <strong>Merge Strategy</strong>
+                                <p>Merge Commit, Squash, Rebase는 무엇이 다른가?</p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>다음 단원으로 이어지는 질문</h3>
+
+                            <p>
+                                “기능 Branch를 GitHub에 Push하고,
+                                팀원의 Code Review와 CI 테스트를 거친 뒤 main에 안전하게 Merge하려면 어떻게 해야 할까?”
+                            </p>
+                        </div>
+
+                    </section>
+
                 </main>
 
+                <!-- =====================================================
+                     ASIDE
+                     ===================================================== -->
+
                 <aside class="side-note">
-                    <h2>오늘의 학습 메모</h2>
 
-                    <div>
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+
                         <h3>오늘의 암기 포인트</h3>
-                        <p>이 영역은 Step1과 Step2 완료 후 암기 포인트를 정리할 예정입니다.</p>
+
+                        <ul>
+                            <li>Branch는 Commit을 가리키는 가벼운 포인터입니다.</li>
+                            <li>HEAD는 현재 작업 Branch를 가리킵니다.</li>
+                            <li>Commit은 현재 Branch 끝에 추가됩니다.</li>
+                            <li>기능 Branch의 Commit은 main에 자동 반영되지 않습니다.</li>
+                            <li>Merge 결과는 현재 Checkout된 Branch가 받습니다.</li>
+                            <li>Merge 후에는 Build와 Test를 수행한 뒤 Push합니다.</li>
+                        </ul>
+
                     </div>
 
-                    <div>
+                    <div class="memo-section branch-state-memo">
+
+                        <h3>Branch 상태 빠른 이해</h3>
+
+                        <div class="quick-state-grid">
+
+                            <article>
+                                <strong>main</strong>
+                                <span>안정적인 기준 Branch</span>
+                            </article>
+
+                            <article>
+                                <strong>feature/login</strong>
+                                <span>로그인 기능 작업 Branch</span>
+                            </article>
+
+                            <article>
+                                <strong>HEAD</strong>
+                                <span>현재 작업 중인 Branch</span>
+                            </article>
+
+                            <article>
+                                <strong>origin/main</strong>
+                                <span>마지막 Fetch 기준 원격 main</span>
+                            </article>
+
+                        </div>
+
+                    </div>
+
+                    <div class="memo-section warning-memo">
+
                         <h3>헷갈리기 쉬운 개념</h3>
-                        <p>이 영역은 비슷한 Git/GitHub 개념을 비교해서 정리할 예정입니다.</p>
+
+                        <div class="confuse-grid">
+
+                            <article>
+                                <strong>Create</strong>
+                                <p>Branch 포인터만 새로 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Switch</strong>
+                                <p>HEAD와 파일 상태를 Branch로 이동합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Commit</strong>
+                                <p>현재 Branch 끝에 새 버전을 추가합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Merge</strong>
+                                <p>다른 Branch History를 현재 Branch에 통합합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Push</strong>
+                                <p>Local Branch History를 Remote에 전송합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Delete</strong>
+                                <p>Merge와 별개로 Branch 포인터를 제거합니다.</p>
+                            </article>
+
+                        </div>
+
                     </div>
 
-                    <div>
-                        <h3>다음 단원 연결</h3>
-                        <p>이 영역은 다음 단원과 이어지는 학습 흐름을 정리할 예정입니다.</p>
+                    <div class="memo-section direction-memo">
+
+                        <h3>Merge 방향 암기</h3>
+
+                        <div class="quick-direction-grid">
+
+                            <article>
+                                <strong>기능을 main에 반영</strong>
+                                <code>main에서 feature/login Merge</code>
+                            </article>
+
+                            <article>
+                                <strong>main을 기능 Branch에 반영</strong>
+                                <code>feature/login에서 main Merge</code>
+                            </article>
+
+                        </div>
+
                     </div>
+
+                    <div class="memo-section command-memo">
+
+                        <h3>자주 사용하는 명령</h3>
+
+                        <div class="quick-command-grid">
+
+                            <article>
+                                <strong>현재 Branch</strong>
+                                <code>git branch --show-current</code>
+                            </article>
+
+                            <article>
+                                <strong>Branch 목록</strong>
+                                <code>git branch -a</code>
+                            </article>
+
+                            <article>
+                                <strong>생성과 전환</strong>
+                                <code>git switch -c feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>main 전환</strong>
+                                <code>git switch main</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge</strong>
+                                <code>git merge feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>기능 Branch Push</strong>
+                                <code>git push -u origin feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>Local 삭제</strong>
+                                <code>git branch -d feature/login</code>
+                            </article>
+
+                            <article>
+                                <strong>Remote 삭제</strong>
+                                <code>git push origin --delete feature/login</code>
+                            </article>
+
+                        </div>
+
+                    </div>
+
+                    <div class="memo-section error-memo">
+
+                        <h3>오류 메시지 빠른 분류</h3>
+
+                        <ul>
+                            <li><code>branch already exists</code>: 같은 이름 Branch 존재</li>
+                            <li><code>pathspec did not match</code>: Branch 이름 또는 Fetch 확인</li>
+                            <li><code>local changes overwritten</code>: 현재 변경을 먼저 정리</li>
+                            <li><code>not something we can merge</code>: Merge 대상 확인</li>
+                            <li><code>Already up to date</code>: 합칠 Commit 없음</li>
+                            <li><code>Fast-forward</code>: Branch 포인터 이동 완료</li>
+                            <li><code>CONFLICT</code>: 최종 코드 직접 결정</li>
+                            <li><code>not fully merged</code>: 삭제 전 Merge 여부 확인</li>
+                            <li><code>no upstream branch</code>: push -u로 연결</li>
+                            <li><code>403</code>: 계정과 권한 확인</li>
+                        </ul>
+
+                    </div>
+
+                    <div class="memo-section checklist-memo">
+
+                        <h3>Branch 작업 체크리스트</h3>
+
+                        <div class="aside-checklist">
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 Branch를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                main을 최신 상태로 만들었습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Working Tree가 clean합니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                올바른 Start Point에서 Branch를 만들었습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                새 Branch로 실제 전환했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                기능 작업을 의미 있는 단위로 Commit했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                main으로 전환한 뒤 Merge했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Merge 방향과 결과를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Conflict를 모두 해결했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Build와 Test를 실행했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                main을 Remote에 Push했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Branch 삭제 전 Merge와 Push를 확인했습니다.
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                    <div class="memo-section final-summary">
+
+                        <h3>다음 단원 연결</h3>
+
+                        <p>
+                            다음 학습에서는 기능 Branch를 GitHub에 Push하고
+                            Pull Request, Code Review, CI 검증을 거쳐 main에 통합하는 협업 흐름으로 확장합니다.
+                        </p>
+
+                    </div>
+
                 </aside>
+
             </div>
+
         </div>
+
     </body>
 
 </html>

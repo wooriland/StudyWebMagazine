@@ -3,86 +3,2813 @@
 
     <head>
         <meta charset="UTF-8">
+
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <meta name="description"
+            content="Push rejected가 발생하는 이유와 Pull, Fetch, Merge, Conflict 해결, Push HEAD를 이용해 Local Repository와 GitHub Remote Repository의 버전을 맞추는 방법을 학습합니다.">
+
         <title>Git/GitHub - Pull / Fetch / Merge로 버전 맞추기</title>
 
         <link rel="stylesheet" href="../css/00_nav.css">
+
         <link rel="stylesheet" href="../css/study-theme.css">
+
         <link rel="stylesheet" href="../css/GitGithub/12_git_pull_fetch_merge.css">
 
         <script src="../js/00_nav.js" defer></script>
     </head>
 
     <body class="theme-gitgithub study-page gitgithub-page gitgithub-lesson-page gitgithub-lesson-12">
+
         <div class="layout">
+
             <nav class="side-nav" id="sideNav"></nav>
 
             <div class="page-content">
-                <header class="page-header lesson-header">
-                    <p class="chapter-label">Git/GitHub - Chapter 12</p>
-                    <h1>12. Pull / Fetch / Merge로 버전 맞추기</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step1에서 교안 내용을 바탕으로 자세히 공부할 예정입니다.
+
+                <!-- =====================================================
+                     HEADER
+                     ===================================================== -->
+
+                <header class="page-header git-hero">
+
+                    <p class="chapter-label">
+                        Git/GitHub - Chapter 12
                     </p>
-                    <ul class="lesson-goals">
-                        <li>이 단원의 핵심 개념을 이해합니다.</li>
-                        <li>Git/GitHub 전체 흐름에서 이 단원의 위치를 파악합니다.</li>
-                        <li>Step2에서 개념, 흐름도, 실무 연결로 구조화할 준비를 합니다.</li>
-                    </ul>
+
+                    <h1>Pull / Fetch / Merge로 버전 맞추기</h1>
+
+                    <p class="chapter-description">
+                        Local Repository에서 새로운 Commit을 만들었는데
+                        GitHub Remote Repository에도 내가 가지고 있지 않은 Commit이 존재하면,<br>
+                        Git은 원격 History를 보호하기 위해 Push를 거절할 수 있습니다.<br><br>
+
+                        이번 단원에서는
+                        <strong>Push rejected가 왜 발생하는지</strong>,
+                        <strong>Pull과 Fetch는 무엇이 다른지</strong>,
+                        <strong>origin/main을 Local main에 어떻게 Merge하는지</strong>,<br>
+                        그리고 <strong>Conflict를 해결한 뒤 Push HEAD를 실행하는 과정</strong>을 학습합니다.<br><br>
+
+                        이번 단원의 중심 질문은
+                        <strong>
+                            “내 Commit과 원격 Commit이 서로 갈라졌을 때
+                            두 History를 어떻게 안전하게 하나로 합칠 수 있을까?”
+                        </strong>
+                        입니다.
+                    </p>
+
+                    <div class="header-keywords" aria-label="Pull Fetch Merge 핵심 키워드">
+
+                        <span>Push Rejected</span>
+                        <span>Non-fast-forward</span>
+                        <span>Local Repository</span>
+                        <span>Remote Repository</span>
+                        <span>main</span>
+                        <span>origin/main</span>
+                        <span>HEAD</span>
+                        <span>Remote Tracking Branch</span>
+                        <span>Fetch</span>
+                        <span>Pull</span>
+                        <span>Merge</span>
+                        <span>Fast-forward</span>
+                        <span>Merge Commit</span>
+                        <span>Conflict</span>
+                        <span>Conflict Marker</span>
+                        <span>Add to Index</span>
+                        <span>Commit</span>
+                        <span>Push HEAD</span>
+                        <span>Upstream</span>
+                        <span>ahead</span>
+                        <span>behind</span>
+                        <span>diverged</span>
+                        <span>403</span>
+                        <span>Force Push</span>
+
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+
+                        <article>
+                            <strong>학습 목표 1</strong>
+
+                            <p>
+                                main, origin/main, HEAD의<br>
+                                위치를 보고 Local과 Remote의<br>
+                                현재 상태를 판단할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+
+                            <p>
+                                Eclipse에서 Pull 또는<br>
+                                Fetch와 Merge를 실행하여<br>
+                                원격 변경을 반영할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+
+                            <p>
+                                Conflict Marker를 해석하고<br>
+                                Add, Commit, Push HEAD 순서로<br>
+                                충돌 해결을 완료할 수 있습니다.
+                            </p>
+                        </article>
+
+                    </div>
+
                 </header>
 
-                <main class="lesson-main">
-                    <section class="learning-card concept-card">
-                        <h2>1. 개념 설명 카드</h2>
-                        <p>Step1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
+                <!-- =====================================================
+                     MAIN
+                     ===================================================== -->
+
+                <main>
+
+                    <!-- 01 -->
+                    <section class="study-card pull-section-card" id="lesson-overview">
+
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>이번 단원의 전체 흐름</h2>
+                        </div>
+
+                        <p>
+                            이번 단원은 Push 실패 자체를 해결하는 단원이 아니라,
+                            <strong>Local과 Remote의 서로 다른 Commit History를 안전하게 통합하는 단원</strong>입니다.
+                        </p>
+
+                        <div class="lesson-flow">
+
+                            <article class="flow-step tone-blue">
+                                <span>1</span>
+
+                                <h3>Local Commit 생성</h3>
+
+                                <p>
+                                    Eclipse에서 코드를 수정하고
+                                    Add와 Commit을 완료합니다.
+                                </p>
+
+                                <code>git commit</code>
+                            </article>
+
+                            <div class="flow-arrow">
+                                →
+                            </div>
+
+                            <article class="flow-step tone-danger">
+                                <span>2</span>
+
+                                <h3>Push Rejected</h3>
+
+                                <p>
+                                    Remote에 Local이 모르는 Commit이 있어
+                                    Push가 거절됩니다.
+                                </p>
+
+                                <code>non-fast-forward</code>
+                            </article>
+
+                            <div class="flow-arrow">
+                                →
+                            </div>
+
+                            <article class="flow-step tone-purple">
+                                <span>3</span>
+
+                                <h3>원격 변경 가져오기</h3>
+
+                                <p>
+                                    Pull 또는 Fetch를 이용해
+                                    원격 Commit을 가져옵니다.
+                                </p>
+
+                                <code>git fetch / pull</code>
+                            </article>
+
+                            <div class="flow-arrow">
+                                →
+                            </div>
+
+                            <article class="flow-step tone-warn">
+                                <span>4</span>
+
+                                <h3>History 통합</h3>
+
+                                <p>
+                                    main과 origin/main의
+                                    변경 History를 Merge합니다.
+                                </p>
+
+                                <code>git merge</code>
+                            </article>
+
+                            <div class="flow-arrow">
+                                →
+                            </div>
+
+                            <article class="flow-step tone-remote">
+                                <span>5</span>
+
+                                <h3>Push HEAD</h3>
+
+                                <p>
+                                    통합된 Local History를
+                                    다시 GitHub로 전송합니다.
+                                </p>
+
+                                <code>git push</code>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>핵심 문장</h3>
+
+                            <p>
+                                Push가 rejected되었다면 원격 History를 강제로 덮어쓰는 것이 아니라,
+                                <strong>원격 변경을 가져오고 Local 변경과 통합한 뒤 다시 Push</strong>해야 합니다.
+                            </p>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card flow-card">
-                        <h2>2. 흐름도 카드</h2>
-                        <p>Step2에서 그림처럼 이해할 수 있도록 구조화할 예정입니다.</p>
+                    <!-- 02 -->
+                    <section class="study-card pull-section-card" id="three-pointers">
+
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>main · origin/main · HEAD 구분하기</h2>
+                        </div>
+
+                        <p>
+                            Pull과 Fetch를 이해하려면
+                            세 포인터가 어디를 가리키는지 먼저 구분해야 합니다.
+                        </p>
+
+                        <div class="identity-grid">
+
+                            <article class="identity-card head-card">
+                                <span>HEAD</span>
+
+                                <h3>현재 작업 위치</h3>
+
+                                <p>
+                                    현재 Checkout된 Branch 또는 Commit을 가리키는 포인터입니다.
+                                    일반적으로 <code>HEAD → main</code> 관계가 됩니다.
+                                </p>
+                            </article>
+
+                            <article class="identity-card local-card">
+                                <span>main</span>
+
+                                <h3>Local Branch</h3>
+
+                                <p>
+                                    내 컴퓨터에서 직접 수정하고 Commit하는 Branch입니다.
+                                    Local Commit이 생성되면 main이 새 Commit으로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article class="identity-card remote-card">
+                                <span>origin/main</span>
+
+                                <h3>Remote Tracking Branch</h3>
+
+                                <p>
+                                    마지막 Fetch 또는 Pull 시점에 확인한
+                                    GitHub main의 상태를 Local에서 나타냅니다.
+                                </p>
+                            </article>
+
+                            <article class="identity-card github-card">
+                                <span>GitHub main</span>
+
+                                <h3>실제 Remote Branch</h3>
+
+                                <p>
+                                    GitHub 서버에 존재하는 실제 Branch입니다.
+                                    Fetch해야 최신 상태가 origin/main에 반영됩니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="pointer-diagram">
+
+                            <article class="commit-node">
+                                <span>Commit A</span>
+                            </article>
+
+                            <div class="history-arrow">→</div>
+
+                            <article class="commit-node">
+                                <span>Commit B</span>
+                            </article>
+
+                            <div class="history-arrow">→</div>
+
+                            <article class="commit-node active-commit">
+                                <span>Commit C</span>
+
+                                <div class="pointer-badges">
+                                    <strong>HEAD</strong>
+                                    <strong>main</strong>
+                                    <strong>origin/main</strong>
+                                </div>
+                            </article>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>origin/main은 GitHub 서버 자체가 아닙니다</h3>
+
+                            <p>
+                                GitHub에서 새 Commit이 만들어져도 Fetch하기 전까지
+                                내 컴퓨터의 <code class="inline-code">origin/main</code>은
+                                이전 Commit을 가리킬 수 있습니다.
+                            </p>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card practice-card">
-                        <h2>3. 실습 준비 카드</h2>
-                        <p>Eclipse, Git Bash, GitHub 실습 흐름을 정리할 예정입니다.</p>
+                    <!-- 03 -->
+                    <section class="study-card pull-section-card" id="four-repository-states">
+
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>Local과 Remote의 네 가지 상태</h2>
+                        </div>
+
+                        <p>
+                            명령어를 실행하기 전에 현재 상태가
+                            동일, ahead, behind, diverged 중 무엇인지 먼저 판단해야 합니다.
+                        </p>
+
+                        <div class="repository-state-grid">
+
+                            <article class="state-card state-equal">
+
+                                <span>UP TO DATE</span>
+
+                                <h3>Local과 Remote가 동일함</h3>
+
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+ main, origin/main</code></pre>
+
+                                <p>
+                                    추가로 가져오거나 보낼 Commit이 없습니다.
+                                </p>
+
+                                <strong>필요 작업: 없음</strong>
+                            </article>
+
+                            <article class="state-card state-ahead">
+
+                                <span>AHEAD</span>
+
+                                <h3>Local만 앞섬</h3>
+
+                                <pre class="mini-code"><code>A ── B ── C
+     ↑       ↑
+origin/main main</code></pre>
+
+                                <p>
+                                    Local에만 새로운 Commit이 있습니다.
+                                </p>
+
+                                <strong>필요 작업: Push</strong>
+                            </article>
+
+                            <article class="state-card state-behind">
+
+                                <span>BEHIND</span>
+
+                                <h3>Remote만 앞섬</h3>
+
+                                <pre class="mini-code"><code>A ── B ── C
+     ↑       ↑
+   main   origin/main</code></pre>
+
+                                <p>
+                                    Remote에만 새로운 Commit이 있습니다.
+                                </p>
+
+                                <strong>필요 작업: Pull 또는 Merge</strong>
+                            </article>
+
+                            <article class="state-card state-diverged">
+
+                                <span>DIVERGED</span>
+
+                                <h3>Local과 Remote가 갈라짐</h3>
+
+                                <pre class="mini-code"><code>          L ← main
+         /
+A ── B
+         \
+          R ← origin/main</code></pre>
+
+                                <p>
+                                    양쪽에 서로 없는 Commit이 존재합니다.
+                                </p>
+
+                                <strong>필요 작업: Merge 후 Push</strong>
+                            </article>
+
+                        </div>
+
+                        <div class="command-box">
+                            <h3>현재 상태 확인</h3>
+
+                            <pre class="mini-code"><code>git status
+git branch -vv
+git log --oneline --decorate --graph --all</code></pre>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card command-card">
-                        <h2>4. 명령어 연결 카드</h2>
-                        <p>Eclipse 메뉴와 Git CLI 명령어를 연결해서 정리할 예정입니다.</p>
+                    <!-- 04 -->
+                    <section class="study-card pull-section-card" id="fast-forward">
+
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Fast-forward와 Merge Commit</h2>
+                        </div>
+
+                        <div class="merge-type-grid">
+
+                            <article class="merge-type-card fast-forward-card">
+
+                                <span>FAST-FORWARD</span>
+
+                                <h3>Branch 포인터만 앞으로 이동</h3>
+
+                                <pre class="mini-code"><code>변경 전
+
+A ── B ── C
+     ↑       ↑
+   main   origin/main
+
+
+변경 후
+
+A ── B ── C
+          ↑
+ main, origin/main</code></pre>
+
+                                <p>
+                                    Local에 별도 Commit이 없으므로
+                                    새로운 Merge Commit 없이 main만 앞으로 이동합니다.
+                                </p>
+                            </article>
+
+                            <article class="merge-type-card merge-commit-card">
+
+                                <span>MERGE COMMIT</span>
+
+                                <h3>갈라진 History를 새 Commit으로 통합</h3>
+
+                                <pre class="mini-code"><code>          L
+         / \
+A ── B      M
+         \ /
+          R</code></pre>
+
+                                <p>
+                                    Local과 Remote 양쪽에 새 Commit이 있어
+                                    두 부모를 가진 Merge Commit M이 만들어집니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>Fast-forward 판단 기준</h3>
+
+                            <p>
+                                현재 Local Branch가 병합 대상 Branch의 과거 Commit을 가리키고 있다면
+                                포인터만 앞으로 이동할 수 있습니다.
+                                History가 양쪽으로 갈라졌다면 Merge 과정이 필요합니다.
+                            </p>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card warning-card">
-                        <h2>5. 자주 하는 실수 카드</h2>
-                        <p>초보자가 헷갈리기 쉬운 부분을 정리할 예정입니다.</p>
+                    <!-- 05 -->
+                    <section class="study-card pull-section-card" id="push-rejected">
+
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>Push rejected는 왜 발생하는가?</h2>
+                        </div>
+
+                        <p>
+                            Local과 Remote가 각각 다른 Commit을 만들었다고 가정합니다.
+                        </p>
+
+                        <div class="rejected-diagram">
+
+                            <article class="history-panel local-history">
+
+                                <span>LOCAL</span>
+
+                                <h3>내 Eclipse에서 만든 Commit</h3>
+
+                                <pre class="mini-code"><code>          L ← main
+         /
+A ── B</code></pre>
+
+                                <p>
+                                    Local Repository에는
+                                    <strong>L</strong> Commit이 존재합니다.
+                                </p>
+                            </article>
+
+                            <div class="rejected-center">
+
+                                <strong>Push</strong>
+
+                                <span>×</span>
+
+                                <code>rejected</code>
+                            </div>
+
+                            <article class="history-panel remote-history">
+
+                                <span>REMOTE</span>
+
+                                <h3>GitHub에 먼저 올라간 Commit</h3>
+
+                                <pre class="mini-code"><code>A ── B
+         \
+          R ← remote main</code></pre>
+
+                                <p>
+                                    GitHub에는 Local이 모르는
+                                    <strong>R</strong> Commit이 존재합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="error-message-box">
+
+                            <strong>대표 오류 메시지</strong>
+
+                            <pre class="mini-code"><code>! [rejected] main -&gt; main (non-fast-forward)
+error: failed to push some refs
+
+hint: Updates were rejected because the remote contains
+work that you do not have locally.</code></pre>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Commit과 Push 결과를 분리해서 봅니다</h3>
+
+                            <p>
+                                Commit and Push에서 Push만 실패했다면
+                                Local Commit은 사라진 것이 아닙니다.
+                                <code class="inline-code">git log --oneline</code>으로 확인할 수 있습니다.
+                            </p>
+                        </div>
+
                     </section>
 
-                    <section class="learning-card interview-card">
-                        <h2>6. 면접 포인트 카드</h2>
-                        <p>면접 질문과 답변 형태로 정리할 예정입니다.</p>
+                    <!-- 06 -->
+                    <section class="study-card pull-section-card" id="fetch-concept">
+
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Fetch: 원격 상태를 가져오되 아직 합치지 않기</h2>
+                        </div>
+
+                        <div class="before-after-grid">
+
+                            <article class="before-panel">
+
+                                <span>FETCH 전</span>
+
+                                <pre class="mini-code"><code>Local Repository
+
+A ── B
+     ↑
+main, origin/main
+
+
+GitHub
+
+A ── B ── R
+          ↑
+     remote main</code></pre>
+                            </article>
+
+                            <div class="transform-arrow">
+                                <strong>git fetch origin</strong>
+                                <span>→</span>
+                            </div>
+
+                            <article class="after-panel">
+
+                                <span>FETCH 후</span>
+
+                                <pre class="mini-code"><code>Local Repository
+
+A ── B ── R
+     ↑       ↑
+   main   origin/main
+
+
+Working Directory
+→ 아직 B 상태</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="fetch-result-grid">
+
+                            <article>
+                                <strong>origin/main</strong>
+                                <p>원격 최신 Commit으로 이동합니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>main</strong>
+                                <p>현재 Local Commit에 그대로 머뭅니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Working Directory</strong>
+                                <p>Fetch만으로는 바로 변경되지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <strong>다음 작업</strong>
+                                <p>History를 확인한 뒤 Merge할 수 있습니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="command-box">
+                            <h3>Fetch와 원격 변경 확인</h3>
+
+                            <pre class="mini-code"><code>git fetch origin
+
+git log --oneline --decorate --graph --all
+
+git log main..origin/main --oneline
+
+git diff main..origin/main</code></pre>
+                        </div>
+
                     </section>
+
+                    <!-- 07 -->
+                    <section class="study-card pull-section-card" id="merge-concept">
+
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Merge: origin/main을 현재 main에 통합하기</h2>
+                        </div>
+
+                        <p>
+                            Fetch가 끝난 뒤 현재 Local Branch가
+                            <code class="inline-code">main</code>이라면 다음 명령으로 원격 변경을 통합합니다.
+                        </p>
+
+                        <div class="merge-direction">
+
+                            <article class="merge-source">
+
+                                <span>MERGE SOURCE</span>
+
+                                <h3>origin/main</h3>
+
+                                <p>
+                                    Fetch로 갱신한
+                                    Remote Tracking Branch입니다.
+                                </p>
+                            </article>
+
+                            <div class="merge-arrow">
+
+                                <strong>Merge</strong>
+                                <span>→</span>
+
+                                <code>git merge origin/main</code>
+                            </div>
+
+                            <article class="merge-destination">
+
+                                <span>CURRENT BRANCH</span>
+
+                                <h3>main</h3>
+
+                                <p>
+                                    현재 HEAD가 연결된
+                                    Local Branch입니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Merge 방향을 반대로 이해하지 않습니다</h3>
+
+                            <p>
+                                현재 <code class="inline-code">main</code>을 Checkout한 상태에서
+                                <code class="inline-code">origin/main</code>을 선택해 Merge합니다.
+                                즉, 원격 변경을 현재 Local main에 합치는 작업입니다.
+                            </p>
+                        </div>
+
+                        <div class="merge-result-grid">
+
+                            <article>
+                                <span>Already up to date</span>
+                                <p>합칠 새로운 Commit이 없습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Fast-forward</span>
+                                <p>Branch 포인터만 앞으로 이동했습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Merged</span>
+                                <p>자동 Merge 또는 Merge Commit이 생성되었습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Conflicting</span>
+                                <p>사용자가 직접 해결해야 할 충돌이 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Failed</span>
+                                <p>Working Tree 상태 등으로 Merge가 실패했습니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 08 -->
+                    <section class="study-card pull-section-card" id="pull-concept">
+
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>Pull: Fetch와 통합을 한 번에 실행하기</h2>
+                        </div>
+
+                        <div class="pull-pipeline">
+
+                            <article>
+                                <span>1</span>
+                                <h3>Remote 연결</h3>
+                                <p>현재 Branch의 Upstream을 확인합니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>2</span>
+                                <h3>Fetch</h3>
+                                <p>원격 Commit과 Branch 정보를 가져옵니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>3</span>
+                                <h3>origin/main 갱신</h3>
+                                <p>Remote Tracking Branch가 최신화됩니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>4</span>
+                                <h3>Merge</h3>
+                                <p>원격 변경을 현재 Local Branch에 통합합니다.</p>
+                            </article>
+
+                            <div>→</div>
+
+                            <article>
+                                <span>5</span>
+                                <h3>Working Tree 반영</h3>
+                                <p>통합 결과가 실제 프로젝트 파일에 나타납니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="pull-fetch-compare">
+
+                            <article class="pull-panel">
+
+                                <span>PULL</span>
+
+                                <h3>빠르게 가져와 통합</h3>
+
+                                <pre class="mini-code"><code>git pull --no-rebase origin main</code></pre>
+
+                                <ul class="plain-list">
+                                    <li>한 번의 작업으로 가져오기와 통합을 실행합니다.</li>
+                                    <li>변경이 단순한 개인 프로젝트에서 편리합니다.</li>
+                                    <li>원격 History 검토 전에 Working Tree가 바뀔 수 있습니다.</li>
+                                </ul>
+                            </article>
+
+                            <article class="fetch-merge-panel">
+
+                                <span>FETCH + MERGE</span>
+
+                                <h3>원격 상태를 확인한 뒤 통합</h3>
+
+                                <pre class="mini-code"><code>git fetch origin
+git merge origin/main</code></pre>
+
+                                <ul class="plain-list">
+                                    <li>Fetch 후 Commit Graph를 먼저 확인할 수 있습니다.</li>
+                                    <li>문제 발생 단계를 구분하기 쉽습니다.</li>
+                                    <li>팀 작업에서 신중하게 통합할 때 유용합니다.</li>
+                                </ul>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 09 -->
+                    <section class="study-card pull-section-card" id="eclipse-preparation">
+
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>Eclipse 실습 화면 준비</h2>
+                        </div>
+
+                        <div class="menu-path-box">
+                            <strong>필요한 Git View 열기</strong>
+
+                            <code>
+                                Window → Show View → Other → Git
+                            </code>
+                        </div>
+
+                        <div class="eclipse-view-grid">
+
+                            <article>
+                                <span>Git Staging</span>
+
+                                <h3>변경·충돌·Commit 확인</h3>
+
+                                <p>
+                                    Unstaged Changes, Staged Changes,
+                                    Conflict 파일과 Commit 버튼을 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Git Repositories</span>
+
+                                <h3>Branch와 Remote 확인</h3>
+
+                                <p>
+                                    Local Branch, Remote Tracking Branch,
+                                    origin 설정을 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>History</span>
+
+                                <h3>Commit Graph 확인</h3>
+
+                                <p>
+                                    main과 origin/main이 같은지,
+                                    앞섰는지, 갈라졌는지 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>Project Explorer</span>
+
+                                <h3>실제 파일 상태 확인</h3>
+
+                                <p>
+                                    Pull과 Merge 후 파일 추가,
+                                    수정과 Conflict 장식을 확인합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="checklist-panel">
+
+                            <h3>Pull 전 점검</h3>
+
+                            <div class="checklist-grid">
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    현재 Branch가 main인지 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    Commit되지 않은 변경을 확인했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    현재 Local 작업을 Commit했습니다.
+                                </label>
+
+                                <label>
+                                    <input type="checkbox" disabled>
+                                    origin과 Upstream 설정을 확인했습니다.
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 10 -->
+                    <section class="study-card pull-section-card" id="automatic-merge-practice">
+
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>실습 1: 서로 다른 파일을 수정해 자동 Merge하기</h2>
+                        </div>
+
+                        <div class="practice-sequence">
+
+                            <article>
+                                <span>01</span>
+
+                                <h3>GitHub에서 파일 생성</h3>
+
+                                <code>remote-note.txt</code>
+
+                                <p>
+                                    GitHub 웹에서 새 파일을 만들고
+                                    <strong>docs: add remote note</strong>로 Commit합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+
+                                <h3>Eclipse에서 다른 파일 생성</h3>
+
+                                <code>local-note.txt</code>
+
+                                <p>
+                                    Eclipse에서 다른 이름의 파일을 만들고
+                                    Add to Index 후 Commit합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+
+                                <h3>Commit and Push</h3>
+
+                                <code>rejected</code>
+
+                                <p>
+                                    원격에 Local이 모르는 Commit이 있어
+                                    Push가 거절되는지 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+
+                                <h3>Pull 또는 Fetch+Merge</h3>
+
+                                <code>origin/main</code>
+
+                                <p>
+                                    원격 변경을 가져와
+                                    Local Commit과 통합합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+
+                                <h3>자동 Merge 결과</h3>
+
+                                <code>local + remote</code>
+
+                                <p>
+                                    서로 다른 파일이므로
+                                    두 변경이 모두 남는지 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+
+                                <h3>Push HEAD</h3>
+
+                                <code>git push</code>
+
+                                <p>
+                                    통합된 Local History를
+                                    GitHub에 다시 전송합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="automatic-merge-diagram">
+
+                            <article class="local-change">
+                                <span>LOCAL</span>
+                                <code>local-note.txt</code>
+                            </article>
+
+                            <div class="merge-plus">+</div>
+
+                            <article class="remote-change">
+                                <span>REMOTE</span>
+                                <code>remote-note.txt</code>
+                            </article>
+
+                            <div class="merge-equal">=</div>
+
+                            <article class="merged-change">
+                                <span>MERGED</span>
+
+                                <code>local-note.txt</code>
+                                <code>remote-note.txt</code>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 11 -->
+                    <section class="study-card pull-section-card" id="eclipse-pull-flow">
+
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>해결 방법 1: Eclipse Pull</h2>
+                        </div>
+
+                        <div class="menu-path-box pull-menu">
+                            <strong>Eclipse 메뉴 경로</strong>
+
+                            <code>
+                                프로젝트 우클릭 → Team → Pull
+                            </code>
+                        </div>
+
+                        <div class="eclipse-step-grid">
+
+                            <article>
+                                <span>01</span>
+                                <h3>프로젝트 선택</h3>
+                                <p>현재 작업 중인 Git 프로젝트를 선택합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>Team → Pull</h3>
+                                <p>현재 Branch의 Upstream에서 변경을 가져옵니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>Fetch 수행</h3>
+                                <p>origin/main이 원격 최신 Commit으로 갱신됩니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <h3>Merge 수행</h3>
+                                <p>origin/main을 현재 main과 통합합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <h3>결과 확인</h3>
+                                <p>Fast-forward, Merged, Conflict 상태를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <h3>Push HEAD</h3>
+                                <p>새 Merge 결과가 있다면 원격으로 Push합니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>Eclipse Pull의 내부 동작</h3>
+
+                            <pre class="mini-code"><code>git fetch origin
+git merge origin/main</code></pre>
+
+                            <p>
+                                실제 통합 방식은 Git·EGit 설정에 따라 달라질 수 있지만,
+                                이번 교안에서는 Merge 기반 흐름으로 학습합니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 12 -->
+                    <section class="study-card pull-section-card" id="eclipse-fetch-merge-flow">
+
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2>해결 방법 2: Fetch와 Merge 분리 실행</h2>
+                        </div>
+
+                        <div class="split-process">
+
+                            <article class="split-step fetch-step">
+
+                                <span>STEP 1</span>
+
+                                <h3>Fetch From</h3>
+
+                                <code>
+                                    Team → Remote → Fetch From
+                                </code>
+
+                                <p>
+                                    원격 Commit을 가져와
+                                    origin/main을 최신 상태로 갱신합니다.
+                                </p>
+                            </article>
+
+                            <div class="split-arrow">→</div>
+
+                            <article class="split-step history-step">
+
+                                <span>STEP 2</span>
+
+                                <h3>Show in History</h3>
+
+                                <code>
+                                    Team → Show in History
+                                </code>
+
+                                <p>
+                                    main과 origin/main의
+                                    Commit Graph를 비교합니다.
+                                </p>
+                            </article>
+
+                            <div class="split-arrow">→</div>
+
+                            <article class="split-step merge-step">
+
+                                <span>STEP 3</span>
+
+                                <h3>Merge</h3>
+
+                                <code>
+                                    Team → Merge
+                                </code>
+
+                                <p>
+                                    Remote Tracking 목록에서
+                                    origin/main을 선택합니다.
+                                </p>
+                            </article>
+
+                            <div class="split-arrow">→</div>
+
+                            <article class="split-step push-step">
+
+                                <span>STEP 4</span>
+
+                                <h3>Push HEAD</h3>
+
+                                <code>
+                                    Git Staging → Push HEAD
+                                </code>
+
+                                <p>
+                                    통합이 끝난 Local HEAD를
+                                    GitHub로 전송합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="command-box">
+                            <h3>CLI 대응</h3>
+
+                            <pre class="mini-code"><code>git fetch origin
+
+git log --oneline --decorate --graph --all
+
+git merge origin/main
+
+git push</code></pre>
+                        </div>
+
+                    </section>
+
+                    <!-- 13 -->
+                    <section class="study-card pull-section-card" id="push-head">
+
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>Push HEAD를 정확히 이해하기</h2>
+                        </div>
+
+                        <div class="push-head-diagram">
+
+                            <article class="head-history">
+
+                                <span>LOCAL HISTORY</span>
+
+                                <pre class="mini-code"><code>          L
+         / \
+A ── B      M ← HEAD → main
+         \ /
+          R</code></pre>
+                            </article>
+
+                            <div class="push-head-arrow">
+
+                                <strong>Push HEAD</strong>
+
+                                <span>→</span>
+
+                                <code>git push</code>
+                            </div>
+
+                            <article class="remote-result">
+
+                                <span>REMOTE RESULT</span>
+
+                                <pre class="mini-code"><code>          L
+         / \
+A ── B      M ← remote main
+         \ /
+          R</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="push-head-grid">
+
+                            <article>
+                                <h3>Push HEAD가 필요한 경우</h3>
+
+                                <p>
+                                    Local 전용 Commit과 Remote 전용 Commit을 통합해
+                                    새로운 Merge 결과가 Local에 만들어졌을 때입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Push HEAD가 필요 없는 경우</h3>
+
+                                <p>
+                                    Remote만 앞선 상태에서 Pull이 단순 Fast-forward로 끝나
+                                    Local이 Remote Commit을 따라간 경우입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Push HEAD가 하지 않는 일</h3>
+
+                                <p>
+                                    새로운 Commit을 생성하거나 Conflict를 해결하지 않습니다.
+                                    이미 존재하는 Local History를 전송합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 14 -->
+                    <section class="study-card pull-section-card" id="conflict-practice">
+
+                        <div class="card-title-row">
+                            <span class="card-number">14</span>
+                            <h2>실습 2: 같은 파일의 같은 줄을 수정해 Conflict 만들기</h2>
+                        </div>
+
+                        <div class="conflict-scenario">
+
+                            <article class="base-version">
+
+                                <span>BASE</span>
+
+                                <h3>처음 내용</h3>
+
+                                <pre class="mini-code"><code>오늘의 학습 주제는 Git입니다.</code></pre>
+                            </article>
+
+                            <article class="local-version">
+
+                                <span>LOCAL</span>
+
+                                <h3>Eclipse에서 수정</h3>
+
+                                <pre class="mini-code"><code>오늘의 학습 주제는 Git Merge입니다.</code></pre>
+                            </article>
+
+                            <article class="remote-version">
+
+                                <span>REMOTE</span>
+
+                                <h3>GitHub에서 수정</h3>
+
+                                <pre class="mini-code"><code>오늘의 학습 주제는 GitHub 협업입니다.</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="conflict-reason-box">
+
+                            <h3>왜 자동으로 합칠 수 없는가?</h3>
+
+                            <p>
+                                Git은 같은 파일의 같은 문장을
+                                두 가지 서로 다른 내용으로 수정한 것을 확인했습니다.
+                                어느 문장을 최종 결과로 남겨야 하는지는 코드의 의미를 이해해야 하므로
+                                Git이 자동으로 결정할 수 없습니다.
+                            </p>
+
+                        </div>
+
+                        <div class="practice-sequence conflict-sequence">
+
+                            <article>
+                                <span>01</span>
+                                <h3>GitHub 수정</h3>
+                                <p>message.txt를 수정하고 Remote Commit을 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <h3>Eclipse 수정</h3>
+                                <p>같은 파일의 같은 줄을 다르게 수정합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <h3>Local Commit</h3>
+                                <p>Add to Index 후 Local Commit을 만듭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <h3>Push Rejected</h3>
+                                <p>Remote Commit이 있어 Push가 거절됩니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <h3>Pull 또는 Merge</h3>
+                                <p>같은 영역의 서로 다른 변경을 통합합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <h3>Conflict 발생</h3>
+                                <p>Git이 최종 결과를 사용자에게 결정하도록 요청합니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 15 -->
+                    <section class="study-card pull-section-card" id="conflict-marker">
+
+                        <div class="card-title-row">
+                            <span class="card-number">15</span>
+                            <h2>Conflict Marker 읽는 법</h2>
+                        </div>
+
+                        <div class="conflict-code-box">
+
+                            <pre class="mini-code"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+오늘의 학습 주제는 Git Merge입니다.
+=======
+오늘의 학습 주제는 GitHub 협업입니다.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</code></pre>
+
+                        </div>
+
+                        <div class="marker-grid">
+
+                            <article class="marker-local">
+
+                                <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code>
+
+                                <h3>현재 Local 내용 시작</h3>
+
+                                <p>
+                                    현재 Checkout된 Local Branch의 내용이
+                                    이 표시 아래에 나타납니다.
+                                </p>
+                            </article>
+
+                            <article class="marker-divider">
+
+                                <code>=======</code>
+
+                                <h3>두 변경의 경계</h3>
+
+                                <p>
+                                    Local 내용과 병합 대상 내용을
+                                    구분하는 경계입니다.
+                                </p>
+                            </article>
+
+                            <article class="marker-remote">
+
+                                <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</code>
+
+                                <h3>Remote 내용 끝</h3>
+
+                                <p>
+                                    origin/main에서 가져온 내용이
+                                    이 표시 위쪽에 나타납니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Marker는 설명이 아니라 임시 충돌 표시입니다</h3>
+
+                            <p>
+                                최종 코드에는
+                                <code class="inline-code">&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>,
+                                <code class="inline-code">=======</code>,
+                                <code class="inline-code">&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>
+                                문자가 남아 있으면 안 됩니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 16 -->
+                    <section class="study-card pull-section-card" id="resolve-conflict">
+
+                        <div class="card-title-row">
+                            <span class="card-number">16</span>
+                            <h2>Eclipse에서 Conflict 해결하기</h2>
+                        </div>
+
+                        <div class="resolve-flow">
+
+                            <article>
+                                <span>01</span>
+
+                                <h3>Conflict 파일 찾기</h3>
+
+                                <p>
+                                    Git Staging과 Project Explorer에서
+                                    충돌 장식이 있는 파일을 확인합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+
+                                <h3>파일 열기</h3>
+
+                                <p>
+                                    Conflict Marker 사이의
+                                    Local과 Remote 내용을 비교합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+
+                                <h3>최종 코드 결정</h3>
+
+                                <p>
+                                    한쪽만 선택하거나,
+                                    두 내용을 합쳐 새로운 결과를 작성합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+
+                                <h3>Marker 제거</h3>
+
+                                <p>
+                                    모든 충돌 표시를 삭제하고
+                                    문법적으로 정상인 코드로 만듭니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+
+                                <h3>저장</h3>
+
+                                <p>
+                                    <code>Ctrl + S</code>로
+                                    최종 수정 내용을 저장합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+
+                                <h3>Add to Index</h3>
+
+                                <p>
+                                    Git에게 이 파일의 Conflict가
+                                    해결되었다고 알립니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>07</span>
+
+                                <h3>Merge Commit</h3>
+
+                                <p>
+                                    충돌 해결 결과를 Commit하여
+                                    Merge를 완료합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <span>08</span>
+
+                                <h3>Push HEAD</h3>
+
+                                <p>
+                                    통합된 History를
+                                    GitHub Remote Branch로 전송합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="conflict-result">
+
+                            <article>
+                                <span>잘못된 상태</span>
+
+                                <pre class="mini-code"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+오늘의 학습 주제는 Git Merge입니다.
+=======
+오늘의 학습 주제는 GitHub 협업입니다.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</code></pre>
+                            </article>
+
+                            <div class="result-arrow">
+                                →
+                            </div>
+
+                            <article>
+                                <span>해결된 상태</span>
+
+                                <pre class="mini-code"><code>오늘의 학습 주제는
+Git Merge와 GitHub 협업입니다.</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="command-box">
+                            <h3>CLI Conflict 해결 흐름</h3>
+
+                            <pre class="mini-code"><code>git status
+
+# 충돌 파일을 직접 수정
+
+git add message.txt
+
+git commit -m "merge: resolve message conflict"
+
+git push</code></pre>
+                        </div>
+
+                    </section>
+
+                    <!-- 17 -->
+                    <section class="study-card pull-section-card" id="pull-before-check">
+
+                        <div class="card-title-row">
+                            <span class="card-number">17</span>
+                            <h2>Pull 전에 Working Directory를 확인해야 하는 이유</h2>
+                        </div>
+
+                        <div class="working-tree-compare">
+
+                            <article class="clean-tree">
+
+                                <span>CLEAN</span>
+
+                                <h3>Pull하기 좋은 상태</h3>
+
+                                <pre class="mini-code"><code>nothing to commit,
+working tree clean</code></pre>
+
+                                <p>
+                                    현재 변경 사항이 모두 Commit되어 있어
+                                    원격 변경과 통합하기 쉽습니다.
+                                </p>
+                            </article>
+
+                            <article class="dirty-tree">
+
+                                <span>DIRTY</span>
+
+                                <h3>먼저 정리가 필요한 상태</h3>
+
+                                <pre class="mini-code"><code>modified:
+src/main/java/Service.java</code></pre>
+
+                                <p>
+                                    Commit되지 않은 Local 수정이
+                                    원격 변경과 겹칠 수 있습니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                        <div class="local-overwrite-error">
+
+                            <strong>대표 메시지</strong>
+
+                            <pre class="mini-code"><code>Your local changes to the following files
+would be overwritten by merge.</code></pre>
+
+                            <p>
+                                Local 수정이 원격 변경으로 덮어써질 가능성이 있으므로
+                                Git이 Pull 또는 Merge를 중단한 상태입니다.
+                            </p>
+
+                        </div>
+
+                        <div class="safe-before-pull">
+
+                            <article>
+                                <span>방법 1</span>
+                                <h3>작업 완료 후 Commit</h3>
+                                <p>의미 있는 작업 단위라면 Add와 Commit을 완료합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>방법 2</span>
+                                <h3>수정 취소</h3>
+                                <p>필요 없는 변경이라면 Restore로 되돌립니다.</p>
+                            </article>
+
+                            <article>
+                                <span>방법 3</span>
+                                <h3>임시 보관</h3>
+                                <p>미완성 작업이라면 Stash가 필요할 수 있습니다.</p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>초보자 기본 원칙</h3>
+
+                            <p>
+                                Pull 전에 <code class="inline-code">git status</code>를 확인하고,
+                                가능한 경우 현재 작업을 의미 있는 Commit으로 정리합니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 18 -->
+                    <section class="study-card pull-section-card" id="cli-flow">
+
+                        <div class="card-title-row">
+                            <span class="card-number">18</span>
+                            <h2>CLI 전체 흐름</h2>
+                        </div>
+
+                        <div class="cli-method-grid">
+
+                            <article class="cli-pull-method">
+
+                                <span>방법 1</span>
+
+                                <h3>Pull 방식</h3>
+
+                                <pre class="mini-code"><code>git status
+
+git add .
+
+git commit -m "feat: add local change"
+
+git push
+
+# rejected 발생
+
+git pull --no-rebase origin main
+
+# 충돌이 없다면
+git push</code></pre>
+                            </article>
+
+                            <article class="cli-fetch-method">
+
+                                <span>방법 2</span>
+
+                                <h3>Fetch + Merge 방식</h3>
+
+                                <pre class="mini-code"><code>git status
+
+git add .
+
+git commit -m "feat: add local change"
+
+git push
+
+# rejected 발생
+
+git fetch origin
+
+git log --oneline --decorate --graph --all
+
+git merge origin/main
+
+git push</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="command-detail-grid">
+
+                            <article>
+                                <strong>현재 상태</strong>
+                                <code>git status</code>
+                            </article>
+
+                            <article>
+                                <strong>추적 관계</strong>
+                                <code>git branch -vv</code>
+                            </article>
+
+                            <article>
+                                <strong>원격 가져오기</strong>
+                                <code>git fetch origin</code>
+                            </article>
+
+                            <article>
+                                <strong>전체 History</strong>
+                                <code>git log --graph --all</code>
+                            </article>
+
+                            <article>
+                                <strong>원격에만 있는 Commit</strong>
+                                <code>git log main..origin/main</code>
+                            </article>
+
+                            <article>
+                                <strong>Local에만 있는 Commit</strong>
+                                <code>git log origin/main..main</code>
+                            </article>
+
+                            <article>
+                                <strong>변경 비교</strong>
+                                <code>git diff main..origin/main</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge</strong>
+                                <code>git merge origin/main</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge 취소</strong>
+                                <code>git merge --abort</code>
+                            </article>
+
+                            <article>
+                                <strong>Push</strong>
+                                <code>git push</code>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 19 -->
+                    <section class="study-card pull-section-card" id="eclipse-cli-mapping">
+
+                        <div class="card-title-row">
+                            <span class="card-number">19</span>
+                            <h2>Eclipse 조작과 CLI 명령 연결</h2>
+                        </div>
+
+                        <div class="table-shell">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>Eclipse 조작</th>
+                                        <th>Git 내부 의미</th>
+                                        <th>CLI 명령</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <td>Team → Pull</td>
+                                        <td>원격 Fetch 후 현재 Branch에 통합</td>
+                                        <td><code>git pull --no-rebase origin main</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Fetch from Upstream</td>
+                                        <td>Upstream 원격 변경 가져오기</td>
+                                        <td><code>git fetch origin</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Remote → Fetch From</td>
+                                        <td>Fetch 대상과 RefSpec을 선택해 실행</td>
+                                        <td><code>git fetch origin</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Team → Show in History</td>
+                                        <td>Local·Remote Commit Graph 확인</td>
+                                        <td><code>git log --graph --all</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Team → Merge</td>
+                                        <td>선택 Branch를 현재 Branch에 통합</td>
+                                        <td><code>git merge origin/main</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Remote Tracking → origin/main</td>
+                                        <td>Merge할 원격 추적 Branch 선택</td>
+                                        <td><code>origin/main</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Add to Index</td>
+                                        <td>일반 변경 또는 Conflict 해결 결과 Stage</td>
+                                        <td><code>git add 파일</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Commit</td>
+                                        <td>Merge와 Conflict 해결 결과 확정</td>
+                                        <td><code>git commit</code></td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>Push HEAD</td>
+                                        <td>현재 HEAD까지의 History를 원격에 전송</td>
+                                        <td><code>git push</code></td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 20 -->
+                    <section class="study-card pull-section-card" id="errors">
+
+                        <div class="card-title-row">
+                            <span class="card-number">20</span>
+                            <h2>오류 메시지 읽는 법</h2>
+                        </div>
+
+                        <p>
+                            Git 오류는 모두 같은 문제가 아닙니다.
+                            History, 인증, 권한, Working Tree, Merge 진행 상태로 구분해야 합니다.
+                        </p>
+
+                        <div class="error-table">
+
+                            <div class="table-head">오류 / 상태</div>
+                            <div class="table-head">의미</div>
+                            <div class="table-head">확인·해결 방향</div>
+
+                            <div>
+                                <code>non-fast-forward</code>
+                            </div>
+                            <div>
+                                원격에 Local이 가지고 있지 않은 Commit이 있습니다.
+                            </div>
+                            <div>
+                                Fetch 또는 Pull 후 Merge하고 다시 Push합니다.
+                            </div>
+
+                            <div>
+                                <code>failed to push some refs</code>
+                            </div>
+                            <div>
+                                하나 이상의 Ref를 원격에 갱신하지 못했습니다.
+                            </div>
+                            <div>
+                                주변의 non-fast-forward, 403 등의 실제 원인을 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>403</code>
+                            </div>
+                            <div>
+                                GitHub 계정 또는 PAT에 쓰기 권한이 없습니다.
+                            </div>
+                            <div>
+                                Credential, PAT 권한, Collaborator 권한을 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>Authentication failed</code>
+                            </div>
+                            <div>
+                                GitHub 인증 정보가 올바르지 않습니다.
+                            </div>
+                            <div>
+                                Username, PAT, 만료일과 저장된 Credential을 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>Repository not found</code>
+                            </div>
+                            <div>
+                                저장소 URL이 틀렸거나 접근 권한이 없습니다.
+                            </div>
+                            <div>
+                                Owner, Repository 이름과 Private 권한을 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>local changes would be overwritten</code>
+                            </div>
+                            <div>
+                                Commit되지 않은 Local 수정이 Merge로 손실될 수 있습니다.
+                            </div>
+                            <div>
+                                현재 수정 내용을 Commit, Restore 또는 Stash합니다.
+                            </div>
+
+                            <div>
+                                <code>CONFLICT (content)</code>
+                            </div>
+                            <div>
+                                같은 파일의 같은 영역을 서로 다르게 수정했습니다.
+                            </div>
+                            <div>
+                                최종 코드를 작성하고 Add, Commit, Push합니다.
+                            </div>
+
+                            <div>
+                                <code>You have not concluded your merge</code>
+                            </div>
+                            <div>
+                                이전 Merge가 아직 완료되지 않았습니다.
+                            </div>
+                            <div>
+                                git status로 충돌 파일을 확인하고 Merge를 완료합니다.
+                            </div>
+
+                            <div>
+                                <code>MERGE_HEAD exists</code>
+                            </div>
+                            <div>
+                                Merge 진행 중에 다른 Merge나 Pull을 실행했습니다.
+                            </div>
+                            <div>
+                                현재 Merge를 완료하거나 git merge --abort를 실행합니다.
+                            </div>
+
+                            <div>
+                                <code>Need to specify how to reconcile</code>
+                            </div>
+                            <div>
+                                Diverged Branch의 통합 방식을 지정해야 합니다.
+                            </div>
+                            <div>
+                                Merge 방식은 git pull --no-rebase를 사용합니다.
+                            </div>
+
+                            <div>
+                                <code>no tracking information</code>
+                            </div>
+                            <div>
+                                현재 Branch에 Upstream이 설정되지 않았습니다.
+                            </div>
+                            <div>
+                                origin/main을 Upstream으로 설정합니다.
+                            </div>
+
+                            <div>
+                                <code>Everything up-to-date</code>
+                            </div>
+                            <div>
+                                Push할 새로운 Local Commit이 없습니다.
+                            </div>
+                            <div>
+                                오류가 아닙니다. git status와 Commit 여부를 확인합니다.
+                            </div>
+
+                            <div>
+                                <code>Already up to date</code>
+                            </div>
+                            <div>
+                                현재 Branch에 Merge할 새 Commit이 없습니다.
+                            </div>
+                            <div>
+                                오류가 아니며 이미 최신 상태입니다.
+                            </div>
+
+                        </div>
+
+                        <div class="error-category-grid">
+
+                            <article>
+                                <span>HISTORY</span>
+                                <p>rejected, non-fast-forward, diverged</p>
+                            </article>
+
+                            <article>
+                                <span>AUTH</span>
+                                <p>Authentication failed, Credential</p>
+                            </article>
+
+                            <article>
+                                <span>PERMISSION</span>
+                                <p>403, Write access denied</p>
+                            </article>
+
+                            <article>
+                                <span>WORKTREE</span>
+                                <p>Local changes would be overwritten</p>
+                            </article>
+
+                            <article>
+                                <span>MERGE</span>
+                                <p>Conflict, MERGE_HEAD, unresolved</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 21 -->
+                    <section class="study-card pull-section-card" id="mistakes">
+
+                        <div class="card-title-row">
+                            <span class="card-number">21</span>
+                            <h2>초보자가 자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+
+                            <article>
+                                <h3>1. rejected를 인증 오류로 생각</h3>
+                                <p>non-fast-forward는 History 문제이고 403은 권한 문제입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>2. rejected 후 Force Push</h3>
+                                <p>원격의 다른 Commit을 삭제할 위험이 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>3. Fetch 후 파일이 안 바뀌어 실패로 판단</h3>
+                                <p>Fetch는 origin/main만 갱신하고 Working Tree는 바로 바꾸지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>4. Pull과 Fetch를 같은 작업으로 이해</h3>
+                                <p>Pull은 가져온 뒤 통합하고 Fetch는 우선 가져오기만 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>5. Merge 방향을 반대로 이해</h3>
+                                <p>현재 main에 origin/main을 합치는 흐름입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>6. origin/main을 GitHub 실시간 상태로 착각</h3>
+                                <p>origin/main은 마지막 Fetch 결과입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>7. Conflict에서 무조건 한쪽만 선택</h3>
+                                <p>두 변경을 조합한 새로운 최종 결과를 만들 수도 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>8. Conflict Marker를 남겨둠</h3>
+                                <p>최종 코드에서 모든 충돌 표시를 제거해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>9. 충돌 수정 후 Add하지 않음</h3>
+                                <p>Add는 Git에게 Conflict 해결 완료를 알리는 단계입니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>10. Pull 전에 미완성 변경을 방치</h3>
+                                <p>먼저 현재 작업을 Commit하거나 안전하게 보관해야 합니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>11. Pull이 끝나면 항상 Push</h3>
+                                <p>단순 Fast-forward라면 원격에 새로 보낼 내용이 없습니다.</p>
+                            </article>
+
+                            <article>
+                                <h3>12. Push HEAD를 Commit 버튼으로 착각</h3>
+                                <p>Push HEAD는 이미 존재하는 Commit History를 전송합니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 22 -->
+                    <section class="study-card pull-section-card" id="practical-use">
+
+                        <div class="card-title-row">
+                            <span class="card-number">22</span>
+                            <h2>개인·팀 프로젝트 실무 연결</h2>
+                        </div>
+
+                        <div class="practical-grid">
+
+                            <article class="tone-blue">
+
+                                <span>개인 프로젝트</span>
+
+                                <h3>두 컴퓨터에서 작업</h3>
+
+                                <pre class="mini-code"><code>집 PC
+Commit → Push
+
+노트북
+Pull → 작업 → Commit → Push</code></pre>
+                            </article>
+
+                            <article class="tone-remote">
+
+                                <span>팀 프로젝트</span>
+
+                                <h3>작업 시작 전 동기화</h3>
+
+                                <pre class="mini-code"><code>git status
+→ Fetch 또는 Pull
+→ 현재 Branch 확인
+→ 개발 시작</code></pre>
+                            </article>
+
+                            <article class="tone-purple">
+
+                                <span>통합 전 검토</span>
+
+                                <h3>Fetch 후 History 확인</h3>
+
+                                <pre class="mini-code"><code>git fetch origin
+git log --graph --all
+git diff main..origin/main</code></pre>
+                            </article>
+
+                            <article class="tone-warn">
+
+                                <span>배포 직전</span>
+
+                                <h3>Merge 후 다시 테스트</h3>
+
+                                <pre class="mini-code"><code>Merge
+→ Conflict 해결
+→ Test
+→ Build
+→ Push
+→ Deploy</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="daily-workflow">
+
+                            <article>
+                                <span>작업 시작</span>
+                                <strong>Status → Pull</strong>
+                            </article>
+
+                            <article>
+                                <span>기능 개발</span>
+                                <strong>Edit → Test</strong>
+                            </article>
+
+                            <article>
+                                <span>로컬 저장</span>
+                                <strong>Add → Commit</strong>
+                            </article>
+
+                            <article>
+                                <span>원격 확인</span>
+                                <strong>Fetch → Compare</strong>
+                            </article>
+
+                            <article>
+                                <span>History 통합</span>
+                                <strong>Merge → Test</strong>
+                            </article>
+
+                            <article>
+                                <span>팀 공유</span>
+                                <strong>Push</strong>
+                            </article>
+
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Merge 성공 후 실행과 테스트가 필요합니다</h3>
+
+                            <p>
+                                Git이 파일을 자동으로 합쳤다는 것은 문법과 비즈니스 로직이
+                                올바르다는 뜻이 아닙니다.
+                                Merge 후에는 반드시 프로젝트 실행, 테스트와 Gradle Build를 확인합니다.
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 23 -->
+                    <section class="study-card pull-section-card" id="interview-points">
+
+                        <div class="card-title-row">
+                            <span class="card-number">23</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+
+                            <article>
+                                <h3>Q1. Push가 non-fast-forward로 거절되는 이유는 무엇인가요?</h3>
+
+                                <p>
+                                    원격 Branch에 Local Branch가 가지고 있지 않은 Commit이 있기 때문입니다.
+                                    그대로 Push하면 원격 History가 손실될 수 있으므로 Git이 Push를 거절합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q2. Fetch란 무엇인가요?</h3>
+
+                                <p>
+                                    원격 저장소의 새로운 Commit과 Branch 정보를 Local Repository로 가져오고
+                                    origin/main 같은 Remote Tracking Branch를 갱신하는 작업입니다.
+                                    현재 Local Branch와 Working Directory는 바로 변경하지 않습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q3. Pull과 Fetch의 차이는 무엇인가요?</h3>
+
+                                <p>
+                                    Fetch는 원격 정보를 가져오기만 합니다.
+                                    Pull은 원격 정보를 가져온 뒤 현재 Local Branch에 통합합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q4. Merge란 무엇인가요?</h3>
+
+                                <p>
+                                    다른 Branch의 Commit History를 현재 Checkout된 Branch에 통합하는 작업입니다.
+                                    상황에 따라 Fast-forward 또는 Merge Commit이 만들어질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q5. Fast-forward란 무엇인가요?</h3>
+
+                                <p>
+                                    현재 Branch가 병합 대상 Branch의 과거 Commit을 가리키고 있어
+                                    새로운 Merge Commit 없이 Branch 포인터만 앞으로 이동할 수 있는 상태입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q6. main과 origin/main의 차이는 무엇인가요?</h3>
+
+                                <p>
+                                    main은 Local에서 직접 작업하는 Branch입니다.
+                                    origin/main은 마지막 Fetch 시점의 원격 main 상태를
+                                    Local Repository 안에서 나타내는 Remote Tracking Branch입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q7. Conflict는 언제 발생하나요?</h3>
+
+                                <p>
+                                    주로 같은 파일의 같은 영역을 서로 다른 Branch에서 다르게 수정한 뒤
+                                    Merge하거나 Pull할 때 Git이 최종 결과를 자동으로 판단하지 못하면 발생합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q8. Conflict 해결 순서는 무엇인가요?</h3>
+
+                                <p>
+                                    충돌 파일을 수정하고 Conflict Marker를 제거한 뒤
+                                    Add, Commit, Push 순서로 완료합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q9. Push HEAD란 무엇인가요?</h3>
+
+                                <p>
+                                    현재 HEAD가 가리키는 Local Branch의 최신 Commit History를
+                                    설정된 원격 Branch로 전송하는 EGit 작업입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q10. Push rejected를 Force Push로 해결하면 안 되는 이유는 무엇인가요?</h3>
+
+                                <p>
+                                    Force Push는 원격 History를 Local 기준으로 강제로 변경하여
+                                    다른 팀원의 Commit을 잃게 만들 수 있기 때문입니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q11. origin/main은 GitHub의 실시간 상태인가요?</h3>
+
+                                <p>
+                                    아닙니다. 마지막 Fetch 또는 Pull 결과를 나타냅니다.
+                                    원격의 최신 상태를 확인하려면 다시 Fetch해야 합니다.
+                                </p>
+                            </article>
+
+                            <article>
+                                <h3>Q12. 실무에서는 Pull과 Fetch 중 무엇을 사용하나요?</h3>
+
+                                <p>
+                                    간단한 작업에서는 Pull을 사용할 수 있습니다.
+                                    원격 변경을 먼저 검토해야 하는 팀 작업에서는 Fetch 후
+                                    History를 확인하고 Merge하는 방식을 사용할 수 있습니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 24 -->
+                    <section class="study-card pull-section-card" id="memory-points">
+
+                        <div class="card-title-row">
+                            <span class="card-number">24</span>
+                            <h2>시험·면접·실습 전 암기 포인트</h2>
+                        </div>
+
+                        <div class="memory-grid">
+
+                            <article>
+                                <span>01</span>
+                                <p>Push rejected는 원격 History를 보호하기 위한 안전장치입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <p>Git은 버전 숫자가 아니라 Commit의 연결 관계를 비교합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <p>main은 Local Branch이고 origin/main은 Remote Tracking Branch입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <p>origin/main은 마지막 Fetch 결과이며 GitHub의 실시간 상태가 아닙니다.</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <p>Fetch는 원격 정보를 가져오지만 Working Directory를 바로 변경하지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <p>Merge는 다른 Branch의 History를 현재 Branch에 통합합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>07</span>
+                                <p>이번 교안에서 Pull은 Fetch와 Merge를 한 번에 실행하는 흐름입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>08</span>
+                                <p>Local만 앞서면 Push하고 Remote만 앞서면 Pull합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>09</span>
+                                <p>Local과 Remote가 갈라졌다면 Merge 후 Push합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>10</span>
+                                <p>같은 파일의 같은 부분을 다르게 수정하면 Conflict가 발생할 수 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>11</span>
+                                <p>Conflict Marker를 제거한 뒤 Add, Commit, Push합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>12</span>
+                                <p>Push HEAD는 Commit 생성이 아니라 현재 History 전송입니다.</p>
+                            </article>
+
+                            <article>
+                                <span>13</span>
+                                <p>Push rejected를 Force Push로 해결하지 않습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>14</span>
+                                <p>Pull 전에는 git status로 Working Tree를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>15</span>
+                                <p>Merge 후에는 반드시 실행과 테스트를 다시 확인합니다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 25 -->
+                    <section class="study-card pull-section-card" id="next-lesson">
+
+                        <div class="card-title-row">
+                            <span class="card-number">25</span>
+                            <h2>다음 단원으로 연결</h2>
+                        </div>
+
+                        <p>
+                            이번 단원에서는 같은 프로젝트의 Local main과
+                            Remote Tracking Branch인 origin/main을 통합했습니다.
+                        </p>
+
+                        <div class="next-preview">
+
+                            <article class="current-lesson">
+
+                                <span>이번 단원</span>
+
+                                <h3>Local과 Remote 통합</h3>
+
+                                <pre class="mini-code"><code>main
++
+origin/main
+↓
+Fetch / Pull / Merge
+↓
+Push</code></pre>
+                            </article>
+
+                            <div class="next-preview-arrow">
+
+                                <strong>작업을 독립적으로 나누려면?</strong>
+
+                                <span>→</span>
+                            </div>
+
+                            <article class="following-lesson">
+
+                                <span>다음 학습</span>
+
+                                <h3>Branch 생성과 통합</h3>
+
+                                <pre class="mini-code"><code>main
++
+feature/login
+↓
+Branch Merge
+↓
+Conflict 해결</code></pre>
+                            </article>
+
+                        </div>
+
+                        <div class="branch-preview-grid">
+
+                            <article>
+                                <span>main</span>
+                                <p>검증되고 통합된 기준 Branch</p>
+                            </article>
+
+                            <article>
+                                <span>feature/login</span>
+                                <p>로그인 기능을 독립적으로 개발</p>
+                            </article>
+
+                            <article>
+                                <span>feature/payment</span>
+                                <p>결제 기능을 독립적으로 개발</p>
+                            </article>
+
+                            <article>
+                                <span>Merge</span>
+                                <p>완성된 기능을 main에 통합</p>
+                            </article>
+
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>다음 단원으로 이어지는 질문</h3>
+
+                            <p>
+                                “여러 기능을 동시에 개발하면서도 main을 안정적으로 유지하려면
+                                어떻게 독립적인 Branch를 만들고 다시 합쳐야 할까?”
+                            </p>
+                        </div>
+
+                    </section>
+
                 </main>
 
+                <!-- =====================================================
+                     ASIDE
+                     ===================================================== -->
+
                 <aside class="side-note">
-                    <h2>오늘의 학습 메모</h2>
 
-                    <div>
+                    <h2>학습 메모</h2>
+
+                    <div class="memo-section">
+
                         <h3>오늘의 암기 포인트</h3>
-                        <p>이 영역은 Step1과 Step2 완료 후 암기 포인트를 정리할 예정입니다.</p>
+
+                        <ul>
+                            <li>rejected는 원격 History를 보호하는 안전장치입니다.</li>
+                            <li>Fetch는 origin/main을 갱신하지만 main을 바로 바꾸지 않습니다.</li>
+                            <li>Pull은 원격 변경을 가져와 현재 Branch에 통합합니다.</li>
+                            <li>Merge는 선택 Branch를 현재 Checkout Branch에 합칩니다.</li>
+                            <li>Conflict 해결 후에는 Add, Commit, Push 순서가 필요합니다.</li>
+                            <li>Push HEAD는 현재 HEAD까지의 History를 전송합니다.</li>
+                        </ul>
+
                     </div>
 
-                    <div>
+                    <div class="memo-section state-memo">
+
+                        <h3>상태별 필요한 작업</h3>
+
+                        <div class="quick-state-grid">
+
+                            <article>
+                                <strong>up to date</strong>
+                                <span>작업 없음</span>
+                            </article>
+
+                            <article>
+                                <strong>ahead</strong>
+                                <span>Push</span>
+                            </article>
+
+                            <article>
+                                <strong>behind</strong>
+                                <span>Pull 또는 Merge</span>
+                            </article>
+
+                            <article>
+                                <strong>diverged</strong>
+                                <span>Merge 후 Push</span>
+                            </article>
+
+                        </div>
+
+                    </div>
+
+                    <div class="memo-section warning-memo">
+
                         <h3>헷갈리기 쉬운 개념</h3>
-                        <p>이 영역은 비슷한 Git/GitHub 개념을 비교해서 정리할 예정입니다.</p>
+
+                        <div class="confuse-grid">
+
+                            <article>
+                                <strong>main</strong>
+                                <p>내가 직접 작업하는 Local Branch</p>
+                            </article>
+
+                            <article>
+                                <strong>origin/main</strong>
+                                <p>마지막 Fetch 결과를 나타내는 Branch</p>
+                            </article>
+
+                            <article>
+                                <strong>Fetch</strong>
+                                <p>가져오기만 하고 바로 합치지 않음</p>
+                            </article>
+
+                            <article>
+                                <strong>Pull</strong>
+                                <p>가져온 뒤 현재 Branch에 통합</p>
+                            </article>
+
+                            <article>
+                                <strong>Merge</strong>
+                                <p>두 Branch의 History를 통합</p>
+                            </article>
+
+                            <article>
+                                <strong>Push HEAD</strong>
+                                <p>현재 최신 Local History 전송</p>
+                            </article>
+
+                        </div>
+
                     </div>
 
-                    <div>
-                        <h3>다음 단원 연결</h3>
-                        <p>이 영역은 다음 단원과 이어지는 학습 흐름을 정리할 예정입니다.</p>
+                    <div class="memo-section command-memo">
+
+                        <h3>자주 사용하는 명령</h3>
+
+                        <div class="quick-command-grid">
+
+                            <article>
+                                <strong>상태 확인</strong>
+                                <code>git status</code>
+                            </article>
+
+                            <article>
+                                <strong>추적 상태</strong>
+                                <code>git branch -vv</code>
+                            </article>
+
+                            <article>
+                                <strong>Fetch</strong>
+                                <code>git fetch origin</code>
+                            </article>
+
+                            <article>
+                                <strong>Pull</strong>
+                                <code>git pull --no-rebase</code>
+                            </article>
+
+                            <article>
+                                <strong>History</strong>
+                                <code>git log --graph --all</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge</strong>
+                                <code>git merge origin/main</code>
+                            </article>
+
+                            <article>
+                                <strong>충돌 해결 등록</strong>
+                                <code>git add 파일명</code>
+                            </article>
+
+                            <article>
+                                <strong>Push</strong>
+                                <code>git push</code>
+                            </article>
+
+                            <article>
+                                <strong>Merge 취소</strong>
+                                <code>git merge --abort</code>
+                            </article>
+
+                        </div>
+
                     </div>
+
+                    <div class="memo-section error-memo">
+
+                        <h3>오류 메시지 빠른 분류</h3>
+
+                        <ul>
+                            <li><code>non-fast-forward</code>: History 불일치</li>
+                            <li><code>403</code>: 저장소 쓰기 권한 문제</li>
+                            <li><code>Authentication failed</code>: 인증 정보 문제</li>
+                            <li><code>local changes overwritten</code>: 미Commit 변경 존재</li>
+                            <li><code>CONFLICT</code>: 같은 영역을 서로 다르게 수정</li>
+                            <li><code>MERGE_HEAD exists</code>: 이전 Merge가 진행 중</li>
+                            <li><code>Everything up-to-date</code>: Push할 Commit 없음</li>
+                            <li><code>Already up to date</code>: Merge할 Commit 없음</li>
+                        </ul>
+
+                    </div>
+
+                    <div class="memo-section checklist-memo">
+
+                        <h3>Pull·Merge 전 체크리스트</h3>
+
+                        <div class="aside-checklist">
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 Local Branch를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Working Directory 상태를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                현재 작업을 Commit했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                origin/main을 Fetch했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Local과 Remote History를 비교했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Merge 결과 상태를 확인했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Conflict Marker를 모두 제거했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                충돌 해결 파일을 Add했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                통합 후 프로젝트를 테스트했습니다.
+                            </label>
+
+                            <label>
+                                <input type="checkbox" disabled>
+                                Force Push를 사용하지 않았습니다.
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                    <div class="memo-section final-summary">
+
+                        <h3>다음 단원 연결</h3>
+
+                        <p>
+                            이번 단원에서는 main과 origin/main을 통합했습니다.
+                            다음 학습에서는 기능별 Branch를 만들고
+                            Local Branch끼리 Merge하는 흐름으로 확장합니다.
+                        </p>
+
+                    </div>
+
                 </aside>
+
             </div>
+
         </div>
+
     </body>
 
 </html>

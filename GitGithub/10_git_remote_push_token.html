@@ -4,6 +4,9 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+            content="Eclipse EGit에서 Local Repository를 GitHub와 연결하고, origin Remote 등록, Fine-grained Personal Access Token 인증, 최초 Push, Upstream 설정과 오류 메시지를 학습합니다.">
+
         <title>Git/GitHub - 로컬 저장소와 GitHub 연결하기</title>
 
         <link rel="stylesheet" href="../css/00_nav.css">
@@ -18,67 +21,1460 @@
             <nav class="side-nav" id="sideNav"></nav>
 
             <div class="page-content">
-                <header class="page-header lesson-header">
+                <header class="page-header git-hero">
                     <p class="chapter-label">Git/GitHub - Chapter 10</p>
-                    <h1>10. 로컬 저장소와 GitHub 연결하기</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step1에서 교안 내용을 바탕으로 자세히 공부할 예정입니다.
+
+                    <h1>로컬 저장소와 GitHub 연결하기</h1>
+
+                    <p class="chapter-description">
+                        앞 단원에서 GitHub에 빈 <strong>Remote Repository</strong>를 만들었습니다.<br>
+                        이번 단원에서는 Eclipse의 로컬 Git 저장소에 GitHub 주소를 <code class="inline-code">origin</code>으로 등록하고,
+                        <strong>Personal Access Token</strong>으로 인증한 뒤 로컬 Commit을 처음 Push합니다.<br>
+                        중심 질문은 <strong>“내 컴퓨터의 Commit History는 어떤 주소와 인증 과정을 거쳐 GitHub로 이동하는가?”</strong>입니다.
                     </p>
-                    <ul class="lesson-goals">
-                        <li>이 단원의 핵심 개념을 이해합니다.</li>
-                        <li>Git/GitHub 전체 흐름에서 이 단원의 위치를 파악합니다.</li>
-                        <li>Step2에서 개념, 흐름도, 실무 연결로 구조화할 준비를 합니다.</li>
-                    </ul>
+
+                    <div class="header-keywords" aria-label="로컬 저장소와 GitHub 연결 핵심 키워드">
+                        <span>Git</span>
+                        <span>GitHub</span>
+                        <span>Local Repository</span>
+                        <span>Remote Repository</span>
+                        <span>Remote</span>
+                        <span>origin</span>
+                        <span>Remote URL</span>
+                        <span>HTTPS</span>
+                        <span>Fine-grained PAT</span>
+                        <span>Token</span>
+                        <span>Contents: Read and write</span>
+                        <span>Git Repositories</span>
+                        <span>Source Ref</span>
+                        <span>Destination Ref</span>
+                        <span>main</span>
+                        <span>origin/main</span>
+                        <span>Upstream</span>
+                        <span>Push</span>
+                        <span>403</span>
+                        <span>non-fast-forward</span>
+                        <span>Force Update</span>
+                    </div>
+
+                    <div class="hero-goals" aria-label="학습 목표">
+                        <article>
+                            <strong>학습 목표 1</strong>
+                            <p>Remote, origin, Remote URL과<br>Local·Remote Repository의<br>관계를 설명할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 2</strong>
+                            <p>Eclipse EGit에서 GitHub URI와<br>PAT Credential을 등록하고<br>최초 Push를 실행할 수 있습니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>학습 목표 3</strong>
+                            <p>main과 origin/main, Upstream,<br>403·rejected 오류의 의미를<br>상태 변화로 해석할 수 있습니다.</p>
+                        </article>
+                    </div>
                 </header>
 
-                <main class="lesson-main">
-                    <section class="learning-card concept-card">
-                        <h2>1. 개념 설명 카드</h2>
-                        <p>Step1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
+                <main>
+                    <section class="study-card concept-card remote-section-card" id="lesson-core">
+                        <div class="card-title-row">
+                            <span class="card-number">01</span>
+                            <h2>이번 단원의 핵심: 주소를 등록하고, 인증하고, Commit을 보낸다</h2>
+                        </div>
+
+                        <p>
+                            로컬에서 Commit을 만들었다고 해서 GitHub에 자동으로 올라가지는 않습니다.<br>
+                            Git은 먼저 어느 원격 저장소로 보낼지 알아야 하고, GitHub는 Push를 요청한 사용자가 누구이며 쓰기 권한이 있는지 확인해야 합니다.<br>
+                            따라서 최초 연결은 <strong>Remote 등록 → 인증 → Push → Upstream 설정</strong>의 순서로 진행됩니다.
+                        </p>
+
+                        <div class="card-grid grid-4">
+                            <article class="info-card tone-local">
+                                <span>Local</span>
+                                <h3>Commit이 만들어진 곳</h3>
+                                <p>Working Directory의 변경을<br>Add하고 Commit하면<br>내 컴퓨터의 Local Repository에<br>버전이 생깁니다.</p>
+                            </article>
+
+                            <article class="info-card tone-blue">
+                                <span>Remote</span>
+                                <h3>목적지 주소 등록</h3>
+                                <p>GitHub Repository URL을<br><code>origin</code>이라는 이름으로<br>로컬 Git 설정에 저장합니다.</p>
+                            </article>
+
+                            <article class="info-card tone-purple">
+                                <span>Auth</span>
+                                <h3>사용자와 권한 확인</h3>
+                                <p>HTTPS Push에서는<br>GitHub Username과<br>Personal Access Token으로 인증합니다.</p>
+                            </article>
+
+                            <article class="info-card tone-remote">
+                                <span>Push</span>
+                                <h3>Commit History 전송</h3>
+                                <p>로컬 Branch의 Commit을<br>원격 Branch로 보내고 추적 관계를 설정합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>한 문장으로 정리</h3>
+                            <p>
+                                <strong>Remote는 목적지, PAT는 출입 권한, Push는 Commit 전송, Upstream은 다음부터 사용할 기본 연결
+                                    관계입니다.</strong>
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card flow-card">
-                        <h2>2. 흐름도 카드</h2>
-                        <p>Step2에서 그림처럼 이해할 수 있도록 구조화할 예정입니다.</p>
+                    <section class="study-card compare-card remote-section-card" id="git-github-local-remote">
+                        <div class="card-title-row">
+                            <span class="card-number">02</span>
+                            <h2>Git·GitHub·Local·Remote를 정확히 구분하기</h2>
+                        </div>
+
+                        <div class="repository-compare">
+                            <article class="repository-panel local-panel">
+                                <span class="panel-label">LOCAL REPOSITORY</span>
+                                <h3>내 컴퓨터의 Git 저장소</h3>
+                                <ul class="plain-list">
+                                    <li><code class="inline-code">.git</code> 안에 Commit, Branch, HEAD가 저장됩니다.</li>
+                                    <li>인터넷 없이도 Add, Commit, Branch, Log 작업이 가능합니다.</li>
+                                    <li>Push하지 않은 Commit은 이곳에만 존재합니다.</li>
+                                    <li><code class="inline-code">main</code>은 로컬에서 직접 작업하는 Branch입니다.</li>
+                                </ul>
+                                <pre class="mini-code"><code>Local History
+A ── B ── C
+          ↑
+       HEAD, main</code></pre>
+                            </article>
+
+                            <div class="compare-transfer">
+                                <span>Push →</span>
+                                <span>← Fetch / Pull</span>
+                            </div>
+
+                            <article class="repository-panel remote-panel">
+                                <span class="panel-label">REMOTE REPOSITORY</span>
+                                <h3>GitHub 서버의 Git 저장소</h3>
+                                <ul class="plain-list">
+                                    <li>네트워크를 통해 여러 개발자가 공유합니다.</li>
+                                    <li>Push된 Commit과 Branch만 보관합니다.</li>
+                                    <li>Clone, Pull Request, Review, Actions의 기준점이 됩니다.</li>
+                                    <li><code class="inline-code">origin/main</code>은 원격 상태를 로컬에서 추적하는 이름입니다.</li>
+                                </ul>
+                                <pre class="mini-code"><code>Remote History
+A ── B ── C
+          ↑
+         main</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>용어</th>
+                                        <th>정확한 의미</th>
+                                        <th>초보자가 자주 하는 착각</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Git</td>
+                                        <td>변경 이력과 Branch를 관리하는 분산 버전 관리 도구</td>
+                                        <td>GitHub와 같은 서비스라고 생각함</td>
+                                    </tr>
+                                    <tr>
+                                        <td>GitHub</td>
+                                        <td>Git 저장소를 원격에서 보관·공유하는 서비스</td>
+                                        <td>GitHub가 없으면 Git을 사용할 수 없다고 생각함</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Commit</td>
+                                        <td>Staging Area의 변경으로 Local Repository에 버전을 생성</td>
+                                        <td>Commit하면 GitHub에도 자동 반영된다고 생각함</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Push</td>
+                                        <td>Local Repository의 Commit을 Remote Repository로 전송</td>
+                                        <td>현재 폴더의 모든 파일을 그대로 업로드한다고 생각함</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </section>
 
-                    <section class="learning-card practice-card">
-                        <h2>3. 실습 준비 카드</h2>
-                        <p>Eclipse, Git Bash, GitHub 실습 흐름을 정리할 예정입니다.</p>
+                    <section class="study-card flow-card remote-section-card" id="git-storage-flow">
+                        <div class="card-title-row">
+                            <span class="card-number">03</span>
+                            <h2>파일 수정부터 GitHub 반영까지의 전체 저장 흐름</h2>
+                        </div>
+
+                        <p>
+                            Push되는 대상은 지금 화면에 보이는 모든 파일이 아니라 <strong>Local Repository에 확정된 Commit</strong>입니다.
+                            따라서 파일 수정 후 Add와 Commit을 거치지 않은 내용은 GitHub에 올라가지 않습니다.
+                        </p>
+
+                        <div class="git-pipeline" aria-label="Working Directory에서 GitHub까지의 흐름">
+                            <article class="pipeline-node worktree-node">
+                                <span>1</span>
+                                <h3>Working Directory</h3>
+                                <p>파일을 작성하고 수정하는<br>실제 프로젝트 폴더</p>
+                                <code>Member.java 수정</code>
+                            </article>
+
+                            <div class="pipeline-arrow"><i>→</i><strong>Add</strong></div>
+
+                            <article class="pipeline-node stage-node">
+                                <span>2</span>
+                                <h3>Staging Area</h3>
+                                <p>다음 Commit에 포함할<br>변경 사항을 선택하는 공간</p>
+                                <code>git add .</code>
+                            </article>
+
+                            <div class="pipeline-arrow"><i>→</i><strong>Commit</strong></div>
+
+                            <article class="pipeline-node local-node">
+                                <span>3</span>
+                                <h3>Local Repository</h3>
+                                <p>내 컴퓨터에 Commit History가<br>확정되는 저장소</p>
+                                <code>git commit</code>
+                            </article>
+
+                            <div class="pipeline-arrow"><i>→</i><strong>Push</strong></div>
+
+                            <article class="pipeline-node remote-node">
+                                <span>4</span>
+                                <h3>GitHub Repository</h3>
+                                <p>Commit과 Branch가<br>원격에서 보관·공유되는 저장소</p>
+                                <code>git push</code>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>Everything up-to-date인데 파일이 바뀌어 있다면?</h3>
+                            <p>
+                                수정한 파일이 아직 Commit되지 않았을 가능성이 큽니다.
+                                <code class="inline-code">git status</code>로 Working Directory와 Staging 상태부터 확인합니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card command-card">
-                        <h2>4. 명령어 연결 카드</h2>
-                        <p>Eclipse 메뉴와 Git CLI 명령어를 연결해서 정리할 예정입니다.</p>
+                    <section class="study-card identity-card remote-section-card" id="remote-origin-url">
+                        <div class="card-title-row">
+                            <span class="card-number">04</span>
+                            <h2>Remote, origin, Remote URL은 각각 무엇인가?</h2>
+                        </div>
+
+                        <p>
+                            Remote는 원격 저장소 연결 정보이고, <code class="inline-code">origin</code>은 그 연결 정보에 붙이는 관례적인 이름입니다.
+                            실제 GitHub 저장소 위치는 HTTPS 또는 SSH URL로 기록됩니다.
+                        </p>
+
+                        <div class="identity-map">
+                            <article>
+                                <span>Remote</span>
+                                <h3>원격 연결 정보</h3>
+                                <p>로컬 Git이 어느 외부 저장소와 통신할지<br>저장하는 설정입니다.</p>
+                            </article>
+                            <article>
+                                <span>origin</span>
+                                <h3>기본 Remote 별칭</h3>
+                                <p>긴 주소 대신 사용하는 이름이며<br>Git 예약어는 아니지만 관례적으로 사용합니다.</p>
+                            </article>
+                            <article>
+                                <span>Remote URL</span>
+                                <h3>GitHub 실제 주소</h3>
+                                <p><code>https://github.com/OWNER/REPO.git</code><br>형태의 목적지입니다.</p>
+                            </article>
+                            <article>
+                                <span>RefSpec</span>
+                                <h3>어느 Branch를 보낼지</h3>
+                                <p>로컬 Source Ref와<br>원격 Destination Ref 사이의 전송 관계입니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="remote-address-book">
+                            <article>
+                                <span>주소록에 등록</span>
+                                <h3>Remote 생성</h3>
+                                <pre class="mini-code"><code>git remote add origin \
+https://github.com/OWNER/REPOSITORY.git</code></pre>
+                            </article>
+                            <div class="address-arrow">→</div>
+                            <article>
+                                <span>주소록 확인</span>
+                                <h3>Fetch·Push URL 확인</h3>
+                                <pre class="mini-code"><code>git remote -v
+
+origin  URL (fetch)
+origin  URL (push)</code></pre>
+                            </article>
+                            <div class="address-arrow">→</div>
+                            <article>
+                                <span>주소 수정</span>
+                                <h3>잘못 등록했을 때</h3>
+                                <pre class="mini-code"><code>git remote set-url origin \
+올바른_URL</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>Remote 등록은 전송이 아니다</h3>
+                            <p>
+                                <code class="inline-code">git remote add origin URL</code>은 목적지를 저장하는 작업입니다.
+                                실제 Commit 전송은 별도의 <code class="inline-code">git push</code>가 필요합니다.
+                            </p>
+                        </div>
                     </section>
 
-                    <section class="learning-card warning-card">
-                        <h2>5. 자주 하는 실수 카드</h2>
-                        <p>초보자가 헷갈리기 쉬운 부분을 정리할 예정입니다.</p>
+                    <section class="study-card initialize-card remote-section-card" id="empty-remote-precheck">
+                        <div class="card-title-row">
+                            <span class="card-number">05</span>
+                            <h2>최초 Push 전에 GitHub 저장소와 로컬 상태 점검하기</h2>
+                        </div>
+
+                        <p>
+                            이미 로컬에서 Commit을 만든 프로젝트라면 GitHub 저장소는 README, .gitignore, License를 자동 생성하지 않은
+                            <strong>빈 저장소</strong>로 준비하는 것이 가장 단순합니다.<br>원격에 별도의 첫 Commit이 생기면 로컬과 시작 이력이 달라질 수 있습니다.
+                        </p>
+
+                        <div class="initial-commit-diagram">
+                            <article>
+                                <span>권장 상태</span>
+                                <h3>Remote는 비어 있고 Local에만 Commit이 있음</h3>
+                                <pre class="mini-code"><code>Remote: empty
+Local : A ── B ── C</code></pre>
+                                <p>로컬 History를 그대로 최초 Push하기 쉽습니다.</p>
+                            </article>
+
+                            <div class="diagram-divider">비교</div>
+
+                            <article>
+                                <span>주의 상태</span>
+                                <h3>GitHub README로 Remote Commit이 이미 생김</h3>
+                                <pre class="mini-code"><code>Remote: R
+Local : A ── B ── C</code></pre>
+                                <p>서로 다른 시작 이력 때문에 Pull 또는 Merge가 필요할 수 있습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="checklist-panel">
+                            <h3>최초 연결 전 체크리스트</h3>
+                            <div class="checklist-grid">
+                                <label><input type="checkbox" disabled> 로컬 프로젝트가 Git Repository로 공유되어 있습니다.</label>
+                                <label><input type="checkbox" disabled> 최소 한 번 이상의 Commit이 존재합니다.</label>
+                                <label><input type="checkbox" disabled> 현재 Branch가 main인지 master인지 확인했습니다.</label>
+                                <label><input type="checkbox" disabled> GitHub 저장소를 빈 상태로 생성했습니다.</label>
+                                <label><input type="checkbox" disabled> HTTPS URL을 정확히 복사했습니다.</label>
+                                <label><input type="checkbox" disabled> 토큰·비밀번호·API Key가 Commit에 포함되지 않았습니다.</label>
+                            </div>
+                        </div>
                     </section>
 
-                    <section class="learning-card interview-card">
-                        <h2>6. 면접 포인트 카드</h2>
-                        <p>면접 질문과 답변 형태로 정리할 예정입니다.</p>
+                    <section class="study-card auth-card remote-section-card" id="personal-access-token">
+                        <div class="card-title-row">
+                            <span class="card-number">06</span>
+                            <h2>Personal Access Token: GitHub Push를 위한 인증과 권한</h2>
+                        </div>
+
+                        <p>
+                            GitHub는 HTTPS 방식의 Git 작업에서 계정 비밀번호 대신 Personal Access Token을 사용합니다.
+                            토큰은 단순 문자열이 아니라 <strong>어느 저장소에 어떤 권한으로 접근할지</strong>가 포함된 출입카드입니다.
+                        </p>
+
+                        <div class="auth-credential-box">
+                            <article>
+                                <span>GitHub Username</span>
+                                <h3>누가 요청하는가?</h3>
+                                <p>Eclipse의 User에는 이메일보다 GitHub 프로필의 Username을 기준으로 입력합니다.</p>
+                                <pre class="mini-code"><code>github.com/honggildong
+User: honggildong</code></pre>
+                            </article>
+
+                            <article>
+                                <span>Personal Access Token</span>
+                                <h3>무엇을 허용받았는가?</h3>
+                                <p>Eclipse의 Password 필드에는 GitHub 로그인 비밀번호가 아니라 생성한 PAT를 입력합니다.</p>
+                                <pre class="mini-code"><code>Password:
+github_pat_...</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="token-permission-grid">
+                            <article>
+                                <span>1</span>
+                                <h3>Token name</h3>
+                                <p>어디에서 사용하는 토큰인지<br>알아볼 수 있게 작성합니다.</p>
+                                <code>eclipse-egit-study</code>
+                            </article>
+                            <article>
+                                <span>2</span>
+                                <h3>Expiration</h3>
+                                <p>학습 또는 업무에 필요한 기간만 설정합니다.</p>
+                                <code>30 days / 90 days</code>
+                            </article>
+                            <article>
+                                <span>3</span>
+                                <h3>Repository access</h3>
+                                <p>모든 저장소보다<br>이번 실습 저장소만 선택합니다.</p>
+                                <code>Only select repositories</code>
+                            </article>
+                            <article>
+                                <span>4</span>
+                                <h3>Contents permission</h3>
+                                <p>코드를 Push하려면<br>Contents의 읽기·쓰기 권한이 필요합니다.</p>
+                                <code>Read and write</code>
+                            </article>
+                        </div>
+
+                        <div class="token-danger">
+                            <div>
+                                <strong>토큰은 비밀번호처럼 보호합니다</strong>
+                                <p>HTML, JavaScript, properties, README, 캡처 이미지, 메신저에 실제 토큰 값을 남기지 않습니다. 노출되면 즉시 폐기하고 새
+                                    토큰을 발급합니다.</p>
+                            </div>
+                            <code>실제 PAT를 소스에 작성하지 않기</code>
+                        </div>
+                    </section>
+
+                    <section class="study-card eclipse-card remote-section-card" id="eclipse-open-views">
+                        <div class="card-title-row">
+                            <span class="card-number">07</span>
+                            <h2>Eclipse 준비: Git Repositories와 Git Staging 열기</h2>
+                        </div>
+
+                        <p>
+                            Eclipse EGit에서는 Git Repositories View에서 저장소·Branch·Remote를 관리하고,
+                            Git Staging View에서 Add·Commit·Push 상태를 확인합니다.
+                        </p>
+
+                        <div class="eclipse-path-grid">
+                            <article>
+                                <span>View 1</span>
+                                <h3>Git Repositories</h3>
+                                <pre class="mini-code"><code>Window
+→ Show View
+→ Other
+→ Git
+→ Git Repositories</code></pre>
+                                <p>Local Branch, Remotes, Tags,<br>Working Tree를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>View 2</span>
+                                <h3>Git Staging</h3>
+                                <pre class="mini-code"><code>Window
+→ Show View
+→ Other
+→ Git
+→ Git Staging</code></pre>
+                                <p>Unstaged, Staged, Commit Message와<br>Push Head 상태를 확인합니다.</p>
+                            </article>
+
+                            <article>
+                                <span>Branch</span>
+                                <h3>현재 Branch 확인</h3>
+                                <pre class="mini-code"><code>Branches
+└── Local
+    └── main</code></pre>
+                                <p>프로젝트 이름 옆의 <code>[main]</code> 또는<br><code>[master]</code> 장식도 확인합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="repository-tree">
+                            <h3>Git Repositories View에서 찾을 위치</h3>
+                            <pre class="mini-code"><code>Git Repositories
+└── git-remote-practice
+    ├── Branches
+    │   ├── Local
+    │   └── Remote Tracking
+    ├── Remotes
+    ├── Tags
+    ├── References
+    └── Working Tree</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card eclipse-card remote-section-card" id="eclipse-create-remote">
+                        <div class="card-title-row">
+                            <span class="card-number">08</span>
+                            <h2>Eclipse에서 origin Remote 등록하기</h2>
+                        </div>
+
+                        <p>
+                            GitHub 저장소를 만들었다고 Eclipse 프로젝트가 자동으로 연결되는 것은 아닙니다.
+                            Git Repositories의 <strong>Remotes</strong>에서 <code class="inline-code">origin</code>을 만들고
+                            HTTPS URI를 등록합니다.
+                        </p>
+
+                        <div class="eclipse-operation-grid">
+                            <article><span>01</span>
+                                <h3>Remotes 선택</h3>
+                                <p>현재 프로젝트 저장소 아래의 Remotes를 찾습니다.</p><code>Remotes 우클릭</code>
+                            </article>
+                            <article><span>02</span>
+                                <h3>Create Remote</h3>
+                                <p>새 Remote 설정을 만드는 메뉴를 선택합니다.</p><code>Create Remote</code>
+                            </article>
+                            <article><span>03</span>
+                                <h3>이름 입력</h3>
+                                <p>기본 원격 저장소 이름으로 origin을 사용합니다.</p><code>Remote name: origin</code>
+                            </article>
+                            <article><span>04</span>
+                                <h3>Push 설정</h3>
+                                <p>버전에 따라 Configure push를 선택하고 Create를 누릅니다.</p><code>Configure push</code>
+                            </article>
+                            <article><span>05</span>
+                                <h3>URI 변경</h3>
+                                <p>Change 또는 Add에서 GitHub HTTPS URL을 입력합니다.</p><code>https://github.com/...git</code>
+                            </article>
+                            <article><span>06</span>
+                                <h3>저장</h3>
+                                <p>Finish 후 Save하여 Remote 설정을 로컬 저장소에 기록합니다.</p><code>Finish → Save</code>
+                            </article>
+                        </div>
+
+                        <div class="credential-map">
+                            <article>
+                                <span>Protocol</span>
+                                <strong>https</strong>
+                                <p>이번 단원은 HTTPS 방식으로 연결합니다.</p>
+                            </article>
+                            <article>
+                                <span>Host</span>
+                                <strong>github.com</strong>
+                                <p>GitHub 서버 주소가 자동으로 분리될 수 있습니다.</p>
+                            </article>
+                            <article>
+                                <span>Repository path</span>
+                                <strong>/OWNER/REPO.git</strong>
+                                <p>저장소 소유자와 이름이 정확한지 확인합니다.</p>
+                            </article>
+                            <article>
+                                <span>Port</span>
+                                <strong>비워 둠</strong>
+                                <p>일반적인 GitHub HTTPS 연결에서는<br> 직접 입력하지 않습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>Eclipse 조작의 CLI 의미</h3>
+                            <pre
+                                class="mini-code"><code>git remote add origin https://github.com/OWNER/REPOSITORY.git</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card credential-card remote-section-card" id="eclipse-credentials">
+                        <div class="card-title-row">
+                            <span class="card-number">09</span>
+                            <h2>Eclipse Credential 입력과 Secure Store 관리</h2>
+                        </div>
+
+                        <p>
+                            HTTPS URI를 등록한 뒤 Push 인증에 사용할 사용자 정보와 토큰을 입력합니다.
+                            입력란 이름이 Password여도 GitHub 계정 비밀번호가 아니라 <strong>PAT</strong>를 넣어야 합니다.
+                        </p>
+
+                        <div class="credential-fields">
+                            <article>
+                                <span>User</span>
+                                <h3>GitHub Username</h3>
+                                <pre class="mini-code"><code>honggildong</code></pre>
+                                <p>프로필 URL에서 확인할 수 있는 사용자 이름을 입력합니다.</p>
+                            </article>
+                            <article>
+                                <span>Password</span>
+                                <h3>Personal Access Token</h3>
+                                <pre class="mini-code"><code>github_pat_...</code></pre>
+                                <p>Fine-grained PAT 또는 필요한 경우 Classic PAT를 입력합니다.</p>
+                            </article>
+                            <article>
+                                <span>Secure Store</span>
+                                <h3>개인 PC에서 선택</h3>
+                                <pre class="mini-code"><code>Store in Secure Store</code></pre>
+                                <p>공용 PC에서는 저장하지 않고,<br>개인 PC에서도 노출 위험을 고려합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="credential-actions">
+                            <article>
+                                <h3>토큰을 교체할 때</h3>
+                                <pre class="mini-code"><code>Remotes
+→ origin
+→ Push 또는 Fetch 우클릭
+→ Change Credentials</code></pre>
+                            </article>
+                            <article>
+                                <h3>잘못 저장된 인증을 지울 때</h3>
+                                <pre class="mini-code"><code>Remotes
+→ origin
+→ Clear Credentials</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card push-card remote-section-card" id="eclipse-first-push">
+                        <div class="card-title-row">
+                            <span class="card-number">10</span>
+                            <h2>Eclipse에서 최초 Push 실행하기</h2>
+                        </div>
+
+                        <p>
+                            Remote와 Credential을 저장했으면 프로젝트의 Local Branch를 GitHub의 같은 이름 Branch로 전송합니다.<br>
+                            Eclipse 화면에서 Source Ref는 로컬 출발점, Destination Ref는 원격 도착점을 뜻합니다.
+                        </p>
+
+                        <div class="action-sequence">
+                            <article>
+                                <span>Step 1</span>
+                                <h3>Push 메뉴 열기</h3>
+                                <p>프로젝트를 우클릭하고<br>Remote Push 메뉴로 이동합니다.</p>
+                                <code>Team → Remote → Push</code>
+                            </article>
+                            <div class="sequence-arrow">→</div>
+                            <article>
+                                <span>Step 2</span>
+                                <h3>RefSpec 지정</h3>
+                                <p>현재 로컬 Branch를<br>같은 이름의 원격 Branch에 연결합니다.</p>
+                                <code>main → refs/heads/main</code>
+                            </article>
+                            <div class="sequence-arrow">→</div>
+                            <article>
+                                <span>Step 3</span>
+                                <h3>미리보기 후 전송</h3>
+                                <p>Force Update를 끈 상태로<br>결과를 확인하고 Push합니다.</p>
+                                <code>Next → Finish</code>
+                            </article>
+                        </div>
+
+                        <div class="refspec-map">
+                            <article class="source-ref">
+                                <span>SOURCE REF</span>
+                                <h3>로컬에서 보낼 Branch</h3>
+                                <pre class="mini-code"><code>refs/heads/main
+또는
+main [branch]</code></pre>
+                            </article>
+                            <div class="refspec-arrow">
+                                <strong>Push RefSpec</strong>
+                                <span>→</span>
+                                <code>refs/heads/main:refs/heads/main</code>
+                            </div>
+                            <article class="destination-ref">
+                                <span>DESTINATION REF</span>
+                                <h3>GitHub에 만들 Branch</h3>
+                                <pre class="mini-code"><code>refs/heads/main</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>Force Update는 체크하지 않습니다</h3>
+                            <p>
+                                빈 GitHub 저장소로 보내는 정상적인 최초 Push에는 Force Update가 필요하지 않습니다.
+                                Force는 원격 History를 강제로 바꿀 수 있으므로 오류 해결 버튼처럼 사용하면 안 됩니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card cli-card remote-section-card" id="cli-mapping">
+                        <div class="card-title-row">
+                            <span class="card-number">11</span>
+                            <h2>Eclipse 조작을 CLI 명령어로 연결하기</h2>
+                        </div>
+
+                        <p>
+                            Eclipse 버튼을 외우는 것보다 각 조작이 실제로 어떤 Git 명령과 설정을 수행하는지 이해해야
+                            다른 IDE나 터미널에서도 같은 문제를 해결할 수 있습니다.
+                        </p>
+
+                        <div class="table-shell">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Eclipse EGit 조작</th>
+                                        <th>Git 내부 의미</th>
+                                        <th>CLI 연결</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Remotes → Create Remote</td>
+                                        <td>원격 이름과 URL 등록</td>
+                                        <td><code>git remote add origin URL</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Remote 목록 확인</td>
+                                        <td>Fetch·Push 주소 확인</td>
+                                        <td><code>git remote -v</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Configure Push에서 URI 수정</td>
+                                        <td>Remote URL 변경</td>
+                                        <td><code>git remote set-url origin URL</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Branches → Local 확인</td>
+                                        <td>현재 Branch 이름 확인</td>
+                                        <td><code>git branch --show-current</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Team → Remote → Push</td>
+                                        <td>Local Commit 전송</td>
+                                        <td><code>git push origin main</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>최초 Push와 추적 설정</td>
+                                        <td>Upstream 설정</td>
+                                        <td><code>git push -u origin main</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Change Credentials</td>
+                                        <td>저장된 Username·PAT 교체</td>
+                                        <td>Eclipse Secure Store 또는 Credential Manager 변경</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>최초 연결 전체 명령</h3>
+                            <pre class="mini-code"><code>git status
+
+git branch --show-current
+
+git log --oneline
+
+git remote add origin https://github.com/OWNER/REPOSITORY.git
+
+git remote -v
+
+git push -u origin main
+
+git status
+
+git branch -vv</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card tracking-card remote-section-card" id="upstream-main-origin-main">
+                        <div class="card-title-row">
+                            <span class="card-number">12</span>
+                            <h2><code class="inline-code">git push -u origin main</code>과 Upstream</h2>
+                        </div>
+
+                        <p>
+                            최초 Push에서 사용하는 <code class="inline-code">-u</code>는 <code
+                                class="inline-code">--set-upstream</code>의 축약형입니다.
+                            로컬 <code class="inline-code">main</code>이 앞으로 어느 원격 Branch를 기본 대상으로 사용할지 연결합니다.
+                        </p>
+
+                        <div class="tracking-diagram">
+                            <article class="tracking-local">
+                                <span>LOCAL BRANCH</span>
+                                <h3>main</h3>
+                                <p>내 컴퓨터에서 HEAD가 가리키고 직접 Commit하는 Branch</p>
+                            </article>
+
+                            <div class="tracking-arrow">
+                                <strong>git push -u origin main</strong>
+                                <span>↕ Upstream Tracking</span>
+                                <strong>이후 git push / git pull</strong>
+                            </div>
+
+                            <article class="tracking-remote">
+                                <span>REMOTE-TRACKING BRANCH</span>
+                                <h3>origin/main</h3>
+                                <p>마지막으로 확인한 GitHub main의 상태를 로컬에서 나타내는 이름</p>
+                            </article>
+                        </div>
+
+                        <div class="command-sequence-grid">
+                            <article>
+                                <span>git push</span>
+                                <h3>Commit을 전송</h3>
+                                <pre class="mini-code"><code>git push</code></pre>
+                                <p>Upstream이 설정되어 있으면<br>origin과 Branch 이름을 생략할 수 있습니다.</p>
+                            </article>
+                            <article>
+                                <span>git pull</span>
+                                <h3>연결된 원격 변경 반영</h3>
+                                <pre class="mini-code"><code>git pull</code></pre>
+                                <p>다음 단원에서 Fetch와 Merge 관계를 함께 학습합니다.</p>
+                            </article>
+                            <article>
+                                <span>git branch -vv</span>
+                                <h3>추적 관계 확인</h3>
+                                <pre class="mini-code"><code>* main abc1234 [origin/main]</code></pre>
+                                <p>대괄호에 origin/main이 보이면<br>Upstream이 연결된 상태입니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card state-card remote-section-card" id="push-state-change">
+                        <div class="card-title-row">
+                            <span class="card-number">13</span>
+                            <h2>최초 Push 전후의 Branch 상태 변화</h2>
+                        </div>
+
+                        <p>
+                            Push 명령을 외우는 것보다 Local Branch와 Remote-tracking Branch가 어느 Commit을 가리키는지 읽을 수 있어야 합니다.
+                        </p>
+
+                        <div class="state-timeline">
+                            <article>
+                                <span>상태 1</span>
+                                <h3>Push 전</h3>
+                                <pre class="mini-code"><code>Local
+A ── B ── C
+          ↑
+         main
+
+Remote
+empty</code></pre>
+                                <p>Commit은 로컬에만 있습니다.</p>
+                            </article>
+
+                            <article>
+                                <span>상태 2</span>
+                                <h3>최초 Push 성공</h3>
+                                <pre class="mini-code"><code>A ── B ── C
+          ↑
+ main, origin/main</code></pre>
+                                <p>로컬과 원격이 같은 Commit을 가리킵니다.</p>
+                            </article>
+
+                            <article>
+                                <span>상태 3</span>
+                                <h3>로컬 새 Commit</h3>
+                                <pre class="mini-code"><code>A ── B ── C ── D
+          ↑       ↑
+ origin/main    main</code></pre>
+                                <p>로컬 main이 원격보다 한 Commit 앞섭니다.</p>
+                            </article>
+
+                            <article>
+                                <span>상태 4</span>
+                                <h3>다시 Push</h3>
+                                <pre class="mini-code"><code>A ── B ── C ── D
+               ↑
+      main, origin/main</code></pre>
+                                <p>새 Commit D가 GitHub에 반영됩니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>상태 메시지 읽기</h3>
+                            <pre class="mini-code"><code>Your branch is ahead of 'origin/main' by 1 commit.</code></pre>
+                            <p>오류가 아니라 로컬에 아직 Push하지 않은 Commit이 하나 있다는 뜻입니다.</p>
+                        </div>
+                    </section>
+
+                    <section class="study-card mistake-card remote-section-card" id="common-mistakes">
+                        <div class="card-title-row">
+                            <span class="card-number">14</span>
+                            <h2>초보자가 자주 하는 실수</h2>
+                        </div>
+
+                        <div class="mistake-grid">
+                            <article>
+                                <h3>1. Commit과 Push를<br>같은 작업으로 생각</h3>
+                                <p>Commit은 Local 버전 생성이고<br>Push는 원격 전송입니다.</p>
+                            </article>
+                            <article>
+                                <h3>2. 파일 수정 후 바로 Push</h3>
+                                <p>Add와 Commit을 거치지 않은 수정 내용은<br>Push 대상이 아닙니다.</p>
+                            </article>
+                            <article>
+                                <h3>3. Remote 등록만 하고 전송됐다고 생각</h3>
+                                <p>Remote 등록은 주소 저장일 뿐<br>실제 전송에는 Push가 필요합니다.</p>
+                            </article>
+                            <article>
+                                <h3>4. Password에 GitHub 비밀번호 입력</h3>
+                                <p>HTTPS Git 인증에서는 PAT를 입력합니다.</p>
+                            </article>
+                            <article>
+                                <h3>5. User에 다른 계정<br>또는 잘못된 이름 입력</h3>
+                                <p>저장소 권한이 있는<br>GitHub Username을 확인합니다.</p>
+                            </article>
+                            <article>
+                                <h3>6. PAT에 모든 저장소와 모든 권한 부여</h3>
+                                <p>대상 저장소와<br>Contents Read and write만 우선 선택합니다.</p>
+                            </article>
+                            <article>
+                                <h3>7. 현재 Branch를 확인하지 않고<br>main Push</h3>
+                                <p>실제 Branch가 master라면<br>main RefSpec을 찾지 못할 수 있습니다.</p>
+                            </article>
+                            <article>
+                                <h3>8. 이미 있는 origin을 다시 추가</h3>
+                                <p>먼저 <code>git remote -v</code>로<br>등록 상태를 확인합니다.</p>
+                            </article>
+                            <article>
+                                <h3>9. README가 있는<br>Remote에 바로 Push</h3>
+                                <p>원격에 로컬이 모르는 Commit이 있어<br>rejected될 수 있습니다.</p>
+                            </article>
+                            <article>
+                                <h3>10. 오류가 나면 Force Update부터 선택</h3>
+                                <p>원격 Commit을 잃을 수 있으므로<br>원인 분석이 먼저입니다.</p>
+                            </article>
+                            <article>
+                                <h3>11. PAT를 코드 또는 README에 저장</h3>
+                                <p>Commit History에 남으면<br>삭제가 어렵고 즉시 폐기해야 합니다.</p>
+                            </article>
+                            <article>
+                                <h3>12. Public 저장소에 민감 정보 Push</h3>
+                                <p>환경 변수, DB 비밀번호, API Key와<br>회사 코드를 점검합니다.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card error-card remote-section-card" id="push-errors">
+                        <div class="card-title-row">
+                            <span class="card-number">15</span>
+                            <h2>오류 메시지 읽는 법: 설정·인증·권한·History를 구분한다</h2>
+                        </div>
+
+                        <p>
+                            Push 오류는 무작정 다시 시도하기보다 <strong>Remote 설정 문제인지, 인증 문제인지, 권한 문제인지, Branch·History
+                                문제인지</strong> 먼저 분류합니다.
+                        </p>
+
+                        <div class="error-table">
+                            <div class="table-head">오류 / 상태</div>
+                            <div class="table-head">뜻</div>
+                            <div class="table-head">확인 및 해결 방향</div>
+
+                            <div><code>remote origin already exists</code></div>
+                            <div>origin Remote가 이미 등록되어 있습니다.</div>
+                            <div><code>git remote -v</code>로 확인하고 주소가 틀리면<br><code>git remote set-url origin URL</code>을
+                                사용합니다.</div>
+
+                            <div><code>No configured push destination</code></div>
+                            <div>Push할 Remote가 등록되지 않았습니다.</div>
+                            <div>origin URL을 등록한 뒤 최초 Push에서 Upstream을 설정합니다.</div>
+
+                            <div><code>Authentication failed</code></div>
+                            <div>Username 또는 Token 인증에 실패했습니다.</div>
+                            <div>GitHub 비밀번호가 아닌 PAT인지, 만료·복사 오류·이전 Credential을 확인합니다.</div>
+
+                            <div><code>403 / Write access not granted</code></div>
+                            <div>인증은 되었지만 저장소 쓰기 권한이 부족합니다.</div>
+                            <div>저장소 소유자, Collaborator, PAT 대상 Repository,<br>Contents Read and write를 확인합니다.</div>
+
+                            <div><code>Repository not found</code></div>
+                            <div>URL이 틀렸거나 현재 계정이 저장소에 접근하지 못합니다.</div>
+                            <div>Owner·Repository name·Private 권한과 저장된 계정을 확인합니다.</div>
+
+                            <div><code>src refspec main does not match any</code></div>
+                            <div>main Branch가 없거나 아직 첫 Commit이 없습니다.</div>
+                            <div><code>git branch --show-current</code>와 <code>git log</code>로 Branch·Commit을 확인합니다.
+                            </div>
+
+                            <div><code>current branch has no upstream branch</code></div>
+                            <div>현재 Branch가 추적할 원격 Branch가 정해지지 않았습니다.</div>
+                            <div><code>git push -u origin 현재브랜치</code>로 연결합니다.</div>
+
+                            <div><code>rejected (non-fast-forward)</code></div>
+                            <div>원격에 로컬이 가지고 있지 않은 Commit이 있습니다.</div>
+                            <div>Force 대신 Fetch 또는 Pull로 원격 History를 가져와 병합한 뒤 다시 Push합니다.</div>
+
+                            <div><code>Everything up-to-date</code></div>
+                            <div>전송할 새로운 Commit이 없습니다.</div>
+                            <div>파일 수정이 남아 있다면 Add·Commit 여부를 <code>git status</code>로 확인합니다.</div>
+                        </div>
+
+                        <div class="error-read-grid">
+                            <article><span>설정</span>
+                                <h3>Remote·URL</h3>
+                                <p><code>origin already exists</code>,<br><code>No configured destination</code>,<br>
+                                    <code>Repository not found</code>
+                                </p>
+                            </article>
+                            <article><span>인증</span>
+                                <h3>Username·PAT</h3>
+                                <p><code>Authentication failed</code>,<br>Invalid username or token</p>
+                            </article>
+                            <article><span>권한</span>
+                                <h3>저장소 쓰기 권한</h3>
+                                <p><code>403</code>, Write access not granted</p>
+                            </article>
+                            <article><span>History</span>
+                                <h3>Branch·Commit 관계</h3>
+                                <p><code>refspec</code>, <code>no upstream</code>, <code>non-fast-forward</code></p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card security-card remote-section-card" id="gitignore-secret">
+                        <div class="card-title-row">
+                            <span class="card-number">16</span>
+                            <h2>첫 Push 전 .gitignore와 민감 정보 점검</h2>
+                        </div>
+
+                        <p>
+                            GitHub에 올라가는 것은 파일 복사본만이 아니라 Commit History입니다.
+                            민감한 값을 한 번 Commit하면 최신 파일에서 지워도 과거 Commit에 남을 수 있으므로 첫 Push 전 점검이 중요합니다.
+                        </p>
+
+                        <div class="secret-audit-grid">
+                            <article class="safe-file">
+                                <span>공유할 수 있는 것</span>
+                                <h3>소스와 프로젝트 설정</h3>
+                                <ul class="plain-list">
+                                    <li>Java, HTML, CSS, JavaScript 소스</li>
+                                    <li>공개 가능한 README와 문서</li>
+                                    <li>팀 규칙으로 공유하기로 한 설정 파일</li>
+                                    <li><code>.gitignore</code> 자체</li>
+                                </ul>
+                            </article>
+                            <article class="danger-file">
+                                <span>제외하거나 비밀 관리할 것</span>
+                                <h3>Credential과 로컬 환경 정보</h3>
+                                <ul class="plain-list">
+                                    <li>Personal Access Token과 API Key</li>
+                                    <li>DB 비밀번호와 운영 서버 주소</li>
+                                    <li><code>.env</code>, Secret 파일, Private Key</li>
+                                    <li>회사 내부 코드와 개인정보</li>
+                                </ul>
+                            </article>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>Java·Eclipse 프로젝트의 기본 검토 예</h3>
+                            <pre class="mini-code"><code># Java build output
+*.class
+bin/
+target/
+build/
+
+# Logs and local secrets
+*.log
+.env
+*.secret
+
+# Operating system
+.DS_Store
+Thumbs.db</code></pre>
+                        </div>
+
+                        <div class="danger-box">
+                            <h3>토큰이 노출되었다면 파일만 지우지 않습니다</h3>
+                            <p>GitHub 설정에서 토큰을 즉시 폐기하고 새 토큰을 발급한 뒤, 필요하면 Git History에서도 Secret을 제거해야 합니다.</p>
+                        </div>
+                    </section>
+
+                    <section class="study-card practice-card remote-section-card" id="guided-practice">
+                        <div class="card-title-row">
+                            <span class="card-number">17</span>
+                            <h2>단계별 실습: Eclipse 프로젝트를 GitHub에 처음 올리기</h2>
+                        </div>
+
+                        <p>
+                            다음 실습은 로컬에 Commit이 있고 GitHub 저장소는 비어 있는 가장 안전한 최초 Push 상황을 기준으로 합니다.
+                        </p>
+
+                        <div class="practice-lab">
+                            <article>
+                                <span>준비</span>
+                                <h3>로컬 프로젝트</h3>
+                                <pre class="mini-code"><code>Project: git-remote-practice
+Branch : main
+Commit : chore: create initial project</code></pre>
+                            </article>
+                            <article>
+                                <span>GitHub</span>
+                                <h3>빈 원격 저장소</h3>
+                                <pre class="mini-code"><code>Repository: git-remote-practice
+README: 선택 안 함
+.gitignore: 선택 안 함
+License: 선택 안 함</code></pre>
+                            </article>
+                            <article>
+                                <span>인증</span>
+                                <h3>Fine-grained PAT</h3>
+                                <pre class="mini-code"><code>Repository access:
+Only select repositories
+
+Contents:
+Read and write</code></pre>
+                            </article>
+                            <article>
+                                <span>결과</span>
+                                <h3>GitHub 확인</h3>
+                                <pre class="mini-code"><code>Files: 표시됨
+Branch: main
+Commit message: 표시됨
+History: Local과 동일</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="practice-check-flow">
+                            <article><span>01</span><strong>상태 확인</strong>
+                                <p><code>git status</code>, 현재 Branch와<br>Commit 여부를 확인합니다.</p>
+                            </article>
+                            <article><span>02</span><strong>Remote 등록</strong>
+                                <p>Eclipse Remotes 또는<br><code>git remote add origin URL</code>을<br>사용합니다.</p>
+                            </article>
+                            <article><span>03</span><strong>Credential 저장</strong>
+                                <p>Username과 PAT를 입력하고<br>개인 PC에서 Secure Store를 선택합니다.</p>
+                            </article>
+                            <article><span>04</span><strong>최초 Push</strong>
+                                <p>main →<br>main RefSpec, Force 해제, Next →<br>Finish로 전송합니다.</p>
+                            </article>
+                            <article><span>05</span><strong>웹 확인</strong>
+                                <p>GitHub에서<br>파일, Branch, Commit Message와<br>History를 확인합니다.</p>
+                            </article>
+                            <article><span>06</span><strong>Upstream 확인</strong>
+                                <p><code>git branch -vv</code>에서<br><code>[origin/main]</code>을 확인합니다.</p>
+                            </article>
+                            <article><span>07</span><strong>새 Commit 생성</strong>
+                                <p>파일을 수정하고<br>Add → Commit만 실행하여<br>로컬이 앞서는 상태를 만듭니다.</p>
+                            </article>
+                            <article><span>08</span><strong>두 번째 Push</strong>
+                                <p>Upstream이 있으므로<br><code>git push</code> 또는<br>Eclipse Push Head를 사용합니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="completion-state">
+                            <article class="tracking-local">
+                                <span>CLI 최종 확인</span>
+                                <pre class="mini-code"><code>git status
+
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean</code></pre>
+                            </article>
+                            <div class="completion-link">Local History = Remote History</div>
+                            <article class="tracking-remote">
+                                <span>GitHub 최종 확인</span>
+                                <pre class="mini-code"><code>main branch
+A ── B ── C
+
+Files / Commits / README 확인</code></pre>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card practical-card remote-section-card" id="real-world-use">
+                        <div class="card-title-row">
+                            <span class="card-number">18</span>
+                            <h2>실무 연결: 개인 프로젝트와 팀 프로젝트에서 언제 쓰는가?</h2>
+                        </div>
+
+                        <div class="real-world-grid">
+                            <article class="tone-local">
+                                <span>개인 프로젝트</span>
+                                <h3>학습 이력과 포트폴리오</h3>
+                                <p>기능 단위 Commit을 Push해<br>개발 과정을 남기고,<br>다른 PC에서 Clone하여 이어서 작업합니다.</p>
+                                <pre class="mini-code"><code>feat: add login API
+fix: handle expired token
+docs: update README</code></pre>
+                            </article>
+                            <article class="tone-remote">
+                                <span>팀 프로젝트</span>
+                                <h3>공통 코드의 기준점</h3>
+                                <p>각 개발자는<br>독립된 Local Repository를 사용하고<br>GitHub를 공통 Remote로 공유합니다.</p>
+                                <pre class="mini-code"><code>feature/login
+→ Push
+→ Pull Request
+→ Review
+→ Merge</code></pre>
+                            </article>
+                            <article class="tone-purple">
+                                <span>배포 자동화</span>
+                                <h3>Push가 파이프라인의 시작</h3>
+                                <p>GitHub Actions가 Push를 감지하여<br>테스트, Build, 배포 작업을<br>실행할 수 있습니다.</p>
+                                <pre class="mini-code"><code>Push
+→ Test
+→ Build
+→ Deploy</code></pre>
+                            </article>
+                            <article class="tone-warn">
+                                <span>보안 관리</span>
+                                <h3>개인별 최소 권한</h3>
+                                <p>공통 계정이나 토큰 공유보다<br>개발자별 계정과<br>필요한 Repository 권한만 사용합니다.</p>
+                                <pre class="mini-code"><code>개인 계정
++ 최소 권한 PAT
++ 만료일 관리</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="warning-box">
+                            <h3>팀 작업의 기본 습관</h3>
+                            <p>
+                                작업 시작 전 원격 변경을 확인하고, 기능 Branch에서 작업한 뒤 Commit·Push·Pull Request로 공유합니다.
+                                공유 중인 main Branch에서 Force Push하지 않습니다.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="study-card interview-card remote-section-card" id="interview-points">
+                        <div class="card-title-row">
+                            <span class="card-number">19</span>
+                            <h2>면접 포인트</h2>
+                        </div>
+
+                        <div class="interview-list">
+                            <article>
+                                <h3>Q1. Git과 GitHub의 차이는 무엇인가요?</h3>
+                                <p>Git은 로컬에서 변경 이력과 Branch를 관리하는 분산 버전 관리 도구이고, GitHub는 Git 저장소를 원격에서 보관하고 협업 기능을 제공하는
+                                    서비스입니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q2. Commit과 Push의 차이는 무엇인가요?</h3>
+                                <p>Commit은 Staging Area의 변경으로 Local Repository에 버전을 만들고, Push는 Local Commit을 Remote
+                                    Repository로 전송합니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q3. Remote와 origin은 무엇인가요?</h3>
+                                <p>Remote는 원격 저장소 연결 정보이고 origin은 최초 또는 기본 Remote에 관례적으로 붙이는 별칭입니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q4. PAT는 왜 사용하나요?</h3>
+                                <p>HTTPS Git 작업에서 사용자를 인증하고 저장소 접근 권한을 제한하기 위해 사용합니다. Password 필드에는 GitHub 로그인 비밀번호 대신
+                                    PAT를 입력합니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q5. Fine-grained PAT의 장점은 무엇인가요?</h3>
+                                <p>특정 소유자와 Repository, 세부 권한, 만료일을 제한할 수 있어 최소 권한 원칙을 적용하기 쉽습니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q6. git push -u origin main을 설명해보세요.</h3>
+                                <p>로컬 main Commit을 origin으로 Push하고, 로컬 main이 원격 Branch를 기본 추적하도록 Upstream을 설정합니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q7. main과 origin/main의 차이는 무엇인가요?</h3>
+                                <p>main은 직접 Commit하는 Local Branch이고, origin/main은 마지막으로 확인한 Remote main 상태를 로컬에서 나타내는
+                                    Remote-tracking Branch입니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q8. 403 오류는 무엇을 의미하나요?</h3>
+                                <p>GitHub에 접근은 했지만 현재 계정이나 PAT가 대상 Repository에 쓰기 권한을 갖지 못한 경우가 많습니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q9. non-fast-forward로 Push가 거절되는 이유는 무엇인가요?</h3>
+                                <p>Remote에 Local이 가지고 있지 않은 Commit이 있어, 그대로 Push하면 원격 History가 손실될 수 있기 때문입니다.</p>
+                            </article>
+                            <article>
+                                <h3>Q10. Force Push가 위험한 이유는 무엇인가요?</h3>
+                                <p>Remote Branch의 기존 Commit History를 강제로 변경하여 팀원이 기반으로 작업한 Commit을 사라지게 할 수 있기 때문입니다.
+                                </p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="study-card memory-card remote-section-card" id="memory-points">
+                        <div class="card-title-row">
+                            <span class="card-number">20</span>
+                            <h2>시험·면접·실습 전 암기 포인트</h2>
+                        </div>
+
+                        <div class="memory-grid">
+                            <article><span>01</span>
+                                <p>Git은 버전 관리 도구이고<br>GitHub는 원격 저장소 서비스입니다.</p>
+                            </article>
+                            <article><span>02</span>
+                                <p>Commit은 Local 저장,<br>Push는 Remote 전송입니다.</p>
+                            </article>
+                            <article><span>03</span>
+                                <p>Remote는 원격 저장소의 이름과<br>URL을 저장한 연결 정보입니다.</p>
+                            </article>
+                            <article><span>04</span>
+                                <p>origin은 기본 Remote에<br>관례적으로 사용하는 별칭입니다.</p>
+                            </article>
+                            <article><span>05</span>
+                                <p>HTTPS Password 필드에는<br>GitHub 비밀번호가 아니라<br>PAT를 입력합니다.</p>
+                            </article>
+                            <article><span>06</span>
+                                <p>PAT는 대상 Repository와<br>최소 권한만 부여합니다.</p>
+                            </article>
+                            <article><span>07</span>
+                                <p>기존 Local Commit이 있다면<br>GitHub는 빈 저장소로 만드는 것이<br>안전합니다.</p>
+                            </article>
+                            <article><span>08</span>
+                                <p>main은 Local Branch이고<br>origin/main은<br>Remote-tracking Branch입니다.</p>
+                            </article>
+                            <article><span>09</span>
+                                <p>git push -u origin main은<br>최초 Push와 Upstream 설정을<br>함께 수행합니다.</p>
+                            </article>
+                            <article><span>10</span>
+                                <p>non-fast-forward는<br>Remote에 Local이<br>모르는 Commit이 있다는 뜻입니다.</p>
+                            </article>
+                            <article><span>11</span>
+                                <p>403은 저장소 쓰기 권한과<br>PAT 범위를 먼저 확인합니다.</p>
+                            </article>
+                            <article><span>12</span>
+                                <p>일반적인 최초 Push에서는<br>Force Update를 사용하지 않습니다.</p>
+                            </article>
+                        </div>
+
+                        <div class="command-box">
+                            <h3>필수 명령어 묶음</h3>
+                            <pre class="mini-code"><code>git status
+git branch --show-current
+git remote -v
+git remote add origin URL
+git remote set-url origin URL
+git push -u origin main
+git push
+git branch -vv</code></pre>
+                        </div>
+                    </section>
+
+                    <section class="study-card next-card remote-section-card" id="next-lesson">
+                        <div class="card-title-row">
+                            <span class="card-number">21</span>
+                            <h2>다음 단원 연결: 원격과 로컬의 버전이 달라지면?</h2>
+                        </div>
+
+                        <p>
+                            이번 단원은 GitHub가 비어 있고 Local에만 Commit이 있는 단순한 최초 Push 상황을 다뤘습니다.<br>
+                            실제 작업에서는 다른 개발자나 GitHub 웹 수정으로 Remote에 새로운 Commit이 생겨 Local과 History가 달라집니다.
+                        </p>
+
+                        <div class="next-preview">
+                            <article class="tracking-local">
+                                <h3>이번 단원의 안전한 상태</h3>
+                                <pre class="mini-code"><code>Local : A ── B ── C
+Remote: empty
+
+Remote 등록
+→ PAT 인증
+→ 최초 Push</code></pre>
+                            </article>
+
+                            <div class="next-preview-arrow">
+                                <strong>Remote에도 변경이 생기면</strong>
+                                <span>→</span>
+                            </div>
+
+                            <article class="tracking-remote">
+                                <h3>다음 단원의 문제 상황</h3>
+                                <pre class="mini-code"><code>          C ── Local
+         /
+A ── B
+         \
+          D ── Remote
+
+rejected / conflict</code></pre>
+                            </article>
+                        </div>
+
+                        <div class="next-flow">
+                            <span>Fetch</span>
+                            <span>Pull</span>
+                            <span>Merge</span>
+                            <span>Conflict</span>
+                            <span>Add·Commit</span>
+                            <span>Push 재시도</span>
+                        </div>
+
+                        <div class="summary-box">
+                            <h3>다음 단원으로 넘어가는 이유</h3>
+                            <p>
+                                Remote에 Local이 모르는 Commit이 있으면 Git은 원격 History를 보호하기 위해 Push를 거절합니다.<br>
+                                다음 단원에서는 원격 변경을 가져오고 안전하게 합친 뒤 다시 Push하는 방법을 학습합니다.
+                            </p>
+                        </div>
                     </section>
                 </main>
 
                 <aside class="side-note">
-                    <h2>오늘의 학습 메모</h2>
+                    <h2>학습 메모</h2>
 
-                    <div>
+                    <div class="memo-section">
                         <h3>오늘의 암기 포인트</h3>
-                        <p>이 영역은 Step1과 Step2 완료 후 암기 포인트를 정리할 예정입니다.</p>
+                        <ul>
+                            <li>Remote는 원격 저장소의 이름과 URL을 저장한 연결 정보입니다.</li>
+                            <li>origin은 기본 Remote의 별칭이지 Branch 이름이 아닙니다.</li>
+                            <li>Commit은 Local에 저장하고 Push는 Commit을 GitHub로 전송합니다.</li>
+                            <li>Password 입력란에는 GitHub 로그인 비밀번호가 아니라 PAT를 입력합니다.</li>
+                            <li><code class="inline-code">git push -u origin main</code>은 최초 Push와 Upstream 설정을 함께
+                                수행합니다.</li>
+                        </ul>
                     </div>
 
-                    <div>
+                    <div class="memo-section warning-memo">
                         <h3>헷갈리기 쉬운 개념</h3>
-                        <p>이 영역은 비슷한 Git/GitHub 개념을 비교해서 정리할 예정입니다.</p>
+                        <div class="confuse-list">
+                            <article><strong>main</strong>
+                                <p>내 컴퓨터에서 직접 작업하고 Commit하는 Local Branch</p>
+                            </article>
+                            <article><strong>origin</strong>
+                                <p>GitHub Repository URL에 붙인 Remote 별칭</p>
+                            </article>
+                            <article><strong>origin/main</strong>
+                                <p>마지막으로 확인한 원격 main 상태를 나타내는<br>Remote-tracking Branch</p>
+                            </article>
+                            <article><strong>Remote 등록</strong>
+                                <p>목적지 주소를 저장하는 작업이며 Commit 전송은 아님</p>
+                            </article>
+                            <article><strong>Push</strong>
+                                <p>Working Directory가 아니라 Local Commit을 전송</p>
+                            </article>
+                            <article><strong>403</strong>
+                                <p>대상 저장소에 대한 쓰기 권한과 PAT 범위를 확인</p>
+                            </article>
+                        </div>
                     </div>
 
-                    <div>
+                    <div class="memo-section command-memo">
+                        <h3>자주 확인하는 명령</h3>
+                        <div class="quick-command-grid">
+                            <article><strong>상태 확인</strong><code>git status</code></article>
+                            <article><strong>현재 Branch</strong><code>git branch --show-current</code></article>
+                            <article><strong>Commit 확인</strong><code>git log --oneline</code></article>
+                            <article><strong>Remote 확인</strong><code>git remote -v</code></article>
+                            <article><strong>Remote 등록</strong><code>git remote add origin URL</code></article>
+                            <article><strong>URL 변경</strong><code>git remote set-url origin URL</code></article>
+                            <article><strong>최초 Push</strong><code>git push -u origin main</code></article>
+                            <article><strong>Upstream 확인</strong><code>git branch -vv</code></article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section error-memo">
+                        <h3>오류 메시지 빠른 분류</h3>
+                        <div class="quick-error-grid">
+                            <article><strong>origin already exists</strong>
+                                <p>Remote 중복 등록</p>
+                            </article>
+                            <article><strong>Authentication failed</strong>
+                                <p>Username·PAT 문제</p>
+                            </article>
+                            <article><strong>403</strong>
+                                <p>쓰기 권한 또는 PAT 범위 문제</p>
+                            </article>
+                            <article><strong>Repository not found</strong>
+                                <p>URL 또는 저장소 접근 권한 문제</p>
+                            </article>
+                            <article><strong>refspec main</strong>
+                                <p>Branch 이름 또는 첫 Commit 문제</p>
+                            </article>
+                            <article><strong>non-fast-forward</strong>
+                                <p>Remote에 Local이 모르는 Commit 존재</p>
+                            </article>
+                        </div>
+                    </div>
+
+                    <div class="memo-section checklist-memo">
+                        <h3>최초 Push 전 체크리스트</h3>
+                        <div class="aside-checklist">
+                            <label><input type="checkbox" disabled> 필요한 파일을 모두 Add하고 Commit했습니다.</label>
+                            <label><input type="checkbox" disabled> 현재 Branch가 main인지 master인지 확인했습니다.</label>
+                            <label><input type="checkbox" disabled> GitHub 저장소를 빈 상태로 만들었습니다.</label>
+                            <label><input type="checkbox" disabled> origin URL의 Owner와 Repository 이름을 확인했습니다.</label>
+                            <label><input type="checkbox" disabled> PAT에 대상 저장소와 Contents 쓰기 권한이 있습니다.</label>
+                            <label><input type="checkbox" disabled> 실제 PAT와 민감 정보가 Commit에 없습니다.</label>
+                            <label><input type="checkbox" disabled> Source Ref와 Destination Ref가 같은 Branch
+                                이름입니다.</label>
+                            <label><input type="checkbox" disabled> Force Update를 선택하지 않았습니다.</label>
+                        </div>
+                    </div>
+
+                    <div class="memo-section final-summary">
                         <h3>다음 단원 연결</h3>
-                        <p>이 영역은 다음 단원과 이어지는 학습 흐름을 정리할 예정입니다.</p>
+                        <p>
+                            다음에는 Remote에 Local이 모르는 Commit이 있을 때 발생하는 rejected를 기준으로
+                            Fetch, Pull, Merge, Conflict 해결과 Push 재시도 흐름을 학습합니다.
+                        </p>
                     </div>
                 </aside>
             </div>
