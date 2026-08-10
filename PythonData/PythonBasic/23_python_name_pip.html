@@ -4,113 +4,1333 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>__name__과 pip | Python & Data 학습 매거진</title>
+        <meta name="description"
+            content="Python __name__, __main__, main guard, PyPI, pip, 가상환경, site-packages, 패키지 설치·업그레이드·삭제·재현과 환경 오류를 학습하는 매거진">
+        <title>23. __name__, pip와 패키지 관리 | Python Basic</title>
 
-        <link rel="stylesheet" href="../../css/00_nav.css">
-        <link rel="stylesheet" href="../../css/study-theme.css">
-        <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
-        <link rel="stylesheet" href="../../css/PythonData/PythonBasic/23_python_name_pip.css">
-
-        <script src="../../js/00_nav.js" defer></script>
+        <link rel="stylesheet" href="../../../css/00_nav.css">
+        <link rel="stylesheet" href="../../../css/study-theme.css">
+        <link rel="stylesheet" href="../../../css/PythonData/python-data-common.css">
+        <link rel="stylesheet" href="../../../css/PythonData/PythonBasic/23_python_name_pip.css">
+        <script src="../../../js/00_nav.js" defer></script>
     </head>
 
-    <body class="theme-python-data study-page python-basic-page python-basic-lesson-page python-basic-lesson-23" data-nav-category="python-data" data-nav-item="python-basic">
+    <body class="theme-python-data study-page python-basic-page python-basic-lesson-page python-basic-lesson-23"
+        data-nav-category="python-data" data-nav-item="python-basic">
+        <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+
         <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+            <nav class="side-nav" id="sideNav" data-root="../../../" aria-label="전체 학습 매거진 네비게이션"></nav>
 
             <div class="page-content">
-                <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Basics · Lesson 23</p>
-                    <h1>__name__과 pip</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
-                    </p>
+                <!-- =================================================
+                 HEADER · 단원 제목 / 핵심 요약 / 학습 목표
+            ================================================== -->
+                <header class="lesson-hero entry-hero">
+                    <div class="header-topline">
+                        <p class="series-label">PYTHON BASIC · CHAPTER 23</p>
+                        <p class="reading-time">학습 키워드 · __name__ · __main__ · PyPI · pip · venv · site-packages</p>
+                    </div>
 
-                    <section class="learning-goals" aria-labelledby="learningGoalsTitle">
-                        <h2 id="learningGoalsTitle">학습 목표</h2>
-                        <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
-                        </ul>
+                    <div class="hero-copy">
+                        <div>
+                            <p class="eyebrow">Entry Point · Environment · Package Management Magazine</p>
+                            <h1>
+                                실행할 때와 불러올 때를 구분하고<br>
+                                <span>같은 Python에 패키지를 설치하다</span>
+                            </h1>
+                        </div>
+
+                        <p class="hero-summary">
+                            하나의 Python 파일은 직접 실행되는 프로그램이 될 수도 있고, 다른 파일이 가져다 쓰는 모듈이 될 수도 있습니다.
+                            Python은 특별한 전역 변수 <code>__name__</code>으로 두 상황을 구분하고,
+                            <code>if __name__ == "__main__":</code> 아래에 직접 실행할 진입점을 둡니다.
+                            외부 기능이 필요할 때는 <strong>PyPI</strong>에서 배포 패키지를 찾고 <strong>pip</strong>로 현재
+                            인터프리터의 환경에 설치합니다. 이번 단원에서는 코드 진입점부터 가상환경, 설치 위치,
+                            버전 기록과 환경 오류 진단까지 하나의 실행 흐름으로 연결합니다.
+                        </p>
+                    </div>
+
+                    <div class="hero-keywords" aria-label="이번 단원 핵심 키워드">
+                        <span>__name__</span>
+                        <span>__main__</span>
+                        <span>main guard</span>
+                        <span>python -m</span>
+                        <span>PyPI</span>
+                        <span>python -m pip</span>
+                        <span>.venv</span>
+                        <span>distribution package</span>
+                        <span>import package</span>
+                        <span>site-packages</span>
+                        <span>requirements.txt</span>
+                    </div>
+
+                    <section class="core-question" aria-labelledby="core-question-title">
+                        <p class="section-kicker">이 단원의 중심 질문</p>
+                        <h2 id="core-question-title">
+                            Python은 현재 파일이 직접 실행되었는지 어떻게 알고,
+                            pip는 어떤 인터프리터의 어느 경로에 패키지를 설치할까?
+                        </h2>
+
+                        <div class="entry-question-flow" aria-label="코드 실행과 패키지 설치의 전체 흐름">
+                            <span><small>01</small>실행 방법 결정</span>
+                            <b aria-hidden="true">→</b>
+                            <span><small>02</small><code>__name__</code> 설정</span>
+                            <b aria-hidden="true">→</b>
+                            <span><small>03</small>메인 가드 판정</span>
+                            <b aria-hidden="true">→</b>
+                            <span><small>04</small>환경 선택</span>
+                            <b aria-hidden="true">→</b>
+                            <span><small>05</small>pip 설치</span>
+                            <b aria-hidden="true">→</b>
+                            <span><small>06</small>import 검증</span>
+                        </div>
+                    </section>
+
+                    <section class="learning-goals" aria-labelledby="learning-goals-title">
+                        <div class="section-heading compact-heading">
+                            <p class="section-kicker">Learning Goals</p>
+                            <h2 id="learning-goals-title">학습 목표</h2>
+                        </div>
+
+                        <ol class="goal-list">
+                            <li><span>01</span>
+                                <p>직접 실행·일반 import·<code>python -m</code>에서 <code>__name__</code> 값이 어떻게 달라지는지 설명합니다.
+                                </p>
+                            </li>
+                            <li><span>02</span>
+                                <p>메인 가드가 평범한 조건문이며, 가드 밖 최상위 코드는 import 때도 실행됨을 이해합니다.</p>
+                            </li>
+                            <li><span>03</span>
+                                <p><code>main()</code> 함수로 입력·DB·HTTP·파일·그래프 실행을 분리합니다.</p>
+                            </li>
+                            <li><span>04</span>
+                                <p>PyPI·pip·배포 패키지·import 패키지·<code>site-packages</code>의 관계를 구분합니다.</p>
+                            </li>
+                            <li><span>05</span>
+                                <p>프로젝트별 가상환경을 만들고 <code>python -m pip</code>로 설치 대상을 일치시킵니다.</p>
+                            </li>
+                            <li><span>06</span>
+                                <p>설치·버전 고정·업그레이드·목록·상세 조회·검사·삭제 명령을 안전하게 사용합니다.</p>
+                            </li>
+                            <li><span>07</span>
+                                <p>인터프리터, pip, 커널, 설치 경로가 어긋난 오류를 진단합니다.</p>
+                            </li>
+                            <li><span>08</span>
+                                <p>웹크롤링·DB·데이터 분석·시각화 프로젝트의 실행 진입점과 의존성을 설계합니다.</p>
+                            </li>
+                        </ol>
                     </section>
                 </header>
 
-                <main class="lesson-main">
-                    <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
+                <div class="content-layout">
+                    <main id="lesson-main" class="lesson-main">
+                        <nav class="chapter-map" aria-label="단원 목차">
+                            <p>CHAPTER MAP</p>
+                            <ol>
+                                <li><a href="#concept">핵심 개념</a></li>
+                                <li><a href="#visual-flow">그림처럼 이해</a></li>
+                                <li><a href="#rules">문법과 규칙</a></li>
+                                <li><a href="#tools">개발 도구</a></li>
+                                <li><a href="#examples">코드 예제</a></li>
+                                <li><a href="#mistakes">실수와 오류</a></li>
+                                <li><a href="#practice">실무 연결</a></li>
+                                <li><a href="#interview">면접 포인트</a></li>
+                                <li><a href="#final-check">최종 점검</a></li>
+                            </ol>
+                        </nav>
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
-
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
-
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
-                            <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                        <!-- 01 · 핵심 개념 카드 -->
+                        <section id="concept" class="lesson-card concept-card entry-concept-card"
+                            aria-labelledby="concept-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">01 · Core Concept</p>
+                                <h2 id="concept-title"><code>__name__</code>은 실행 역할을 알려 주고, pip는 선택된 Python 환경의 의존성을
+                                    관리한다</h2>
                             </div>
-                        </dl>
-                    </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./22_python_module_package.html">이전 단원</a>
-                        <a class="lesson-next" href="./24_python_exception.html">다음 단원</a>
-                    </nav>
-                </main>
 
-                <aside class="side-note">
-                    <section>
-                        <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
-                        </ul>
-                    </section>
+                            <p class="lead-text">
+                                파일의 코드 내용만 보고는 그 파일이 독립 프로그램인지 재사용 모듈인지 정해지지 않습니다.
+                                실행 방법에 따라 Python이 <code>__name__</code>을 정하고, 개발자는 그 값을 조건으로 직접 실행할 코드만 선택합니다.
+                                한편 <code>requests</code>, <code>pandas</code>처럼 표준 라이브러리에 없는 기능은 보통 PyPI에 배포된 패키지를
+                                pip로 설치합니다. 여기서 가장 중요한 기준은 <strong>내가 지금 실행할 Python과 pip가 연결된 환경이 같은가</strong>입니다.
+                            </p>
 
-                    <section>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
-                    </section>
+                            <div class="concept-grid">
+                                <article><span class="card-index">01</span>
+                                    <h3><code>__name__</code></h3>
+                                    <p>Python이 모듈에 자동으로 넣는 특별한 전역 변수입니다. 실행 역할에 따라 문자열 값이 달라집니다.</p>
+                                </article>
+                                <article><span class="card-index">02</span>
+                                    <h3><code>"__main__"</code></h3>
+                                    <p>현재 최상위 실행 환경에 붙는 특별한 모듈 이름입니다. 예약 함수 이름이 아니라 문자열입니다.</p>
+                                </article>
+                                <article><span class="card-index">03</span>
+                                    <h3>메인 가드</h3>
+                                    <p><code>if __name__ == "__main__":</code> 조건으로 직접 실행할 때만 아래 블록을 실행합니다.</p>
+                                </article>
+                                <article><span class="card-index">04</span>
+                                    <h3><code>main()</code></h3>
+                                    <p>프로그램 시작 절차를 모으는 관례적 함수 이름입니다. Python 예약어는 아닙니다.</p>
+                                </article>
+                                <article><span class="card-index">05</span>
+                                    <h3>PyPI</h3>
+                                    <p>Python 배포 패키지를 게시하고 찾는 공개 저장소입니다. 등록 자체가 품질과 안전을 보증하지는 않습니다.</p>
+                                </article>
+                                <article><span class="card-index">06</span>
+                                    <h3>pip</h3>
+                                    <p>배포 패키지와 필요한 의존성을 내려받아 현재 Python 환경에 설치·조회·삭제하는 도구입니다.</p>
+                                </article>
+                                <article><span class="card-index">07</span>
+                                    <h3>가상환경</h3>
+                                    <p>프로젝트마다 인터프리터와 설치 패키지 경계를 분리하여 버전 충돌을 줄이는 독립 환경입니다.</p>
+                                </article>
+                                <article><span class="card-index">08</span>
+                                    <h3><code>site-packages</code></h3>
+                                    <p>해당 환경의 외부 Python 패키지가 설치되는 대표 경로입니다. 환경마다 위치가 다릅니다.</p>
+                                </article>
+                            </div>
 
-                    <section>
-                        <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
-                    </section>
-                </aside>
+                            <h3 class="sub-title">같은 파일도 실행 방법에 따라 역할이 달라진다</h3>
+                            <div class="comparison-table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>실행 상황</th>
+                                            <th>파일 내부 <code>__name__</code></th>
+                                            <th>메인 가드</th>
+                                            <th>의미</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>python app.py</code></td>
+                                            <td><code>"__main__"</code></td>
+                                            <td>참</td>
+                                            <td>이 파일이 최상위 프로그램</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>import app</code></td>
+                                            <td><code>"app"</code></td>
+                                            <td>거짓</td>
+                                            <td>다른 파일이 재사용하는 모듈</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>import shop.app</code></td>
+                                            <td><code>"shop.app"</code></td>
+                                            <td>거짓</td>
+                                            <td>패키지 안의 모듈</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>python -m shop.app</code></td>
+                                            <td><code>"__main__"</code></td>
+                                            <td>참</td>
+                                            <td>패키지 문맥을 유지한 최상위 실행</td>
+                                        </tr>
+                                        <tr>
+                                            <td>REPL·Jupyter 셀</td>
+                                            <td>일반적으로 <code>"__main__"</code></td>
+                                            <td>참</td>
+                                            <td>현재 대화형 최상위 환경</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3 class="sub-title">설치 이름과 import 이름은 같지 않을 수 있다</h3>
+                            <div class="package-name-grid">
+                                <article><code>beautifulsoup4</code><span>pip
+                                        설치</span><b>→</b><code>bs4</code><span>Python import</span></article>
+                                <article><code>scikit-learn</code><span>pip
+                                        설치</span><b>→</b><code>sklearn</code><span>Python import</span></article>
+                                <article><code>Pillow</code><span>pip 설치</span><b>→</b><code>PIL</code><span>Python
+                                        import</span></article>
+                                <article><code>opencv-python</code><span>pip
+                                        설치</span><b>→</b><code>cv2</code><span>Python import</span></article>
+                            </div>
+
+                            <div class="core-note">
+                                <strong>두 개의 중심 문장</strong>
+                                <p>메인 가드는 파일 전체를 보호하지 않고 <strong>들여쓰기된 블록만</strong> 제어합니다.</p>
+                                <p><code>python -m pip</code>는 현재 선택한 Python으로 pip를 실행하여 설치 환경의 혼동을 줄입니다.</p>
+                            </div>
+                        </section>
+
+                        <!-- 02 · 그림처럼 이해 카드 -->
+                        <section id="visual-flow" class="lesson-card visual-card entry-visual-card"
+                            aria-labelledby="visual-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">02 · Visual Understanding</p>
+                                <h2 id="visual-title">실행 진입점의 갈림길과 패키지 설치 경로를 두 개의 지도처럼 본다</h2>
+                            </div>
+
+                            <h3 class="sub-title">지도 1 · 같은 <code>app.py</code>가 직접 실행과 import에서 갈라진다</h3>
+                            <div class="name-flow-board" aria-label="__name__ 값에 따른 실행 분기">
+                                <div class="flow-node start-node"><code>app.py</code>를 Python이 실행</div>
+                                <div class="flow-arrow" aria-hidden="true">↓</div>
+                                <div class="flow-node decision-node">어떤 방식으로 실행했는가?</div>
+                                <div class="branch-grid">
+                                    <article>
+                                        <p class="branch-label direct">DIRECT · <code>python app.py</code></p>
+                                        <div class="flow-node"><code>__name__ = "__main__"</code></div>
+                                        <div class="flow-arrow" aria-hidden="true">↓</div>
+                                        <div class="flow-node result-node">메인 가드 참 → <code>main()</code> 호출</div>
+                                    </article>
+                                    <article>
+                                        <p class="branch-label imported">IMPORT · <code>import app</code></p>
+                                        <div class="flow-node"><code>__name__ = "app"</code></div>
+                                        <div class="flow-arrow" aria-hidden="true">↓</div>
+                                        <div class="flow-node result-node">메인 가드 거짓 → 함수·클래스만 준비</div>
+                                    </article>
+                                </div>
+                            </div>
+
+                            <div class="top-level-warning">
+                                <p class="mini-label">IMPORT SIDE EFFECT</p>
+                                <div>
+                                    <pre><code>print("모듈 준비")        # import 때도 실행
+
+def main():
+    print("프로그램 시작")
+
+if __name__ == "__main__":
+    main()                 # 직접 실행 때만 호출</code></pre>
+                                    <p>조건문 위의 최상위 코드는 이미 실행됩니다. DB 연결, HTTP 요청, <code>input()</code>, 파일 저장,
+                                        <code>plt.show()</code>는 함수 안으로 옮깁니다.</p>
+                                </div>
+                            </div>
+
+                            <h3 class="sub-title">지도 2 · 현재 Python에서 설치된 패키지를 import하기까지</h3>
+                            <div class="install-pipeline" aria-label="pip 패키지 설치와 import 흐름">
+                                <span><small>PYTHON</small><code>.venv\Scripts\python.exe</code></span>
+                                <b aria-hidden="true">→</b>
+                                <span><small>PIP</small><code>python -m pip</code></span>
+                                <b aria-hidden="true">→</b>
+                                <span><small>INDEX</small>PyPI에서 배포 검색</span>
+                                <b aria-hidden="true">→</b>
+                                <span><small>RESOLVE</small>버전·의존성 결정</span>
+                                <b aria-hidden="true">→</b>
+                                <span><small>INSTALL</small><code>site-packages</code></span>
+                                <b aria-hidden="true">→</b>
+                                <span><small>USE</small><code>import requests</code></span>
+                            </div>
+
+                            <h3 class="sub-title">가상환경은 프로젝트마다 독립된 패키지 서랍을 만든다</h3>
+                            <div class="environment-visual">
+                                <article>
+                                    <p class="mini-label">PROJECT A · CRAWLER</p>
+                                    <div class="env-box">
+                                        <strong><code>project-a/.venv</code></strong>
+                                        <span>Python interpreter A</span>
+                                        <span>requests 2.x</span>
+                                        <span>beautifulsoup4 4.x</span>
+                                    </div>
+                                </article>
+                                <article>
+                                    <p class="mini-label">PROJECT B · ANALYSIS</p>
+                                    <div class="env-box alternate">
+                                        <strong><code>project-b/.venv</code></strong>
+                                        <span>Python interpreter B</span>
+                                        <span>pandas 2.x</span>
+                                        <span>matplotlib 3.x</span>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title">오류가 나면 세 경로가 같은 환경을 가리키는지 확인한다</h3>
+                            <div class="path-triangle">
+                                <article><span>01</span>
+                                    <h3>실행 Python</h3><code>sys.executable</code>
+                                    <p>실제로 코드를 실행하는 인터프리터</p>
+                                </article>
+                                <article><span>02</span>
+                                    <h3>pip의 Python</h3><code>python -m pip --version</code>
+                                    <p>pip 경로와 연결된 Python 버전</p>
+                                </article>
+                                <article><span>03</span>
+                                    <h3>모듈 위치</h3><code>module.__file__</code>
+                                    <p>import된 파일의 실제 위치</p>
+                                </article>
+                            </div>
+
+                            <div class="path-verdict">
+                                <code>sys.executable</code><b>＝</b><code>pip가 연결된 Python</code><b>＝</b><code>IDE·Jupyter 커널</code>
+                                <p>세 항목이 같은 가상환경을 가리킬 때 설치와 실행이 일치합니다.</p>
+                            </div>
+                        </section>
+
+                        <!-- 03 · 문법과 규칙 카드 -->
+                        <section id="rules" class="lesson-card logic-card entry-rules-card"
+                            aria-labelledby="rules-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">03 · Syntax &amp; Rules</p>
+                                <h2 id="rules-title">메인 가드는 정확하게 쓰고, 패키지 명령은 선택한 Python을 기준으로 실행한다</h2>
+                            </div>
+
+                            <div class="syntax-focus">
+                                <article>
+                                    <p class="mini-label">EXACT MAIN GUARD</p>
+                                    <pre><code>def main():
+    print("프로그램을 시작합니다.")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+                                </article>
+                                <article>
+                                    <h3>한 글자씩 확인</h3>
+                                    <ul>
+                                        <li><code>__name__</code>: 앞뒤 밑줄 두 개</li>
+                                        <li><code>==</code>: 값을 비교하는 연산자</li>
+                                        <li><code>"__main__"</code>: 따옴표가 있는 문자열</li>
+                                        <li><code>:</code>: 조건식 끝의 콜론</li>
+                                        <li><code>main()</code>: 가드 안에 들여쓰기</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title"><code>main</code>, <code>__main__</code>, <code>__main__.py</code> 구분
+                            </h3>
+                            <div class="comparison-table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>표현</th>
+                                            <th>정체</th>
+                                            <th>역할</th>
+                                            <th>예</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>main</code></td>
+                                            <td>관례적인 함수 이름</td>
+                                            <td>프로그램 시작 절차를 묶음</td>
+                                            <td><code>def main():</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>"__main__"</code></td>
+                                            <td>특별한 모듈 이름 문자열</td>
+                                            <td>현재 최상위 실행 환경 표시</td>
+                                            <td><code>__name__ == "__main__"</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>__main__.py</code></td>
+                                            <td>특별한 파일 이름</td>
+                                            <td>패키지를 <code>-m</code>으로 실행할 진입점</td>
+                                            <td><code>python -m report_app</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3 class="sub-title">pip 기본 명령 지도</h3>
+                            <div class="command-grid">
+                                <article>
+                                    <p>설치</p>
+                                    <pre><code>python -m pip install requests</code></pre>
+                                </article>
+                                <article>
+                                    <p>특정 버전</p>
+                                    <pre><code>python -m pip install "requests==2.32.3"</code></pre>
+                                </article>
+                                <article>
+                                    <p>버전 범위</p>
+                                    <pre><code>python -m pip install "SomeProject&gt;=1.4,&lt;2"</code></pre>
+                                </article>
+                                <article>
+                                    <p>pip 업그레이드</p>
+                                    <pre><code>python -m pip install --upgrade pip</code></pre>
+                                </article>
+                                <article>
+                                    <p>패키지 업그레이드</p>
+                                    <pre><code>python -m pip install --upgrade requests</code></pre>
+                                </article>
+                                <article>
+                                    <p>설치 목록</p>
+                                    <pre><code>python -m pip list</code></pre>
+                                </article>
+                                <article>
+                                    <p>업데이트 후보</p>
+                                    <pre><code>python -m pip list --outdated</code></pre>
+                                </article>
+                                <article>
+                                    <p>상세 정보</p>
+                                    <pre><code>python -m pip show requests</code></pre>
+                                </article>
+                                <article>
+                                    <p>의존성 검사</p>
+                                    <pre><code>python -m pip check</code></pre>
+                                </article>
+                                <article>
+                                    <p>삭제</p>
+                                    <pre><code>python -m pip uninstall requests</code></pre>
+                                </article>
+                                <article>
+                                    <p>환경 기록</p>
+                                    <pre><code>python -m pip freeze &gt; requirements.txt</code></pre>
+                                </article>
+                                <article>
+                                    <p>환경 재설치</p>
+                                    <pre><code>python -m pip install -r requirements.txt</code></pre>
+                                </article>
+                            </div>
+
+                            <div class="freeze-note">
+                                <strong><code>pip freeze</code>를 이해하는 법</strong>
+                                <p>현재 환경의 설치 상태를 요구사항 형식으로 출력하므로 직접 설치한 패키지뿐 아니라 하위 의존성도 포함될 수 있습니다.</p>
+                                <p>환경을 복제하는 스냅샷에는 유용하지만, 프로젝트의 의도를 완전히 표현하는 현대적 잠금 파일과 항상 같은 것은 아닙니다.</p>
+                            </div>
+
+                            <h3 class="sub-title">PyPI에서 설치 전 확인할 다섯 가지</h3>
+                            <div class="security-check-grid">
+                                <article><span>01</span>
+                                    <h3>정확한 이름</h3>
+                                    <p>철자 한 글자 차이의 타이포스쿼팅 패키지를 경계합니다.</p>
+                                </article>
+                                <article><span>02</span>
+                                    <h3>게시자·프로젝트 링크</h3>
+                                    <p>공식 저장소와 문서, 유지관리 주체를 확인합니다.</p>
+                                </article>
+                                <article><span>03</span>
+                                    <h3>최근 릴리스</h3>
+                                    <p>마지막 업데이트와 변경 기록을 확인합니다.</p>
+                                </article>
+                                <article><span>04</span>
+                                    <h3>Python 호환 범위</h3>
+                                    <p>현재 Python 버전과 운영체제용 배포 파일이 있는지 봅니다.</p>
+                                </article>
+                                <article><span>05</span>
+                                    <h3>라이선스·의존성</h3>
+                                    <p>프로젝트 사용 조건과 추가 설치 범위를 확인합니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="uninstall-warning">
+                                <strong>삭제 주의</strong>
+                                <p><code>pip uninstall A</code>는 보통 A를 제거하지만, A와 함께 설치된 뒤 다른 패키지도 사용할 수 있는 하위 의존성을 자동으로
+                                    모두 청소하지는 않습니다.</p>
+                            </div>
+                        </section>
+
+                        <!-- 04 · 개발 환경 카드 -->
+                        <section id="tools" class="lesson-card tools-card entry-tools-card"
+                            aria-labelledby="tools-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">04 · Development Tools</p>
+                                <h2 id="tools-title">도구 이름보다 현재 인터프리터와 실행 위치를 먼저 확인한다</h2>
+                            </div>
+
+                            <div class="tool-grid">
+                                <article>
+                                    <p class="tool-name">PyCharm</p>
+                                    <ol>
+                                        <li>프로젝트 전용 <code>.venv</code>를 생성하거나 선택합니다.</li>
+                                        <li>Settings의 Python Interpreter 경로를 확인합니다.</li>
+                                        <li>Terminal을 새로 열어 가상환경 표시를 확인합니다.</li>
+                                        <li><code>python -m pip</code>로 패키지를 설치합니다.</li>
+                                        <li>Run Configuration의 Script/Module과 Working directory를 점검합니다.</li>
+                                    </ol>
+                                </article>
+                                <article>
+                                    <p class="tool-name">Jupyter Notebook</p>
+                                    <ol>
+                                        <li><code>sys.executable</code>로 현재 커널 Python을 확인합니다.</li>
+                                        <li>셸의 pip가 아닌 <code>%pip install</code>을 우선 사용합니다.</li>
+                                        <li>설치 후 import가 안 되면 커널을 재시작합니다.</li>
+                                        <li>Notebook의 <code>__name__</code>은 보통 <code>"__main__"</code>입니다.</li>
+                                        <li>재현이 필요하면 Notebook 밖 requirements도 갱신합니다.</li>
+                                    </ol>
+                                </article>
+                                <article>
+                                    <p class="tool-name">터미널 · 콘솔</p>
+                                    <ol>
+                                        <li>명령 프롬프트에서 가상환경을 활성화합니다.</li>
+                                        <li>Python 프롬프트 <code>&gt;&gt;&gt;</code>와 셸을 구분합니다.</li>
+                                        <li>pip 명령은 셸에서 실행합니다.</li>
+                                        <li><code>python -c</code>로 경로를 즉시 확인합니다.</li>
+                                        <li><code>python app.py</code>와 <code>python -m package.module</code>을 구분합니다.
+                                        </li>
+                                    </ol>
+                                </article>
+                                <article>
+                                    <p class="tool-name">Eclipse · PyDev</p>
+                                    <ol>
+                                        <li>Project Interpreter를 가상환경 Python으로 지정합니다.</li>
+                                        <li>PyDev Package Explorer에서 소스 폴더를 확인합니다.</li>
+                                        <li>Run As → Python Run의 대상 파일을 점검합니다.</li>
+                                        <li>패키지 모듈이면 프로젝트 루트와 모듈 문맥을 맞춥니다.</li>
+                                        <li>환경 변경 후 인터프리터 구성을 새로 고칩니다.</li>
+                                    </ol>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title">가상환경 생성과 활성화</h3>
+                            <div class="os-command-grid">
+                                <article>
+                                    <p class="mini-label">CREATE · ALL OS</p>
+                                    <pre><code>python -m venv .venv</code></pre>
+                                </article>
+                                <article>
+                                    <p class="mini-label">WINDOWS · POWERSHELL</p>
+                                    <pre><code>.\.venv\Scripts\Activate.ps1</code></pre>
+                                </article>
+                                <article>
+                                    <p class="mini-label">WINDOWS · CMD</p>
+                                    <pre><code>.venv\Scripts\activate.bat</code></pre>
+                                </article>
+                                <article>
+                                    <p class="mini-label">macOS · LINUX</p>
+                                    <pre><code>source .venv/bin/activate</code></pre>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title">30초 환경 진단 루틴</h3>
+                            <div class="diagnostic-routine">
+                                <article><span>01</span>
+                                    <pre><code>python -c "import sys; print(sys.executable)"</code></pre>
+                                    <p>실행 Python 확인</p>
+                                </article>
+                                <article><span>02</span>
+                                    <pre><code>python -m pip --version</code></pre>
+                                    <p>pip와 설치 기본 경로 확인</p>
+                                </article>
+                                <article><span>03</span>
+                                    <pre><code>python -m pip show requests</code></pre>
+                                    <p>패키지 버전과 Location 확인</p>
+                                </article>
+                                <article><span>04</span>
+                                    <pre><code>python -c "import requests; print(requests.__file__)"</code></pre>
+                                    <p>실제 import 경로 확인</p>
+                                </article>
+                            </div>
+
+                            <div class="jupyter-command">
+                                <p class="mini-label">JUPYTER KERNEL에 정확히 설치</p>
+                                <pre><code>import sys
+print(sys.executable)
+
+%pip install requests
+
+# 또는 현재 커널 Python을 명시
+!{sys.executable} -m pip install requests</code></pre>
+                            </div>
+                        </section>
+
+                        <!-- 05 · 코드 예제 카드 -->
+                        <section id="examples" class="lesson-card examples-card entry-examples-card"
+                            aria-labelledby="examples-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">05 · Executable Examples</p>
+                                <h2 id="examples-title">가장 작은 <code>__name__</code> 실험에서 실행 가능한 패키지까지 확장한다</h2>
+                            </div>
+
+                            <article class="example-block">
+                                <div>
+                                    <p class="example-number">EXAMPLE 01</p>
+                                    <h3>직접 실행과 import 비교</h3>
+                                    <p><code>role_check.py</code>를 두 방식으로 실행하여 값을 확인합니다.</p>
+                                </div>
+                                <pre><code># role_check.py
+print(f"현재 이름: {__name__}")
+
+if __name__ == "__main__":
+    print("직접 실행 블록")</code></pre>
+                                <pre class="result-code"><code># python role_check.py
+현재 이름: __main__
+직접 실행 블록
+
+# python -c "import role_check"
+현재 이름: role_check</code></pre>
+                            </article>
+
+                            <article class="example-block">
+                                <div>
+                                    <p class="example-number">EXAMPLE 02</p>
+                                    <h3>입력과 계산을 분리한 <code>main()</code></h3>
+                                    <p>재사용할 함수는 가드 밖에서 정의하고, 사용자 입력은 진입점에서만 수행합니다.</p>
+                                </div>
+                                <pre><code>def calculate_total(price, quantity):
+    return price * quantity
+
+
+def main():
+    price = int(input("단가: "))
+    quantity = int(input("수량: "))
+    print(f"합계: {calculate_total(price, quantity):,}원")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+                                <div class="example-tip"><strong>import 결과</strong>
+                                    <p>다른 테스트 파일이 <code>calculate_total()</code>을 import해도 <code>input()</code>은 실행되지
+                                        않습니다.</p>
+                                </div>
+                            </article>
+
+                            <article class="example-block">
+                                <div>
+                                    <p class="example-number">EXAMPLE 03</p>
+                                    <h3>가드 밖의 부작용 확인</h3>
+                                    <p>메인 가드는 그 블록만 제어한다는 사실을 출력 순서로 확인합니다.</p>
+                                </div>
+                                <pre><code># bad_module.py
+print("A: import할 때도 실행")
+
+def work():
+    print("B: 함수가 호출될 때 실행")
+
+if __name__ == "__main__":
+    print("C: 직접 실행할 때만 실행")</code></pre>
+                                <pre class="result-code"><code># 다른 파일에서 import
+import bad_module
+# A: import할 때도 실행</code></pre>
+                            </article>
+
+                            <article class="example-block wide-example">
+                                <div>
+                                    <p class="example-number">EXAMPLE 04</p>
+                                    <h3><code>python -m</code>으로 실행하는 패키지</h3>
+                                    <p><code>__main__.py</code>를 두면 패키지 자체를 실행 단위로 만들 수 있습니다.</p>
+                                </div>
+                                <div class="package-example-grid">
+                                    <article>
+                                        <p class="mini-label">FILE TREE</p>
+                                        <pre><code>report_app/
+├─ __init__.py
+├─ __main__.py
+├─ service.py
+└─ charts.py</code></pre>
+                                    </article>
+                                    <article>
+                                        <p class="mini-label">service.py</p>
+                                        <pre><code>def build_report():
+    return {"sales": 125000}</code></pre>
+                                    </article>
+                                    <article>
+                                        <p class="mini-label">__main__.py</p>
+                                        <pre><code>from .service import build_report
+
+def main():
+    print(build_report())
+
+if __name__ == "__main__":
+    main()</code></pre>
+                                    </article>
+                                    <article>
+                                        <p class="mini-label">RUN</p>
+                                        <pre><code>python -m report_app
+# {'sales': 125000}</code></pre>
+                                    </article>
+                                </div>
+                            </article>
+
+                            <article class="example-block">
+                                <div>
+                                    <p class="example-number">EXAMPLE 05</p>
+                                    <h3>설치 경로 조사</h3>
+                                    <p>패키지를 찾는 경로와 실제 파일 위치를 코드로 확인합니다.</p>
+                                </div>
+                                <pre><code>import site
+import sys
+import requests
+
+print("Python:", sys.executable)
+print("requests:", requests.__file__)
+print("user site:", site.getusersitepackages())
+print("global sites:", site.getsitepackages())
+
+for index, path in enumerate(sys.path):
+    print(index, path)</code></pre>
+                            </article>
+
+                            <article class="example-block">
+                                <div>
+                                    <p class="example-number">EXAMPLE 06</p>
+                                    <h3>환경 복제</h3>
+                                    <p>작업 환경을 기록하고 새 가상환경에서 재설치합니다.</p>
+                                </div>
+                                <pre><code># 기존 환경
+python -m pip freeze &gt; requirements.txt
+
+# 새 환경
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip check</code></pre>
+                            </article>
+
+                            <article class="example-block">
+                                <div>
+                                    <p class="example-number">EXAMPLE 07</p>
+                                    <h3>선택 의존성을 좁게 처리</h3>
+                                    <p>선택 기능이 없을 때만 대체하고, 그 패키지 내부의 다른 import 오류는 다시 발생시킵니다.</p>
+                                </div>
+                                <pre><code>try:
+    import optional_report
+except ModuleNotFoundError as error:
+    if error.name != "optional_report":
+        raise
+    optional_report = None
+
+if optional_report is not None:
+    optional_report.create()</code></pre>
+                            </article>
+                        </section>
+
+                        <!-- 06 · 실수와 오류 카드 -->
+                        <section id="mistakes" class="lesson-card error-card entry-error-card"
+                            aria-labelledby="mistakes-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">06 · Mistakes &amp; Errors</p>
+                                <h2 id="mistakes-title">오류 메시지를 문법·이름·실행 위치·환경·호환성 순서로 읽는다</h2>
+                            </div>
+
+                            <div class="error-grid">
+                                <article>
+                                    <h3><code>SyntaxError</code></h3>
+                                    <p>메인 가드 끝의 콜론 누락, 따옴표 불일치, Python 프롬프트에서 pip 명령을 입력했는지 확인합니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>NameError</code></h3>
+                                    <p><code>__main__</code>에 따옴표가 없으면 변수로 해석합니다. 정확히 <code>"__main__"</code> 문자열을
+                                        비교합니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>ModuleNotFoundError</code></h3>
+                                    <p>미설치뿐 아니라 다른 Python에 설치, 잘못된 커널, 다른 import 이름, 프로젝트 경로 문제를 함께 의심합니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>No module named pip</code></h3>
+                                    <p>선택한 Python에 pip가 준비되지 않았습니다. 해당 Python의 <code>ensurepip</code> 사용 가능 여부를 확인합니다.
+                                    </p>
+                                </article>
+                                <article>
+                                    <h3><code>No matching distribution</code></h3>
+                                    <p>패키지명, 버전 조건, Python 버전, 운영체제·CPU용 배포 파일 호환성을 점검합니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>PermissionError</code></h3>
+                                    <p>시스템 환경에 쓰려고 할 수 있습니다. 관리자 권한보다 프로젝트 가상환경 사용을 우선합니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>externally-managed-environment</code></h3>
+                                    <p>운영체제가 관리하는 Python입니다. 시스템 설치를 강제하지 말고 <code>venv</code>를 만듭니다.</p>
+                                </article>
+                                <article>
+                                    <h3>의존성 충돌 경고</h3>
+                                    <p>패키지들이 요구하는 버전 범위가 맞지 않습니다. <code>python -m pip check</code>와 새 환경으로 원인을 좁힙니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>AttributeError</code></h3>
+                                    <p>프로젝트의 <code>requests.py</code>, <code>pandas.py</code>가 외부 패키지를 가렸거나 순환 import 중일
+                                        수 있습니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>ImportError</code></h3>
+                                    <p>모듈은 찾았지만 요청한 이름을 가져올 수 없습니다. API 변경, 버전 차이, 순환 import를 확인합니다.</p>
+                                </article>
+                                <article>
+                                    <h3><code>KeyError</code></h3>
+                                    <p>패키지 오류로 단정하지 말고 설정 딕셔너리·JSON·DataFrame에 요청한 키나 열이 실제 있는지 확인합니다.</p>
+                                </article>
+                                <article>
+                                    <h3>업그레이드 후 실행 실패</h3>
+                                    <p>새 버전의 호환성 변경일 수 있습니다. 변경 기록을 보고 버전을 고정한 새 환경에서 재현합니다.</p>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title"><code>ModuleNotFoundError</code> 진단 순서</h3>
+                            <ol class="troubleshooting-flow">
+                                <li><span>1</span>
+                                    <p><strong>이름</strong> · PyPI 설치 이름과 Python import 이름을 구분했는가?</p>
+                                </li>
+                                <li><span>2</span>
+                                    <p><strong>Python</strong> · <code>sys.executable</code>은 어느 인터프리터인가?</p>
+                                </li>
+                                <li><span>3</span>
+                                    <p><strong>pip</strong> · <code>python -m pip --version</code>이 같은 환경을 가리키는가?</p>
+                                </li>
+                                <li><span>4</span>
+                                    <p><strong>설치</strong> · <code>python -m pip show 패키지명</code>에 Location이 보이는가?</p>
+                                </li>
+                                <li><span>5</span>
+                                    <p><strong>경로</strong> · 그 Location이 <code>sys.path</code> 안에 있는가?</p>
+                                </li>
+                                <li><span>6</span>
+                                    <p><strong>가림</strong> · 현재 폴더에 같은 이름의 <code>.py</code> 파일이나 폴더가 있는가?</p>
+                                </li>
+                                <li><span>7</span>
+                                    <p><strong>재시작</strong> · IDE 인터프리터나 Jupyter 커널을 다시 시작했는가?</p>
+                                </li>
+                            </ol>
+
+                            <div class="mistake-pairs">
+                                <article>
+                                    <p class="wrong-label">WRONG</p>
+                                    <pre><code>if __name__ is "__main__":</code></pre>
+                                    <p><code>is</code>는 객체 동일성 비교입니다.</p>
+                                </article>
+                                <article>
+                                    <p class="right-label">RIGHT</p>
+                                    <pre><code>if __name__ == "__main__":</code></pre>
+                                    <p>문자열 값은 <code>==</code>로 비교합니다.</p>
+                                </article>
+                                <article>
+                                    <p class="wrong-label">WRONG</p>
+                                    <pre><code>&gt;&gt;&gt; pip install requests</code></pre>
+                                    <p>Python 문법 위치에 셸 명령을 입력했습니다.</p>
+                                </article>
+                                <article>
+                                    <p class="right-label">RIGHT</p>
+                                    <pre><code>python -m pip install requests</code></pre>
+                                    <p>터미널에서 현재 Python의 pip를 실행합니다.</p>
+                                </article>
+                            </div>
+                        </section>
+
+                        <!-- 07 · 실무 연결 카드 -->
+                        <section id="practice" class="lesson-card practice-card entry-practice-card"
+                            aria-labelledby="practice-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">07 · Project Connection</p>
+                                <h2 id="practice-title">진입점은 실행을 조율하고, 각 모듈은 결과와 오류를 돌려준다</h2>
+                            </div>
+
+                            <div class="project-architecture">
+                                <article><code>config.py</code>
+                                    <p>환경 설정과 상수</p>
+                                </article>
+                                <article><code>crawler.py</code>
+                                    <p>HTTP 요청과 HTML 분석</p>
+                                </article>
+                                <article><code>repository.py</code>
+                                    <p>DB 연결과 저장 함수</p>
+                                </article>
+                                <article><code>analysis.py</code>
+                                    <p>DataFrame 정제와 집계</p>
+                                </article>
+                                <article><code>charts.py</code>
+                                    <p>Figure·Axes 생성</p>
+                                </article>
+                                <article class="active-entry"><code>app.py</code>
+                                    <p><code>main()</code>에서 전체 순서 조율</p>
+                                </article>
+                            </div>
+
+                            <article class="practice-panel db-panel">
+                                <div>
+                                    <p class="mini-label">DATABASE</p>
+                                    <h3>import만으로 DB에 연결하지 않는다</h3>
+                                    <p>연결 생성·커밋·롤백·종료를 함수나 문맥 관리자에 넣고, 실제 실행은 <code>main()</code>에서 호출합니다.</p>
+                                </div>
+                                <pre><code>def save_rows(rows):
+    with create_connection() as connection:
+        connection.executemany(SQL, rows)
+        connection.commit()
+
+def main():
+    rows = collect_rows()
+    save_rows(rows)
+
+if __name__ == "__main__":
+    main()</code></pre>
+                            </article>
+
+                            <article class="practice-panel web-panel">
+                                <div>
+                                    <p class="mini-label">WEB CRAWLING</p>
+                                    <h3>상태 코드와 선택자 결과를 진입점에서 판단한다</h3>
+                                    <p>수집 함수는 응답 또는 정제된 결과를 반환하고, 재시도·중단·로그 정책은 프로그램 시작 흐름에서 결정합니다.</p>
+                                </div>
+                                <pre><code>import requests
+from bs4 import BeautifulSoup
+
+def collect_titles(url):
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+    return [tag.get_text(strip=True)
+            for tag in soup.select(".article-title")]
+
+def main():
+    titles = collect_titles("https://example.com")
+    print(f"수집 개수: {len(titles)}")
+
+if __name__ == "__main__":
+    main()</code></pre>
+                            </article>
+
+                            <h3 class="sub-title">HTTP 상태 코드를 읽는 기본 분기</h3>
+                            <div class="status-grid">
+                                <article><strong>200</strong>
+                                    <p>성공 · 응답 본문 분석</p>
+                                </article>
+                                <article><strong>204</strong>
+                                    <p>성공 · 본문 없음</p>
+                                </article>
+                                <article><strong>301·302</strong>
+                                    <p>이동 · 최종 URL 확인</p>
+                                </article>
+                                <article><strong>400</strong>
+                                    <p>요청 형식 오류</p>
+                                </article>
+                                <article><strong>401·403</strong>
+                                    <p>인증 또는 접근 거부</p>
+                                </article>
+                                <article><strong>404</strong>
+                                    <p>대상 리소스 없음</p>
+                                </article>
+                                <article><strong>429</strong>
+                                    <p>요청 과다 · 대기·재시도</p>
+                                </article>
+                                <article><strong>500+</strong>
+                                    <p>서버 오류 · 제한적 재시도</p>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title">선택자 오류는 반환 자료형부터 확인한다</h3>
+                            <div class="comparison-table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>코드</th>
+                                            <th>실패 결과</th>
+                                            <th>후속 오류</th>
+                                            <th>안전한 확인</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>soup.select_one(".title")</code></td>
+                                            <td><code>None</code></td>
+                                            <td>메서드 호출 시 <code>AttributeError</code></td>
+                                            <td><code>if tag is not None:</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>soup.select(".title")</code></td>
+                                            <td><code>[]</code></td>
+                                            <td><code>tags[0]</code>에서 <code>IndexError</code></td>
+                                            <td>길이 또는 Truthy 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>tag["href"]</code></td>
+                                            <td>속성 없음</td>
+                                            <td><code>KeyError</code></td>
+                                            <td><code>tag.get("href")</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <article class="practice-panel data-panel">
+                                <div>
+                                    <p class="mini-label">DATA ANALYSIS</p>
+                                    <h3>모듈 경계마다 DataFrame 변화를 확인한다</h3>
+                                    <p>로드·정제·집계 함수가 끝날 때 구조를 검증하면 잘못된 데이터가 그래프와 DB까지 전파되는 일을 줄입니다.</p>
+                                </div>
+                                <pre><code>def clean_sales(frame):
+    result = frame.copy()
+    result["amount"] = pd.to_numeric(
+        result["amount"], errors="coerce"
+    )
+    result = result.dropna(subset=["amount"])
+    return result
+
+cleaned = clean_sales(raw)
+print("shape:", raw.shape, "→", cleaned.shape)
+print("dtype:", cleaned["amount"].dtype)
+print("missing:", cleaned.isna().sum())</code></pre>
+                            </article>
+
+                            <div class="data-check-grid">
+                                <article><strong>shape</strong>
+                                    <p>필터·병합·중복 제거 뒤 행과 열이 왜 바뀌었는가?</p>
+                                </article>
+                                <article><strong>axis</strong>
+                                    <p><code>axis=0</code>과 <code>axis=1</code>의 적용 방향이 의도와 맞는가?</p>
+                                </article>
+                                <article><strong>dtype</strong>
+                                    <p>문자열 숫자·날짜가 계산 가능한 자료형으로 바뀌었는가?</p>
+                                </article>
+                                <article><strong>missing</strong>
+                                    <p><code>NaN</code>·<code>None</code>·<code>NaT</code>가 어디서 늘거나 줄었는가?</p>
+                                </article>
+                            </div>
+
+                            <article class="practice-panel chart-panel">
+                                <div>
+                                    <p class="mini-label">VISUALIZATION</p>
+                                    <h3>그래프 함수는 객체를 반환하고 화면 표시는 진입점에서 한다</h3>
+                                    <p>import 시 창이 뜨는 부작용을 막고 테스트 가능성을 높입니다.</p>
+                                </div>
+                                <pre><code>def make_sales_chart(frame):
+    fig, ax = plt.subplots()
+    ax.bar(frame["month"], frame["sales"])
+    ax.set_title("월별 매출")
+    return fig, ax
+
+def main():
+    fig, ax = make_sales_chart(load_data())
+    plt.show()
+
+if __name__ == "__main__":
+    main()</code></pre>
+                            </article>
+                        </section>
+
+                        <!-- 08 · 면접 포인트 카드 -->
+                        <section id="interview" class="lesson-card interview-card entry-interview-card"
+                            aria-labelledby="interview-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">08 · Interview Points</p>
+                                <h2 id="interview-title">정의만 말하지 말고 실행 상황과 환경 경계를 함께 설명한다</h2>
+                            </div>
+
+                            <div class="interview-list">
+                                <article>
+                                    <h3>Q1. <code>__name__</code>은 무엇인가요?</h3>
+                                    <p>Python이 각 모듈에 자동으로 제공하는 특별한 전역 변수입니다. 직접 실행된 최상위 모듈에서는 <code>"__main__"</code>,
+                                        import된 모듈에서는 정규 모듈 이름이 들어갑니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q2. 메인 가드는 왜 사용하나요?</h3>
+                                    <p>함수와 클래스는 import로 재사용할 수 있게 두면서, 사용자 입력·DB 연결·HTTP 요청 같은 프로그램 시작 코드는 직접 실행할 때만
+                                        호출하기 위해 사용합니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q3. 메인 가드가 import의 모든 실행을 막나요?</h3>
+                                    <p>아닙니다. 조건문에 들여쓰기된 블록만 건너뜁니다. 가드 밖 최상위 대입·함수 정의·출력·함수 호출은 import 시 실행됩니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q4. <code>main()</code>은 필수인가요?</h3>
+                                    <p>필수 문법도 예약 함수도 아닙니다. 시작 절차를 함수로 묶어 읽기·테스트·재사용을 쉽게 만드는 관례입니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q5. <code>python file.py</code>와 <code>python -m package.module</code>의 차이는?
+                                    </h3>
+                                    <p>앞은 파일 경로를 직접 실행하고, 뒤는 import 시스템으로 모듈을 찾아 패키지 문맥을 유지한 채 최상위 모듈로 실행합니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q6. PyPI와 pip의 차이는?</h3>
+                                    <p>PyPI는 배포 패키지를 게시하고 찾는 저장소이고, pip는 패키지를 내려받아 현재 Python 환경에 설치·관리하는 도구입니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q7. 왜 <code>pip</code>보다 <code>python -m pip</code>를 권하나요?</h3>
+                                    <p>명령 앞의 Python으로 pip 모듈을 실행하므로 여러 Python이 설치된 환경에서 설치 대상을 더 명확히 맞출 수 있습니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q8. 가상환경이 필요한 이유는?</h3>
+                                    <p>프로젝트마다 패키지와 버전 경계를 분리하여 서로 다른 요구사항의 충돌을 줄이고, 설치 범위와 재현성을 관리하기 위해서입니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q9. 배포 패키지 이름과 import 이름이 다른 예는?</h3>
+                                    <p><code>beautifulsoup4 → bs4</code>, <code>scikit-learn → sklearn</code>,
+                                        <code>Pillow → PIL</code>, <code>opencv-python → cv2</code>가 있습니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q10. <code>site-packages</code>는 무엇인가요?</h3>
+                                    <p>선택한 Python 환경의 외부 패키지가 설치되는 대표 디렉터리입니다. 시스템·사용자·가상환경마다 다른 경로를 가질 수 있습니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q11. 설치했는데 import가 안 되면 무엇부터 보나요?</h3>
+                                    <p><code>sys.executable</code>, <code>python -m pip --version</code>,
+                                        <code>pip show</code>의 Location, IDE·Notebook 커널, 설치 이름과 import 이름을 순서대로 확인합니다.
+                                    </p>
+                                </article>
+                                <article>
+                                    <h3>Q12. <code>pip freeze</code>는 무엇을 출력하나요?</h3>
+                                    <p>현재 환경에 설치된 패키지 버전을 요구사항 형식으로 출력합니다. 직접·간접 의존성이 함께 포함될 수 있어 환경 스냅샷 성격이 강합니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q13. pip uninstall은 하위 의존성도 모두 삭제하나요?</h3>
+                                    <p>보통 지정한 배포 패키지를 제거하며, 함께 설치된 모든 하위 의존성을 자동으로 정리한다고 가정하면 안 됩니다.</p>
+                                </article>
+                                <article>
+                                    <h3>Q14. PyPI 패키지는 모두 안전한가요?</h3>
+                                    <p>아닙니다. 공개 저장소 등록은 안전성 보증이 아니므로 정확한 이름, 게시자, 공식 링크, 최근 릴리스, 호환성, 라이선스를 확인합니다.</p>
+                                </article>
+                            </div>
+                        </section>
+
+                        <!-- 09 · 최종 점검 카드 -->
+                        <section id="final-check" class="lesson-card final-check-card entry-final-card"
+                            aria-labelledby="final-check-title">
+                            <div class="section-heading">
+                                <p class="section-kicker">09 · Final Check</p>
+                                <h2 id="final-check-title">파일 역할과 설치 환경을 말로 설명하고 직접 검증한다</h2>
+                            </div>
+
+                            <div class="checklist-grid">
+                                <article>
+                                    <h3>코드 진입점</h3>
+                                    <ul>
+                                        <li>직접 실행과 import에서 <code>__name__</code> 값을 예측할 수 있다.</li>
+                                        <li>메인 가드의 정확한 철자·비교·콜론·들여쓰기를 쓸 수 있다.</li>
+                                        <li>가드 밖 최상위 코드가 import 때 실행됨을 안다.</li>
+                                        <li>재사용 함수와 실행 절차를 분리할 수 있다.</li>
+                                        <li><code>__main__.py</code>와 <code>python -m</code>을 설명할 수 있다.</li>
+                                    </ul>
+                                </article>
+                                <article>
+                                    <h3>패키지 환경</h3>
+                                    <ul>
+                                        <li>PyPI와 pip의 역할을 구분할 수 있다.</li>
+                                        <li>가상환경을 만들고 활성화할 수 있다.</li>
+                                        <li><code>python -m pip</code>가 가리키는 환경을 확인할 수 있다.</li>
+                                        <li>설치 이름과 import 이름이 다를 수 있음을 안다.</li>
+                                        <li>설치·조회·검사·기록·삭제 명령을 사용할 수 있다.</li>
+                                    </ul>
+                                </article>
+                                <article>
+                                    <h3>프로젝트 적용</h3>
+                                    <ul>
+                                        <li>DB·HTTP·파일·그래프 부작용을 함수 안에 둔다.</li>
+                                        <li>HTTP 상태 코드와 선택자 실패를 구분한다.</li>
+                                        <li>분석 단계마다 shape·axis·dtype·결측치를 확인한다.</li>
+                                        <li>requirements로 실행 환경을 전달할 수 있다.</li>
+                                        <li>오류 때 인터프리터·pip·커널·경로를 비교한다.</li>
+                                    </ul>
+                                </article>
+                            </div>
+
+                            <h3 class="sub-title">미니 실습 · 출력 순서를 먼저 예측하세요</h3>
+                            <div class="mini-challenge">
+                                <article>
+                                    <p class="mini-label">helper.py</p>
+                                    <pre><code>print("A")
+
+def run():
+    print("B")
+
+if __name__ == "__main__":
+    print("C")
+    run()</code></pre>
+                                </article>
+                                <article>
+                                    <p class="mini-label">main.py</p>
+                                    <pre><code>import helper
+
+print("D")
+helper.run()</code></pre>
+                                </article>
+                                <article class="expected-result">
+                                    <p class="mini-label">python main.py</p>
+                                    <pre><code>A
+D
+B</code></pre>
+                                    <p><code>helper</code>의 메인 가드는 거짓이므로 <code>C</code>는 출력되지 않습니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="test-stack">
+                                <span>ROLE</span><strong>이 파일은 프로그램인가, import 모듈인가?</strong>
+                                <span>ENTRY</span><strong>직접 실행할 동작만 메인 가드 아래에 있는가?</strong>
+                                <span>PYTHON</span><strong>현재 인터프리터는 어느 가상환경에 있는가?</strong>
+                                <span>PACKAGE</span><strong>배포 이름·import 이름·버전이 정확한가?</strong>
+                                <span>VERIFY</span><strong>설치 경로와 실제 import 경로를 확인했는가?</strong>
+                            </div>
+                        </section>
+                    </main>
+
+                    <!-- ASIDE · 오늘의 암기 / 혼동 / 다음 단원 -->
+                    <aside class="side-note" aria-label="단원 보충 노트">
+                        <section class="note-card memory-note">
+                            <p class="note-number">MEMORY · 오늘의 암기 포인트</p>
+                            <h2>실행과 설치를 지키는 열 문장</h2>
+                            <ol>
+                                <li>직접 실행된 최상위 모듈의 <code>__name__</code>은 <code>"__main__"</code>이다.</li>
+                                <li>import된 모듈의 <code>__name__</code>은 정규 모듈 이름이다.</li>
+                                <li>메인 가드는 평범한 <code>if</code> 조건문이다.</li>
+                                <li>가드는 들여쓰기된 블록만 제어한다.</li>
+                                <li><code>main()</code>은 관례이지 예약어가 아니다.</li>
+                                <li>PyPI는 저장소이고 pip는 설치 도구다.</li>
+                                <li>프로젝트마다 가상환경을 분리한다.</li>
+                                <li><code>python -m pip</code>로 Python과 pip를 맞춘다.</li>
+                                <li>배포 패키지명과 import 이름은 다를 수 있다.</li>
+                                <li>설치 오류는 인터프리터·pip·커널·경로부터 비교한다.</li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card confusion-note">
+                            <p class="note-number">CONFUSION · 헷갈리기 쉬운 개념</p>
+                            <h2>이름과 역할을 짝으로 구분한다</h2>
+                            <dl class="confusion-list">
+                                <div>
+                                    <dt><code>main()</code></dt>
+                                    <dd>관례적인 시작 함수</dd>
+                                </div>
+                                <div>
+                                    <dt><code>"__main__"</code></dt>
+                                    <dd>최상위 모듈 이름 문자열</dd>
+                                </div>
+                                <div>
+                                    <dt><code>__main__.py</code></dt>
+                                    <dd>패키지 실행 진입 파일</dd>
+                                </div>
+                                <div>
+                                    <dt>PyPI</dt>
+                                    <dd>배포 패키지 저장소</dd>
+                                </div>
+                                <div>
+                                    <dt>pip</dt>
+                                    <dd>설치·관리 도구</dd>
+                                </div>
+                                <div>
+                                    <dt>배포 이름</dt>
+                                    <dd>pip가 설치할 프로젝트 이름</dd>
+                                </div>
+                                <div>
+                                    <dt>import 이름</dt>
+                                    <dd>Python 코드에서 불러올 이름</dd>
+                                </div>
+                                <div>
+                                    <dt><code>site-packages</code></dt>
+                                    <dd>환경별 외부 패키지 경로</dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        <section class="note-card next-note">
+                            <p class="note-number">NEXT · 다음 단원 연결</p>
+                            <h2>실행 환경을 만들었으면 실패하는 순간을 처리한다</h2>
+                            <p>
+                                프로그램 진입점과 패키지 환경을 정확히 구성해도 파일, 네트워크, DB, 데이터 변환은 실패할 수 있습니다.
+                                다음 단원에서는 예외 발생 지점을 좁히고, 종류에 맞게 처리하며, 자원을 반드시 정리하는 방법을 배웁니다.
+                            </p>
+
+                            <div class="next-flow" aria-label="실행 진입점에서 예외 처리로 이어지는 흐름">
+                                <span>main에서 실행 시작</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>외부 패키지 함수 호출</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>파일·HTTP·DB 실패</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>try·except로 복구</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>finally로 자원 정리</span>
+                            </div>
+
+                            <pre><code>def main():
+    try:
+        rows = collect_data()
+    except RequestException as error:
+        print(f"수집 실패: {error}")
+    else:
+        save_rows(rows)
+    finally:
+        close_resources()
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+                            <p class="scope-next"><strong>연결 포인트:</strong> 다음 단원에서
+                                <code>try</code>·<code>except</code>·<code>else</code>·<code>finally</code>·<code>raise</code>를
+                                배우며 실행 실패를 제어합니다.</p>
+                        </section>
+                    </aside>
+                </div>
             </div>
         </div>
     </body>

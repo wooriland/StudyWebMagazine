@@ -1,118 +1,2202 @@
 <!DOCTYPE html>
 <html lang="ko">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>SQLite와 데이터베이스 개요 | Python & Data 학습 매거진</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <link rel="stylesheet" href="../../css/00_nav.css">
-        <link rel="stylesheet" href="../../css/study-theme.css">
-        <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
-        <link rel="stylesheet" href="../../css/PythonData/PythonDatabase/01_database_sqlite_overview.css">
+    <meta
+        name="description"
+        content="DBMS와 SQLite의 기본 개념을 학습합니다. 관계형 데이터베이스, Table, Row, Column, Embedded Database, Serverless, SQLite 파일 구조와 Python sqlite3 연결 흐름을 정리합니다."
+    >
 
-        <script src="../../js/00_nav.js" defer></script>
-    </head>
+    <title>DBMS와 SQLite 이해 | Python Database 학습 매거진</title>
 
-    <body class="theme-python-data study-page python-database-page python-database-lesson-page python-database-lesson-01" data-nav-category="python-data" data-nav-item="python-database">
-        <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+    <link rel="stylesheet" href="../../css/00_nav.css">
+    <link rel="stylesheet" href="../../css/study-theme.css">
+    <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
+    <link rel="stylesheet" href="../../css/PythonData/PythonDatabase/01_database_sqlite_overview.css">
 
-            <div class="page-content">
-                <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Database · Lesson 01</p>
-                    <h1>SQLite와 데이터베이스 개요</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
+    <script src="../../js/00_nav.js" defer></script>
+</head>
+
+<body
+    class="theme-python-data study-page python-database-page python-database-sqlite-overview-page"
+    data-nav-category="python-data"
+    data-nav-item="python-database"
+>
+    <div class="layout">
+
+        <!-- =========================================================
+             SIDE NAVIGATION
+        ========================================================== -->
+        <nav
+            class="side-nav"
+            id="sideNav"
+            data-root="../../"
+            aria-label="학습 매거진 네비게이션"
+        ></nav>
+
+
+        <div class="page-content">
+
+            <!-- =====================================================
+                 HEADER
+            ====================================================== -->
+            <header class="lesson-hero">
+
+                <p class="lesson-eyebrow">
+                    Python Database · Lesson 01
+                </p>
+
+                <h1>
+                    DBMS와 SQLite 이해
+                    <span class="title-sub">
+                        관계형 데이터베이스와 Embedded DB의 첫 번째 구조
+                    </span>
+                </h1>
+
+                <p class="lesson-summary">
+                    데이터베이스를 사용하려면 먼저
+                    <strong>데이터를 관리하는 DBMS가 무엇인지</strong> 이해해야 합니다.
+                    이번 단원에서는 Table·Row·Column이라는 관계형 데이터베이스의
+                    기본 구조를 살펴보고,
+                    SQLite가 왜 별도의 Database Server 없이
+                    <strong>하나의 파일을 기반으로 동작할 수 있는지</strong>를
+                    Python과 연결하여 이해합니다.
+                </p>
+
+
+                <!-- 한눈에 보는 핵심 구조 -->
+                <div
+                    class="hero-flow"
+                    aria-label="SQLite 핵심 구조"
+                >
+                    <span>Python</span>
+                    <strong>→</strong>
+
+                    <span>sqlite3</span>
+                    <strong>→</strong>
+
+                    <span class="accent">SQLite Engine</span>
+                    <strong>→</strong>
+
+                    <span>sample.db</span>
+                    <strong>→</strong>
+
+                    <span>Table</span>
+                </div>
+
+
+                <!-- 학습 목표 -->
+                <section
+                    class="learning-goals"
+                    aria-labelledby="learningGoalsTitle"
+                >
+                    <h2 id="learningGoalsTitle">학습 목표</h2>
+
+                    <ul>
+                        <li>
+                            Database와 DBMS의 역할을 구분할 수 있다.
+                        </li>
+
+                        <li>
+                            관계형 데이터베이스에서
+                            Table·Row·Column이 무엇인지 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            Primary Key가 필요한 이유를 기초 수준에서 이해한다.
+                        </li>
+
+                        <li>
+                            SQLite의
+                            Embedded·Serverless·File-based 구조를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            SQLite Database File과 SQLite Engine을 구분할 수 있다.
+                        </li>
+
+                        <li>
+                            Python의 <code>sqlite3</code> 모듈이
+                            어떤 역할을 담당하는지 이해한다.
+                        </li>
+
+                        <li>
+                            <code>sample.db</code>와
+                            <code>:memory:</code> Database의 차이를 이해한다.
+                        </li>
+
+                        <li>
+                            다음 단원의
+                            <code>CREATE TABLE</code> 학습이 왜 필요한지 설명할 수 있다.
+                        </li>
+                    </ul>
+                </section>
+            </header>
+
+
+            <!-- =====================================================
+                 MAIN
+            ====================================================== -->
+            <main class="lesson-main">
+
+                <!-- =================================================
+                     01. 핵심 개념
+                ================================================== -->
+                <section class="lesson-card concept-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">01</span>
+
+                        <div>
+                            <p class="section-kicker">Core Concept</p>
+                            <h2>DBMS는 무엇을 하는 시스템인가?</h2>
+                        </div>
+                    </div>
+
+                    <p class="lead-text">
+                        DBMS는
+                        <strong>Database Management System</strong>의 약자입니다.
+                        데이터베이스에 데이터를 저장하고 조회하며,
+                        수정·삭제할 수 있도록 관리하는 시스템으로 이해하면 됩니다.
                     </p>
 
-                    <section class="learning-goals" aria-labelledby="learningGoalsTitle">
-                        <h2 id="learningGoalsTitle">학습 목표</h2>
-                        <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
-                        </ul>
-                    </section>
-                </header>
+                    <div class="term-formula">
+                        <span>Database</span>
+                        <strong>+</strong>
+                        <span>Management</span>
+                        <strong>+</strong>
+                        <span>System</span>
+                        <strong>=</strong>
+                        <span class="result">DBMS</span>
+                    </div>
 
-                <main class="lesson-main">
-                    <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
+                    <h3>DBMS가 담당하는 일</h3>
 
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
+                    <div class="dbms-role-grid">
 
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
+                        <article>
+                            <span class="role-icon">01</span>
+                            <h4>저장</h4>
+                            <p>
+                                프로그램에서 생성된 데이터를
+                                Database에 보관합니다.
+                            </p>
+                        </article>
 
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
+                        <article>
+                            <span class="role-icon">02</span>
+                            <h4>조회</h4>
+                            <p>
+                                필요한 데이터를
+                                SQL을 이용하여 찾아옵니다.
+                            </p>
+                        </article>
 
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
+                        <article>
+                            <span class="role-icon">03</span>
+                            <h4>수정</h4>
+                            <p>
+                                기존 데이터의 값을
+                                변경할 수 있습니다.
+                            </p>
+                        </article>
 
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
+                        <article>
+                            <span class="role-icon">04</span>
+                            <h4>삭제</h4>
+                            <p>
+                                더 이상 필요하지 않은
+                                데이터를 제거합니다.
+                            </p>
+                        </article>
 
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
+                        <article>
+                            <span class="role-icon">05</span>
+                            <h4>구조 관리</h4>
+                            <p>
+                                Table과 Column 같은
+                                데이터 구조를 관리합니다.
+                            </p>
+                        </article>
 
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
-                            <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                        <article>
+                            <span class="role-icon">06</span>
+                            <h4>규칙 관리</h4>
+                            <p>
+                                Primary Key와 제약조건 등을 통해
+                                데이터의 규칙을 관리합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="important-box">
+                        <strong>Database와 DBMS는 같은 개념이 아니다.</strong>
+
+                        <div class="compare-line">
+                            <span>
+                                <b>Database</b>
+                                데이터가 저장되는 구조
+                            </span>
+
+                            <span class="compare-arrow">↔</span>
+
+                            <span>
+                                <b>DBMS</b>
+                                Database를 관리하는 시스템
+                            </span>
+                        </div>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     02. 관계형 Database
+                ================================================== -->
+                <section class="lesson-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">02</span>
+
+                        <div>
+                            <p class="section-kicker">Relational Database</p>
+                            <h2>관계형 데이터베이스는 Table로 데이터를 표현한다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        SQLite를 공부하면서 가장 먼저 만나게 되는 구조는
+                        <strong>Table</strong>입니다.
+                        Table은 같은 종류의 데이터를
+                        일정한 Column 구조에 맞추어 저장하는 공간입니다.
+                    </p>
+
+
+                    <div class="table-demo">
+
+                        <div class="table-demo-title">
+                            MEMBER TABLE
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>id</th>
+                                        <th>name</th>
+                                        <th>email</th>
+                                        <th>tel</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <tr>
+                                        <td class="pk-cell">1</td>
+                                        <td>홍길동</td>
+                                        <td>hong@example.com</td>
+                                        <td>010-1111-1111</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td class="pk-cell">2</td>
+                                        <td>김철수</td>
+                                        <td>kim@example.com</td>
+                                        <td>010-2222-2222</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td class="pk-cell">3</td>
+                                        <td>이영희</td>
+                                        <td>lee@example.com</td>
+                                        <td>010-3333-3333</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+
+
+                    <div class="table-term-grid">
+
+                        <article>
+                            <span>Table</span>
+
+                            <strong>데이터 집합</strong>
+
+                            <p>
+                                같은 종류의 데이터를
+                                일정한 구조로 모아 둔 공간입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>Column</span>
+
+                            <strong>데이터 속성</strong>
+
+                            <p>
+                                id, name, email처럼
+                                어떤 값을 저장할지를 나타냅니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>Row</span>
+
+                            <strong>데이터 한 건</strong>
+
+                            <p>
+                                회원 Table이라면
+                                한 명의 회원 데이터가 한 Row입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>Primary Key</span>
+
+                            <strong>고유 식별자</strong>
+
+                            <p>
+                                서로 비슷한 Row가 있더라도
+                                특정 데이터를 정확하게 구분합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="row-column-memory">
+
+                        <div>
+                            <strong>Row</strong>
+                            <span>→</span>
+                            <b>가로</b>
+                            <span>→</span>
+                            <em>데이터 한 건</em>
+                        </div>
+
+                        <div>
+                            <strong>Column</strong>
+                            <span>→</span>
+                            <b>세로</b>
+                            <span>→</span>
+                            <em>데이터 속성</em>
+                        </div>
+
+                    </div>
+
+
+                    <h3>하나의 Database 안에는 여러 Table이 존재할 수 있다</h3>
+
+                    <div class="database-tree">
+                        <div class="database-root">
+                            <span>DATABASE</span>
+                            <strong>shopping.db</strong>
+                        </div>
+
+                        <div class="tree-line"></div>
+
+                        <div class="table-tree-grid">
+                            <div>Member</div>
+                            <div>Product</div>
+                            <div>Orders</div>
+                            <div>OrderItem</div>
+                        </div>
+                    </div>
+
+                    <p class="small-note">
+                        따라서 <strong>Database File 하나 = Table 하나</strong>가 아닙니다.
+                        하나의 SQLite Database File 안에 여러 Table을 구성할 수 있습니다.
+                    </p>
+
+                </section>
+
+
+                <!-- =================================================
+                     03. SQLite
+                ================================================== -->
+                <section class="lesson-card sqlite-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">03</span>
+
+                        <div>
+                            <p class="section-kicker">SQLite</p>
+                            <h2>SQLite는 어떤 Database Engine인가?</h2>
+                        </div>
+                    </div>
+
+                    <p class="lead-text">
+                        첨부 교안에서는 SQLite를
+                        별도의 DB Server가 필요하지 않고,
+                        파일에 기초하여 데이터베이스 처리를 구현하는
+                        <strong>Embedded SQL DB Engine</strong>으로 설명합니다.
+                    </p>
+
+
+                    <div class="sqlite-keyword-grid">
+
+                        <article>
+                            <span>Relational</span>
+                            <h3>관계형</h3>
+
+                            <p>
+                                Table, Row, Column과
+                                SQL을 이용하여 데이터를 관리합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <span>Embedded</span>
+                            <h3>내장형</h3>
+
+                            <p>
+                                별도 DB Server에 접속하는 구조보다
+                                Application과 가까운 곳에서 DB Engine이 동작합니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <span>Serverless</span>
+                            <h3>별도 DB Server 불필요</h3>
+
+                            <p>
+                                SQLite를 사용하기 위해
+                                별도의 SQLite Server 프로세스를
+                                먼저 실행할 필요가 없습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <span>File-based</span>
+                            <h3>파일 기반</h3>
+
+                            <p>
+                                <code>sample.db</code> 같은
+                                하나의 Database File로 데이터를 관리할 수 있습니다.
+                            </p>
+                        </article>
+
+                        <article>
+                            <span>Lightweight</span>
+                            <h3>간단한 구성</h3>
+
+                            <p>
+                                복잡한 Server 설정 없이
+                                비교적 작은 환경에서 DB 학습과 개발을 시작할 수 있습니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="memory-sentence">
+                        <strong>SQLite</strong>
+
+                        <span>=</span>
+
+                        <span>Relational</span>
+                        <span>+</span>
+
+                        <span>Embedded</span>
+                        <span>+</span>
+
+                        <span>Serverless</span>
+                        <span>+</span>
+
+                        <span>File-based</span>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     04. 그림처럼 이해
+                ================================================== -->
+                <section class="lesson-card visual-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">04</span>
+
+                        <div>
+                            <p class="section-kicker">Visual Understanding</p>
+                            <h2>SQLite가 동작하는 모습을 그림처럼 이해하기</h2>
+                        </div>
+                    </div>
+
+
+                    <h3>Python에서 SQLite를 사용할 때</h3>
+
+                    <div class="architecture-flow">
+
+                        <div class="architecture-node python">
+                            <small>APPLICATION</small>
+                            <strong>Python Program</strong>
+
+                            <code>import sqlite3</code>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            ↓
+                        </div>
+
+                        <div class="architecture-node interface">
+                            <small>INTERFACE</small>
+                            <strong>Python sqlite3</strong>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            ↓
+                        </div>
+
+                        <div class="architecture-node engine">
+                            <small>DATABASE ENGINE</small>
+                            <strong>SQLite Engine</strong>
+
+                            <span>
+                                SQL 해석 · Table 관리 · 데이터 처리
+                            </span>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            ↓
+                        </div>
+
+                        <div class="architecture-node file">
+                            <small>DATABASE FILE</small>
+                            <strong>sample.db</strong>
+
+                            <span>
+                                Member · Product · Orders
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="role-separation-grid">
+
+                        <article>
+                            <strong>Python</strong>
+                            <p>프로그램의 동작을 작성합니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>sqlite3</strong>
+                            <p>Python에서 SQLite를 사용할 수 있게 연결합니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>SQLite Engine</strong>
+                            <p>SQL을 해석하고 DB 데이터를 처리합니다.</p>
+                        </article>
+
+                        <article>
+                            <strong>sample.db</strong>
+                            <p>SQLite가 관리하는 실제 Database File입니다.</p>
+                        </article>
+
+                    </div>
+
+
+                    <h3>SQLite와 MySQL의 구조 차이</h3>
+
+                    <div class="db-architecture-compare">
+
+                        <article>
+                            <div class="compare-title">
+                                <span>SQLite</span>
+                                <strong>Embedded</strong>
                             </div>
-                        </dl>
-                    </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./00_python_database_index.html">이전 단원</a>
-                        <a class="lesson-next" href="./02_sqlite_table_ddl.html">다음 단원</a>
-                    </nav>
-                </main>
 
-                <aside class="side-note">
-                    <section>
-                        <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
-                        </ul>
-                    </section>
+                            <div class="mini-flow">
+                                <span>Python</span>
+                                <b>↓</b>
+                                <span>sqlite3</span>
+                                <b>↓</b>
+                                <span>SQLite Engine</span>
+                                <b>↓</b>
+                                <span>sample.db</span>
+                            </div>
 
-                    <section>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
-                    </section>
+                            <p>
+                                별도의 DB Server에
+                                Network로 접속하는 구조가 아닙니다.
+                            </p>
+                        </article>
 
-                    <section>
-                        <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
-                    </section>
-                </aside>
-            </div>
+
+                        <article>
+                            <div class="compare-title">
+                                <span>MySQL</span>
+                                <strong>Client / Server</strong>
+                            </div>
+
+                            <div class="mini-flow">
+                                <span>Python</span>
+                                <b>↓</b>
+                                <span>Driver</span>
+                                <b>↓</b>
+                                <span>Network</span>
+                                <b>↓</b>
+                                <span>MySQL Server</span>
+                            </div>
+
+                            <p>
+                                Host·Port·Account 같은
+                                Server 접속 정보가 추가됩니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     05. Embedded와 Memory 구분
+                ================================================== -->
+                <section class="lesson-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">05</span>
+
+                        <div>
+                            <p class="section-kicker">Important Distinction</p>
+                            <h2>Embedded와 <code>:memory:</code>는 같은 뜻이 아니다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        SQLite를 처음 공부할 때 가장 많이 헷갈리는 부분입니다.
+                        <strong>Embedded</strong>는 SQLite Engine이 동작하는 구조를 설명하고,
+                        <code>:memory:</code>는 Database가 저장되는 위치를 나타냅니다.
+                    </p>
+
+                    <div class="embedded-memory-grid">
+
+                        <article>
+                            <span class="concept-badge">Embedded</span>
+
+                            <h3>DB Engine 구조</h3>
+
+                            <p>
+                                별도 DB Server를 두고 Network로 접속하는 대신,
+                                SQLite Engine이 Application에 내장되어 동작하는 구조입니다.
+                            </p>
+
+                            <div class="formula-box">
+                                Application
+                                <strong>+</strong>
+                                SQLite Engine
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span class="concept-badge">:memory:</span>
+
+                            <h3>Database 저장 위치</h3>
+
+                            <p>
+                                SQLite Database를 디스크 파일이 아니라
+                                Memory에 생성하여 사용하는 연결 방식입니다.
+                            </p>
+
+                            <div class="formula-box">
+                                SQLite
+                                <strong>→</strong>
+                                Memory Database
+                            </div>
+                        </article>
+
+                    </div>
+
+
+                    <div class="not-equal-box">
+                        <span>Embedded</span>
+                        <strong>≠</strong>
+                        <span>:memory:</span>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     06. 파일 DB와 Memory DB
+                ================================================== -->
+                <section class="lesson-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">06</span>
+
+                        <div>
+                            <p class="section-kicker">Database Location</p>
+                            <h2>파일 Database와 Memory Database</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="database-location-grid">
+
+                        <article>
+                            <span class="location-label">FILE DATABASE</span>
+
+                            <pre><code class="language-python">sqlite3.connect("sample.db")</code></pre>
+
+                            <div class="location-flow">
+                                <span>Python 실행</span>
+                                <b>↓</b>
+
+                                <span>SQLite 연결</span>
+                                <b>↓</b>
+
+                                <strong>sample.db</strong>
+                                <b>↓</b>
+
+                                <span>Connection 종료</span>
+                                <b>↓</b>
+
+                                <em>Database File 유지 가능</em>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span class="location-label">MEMORY DATABASE</span>
+
+                            <pre><code class="language-python">sqlite3.connect(":memory:")</code></pre>
+
+                            <div class="location-flow">
+                                <span>Python 실행</span>
+                                <b>↓</b>
+
+                                <span>SQLite 연결</span>
+                                <b>↓</b>
+
+                                <strong>Memory Database</strong>
+                                <b>↓</b>
+
+                                <span>Connection 종료</span>
+                                <b>↓</b>
+
+                                <em>Memory Database 종료</em>
+                            </div>
+                        </article>
+
+                    </div>
+
+                    <div class="important-box">
+                        <strong>주의</strong>
+
+                        <p>
+                            Python의 일반적인 <code>list</code>나 <code>dict</code>와
+                            SQLite의 <code>:memory:</code> Database도
+                            같은 개념이 아닙니다.
+                            SQLite Memory Database는 여전히
+                            SQLite Engine과 SQL을 이용하여 관리됩니다.
+                        </p>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     07. 개발 도구
+                ================================================== -->
+                <section class="lesson-card tool-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">07</span>
+
+                        <div>
+                            <p class="section-kicker">Development Tools</p>
+                            <h2>PyCharm · Jupyter · Console · DB Browser</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        같은 SQLite를 사용하더라도
+                        각 개발 도구에서 확인하기 좋은 부분이 다릅니다.
+                        Python 코드와 Database 상태를
+                        서로 다른 도구에서 확인하는 습관을 들이면 좋습니다.
+                    </p>
+
+
+                    <div class="tool-grid">
+
+                        <article>
+                            <span class="tool-number">01</span>
+
+                            <h3>PyCharm</h3>
+
+                            <p>
+                                Python Database 프로그램을
+                                작성하고 실행하는 주 개발 환경입니다.
+                            </p>
+
+                            <ul>
+                                <li>프로젝트 생성</li>
+                                <li>Interpreter 확인</li>
+                                <li>Python 코드 작성</li>
+                                <li>Run Console 확인</li>
+                                <li>Database File 위치 확인</li>
+                            </ul>
+                        </article>
+
+
+                        <article>
+                            <span class="tool-number">02</span>
+
+                            <h3>Jupyter Notebook</h3>
+
+                            <p>
+                                SQLite 연결과 Table 생성을
+                                Cell 단위로 나누어 실험하기 좋습니다.
+                            </p>
+
+                            <ul>
+                                <li><code>import sqlite3</code></li>
+                                <li><code>:memory:</code> 실험</li>
+                                <li>단계별 결과 확인</li>
+                                <li>Cell 실행 순서 주의</li>
+                            </ul>
+                        </article>
+
+
+                        <article>
+                            <span class="tool-number">03</span>
+
+                            <h3>Python Console</h3>
+
+                            <p>
+                                sqlite3 import와 Connection 객체를
+                                빠르게 확인할 때 사용할 수 있습니다.
+                            </p>
+
+                            <ul>
+                                <li>모듈 확인</li>
+                                <li>Connection 생성</li>
+                                <li>간단한 객체 확인</li>
+                            </ul>
+                        </article>
+
+
+                        <article>
+                            <span class="tool-number">04</span>
+
+                            <h3>DB Browser for SQLite</h3>
+
+                            <p>
+                                SQLite Database File 내부의
+                                Table과 데이터를 GUI로 확인할 수 있습니다.
+                            </p>
+
+                            <ul>
+                                <li>Database File 열기</li>
+                                <li>Table 구조 확인</li>
+                                <li>Column 확인</li>
+                                <li>Row 확인</li>
+                            </ul>
+                        </article>
+
+                    </div>
+
+
+                    <h3>권장 실습 순서</h3>
+
+                    <div class="tool-workflow">
+
+                        <div>
+                            <span>1</span>
+                            <strong>PyCharm</strong>
+                            <small>코드 작성</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>2</span>
+                            <strong>Run</strong>
+                            <small>Python 실행</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>3</span>
+                            <strong>SQLite</strong>
+                            <small>DB 처리</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>4</span>
+                            <strong>sample.db</strong>
+                            <small>파일 생성</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>5</span>
+                            <strong>DB Browser</strong>
+                            <small>내부 확인</small>
+                        </div>
+
+                    </div>
+
+
+                    <div class="path-check-box">
+
+                        <strong>sample.db가 어디에 생성되었는지 모르겠다면?</strong>
+
+                        <pre><code class="language-python">from pathlib import Path
+
+print(Path.cwd())
+print(Path("sample.db").resolve())</code></pre>
+
+                        <p>
+                            상대 경로는 실행 환경의
+                            현재 Working Directory를 기준으로 해석됩니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     08. 코드 예제
+                ================================================== -->
+                <section class="lesson-card code-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">08</span>
+
+                        <div>
+                            <p class="section-kicker">Python Example</p>
+                            <h2>가장 작은 SQLite 연결 프로그램</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        이번 단원에서는 복잡한 SQL보다 먼저
+                        <strong>
+                            Python이 SQLite Database File에 연결할 수 있다는 사실
+                        </strong>
+                        을 확인합니다.
+                    </p>
+
+
+                    <div class="code-example">
+
+                        <div class="code-titlebar">
+                            <span>01_database_sqlite_overview.py</span>
+                            <span>SQLite Connection</span>
+                        </div>
+
+                        <pre><code class="language-python">import sqlite3
+
+
+# SQLite Database 연결
+conn = sqlite3.connect("sample.db")
+
+
+# Connection 객체 확인
+print(conn)
+
+
+# 연결 종료
+conn.close()</code></pre>
+
+                    </div>
+
+
+                    <h3>코드 실행 순서</h3>
+
+                    <div class="execution-grid">
+
+                        <article>
+                            <span>01</span>
+                            <strong>import sqlite3</strong>
+
+                            <p>
+                                Python에서 SQLite를 사용할 준비를 합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>02</span>
+                            <strong>connect()</strong>
+
+                            <p>
+                                <code>sample.db</code> Database를
+                                열거나 생성합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>03</span>
+                            <strong>Connection</strong>
+
+                            <p>
+                                Python과 SQLite Database 사이의
+                                연결 객체를 얻습니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>04</span>
+                            <strong>print()</strong>
+
+                            <p>
+                                Connection 객체가 생성되었는지 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>05</span>
+                            <strong>close()</strong>
+
+                            <p>
+                                Database 연결을 종료합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="file-change-box">
+
+                        <div class="before-after">
+
+                            <article>
+                                <span>실행 전</span>
+
+                                <pre>
+python_database/
+└─ 01_database_sqlite_overview.py
+                                </pre>
+                            </article>
+
+
+                            <strong>→</strong>
+
+
+                            <article>
+                                <span>실행 후</span>
+
+                                <pre>
+python_database/
+├─ 01_database_sqlite_overview.py
+└─ sample.db
+                                </pre>
+                            </article>
+
+                        </div>
+
+                        <p>
+                            이미 <code>sample.db</code>가 존재한다면
+                            기존 Database File을 다시 열어 사용합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     09. Table 미리 보기
+                ================================================== -->
+                <section class="lesson-card preview-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">09</span>
+
+                        <div>
+                            <p class="section-kicker">Next Concept Preview</p>
+                            <h2>Database File을 만들었다면 이제 Table이 필요하다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        <code>sqlite3.connect("sample.db")</code>는
+                        Database를 열거나 만드는 단계입니다.
+                        하지만 Database File만 만들어졌다고 해서
+                        회원 Table이 자동으로 생성되는 것은 아닙니다.
+                    </p>
+
+
+                    <div class="database-table-flow">
+
+                        <div>
+                            <small>STEP 1</small>
+                            <strong>sample.db</strong>
+                            <span>Database 생성</span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <small>STEP 2</small>
+                            <strong>CREATE TABLE</strong>
+                            <span>Table 생성</span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <small>STEP 3</small>
+                            <strong>Column</strong>
+                            <span>데이터 구조 정의</span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <small>STEP 4</small>
+                            <strong>Row</strong>
+                            <span>실제 데이터 저장</span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="code-example compact">
+
+                        <div class="code-titlebar">
+                            <span>DDL 미리 보기</span>
+                            <span>다음 단원에서 상세 학습</span>
+                        </div>
+
+                        <pre><code class="language-sql">CREATE TABLE Member (
+    id INTEGER PRIMARY KEY,
+    name TEXT
+);</code></pre>
+
+                    </div>
+
+                    <p class="small-note">
+                        현재는 문법을 외우지 않아도 됩니다.
+                        다음 단원에서
+                        <code>CREATE TABLE</code>,
+                        자료형과 제약조건을 본격적으로 공부합니다.
+                    </p>
+
+                </section>
+
+
+                <!-- =================================================
+                     10. SQLite 자료형 미리 보기
+                ================================================== -->
+                <section class="lesson-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">10</span>
+
+                        <div>
+                            <p class="section-kicker">Type Preview</p>
+                            <h2>SQLite의 데이터 타입은 비교적 유연하다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        첨부 교안은 SQLite의 타입 예로
+                        문자열, 정수, 실수, Boolean, 날짜 등을 소개하면서
+                        SQLite의 데이터 타입 처리가 비교적 유연하다는 점을 설명합니다.
+                        이번 단원에서는 세부 규칙보다
+                        <strong>“SQLite의 타입 시스템은 다른 서버형 DBMS와 다르게 느껴질 수 있다”</strong>
+                        는 점만 먼저 기억합니다.
+                    </p>
+
+                    <div class="type-preview-grid">
+
+                        <span>text</span>
+                        <span>integer</span>
+                        <span>real</span>
+                        <span>boolean</span>
+                        <span>datetime</span>
+
+                    </div>
+
+                    <div class="next-detail-note">
+                        자료형과 실제 SQLite Column 정의 방식은
+                        다음 <strong>SQLite 테이블과 DDL</strong> 단원에서
+                        Table 생성 문법과 함께 자세히 학습합니다.
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     11. 자주 하는 실수
+                ================================================== -->
+                <section class="lesson-card mistake-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">11</span>
+
+                        <div>
+                            <p class="section-kicker">Beginner Mistakes</p>
+                            <h2>초보자가 자주 하는 실수</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="mistake-list">
+
+                        <article>
+                            <span>01</span>
+
+                            <div>
+                                <h3>SQLite와 sample.db를 같은 것으로 생각한다.</h3>
+
+                                <p>
+                                    SQLite는 Database Engine이고,
+                                    <code>sample.db</code>는 SQLite가 관리하는
+                                    Database File입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>02</span>
+
+                            <div>
+                                <h3>sqlite3와 SQLite를 완전히 같은 개념으로 생각한다.</h3>
+
+                                <p>
+                                    Python의 <code>sqlite3</code>는
+                                    Python 코드에서 SQLite를 사용하는 인터페이스이고,
+                                    SQLite는 Database Engine입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>03</span>
+
+                            <div>
+                                <h3>Database와 Table을 같은 것으로 생각한다.</h3>
+
+                                <p>
+                                    하나의 Database 안에
+                                    Member, Product, Orders 같은
+                                    여러 Table이 존재할 수 있습니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>04</span>
+
+                            <div>
+                                <h3>Row와 Column을 반대로 기억한다.</h3>
+
+                                <p>
+                                    Row는 가로 방향의 데이터 한 건,
+                                    Column은 세로 방향의 데이터 속성입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>05</span>
+
+                            <div>
+                                <h3>Embedded를 Memory Database라고 생각한다.</h3>
+
+                                <p>
+                                    Embedded는 Engine 구조,
+                                    <code>:memory:</code>는 Database 저장 위치입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>06</span>
+
+                            <div>
+                                <h3>SQLite Server를 따로 실행해야 한다고 생각한다.</h3>
+
+                                <p>
+                                    기본적인 SQLite 사용에서는
+                                    별도의 Database Server를 먼저 실행하지 않습니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>07</span>
+
+                            <div>
+                                <h3>connect()만 하면 Table까지 만들어진다고 생각한다.</h3>
+
+                                <p>
+                                    Database 연결과 Table 생성은 다른 단계입니다.
+                                    Table은 <code>CREATE TABLE</code>로 만듭니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>08</span>
+
+                            <div>
+                                <h3>close()를 Database 삭제라고 생각한다.</h3>
+
+                                <p>
+                                    <code>close()</code>는
+                                    Connection을 종료하는 작업입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>09</span>
+
+                            <div>
+                                <h3>sample.db가 보이지 않으면 생성에 실패했다고 생각한다.</h3>
+
+                                <p>
+                                    먼저 Working Directory와
+                                    실제 파일 경로를 확인합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>10</span>
+
+                            <div>
+                                <h3>SQLite DB 파일을 일반 TXT처럼 확인한다.</h3>
+
+                                <p>
+                                    SQLite Database File의 구조는
+                                    DB Browser 같은 SQLite용 도구에서
+                                    확인하는 것이 좋습니다.
+                                </p>
+                            </div>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     12. 오류 메시지
+                ================================================== -->
+                <section class="lesson-card error-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">12</span>
+
+                        <div>
+                            <p class="section-kicker">Error Reading</p>
+                            <h2>오류는 어느 단계에서 발생했는지부터 찾는다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        SQLite 코드에는 Python 문법 오류,
+                        Python 객체 오류,
+                        SQLite Connection 오류,
+                        SQL 실행 오류가 함께 등장할 수 있습니다.
+                    </p>
+
+
+                    <div class="error-layer-flow">
+
+                        <span>Python 문법</span>
+                        <strong>→</strong>
+
+                        <span>Python 객체</span>
+                        <strong>→</strong>
+
+                        <span>sqlite3</span>
+                        <strong>→</strong>
+
+                        <span>Connection</span>
+                        <strong>→</strong>
+
+                        <span>SQL / SQLite</span>
+
+                    </div>
+
+
+                    <div class="error-grid">
+
+                        <article>
+                            <code>SyntaxError</code>
+
+                            <h3>Python 문법 오류</h3>
+
+                            <p>
+                                괄호, 따옴표 등
+                                Python 문법 자체를 먼저 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>NameError</code>
+
+                            <h3>이름·변수 문제</h3>
+
+                            <p>
+                                <code>sqlite3</code>,
+                                <code>conn</code>,
+                                <code>cur</code> 등이
+                                먼저 정의되었는지 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>TypeError</code>
+
+                            <h3>Python 타입 문제</h3>
+
+                            <p>
+                                메서드에 전달한 값이나
+                                인자의 형태를 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>OperationalError</code>
+
+                            <h3>SQLite 실행 문제</h3>
+
+                            <p>
+                                없는 Table,
+                                잘못된 SQL,
+                                Database 경로 등을 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>ProgrammingError</code>
+
+                            <h3>Connection 사용 흐름 문제</h3>
+
+                            <p>
+                                이미 닫은 Connection이나 Cursor를
+                                다시 사용하지 않았는지 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>IntegrityError</code>
+
+                            <h3>제약조건 위반</h3>
+
+                            <p>
+                                다음 단원에서 배울
+                                PRIMARY KEY, UNIQUE, NOT NULL 등의
+                                규칙 위반과 연결됩니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>KeyError</code>
+
+                            <h3>Python Dictionary 문제</h3>
+
+                            <p>
+                                DB 오류와 구분하여
+                                Python Dictionary의 Key를 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>ModuleNotFoundError</code>
+
+                            <h3>Python 환경 문제</h3>
+
+                            <p>
+                                현재 Interpreter와
+                                Python 실행 환경을 먼저 확인합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="error-example">
+
+                        <span class="example-label">오류 읽기 예시</span>
+
+                        <pre><code class="language-python">cur.execute("""
+SELECT *
+FROM Members
+""")</code></pre>
+
+                        <pre><code>sqlite3.OperationalError:
+no such table: Members</code></pre>
+
+                        <div class="error-analysis-grid">
+
+                            <div>
+                                <strong>sqlite3</strong>
+                                <span>SQLite 단계</span>
+                            </div>
+
+                            <div>
+                                <strong>OperationalError</strong>
+                                <span>DB 실행 과정 문제</span>
+                            </div>
+
+                            <div>
+                                <strong>no such table</strong>
+                                <span>Table을 찾지 못함</span>
+                            </div>
+
+                            <div>
+                                <strong>Members</strong>
+                                <span>확인할 Table 이름</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="error-checklist">
+                        <strong>오류 메시지 읽는 순서</strong>
+
+                        <ol>
+                            <li>오류 이름을 확인한다.</li>
+                            <li>어느 파일의 몇 번째 줄인지 확인한다.</li>
+                            <li>Python인지 SQLite인지 계층을 구분한다.</li>
+                            <li>Database File 경로를 확인한다.</li>
+                            <li>Table 이름과 SQL을 확인한다.</li>
+                            <li>오류 메시지의 마지막 원인 문장을 읽는다.</li>
+                        </ol>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     13. 실무 연결
+                ================================================== -->
+                <section class="lesson-card realwork-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">13</span>
+
+                        <div>
+                            <p class="section-kicker">Real World</p>
+                            <h2>SQLite는 어떤 프로젝트와 연결할 수 있을까?</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="realwork-grid">
+
+                        <article>
+                            <span>LOCAL APP</span>
+
+                            <h3>개인용 프로그램</h3>
+
+                            <p>
+                                메모, 일정, 가계부, 암기 프로그램 등
+                                Application 자체의 로컬 데이터를
+                                관리하는 구조와 연결할 수 있습니다.
+                            </p>
+
+                            <div class="mini-project-flow">
+                                Python
+                                <b>→</b>
+                                SQLite
+                                <b>→</b>
+                                local.db
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>CRAWLING</span>
+
+                            <h3>웹 크롤링</h3>
+
+                            <p>
+                                웹에서 수집한 상품명, 가격, URL,
+                                수집 시각 등을 Database에 누적할 수 있습니다.
+                            </p>
+
+                            <div class="mini-project-flow">
+                                Web
+                                <b>→</b>
+                                Python
+                                <b>→</b>
+                                SQLite
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>DATA</span>
+
+                            <h3>데이터 분석</h3>
+
+                            <p>
+                                SQLite에 저장한 데이터를 SELECT하여
+                                Pandas DataFrame으로 가져가는 흐름과
+                                연결할 수 있습니다.
+                            </p>
+
+                            <div class="mini-project-flow">
+                                SQLite
+                                <b>→</b>
+                                Pandas
+                                <b>→</b>
+                                Analysis
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>VISUALIZATION</span>
+
+                            <h3>데이터 시각화</h3>
+
+                            <p>
+                                DB에서 조회한 데이터를 집계한 뒤
+                                그래프와 차트로 표현할 수 있습니다.
+                            </p>
+
+                            <div class="mini-project-flow">
+                                DB
+                                <b>→</b>
+                                Pandas
+                                <b>→</b>
+                                Chart
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>BACKEND</span>
+
+                            <h3>작은 Backend</h3>
+
+                            <p>
+                                사용자 입력을 Python Backend에서 받아
+                                SQLite에 저장하는 구조로 확장할 수 있습니다.
+                            </p>
+
+                            <div class="mini-project-flow">
+                                Request
+                                <b>→</b>
+                                Python
+                                <b>→</b>
+                                SQLite
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>TEST</span>
+
+                            <h3>테스트·실험</h3>
+
+                            <p>
+                                <code>:memory:</code> Database를 이용하여
+                                파일을 남기지 않는 작은 Database 실험도 가능합니다.
+                            </p>
+
+                            <div class="mini-project-flow">
+                                Test
+                                <b>→</b>
+                                :memory:
+                                <b>→</b>
+                                End
+                            </div>
+                        </article>
+
+                    </div>
+
+
+                    <div class="project-summary-flow">
+
+                        <span>데이터 발생</span>
+                        <strong>→</strong>
+
+                        <span>Python</span>
+                        <strong>→</strong>
+
+                        <span class="accent">SQLite</span>
+                        <strong>→</strong>
+
+                        <span>저장</span>
+                        <strong>→</strong>
+
+                        <span>조회</span>
+                        <strong>→</strong>
+
+                        <span>분석 / 서비스</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     14. 면접 포인트
+                ================================================== -->
+                <section class="lesson-card interview-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">14</span>
+
+                        <div>
+                            <p class="section-kicker">Interview Point</p>
+                            <h2>면접에서 설명할 수 있어야 하는 핵심 질문</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="interview-list">
+
+                        <details open>
+                            <summary>
+                                Q1. DBMS란 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Database Management System의 약자로,
+                                    데이터를 저장·조회·수정·삭제하고
+                                    Database를 관리하도록 기능을 제공하는 시스템입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q2. Database와 DBMS의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Database는 구조화된 데이터가 저장되는 공간이고,
+                                    DBMS는 해당 Database를 관리하는 시스템입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q3. 관계형 Database란 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    데이터를 주로 Table 형태로 구조화하고,
+                                    Table 사이의 관계를 이용하여
+                                    데이터를 관리하는 방식의 Database입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q4. Table, Row, Column을 설명해 보세요.
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Table은 같은 종류의 데이터 집합,
+                                    Row는 데이터 한 건,
+                                    Column은 데이터의 속성을 의미합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q5. Primary Key는 왜 필요한가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Table의 각 Row를 고유하게 식별하기 위해 사용합니다.
+                                    같은 이름이나 비슷한 데이터를 가지고 있어도
+                                    특정 Row를 정확하게 구분할 수 있습니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q6. SQLite란 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    SQLite는 SQL을 사용하는 관계형 Database Engine으로,
+                                    별도의 DB Server를 운영하지 않고
+                                    Application에 내장하여 사용할 수 있으며
+                                    Database를 파일로 관리할 수 있습니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q7. Embedded Database란 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    별도의 Database Server에 Network로 접속하는 방식보다
+                                    Database Engine이 Application과 가까운 곳에
+                                    내장되어 동작하는 구조를 의미합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q8. Embedded와 :memory:는 같은 의미인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    아닙니다.
+                                    Embedded는 Database Engine의 동작 구조이고,
+                                    <code>:memory:</code>는 SQLite Database의
+                                    저장 위치를 Memory로 사용하는 연결 방식입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q9. SQLite와 MySQL의 구조적 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    SQLite는 별도의 DB Server 없이
+                                    Application에서 Database File을 사용할 수 있는 구조이고,
+                                    MySQL은 Client가 별도의 MySQL Server에
+                                    Network로 접속하는 구조입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q10. Python에서 SQLite는 어떻게 사용하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Python의 <code>sqlite3</code> 모듈을 import하고,
+                                    <code>sqlite3.connect()</code>를 이용해
+                                    SQLite Database File을 열거나 생성합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q11. connect()만 하면 Table도 만들어지나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    아닙니다.
+                                    Database를 생성하거나 여는 작업과
+                                    Table을 생성하는 작업은 다릅니다.
+                                    Table은 <code>CREATE TABLE</code> 같은
+                                    DDL을 실행하여 생성합니다.
+                                </p>
+                            </div>
+                        </details>
+
+                    </div>
+
+                </section>
+
+            </main>
+
+
+            <!-- =====================================================
+                 ASIDE
+            ====================================================== -->
+            <aside class="side-note">
+
+                <!-- 암기 포인트 -->
+                <section>
+                    <p class="side-note-label">Memory</p>
+
+                    <h2>오늘의 암기 포인트</h2>
+
+                    <ul class="memory-list">
+
+                        <li>
+                            <strong>DBMS</strong>는
+                            Database를 관리하는 시스템이다.
+                        </li>
+
+                        <li>
+                            <strong>Table</strong>은 데이터 집합,
+                            <strong>Row</strong>는 데이터 한 건,
+                            <strong>Column</strong>은 데이터 속성이다.
+                        </li>
+
+                        <li>
+                            <strong>Primary Key</strong>는
+                            각 Row를 고유하게 식별한다.
+                        </li>
+
+                        <li>
+                            SQLite는
+                            <strong>Embedded SQL Database Engine</strong>이다.
+                        </li>
+
+                        <li>
+                            SQLite 기본 구조에서는
+                            별도의 Database Server를 먼저 실행하지 않는다.
+                        </li>
+
+                        <li>
+                            SQLite는
+                            <code>sample.db</code> 같은
+                            Database File을 사용할 수 있다.
+                        </li>
+
+                        <li>
+                            Python에서는
+                            <strong>sqlite3</strong>를 통해 SQLite를 사용한다.
+                        </li>
+
+                        <li>
+                            <code>sample.db</code>와
+                            <code>:memory:</code>는
+                            Database 저장 위치가 다르다.
+                        </li>
+
+                    </ul>
+
+
+                    <div class="side-memory-flow">
+
+                        <span>Python</span>
+                        <b>→</b>
+
+                        <span>sqlite3</span>
+                        <b>→</b>
+
+                        <span>SQLite</span>
+                        <b>→</b>
+
+                        <span>sample.db</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- 헷갈리기 쉬운 개념 -->
+                <section>
+                    <p class="side-note-label">Confusing Point</p>
+
+                    <h2>헷갈리기 쉬운 개념</h2>
+
+
+                    <div class="confusing-list">
+
+                        <article>
+                            <strong>SQLite ≠ sample.db</strong>
+
+                            <p>
+                                SQLite는 Engine,
+                                sample.db는 Database File입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>sqlite3 ≠ sample.db</strong>
+
+                            <p>
+                                sqlite3는 Python 인터페이스이고
+                                sample.db는 실제 Database File입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>Database ≠ Table</strong>
+
+                            <p>
+                                하나의 Database 안에
+                                여러 Table이 존재할 수 있습니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>Row ≠ Column</strong>
+
+                            <p>
+                                Row는 데이터 한 건,
+                                Column은 데이터 속성입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>Embedded ≠ :memory:</strong>
+
+                            <p>
+                                Embedded는 Engine 구조,
+                                :memory:는 저장 위치입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>connect ≠ CREATE TABLE</strong>
+
+                            <p>
+                                Database 연결과
+                                Table 생성은 서로 다른 단계입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>close ≠ delete</strong>
+
+                            <p>
+                                close는 Connection 종료이지
+                                Database File 삭제가 아닙니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- 다음 단원 -->
+                <section class="next-lesson-note">
+
+                    <p class="side-note-label">Next Lesson</p>
+
+                    <h2>다음 단원 연결</h2>
+
+                    <p>
+                        이번 단원에서는
+                        <strong>SQLite가 어떤 Database Engine인지</strong>
+                        이해했습니다.
+                    </p>
+
+                    <div class="next-question">
+
+                        <span>다음 질문</span>
+
+                        <strong>
+                            sample.db 안에 데이터를 저장할
+                            Table은 어떻게 만들어야 할까?
+                        </strong>
+
+                    </div>
+
+                    <p>
+                        다음 단원에서는 SQLite의
+                        <code>CREATE TABLE</code>을 시작으로
+                        Column·자료형·Primary Key·AUTOINCREMENT·
+                        NOT NULL·DEFAULT·UNIQUE·CHECK 등의
+                        Table 설계 문법을 학습합니다.
+                    </p>
+
+                    <a
+                        class="next-lesson-link"
+                        href="./02_sqlite_table_ddl.html"
+                    >
+                        <span>Lesson 02</span>
+
+                        SQLite 테이블과 DDL
+
+                        <strong>→</strong>
+                    </a>
+
+                </section>
+
+            </aside>
+
         </div>
-    </body>
+    </div>
+</body>
 
 </html>

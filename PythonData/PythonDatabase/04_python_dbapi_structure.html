@@ -1,118 +1,3419 @@
 <!DOCTYPE html>
 <html lang="ko">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Python DB-API 구조 | Python & Data 학습 매거진</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <link rel="stylesheet" href="../../css/00_nav.css">
-        <link rel="stylesheet" href="../../css/study-theme.css">
-        <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
-        <link rel="stylesheet" href="../../css/PythonData/PythonDatabase/04_python_dbapi_structure.css">
+    <meta
+        name="description"
+        content="Python Database 작업 구조를 학습합니다. Connection과 Cursor의 역할, execute, executemany, fetchone, fetchmany, fetchall, commit, rollback, close의 관계를 SQLite 예제로 정리합니다."
+    >
 
-        <script src="../../js/00_nav.js" defer></script>
-    </head>
+    <title>Python DB-API 작업 구조 | Python Database 학습 매거진</title>
 
-    <body class="theme-python-data study-page python-database-page python-database-lesson-page python-database-lesson-04" data-nav-category="python-data" data-nav-item="python-database">
-        <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+    <link rel="stylesheet" href="../../css/00_nav.css">
+    <link rel="stylesheet" href="../../css/study-theme.css">
+    <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
+    <link rel="stylesheet" href="../../css/PythonData/PythonDatabase/04_python_dbapi_structure.css">
 
-            <div class="page-content">
-                <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Database · Lesson 04</p>
-                    <h1>Python DB-API 구조</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
+    <script src="../../js/00_nav.js" defer></script>
+</head>
+
+<body
+    class="theme-python-data study-page python-database-page python-database-dbapi-structure-page"
+    data-nav-category="python-data"
+    data-nav-item="python-database"
+>
+    <div class="layout">
+
+        <!-- =========================================================
+             SIDE NAVIGATION
+        ========================================================== -->
+        <nav
+            class="side-nav"
+            id="sideNav"
+            data-root="../../"
+            aria-label="학습 매거진 네비게이션"
+        ></nav>
+
+
+        <div class="page-content">
+
+            <!-- =====================================================
+                 HEADER
+            ====================================================== -->
+            <header class="lesson-hero">
+
+                <p class="lesson-eyebrow">
+                    Python Database · Lesson 04
+                </p>
+
+                <h1>
+                    Python DB-API 작업 구조
+
+                    <span class="title-sub">
+                        Connection과 Cursor의 역할부터
+                        execute · fetch · commit · rollback · close까지
+                    </span>
+                </h1>
+
+
+                <p class="lesson-summary">
+                    지금까지 SQL 자체의 역할을 배웠다면,
+                    이번 단원에서는
+                    <strong>
+                        Python이 그 SQL을 Database에 어떤 객체와 순서를 이용해 전달하는지
+                    </strong>
+                    공부합니다.
+                    <code>Connection</code>은 Database 연결과 Transaction을 관리하고,
+                    <code>Cursor</code>는 SQL을 실행하고 SELECT 결과를 처리합니다.
+                    이 둘의 역할을 구분하면 SQLite뿐 아니라
+                    이후 MySQL과 Oracle 연동 구조도 훨씬 쉽게 이해할 수 있습니다.
+                </p>
+
+
+                <!-- DB-API 핵심 흐름 -->
+                <div
+                    class="hero-dbapi-flow"
+                    aria-label="Python Database 작업 전체 흐름"
+                >
+                    <span>Python</span>
+                    <b>→</b>
+
+                    <span>connect()</span>
+                    <b>→</b>
+
+                    <span class="accent">Connection</span>
+                    <b>→</b>
+
+                    <span>cursor()</span>
+                    <b>→</b>
+
+                    <span class="accent">Cursor</span>
+                    <b>→</b>
+
+                    <span>execute()</span>
+                </div>
+
+
+                <div class="hero-branch-flow">
+
+                    <div>
+                        <span>SELECT</span>
+                        <b>→</b>
+                        <strong>fetch()</strong>
+                    </div>
+
+                    <div>
+                        <span>INSERT / UPDATE / DELETE</span>
+                        <b>→</b>
+                        <strong>commit() / rollback()</strong>
+                    </div>
+
+                </div>
+
+
+                <!-- 학습 목표 -->
+                <section
+                    class="learning-goals"
+                    aria-labelledby="learningGoalsTitle"
+                >
+                    <h2 id="learningGoalsTitle">학습 목표</h2>
+
+                    <ul>
+                        <li>
+                            Python Database 작업의 전체 순서를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            <code>connect()</code>가
+                            <code>Connection</code> 객체를 반환한다는 의미를 이해한다.
+                        </li>
+
+                        <li>
+                            Connection과 Cursor의 역할 차이를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            <code>cursor()</code>가
+                            SQL 작업용 Cursor 객체를 만든다는 것을 이해한다.
+                        </li>
+
+                        <li>
+                            <code>execute()</code>와
+                            <code>executemany()</code>의 차이를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            <code>fetchone()</code>,
+                            <code>fetchmany()</code>,
+                            <code>fetchall()</code>의 차이를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            SELECT와 변경 SQL의 후속 작업이
+                            서로 다른 이유를 이해한다.
+                        </li>
+
+                        <li>
+                            <code>commit()</code>과
+                            <code>rollback()</code>의 역할을 구분한다.
+                        </li>
+
+                        <li>
+                            Cursor와 Connection의 생명주기와
+                            <code>close()</code>의 의미를 이해한다.
+                        </li>
+
+                        <li>
+                            다음 단원의
+                            <code>sqlite3.connect()</code>와 SQLite 연결 학습으로
+                            자연스럽게 이어갈 수 있다.
+                        </li>
+                    </ul>
+                </section>
+
+            </header>
+
+
+            <!-- =====================================================
+                 MAIN
+            ====================================================== -->
+            <main class="lesson-main">
+
+
+                <!-- =================================================
+                     01. 핵심 개념
+                ================================================== -->
+                <section class="lesson-card concept-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">01</span>
+
+                        <div>
+                            <p class="section-kicker">Core Concept</p>
+                            <h2>이번에는 SQL보다 SQL 앞뒤의 구조를 공부한다</h2>
+                        </div>
+                    </div>
+
+
+                    <p class="lead-text">
+                        앞 단원까지는
+                        <code>INSERT</code>,
+                        <code>SELECT</code>,
+                        <code>UPDATE</code>,
+                        <code>DELETE</code>가
+                        무엇을 하는지 공부했습니다.
+                        하지만 Python에서는 SQL 한 줄만으로
+                        Database 작업이 끝나지 않습니다.
                     </p>
 
-                    <section class="learning-goals" aria-labelledby="learningGoalsTitle">
-                        <h2 id="learningGoalsTitle">학습 목표</h2>
-                        <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
-                        </ul>
-                    </section>
-                </header>
 
-                <main class="lesson-main">
-                    <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
+                    <div class="sql-only-vs-python">
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
+                        <article>
+                            <span>SQL 관점</span>
 
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
+                            <pre><code class="language-sql">SELECT *
+FROM Member;</code></pre>
 
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
+                            <p>
+                                무엇을 조회할 것인가에 집중합니다.
+                            </p>
+                        </article>
 
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
 
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
+                        <b>+</b>
 
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
 
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
+                        <article class="python-side">
+                            <span>Python 관점</span>
 
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
+                            <pre><code class="language-python">conn = sqlite3.connect("sample.db")
+cur = conn.cursor()
+
+cur.execute("""
+SELECT *
+FROM Member
+""")
+
+rows = cur.fetchall()</code></pre>
+
+                            <p>
+                                SQL이 Database까지 이동하고
+                                결과가 Python으로 돌아오는 과정까지 봅니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="question-box">
+
+                        <strong>이번 단원에서 해결할 질문</strong>
+
+                        <div class="question-grid">
+
+                            <span>
+                                Connection은 왜 필요한가?
+                            </span>
+
+                            <span>
+                                Cursor는 왜 따로 만드는가?
+                            </span>
+
+                            <span>
+                                execute와 fetch는 왜 분리되어 있는가?
+                            </span>
+
+                            <span>
+                                commit과 rollback은 왜 Connection에서 호출하는가?
+                            </span>
+
+                            <span>
+                                SELECT와 INSERT의 다음 단계는 왜 다른가?
+                            </span>
+
+                            <span>
+                                close()는 왜 필요한가?
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     02. 전체 객체 지도
+                ================================================== -->
+                <section class="lesson-card visual-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">02</span>
+
+                        <div>
+                            <p class="section-kicker">Object Map</p>
+                            <h2>Python Database 작업의 객체 지도</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="dbapi-architecture">
+
+                        <div class="architecture-node python-node">
+                            <small>APPLICATION</small>
+                            <strong>Python Program</strong>
+
+                            <span>
+                                프로그램 로직
+                            </span>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            <code>connect()</code>
+                            <b>↓</b>
+                        </div>
+
+                        <div class="architecture-node connection-node">
+                            <small>CONNECTION</small>
+                            <strong>Connection</strong>
+
+                            <span>
+                                DB 연결 · Transaction
+                            </span>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            <code>cursor()</code>
+                            <b>↓</b>
+                        </div>
+
+                        <div class="architecture-node cursor-node">
+                            <small>CURSOR</small>
+                            <strong>Cursor</strong>
+
+                            <span>
+                                SQL 실행 · Result 처리
+                            </span>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            <code>execute()</code>
+                            <b>↓</b>
+                        </div>
+
+                        <div class="architecture-node sql-node">
+                            <small>SQL</small>
+
+                            <strong>
+                                SELECT · INSERT · UPDATE · DELETE
+                            </strong>
+                        </div>
+
+                        <div class="architecture-arrow">
+                            <b>↓</b>
+                        </div>
+
+                        <div class="architecture-node database-node">
+                            <small>DATABASE</small>
+                            <strong>SQLite / sample.db</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="role-map">
+
+                        <article>
+                            <span>Python</span>
+
+                            <strong>Program Logic</strong>
+
+                            <p>
+                                입력, 조건, 반복, 함수 같은
+                                Application 동작을 작성합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>Connection</span>
+
+                            <strong>연결 관리자</strong>
+
+                            <p>
+                                Database 연결과
+                                Transaction의 확정·취소를 관리합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>Cursor</span>
+
+                            <strong>SQL 작업자</strong>
+
+                            <p>
+                                SQL을 실행하고
+                                SELECT Result를 가져옵니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>Database</span>
+
+                            <strong>Data Storage</strong>
+
+                            <p>
+                                실제 Table과 Row를
+                                저장하고 관리합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     03. Connection
+                ================================================== -->
+                <section class="lesson-card connection-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">03</span>
+
+                        <div>
+                            <p class="section-kicker">Connection</p>
+                            <h2>Connection — Database와의 연결을 관리한다</h2>
+                        </div>
+                    </div>
+
+
+                    <pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect("sample.db")</code></pre>
+
+
+                    <div class="connect-return-flow">
+
+                        <div>
+                            <code>sqlite3.connect("sample.db")</code>
+                            <span>함수 호출</span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div class="return-value">
+                            <strong>Connection 객체</strong>
+                            <span>반환</span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <code>conn</code>
+                            <span>객체를 참조</span>
+                        </div>
+
+                    </div>
+
+
+                    <p>
+                        <code>conn</code>은 Database 자체가 아닙니다.
+                        Python에서 생성된
+                        <strong>Connection 객체를 참조하는 변수</strong>입니다.
+                    </p>
+
+
+                    <h3>Connection이 담당하는 주요 작업</h3>
+
+                    <div class="connection-method-grid">
+
+                        <article>
+                            <code>cursor()</code>
+                            <strong>Cursor 생성</strong>
+
+                            <p>
+                                SQL 작업을 위한
+                                Cursor 객체를 얻습니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>commit()</code>
+                            <strong>변경 확정</strong>
+
+                            <p>
+                                현재 Transaction의
+                                변경 내용을 확정합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>rollback()</code>
+                            <strong>변경 취소</strong>
+
+                            <p>
+                                현재 Transaction에서
+                                수행한 변경을 취소합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>close()</code>
+                            <strong>Connection 종료</strong>
+
+                            <p>
+                                Python과 Database 사이의
+                                연결을 종료합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <div class="memory-box">
+
+                        <strong>Connection 암기 문장</strong>
+
+                        <p>
+                            Connection은
+                            <strong>
+                                Database 연결 + Cursor 생성 + Transaction + 종료
+                            </strong>
+                            를 관리한다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     04. Cursor
+                ================================================== -->
+                <section class="lesson-card cursor-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">04</span>
+
+                        <div>
+                            <p class="section-kicker">Cursor</p>
+                            <h2>Cursor — SQL 실행과 조회 결과를 담당한다</h2>
+                        </div>
+                    </div>
+
+
+                    <pre><code class="language-python">cur = conn.cursor()</code></pre>
+
+
+                    <div class="cursor-create-flow">
+
+                        <div>
+                            <strong>Connection</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <code>cursor()</code>
+
+                        <b>→</b>
+
+                        <div class="cursor-result">
+                            <strong>Cursor 객체</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <code>cur</code>
+
+                    </div>
+
+
+                    <p>
+                        Cursor는 조회 결과 그 자체가 아니라,
+                        <strong>
+                            SQL을 실행하고 SELECT의 Result를 처리할 수 있는 작업 객체
+                        </strong>
+                        입니다.
+                    </p>
+
+
+                    <h3>Cursor가 담당하는 주요 작업</h3>
+
+                    <div class="cursor-method-grid">
+
+                        <article>
+                            <code>execute()</code>
+                            <strong>SQL 한 번 실행</strong>
+                        </article>
+
+
+                        <article>
+                            <code>executemany()</code>
+                            <strong>여러 Data Set 처리</strong>
+                        </article>
+
+
+                        <article>
+                            <code>fetchone()</code>
+                            <strong>Row 하나</strong>
+                        </article>
+
+
+                        <article>
+                            <code>fetchmany(n)</code>
+                            <strong>Row n개</strong>
+                        </article>
+
+
+                        <article>
+                            <code>fetchall()</code>
+                            <strong>남은 전체 Row</strong>
+                        </article>
+
+
+                        <article>
+                            <code>close()</code>
+                            <strong>Cursor 종료</strong>
+                        </article>
+
+                    </div>
+
+
+                    <div class="connection-cursor-compare">
+
+                        <article>
+                            <span>Connection</span>
+
+                            <strong>연결 / Transaction</strong>
+
                             <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                                <code>cursor()</code>
+                                <code>commit()</code>
+                                <code>rollback()</code>
+                                <code>close()</code>
                             </div>
-                        </dl>
-                    </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./03_sqlite_crud_function.html">이전 단원</a>
-                        <a class="lesson-next" href="./05_python_sqlite_connect.html">다음 단원</a>
-                    </nav>
-                </main>
+                        </article>
 
-                <aside class="side-note">
-                    <section>
-                        <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
-                        </ul>
-                    </section>
 
-                    <section>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
-                    </section>
+                        <b>≠</b>
 
-                    <section>
-                        <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
-                    </section>
-                </aside>
-            </div>
+
+                        <article>
+                            <span>Cursor</span>
+
+                            <strong>SQL / Result</strong>
+
+                            <div>
+                                <code>execute()</code>
+                                <code>executemany()</code>
+                                <code>fetch...()</code>
+                                <code>close()</code>
+                            </div>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     05. 비유 카드
+                ================================================== -->
+                <section class="lesson-card metaphor-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">05</span>
+
+                        <div>
+                            <p class="section-kicker">Easy Analogy</p>
+                            <h2>회사 건물 비유로 Connection과 Cursor 이해하기</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="metaphor-grid">
+
+                        <article>
+                            <span>DATABASE</span>
+                            <strong>회사 건물</strong>
+
+                            <p>
+                                실제 데이터가
+                                보관되어 있는 공간입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>CONNECTION</span>
+                            <strong>출입 통로</strong>
+
+                            <p>
+                                Python 프로그램과
+                                Database 사이의 연결 관계입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>CURSOR</span>
+                            <strong>업무 담당자</strong>
+
+                            <p>
+                                실제 SQL 업무를
+                                수행하는 작업 객체입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>SQL</span>
+                            <strong>업무 지시서</strong>
+
+                            <p>
+                                어떤 데이터를
+                                어떻게 처리할지 명령합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>execute()</span>
+                            <strong>업무 실행</strong>
+
+                            <p>
+                                지시서인 SQL을
+                                실제로 실행합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>fetch()</span>
+                            <strong>결과물 수령</strong>
+
+                            <p>
+                                SELECT 결과를
+                                Python 쪽으로 가져옵니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>commit()</span>
+                            <strong>작업 확정</strong>
+
+                            <p>
+                                변경한 내용을
+                                최종적으로 확정합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <span>rollback()</span>
+                            <strong>변경 취소</strong>
+
+                            <p>
+                                문제가 있는 변경 작업을
+                                취소합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     06. execute / executemany
+                ================================================== -->
+                <section class="lesson-card execute-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">06</span>
+
+                        <div>
+                            <p class="section-kicker">Execute</p>
+                            <h2>execute()와 executemany()로 SQL 실행하기</h2>
+                        </div>
+                    </div>
+
+
+                    <h3>execute()</h3>
+
+                    <pre><code class="language-python">cur.execute("""
+SELECT *
+FROM Member
+""")</code></pre>
+
+
+                    <div class="execute-flow">
+
+                        <span>Python</span>
+                        <b>→</b>
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <code>execute()</code>
+                        <b>→</b>
+
+                        <span>SQL</span>
+                        <b>→</b>
+
+                        <strong>SQLite</strong>
+
+                    </div>
+
+
+                    <p>
+                        <code>execute()</code>는
+                        Cursor를 통해 SQL을 Database에 실행하는 단계입니다.
+                    </p>
+
+
+                    <h3>executemany()</h3>
+
+                    <pre><code class="language-python">members = [
+    ("홍길동", "010-1111"),
+    ("김철수", "010-2222"),
+    ("이영희", "010-3333")
+]
+
+cur.executemany(
+    """
+    INSERT INTO Member(name, tel)
+    VALUES (?, ?)
+    """,
+    members
+)</code></pre>
+
+
+                    <div class="many-flow">
+
+                        <div>
+                            <strong>SQL 하나</strong>
+
+                            <code>
+INSERT INTO Member
+VALUES (?, ?)
+                            </code>
+                        </div>
+
+                        <b>+</b>
+
+                        <div>
+                            <strong>Data 여러 세트</strong>
+
+                            <span>("홍길동", "...")</span>
+                            <span>("김철수", "...")</span>
+                            <span>("이영희", "...")</span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div class="many-result">
+                            <strong>executemany()</strong>
+
+                            <span>
+                                같은 SQL 반복 적용
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="execute-compare">
+
+                        <article>
+                            <code>execute()</code>
+                            <p>SQL + Data 한 세트</p>
+                        </article>
+
+                        <b>≠</b>
+
+                        <article>
+                            <code>executemany()</code>
+                            <p>SQL + Data 여러 세트</p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     07. SELECT 분기
+                ================================================== -->
+                <section class="lesson-card select-flow-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">07</span>
+
+                        <div>
+                            <p class="section-kicker">SELECT Flow</p>
+                            <h2>SELECT는 execute() 다음에 fetch()가 필요하다</h2>
+                        </div>
+                    </div>
+
+
+                    <pre><code class="language-python">cur.execute("""
+SELECT _id, name, tel
+FROM Member
+""")
+
+rows = cur.fetchall()</code></pre>
+
+
+                    <div class="select-result-flow">
+
+                        <div>
+                            <strong>Database</strong>
+
+                            <span>
+                                Member Table
+                            </span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <code>execute(SELECT)</code>
+
+                            <span>
+                                조회 SQL 실행
+                            </span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <strong>Cursor Result</strong>
+
+                            <span>
+                                조회 결과 준비
+                            </span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div class="fetch-node">
+                            <code>fetchall()</code>
+
+                            <span>
+                                Python으로 가져오기
+                            </span>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <strong>rows</strong>
+
+                            <span>
+                                Python list
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="execute-fetch-compare">
+
+                        <article>
+                            <code>execute()</code>
+
+                            <strong>SQL 실행</strong>
+
+                            <p>
+                                Database에
+                                조회 명령을 전달합니다.
+                            </p>
+                        </article>
+
+
+                        <b>≠</b>
+
+
+                        <article>
+                            <code>fetch()</code>
+
+                            <strong>결과 가져오기</strong>
+
+                            <p>
+                                실행된 SELECT의 결과를
+                                Python으로 가져옵니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     08. fetch 비교
+                ================================================== -->
+                <section class="lesson-card fetch-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">08</span>
+
+                        <div>
+                            <p class="section-kicker">Fetch Methods</p>
+                            <h2>fetchone · fetchmany · fetchall 비교</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="fetch-grid">
+
+                        <article>
+                            <span>ONE</span>
+
+                            <code>fetchone()</code>
+
+                            <strong>한 Row</strong>
+
+                            <div class="fetch-sample">
+                                (1, "홍길동")
+                            </div>
+
+                            <p>
+                                한 번 호출할 때
+                                한 Row를 가져옵니다.
+                            </p>
+
+                            <em>
+                                결과 없음 → None
+                            </em>
+                        </article>
+
+
+                        <article>
+                            <span>MANY</span>
+
+                            <code>fetchmany(2)</code>
+
+                            <strong>지정 개수</strong>
+
+                            <div class="fetch-sample multiline">
+                                <span>(1, "홍길동")</span>
+                                <span>(2, "김철수")</span>
+                            </div>
+
+                            <p>
+                                지정한 개수만큼
+                                Row를 가져옵니다.
+                            </p>
+
+                            <em>
+                                결과 없음 → []
+                            </em>
+                        </article>
+
+
+                        <article>
+                            <span>ALL</span>
+
+                            <code>fetchall()</code>
+
+                            <strong>남은 전체 Row</strong>
+
+                            <div class="fetch-sample multiline">
+                                <span>(1, "홍길동")</span>
+                                <span>(2, "김철수")</span>
+                                <span>(3, "이영희")</span>
+                            </div>
+
+                            <p>
+                                현재 남아 있는
+                                모든 Row를 가져옵니다.
+                            </p>
+
+                            <em>
+                                결과 없음 → []
+                            </em>
+                        </article>
+
+                    </div>
+
+
+                    <div class="fetch-table-wrap">
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>가져오는 범위</th>
+                                    <th>결과 형태</th>
+                                    <th>결과 없음</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr>
+                                    <td><code>fetchone()</code></td>
+                                    <td>1 Row</td>
+                                    <td>tuple</td>
+                                    <td><code>None</code></td>
+                                </tr>
+
+                                <tr>
+                                    <td><code>fetchmany(n)</code></td>
+                                    <td>n Row</td>
+                                    <td>list</td>
+                                    <td><code>[]</code></td>
+                                </tr>
+
+                                <tr>
+                                    <td><code>fetchall()</code></td>
+                                    <td>남은 전체 Row</td>
+                                    <td>list</td>
+                                    <td><code>[]</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     09. Cursor Result 소비
+                ================================================== -->
+                <section class="lesson-card visual-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">09</span>
+
+                        <div>
+                            <p class="section-kicker">Result Position</p>
+                            <h2>fetchone()은 조회 결과를 앞에서부터 하나씩 가져온다</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="fetch-progress">
+
+                        <article>
+                            <span>처음</span>
+
+                            <div class="result-list">
+                                <b class="current">▼ 1 홍길동</b>
+                                <b>2 김철수</b>
+                                <b>3 이영희</b>
+                            </div>
+                        </article>
+
+
+                        <b>→ fetchone()</b>
+
+
+                        <article>
+                            <span>1회 후</span>
+
+                            <div class="result-list">
+                                <b class="used">1 홍길동 · 반환</b>
+                                <b class="current">▼ 2 김철수</b>
+                                <b>3 이영희</b>
+                            </div>
+                        </article>
+
+
+                        <b>→ fetchone()</b>
+
+
+                        <article>
+                            <span>2회 후</span>
+
+                            <div class="result-list">
+                                <b class="used">1 홍길동</b>
+                                <b class="used">2 김철수 · 반환</b>
+                                <b class="current">▼ 3 이영희</b>
+                            </div>
+                        </article>
+
+                    </div>
+
+
+                    <div class="important-box">
+                        <strong>fetchall()도 남아 있는 Result를 가져온다.</strong>
+
+                        <p>
+                            이미 <code>fetchone()</code>으로 일부 Row를 가져왔다면
+                            이후 <code>fetchall()</code>은
+                            현재 남아 있는 Row들을 가져온다고 이해하면 좋습니다.
+                        </p>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     10. Python 메모리 구조
+                ================================================== -->
+                <section class="lesson-card memory-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">10</span>
+
+                        <div>
+                            <p class="section-kicker">Python Memory</p>
+                            <h2>Connection · Cursor · rows는 Python에서 서로 다른 객체다</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="memory-layout">
+
+                        <article>
+                            <span>PYTHON MEMORY</span>
+
+                            <div class="memory-variable">
+                                <code>conn</code>
+
+                                <b>→</b>
+
+                                <strong>Connection Object</strong>
+                            </div>
+
+                            <div class="memory-variable">
+                                <code>cur</code>
+
+                                <b>→</b>
+
+                                <strong>Cursor Object</strong>
+                            </div>
+
+                            <div class="memory-variable">
+                                <code>rows</code>
+
+                                <b>→</b>
+
+                                <div>
+                                    <strong>list</strong>
+                                    <small>of tuples</small>
+                                </div>
+                            </div>
+
+                        </article>
+
+
+                        <b>↔</b>
+
+
+                        <article class="database-memory-side">
+                            <span>DATABASE FILE</span>
+
+                            <strong>sample.db</strong>
+
+                            <div class="database-table-preview">
+                                <b>Member</b>
+
+                                <span>Row 1</span>
+                                <span>Row 2</span>
+                                <span>Row 3</span>
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="important-box">
+                        <strong>Python 객체와 Database Row는 같은 것이 아니다.</strong>
+
+                        <p>
+                            Python은 Connection과 Cursor를 통해
+                            Database에 SQL을 요청하고,
+                            SELECT 결과를 fetch하여
+                            Python의 list·tuple 같은 객체로 가져옵니다.
+                        </p>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     11. 변경 SQL / commit
+                ================================================== -->
+                <section class="lesson-card transaction-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">11</span>
+
+                        <div>
+                            <p class="section-kicker">Transaction</p>
+                            <h2>INSERT · UPDATE · DELETE는 commit()으로 변경을 확정한다</h2>
+                        </div>
+                    </div>
+
+
+                    <pre><code class="language-python">cur.execute(
+    """
+    UPDATE Member
+    SET tel = ?
+    WHERE _id = ?
+    """,
+    ("010-9999", 1)
+)
+
+conn.commit()</code></pre>
+
+
+                    <div class="commit-flow">
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <code>execute(UPDATE)</code>
+                        <b>→</b>
+
+                        <span>변경 작업</span>
+                        <b>→</b>
+
+                        <span>Connection</span>
+                        <b>→</b>
+
+                        <code>commit()</code>
+                        <b>→</b>
+
+                        <strong>변경 확정</strong>
+
+                    </div>
+
+
+                    <div class="object-responsibility">
+
+                        <article>
+                            <span>Cursor</span>
+
+                            <strong>SQL 실행</strong>
+
+                            <code>cur.execute(...)</code>
+                        </article>
+
+                        <b>+</b>
+
+                        <article>
+                            <span>Connection</span>
+
+                            <strong>Transaction 확정</strong>
+
+                            <code>conn.commit()</code>
+                        </article>
+
+                    </div>
+
+
+                    <div class="memory-box">
+
+                        <strong>객체 역할 다시 확인</strong>
+
+                        <p>
+                            <code>cur.commit()</code>이 아니라
+                            <code>conn.commit()</code>인 이유를
+                            역할 분리와 연결해서 이해합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     12. rollback
+                ================================================== -->
+                <section class="lesson-card rollback-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">12</span>
+
+                        <div>
+                            <p class="section-kicker">Rollback</p>
+                            <h2>rollback() — 문제가 생긴 변경 작업 취소하기</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="transaction-branch">
+
+                        <div class="transaction-start">
+                            <strong>변경 SQL 실행</strong>
+
+                            <span>
+                                INSERT / UPDATE / DELETE
+                            </span>
+                        </div>
+
+                        <b>↓</b>
+
+                        <div class="transaction-question">
+                            정상적으로 완료되었는가?
+                        </div>
+
+                        <div class="transaction-result-grid">
+
+                            <article class="success">
+                                <span>YES</span>
+
+                                <code>commit()</code>
+
+                                <strong>변경 확정</strong>
+                            </article>
+
+
+                            <article class="fail">
+                                <span>NO</span>
+
+                                <code>rollback()</code>
+
+                                <strong>변경 취소</strong>
+                            </article>
+
+                        </div>
+
+                    </div>
+
+
+                    <h3>계좌이체로 이해</h3>
+
+                    <div class="bank-transaction">
+
+                        <div>
+                            <span>STEP 1</span>
+                            <strong>A 계좌 -10,000</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>STEP 2</span>
+                            <strong>B 계좌 +10,000</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <div class="transaction-end">
+                            <span>결과</span>
+
+                            <strong>
+                                성공 → commit
+                            </strong>
+
+                            <strong>
+                                실패 → rollback
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     13. SELECT vs 변경 SQL
+                ================================================== -->
+                <section class="lesson-card branch-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">13</span>
+
+                        <div>
+                            <p class="section-kicker">Important Branch</p>
+                            <h2>SELECT와 변경 SQL의 다음 단계는 다르다</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="sql-branch-grid">
+
+                        <article class="select-branch">
+                            <span>READ</span>
+
+                            <h3>SELECT</h3>
+
+                            <div class="vertical-process">
+                                <code>execute()</code>
+                                <b>↓</b>
+
+                                <span>Result 생성</span>
+                                <b>↓</b>
+
+                                <code>fetch()</code>
+                                <b>↓</b>
+
+                                <strong>Python Data</strong>
+                            </div>
+                        </article>
+
+
+                        <article class="change-branch">
+                            <span>CHANGE</span>
+
+                            <h3>INSERT / UPDATE / DELETE</h3>
+
+                            <div class="vertical-process">
+                                <code>execute()</code>
+                                <b>↓</b>
+
+                                <span>Database 변경</span>
+                                <b>↓</b>
+
+                                <code>commit()</code>
+                                <b>↓</b>
+
+                                <strong>변경 확정</strong>
+                            </div>
+                        </article>
+
+                    </div>
+
+
+                    <div class="branch-memory">
+                        <div>
+                            <code>SELECT</code>
+                            <b>→</b>
+                            <strong>fetch()</strong>
+                        </div>
+
+                        <div>
+                            <code>INSERT / UPDATE / DELETE</code>
+                            <b>→</b>
+                            <strong>commit()</strong>
+                        </div>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     14. close / 생명주기
+                ================================================== -->
+                <section class="lesson-card lifecycle-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">14</span>
+
+                        <div>
+                            <p class="section-kicker">Object Lifecycle</p>
+                            <h2>Cursor와 Connection도 시작과 종료가 있다</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="object-lifecycle">
+
+                        <div>
+                            <span>1</span>
+                            <strong>Connection 생성</strong>
+                            <code>connect()</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>2</span>
+                            <strong>Cursor 생성</strong>
+                            <code>cursor()</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>3</span>
+                            <strong>SQL 작업</strong>
+                            <code>execute()</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>4</span>
+                            <strong>후속 처리</strong>
+                            <code>fetch / commit</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>5</span>
+                            <strong>Cursor 종료</strong>
+                            <code>cur.close()</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>6</span>
+                            <strong>Connection 종료</strong>
+                            <code>conn.close()</code>
+                        </div>
+
+                    </div>
+
+
+                    <div class="important-box">
+                        <strong>close()는 Database 삭제가 아니다.</strong>
+
+                        <p>
+                            <code>conn.close()</code>는
+                            <code>sample.db</code> 파일을 지우는 것이 아니라
+                            Python과 Database 사이의 Connection을 종료합니다.
+                        </p>
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     15. 개발 환경
+                ================================================== -->
+                <section class="lesson-card tool-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">15</span>
+
+                        <div>
+                            <p class="section-kicker">Development Tools</p>
+                            <h2>개발 도구에서 객체 생성 순서를 관찰하기</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="tool-grid">
+
+                        <article>
+                            <span>01</span>
+
+                            <h3>PyCharm</h3>
+
+                            <p>
+                                DB-API 전체 코드를 작성하고
+                                Run 또는 Debug로 객체 상태를 확인합니다.
+                            </p>
+
+                            <ul>
+                                <li>conn 생성</li>
+                                <li>cur 생성</li>
+                                <li>execute 실행</li>
+                                <li>rows 생성</li>
+                            </ul>
+                        </article>
+
+
+                        <article>
+                            <span>02</span>
+
+                            <h3>Jupyter Notebook</h3>
+
+                            <p>
+                                Connection → Cursor → SQL → Fetch를
+                                Cell 단위로 나누어 관찰합니다.
+                            </p>
+
+                            <ul>
+                                <li>Cell 1 · Connection</li>
+                                <li>Cell 2 · Cursor</li>
+                                <li>Cell 3 · execute</li>
+                                <li>Cell 4 · fetch</li>
+                            </ul>
+                        </article>
+
+
+                        <article>
+                            <span>03</span>
+
+                            <h3>Python Console</h3>
+
+                            <p>
+                                가장 작은 DB-API 흐름을
+                                즉시 확인하기 좋습니다.
+                            </p>
+
+                            <ul>
+                                <li>connect()</li>
+                                <li>cursor()</li>
+                                <li>SELECT 1</li>
+                                <li>fetchone()</li>
+                            </ul>
+                        </article>
+
+
+                        <article>
+                            <span>04</span>
+
+                            <h3>DB Browser</h3>
+
+                            <p>
+                                commit 전후 또는 CRUD 실행 후
+                                실제 Table 상태를 눈으로 확인합니다.
+                            </p>
+
+                            <ul>
+                                <li>Member Row 확인</li>
+                                <li>INSERT 확인</li>
+                                <li>UPDATE 확인</li>
+                                <li>DELETE 확인</li>
+                            </ul>
+                        </article>
+
+                    </div>
+
+
+                    <h3>PyCharm에서 권장하는 관찰 흐름</h3>
+
+                    <div class="tool-workflow">
+
+                        <div>
+                            <span>1</span>
+                            <strong>Run / Debug</strong>
+                            <small>프로그램 시작</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>2</span>
+                            <strong>conn</strong>
+                            <small>Connection 확인</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>3</span>
+                            <strong>cur</strong>
+                            <small>Cursor 확인</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>4</span>
+                            <strong>execute()</strong>
+                            <small>SQL 실행</small>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>5</span>
+                            <strong>rows</strong>
+                            <small>Fetch Result</small>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     16. Python 가장 작은 예제
+                ================================================== -->
+                <section class="lesson-card code-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">16</span>
+
+                        <div>
+                            <p class="section-kicker">Basic Example</p>
+                            <h2>가장 작은 DB-API 흐름부터 실행하기</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="code-example">
+
+                        <div class="code-titlebar">
+                            <span>04_python_dbapi_structure.py</span>
+                            <span>SELECT 1</span>
+                        </div>
+
+                        <pre><code class="language-python">import sqlite3
+
+
+# 1. Database 연결
+conn = sqlite3.connect("sample.db")
+
+
+# 2. Cursor 생성
+cur = conn.cursor()
+
+
+# 3. SQL 실행
+cur.execute("""
+SELECT 1
+""")
+
+
+# 4. SELECT 결과 한 Row 가져오기
+row = cur.fetchone()
+
+
+# 5. 출력
+print(row)
+
+
+# 6. Cursor 종료
+cur.close()
+
+
+# 7. Connection 종료
+conn.close()</code></pre>
+
+                    </div>
+
+
+                    <div class="result-box">
+
+                        <span>실행 결과</span>
+
+                        <pre><code>(1,)</code></pre>
+
+                        <p>
+                            한 개의 SELECT 결과 Row가
+                            tuple 형태로 반환된다는 것을 확인할 수 있습니다.
+                        </p>
+
+                    </div>
+
+
+                    <div class="execution-grid">
+
+                        <article>
+                            <span>01</span>
+                            <strong>connect()</strong>
+                            <p>Connection 생성</p>
+                        </article>
+
+                        <article>
+                            <span>02</span>
+                            <strong>cursor()</strong>
+                            <p>Cursor 생성</p>
+                        </article>
+
+                        <article>
+                            <span>03</span>
+                            <strong>execute()</strong>
+                            <p>SQL 실행</p>
+                        </article>
+
+                        <article>
+                            <span>04</span>
+                            <strong>fetchone()</strong>
+                            <p>Row 가져오기</p>
+                        </article>
+
+                        <article>
+                            <span>05</span>
+                            <strong>close()</strong>
+                            <p>작업 종료</p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     17. SELECT 전체 예제
+                ================================================== -->
+                <section class="lesson-card code-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">17</span>
+
+                        <div>
+                            <p class="section-kicker">SELECT Example</p>
+                            <h2>Member Table 조회 전체 흐름</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="code-example">
+
+                        <div class="code-titlebar">
+                            <span>SELECT Flow</span>
+                            <span>execute → fetchall</span>
+                        </div>
+
+                        <pre><code class="language-python">import sqlite3
+
+
+conn = sqlite3.connect("sample.db")
+cur = conn.cursor()
+
+
+cur.execute("""
+SELECT
+    _id,
+    name,
+    tel
+FROM Member
+ORDER BY _id
+""")
+
+
+rows = cur.fetchall()
+
+
+for row in rows:
+    print(row)
+
+
+cur.close()
+conn.close()</code></pre>
+
+                    </div>
+
+
+                    <div class="select-code-flow">
+
+                        <span>Connection</span>
+                        <b>→</b>
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <span>SELECT execute</span>
+                        <b>→</b>
+
+                        <span>fetchall</span>
+                        <b>→</b>
+
+                        <strong>list of tuples</strong>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     18. executemany + fetch 혼합 예제
+                ================================================== -->
+                <section class="lesson-card code-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">18</span>
+
+                        <div>
+                            <p class="section-kicker">Integrated Example</p>
+                            <h2>executemany()와 fetch 흐름을 한 번에 보기</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="code-example">
+
+                        <div class="code-titlebar">
+                            <span>DB-API Integrated</span>
+                            <span>Insert Many → Select</span>
+                        </div>
+
+                        <pre><code class="language-python">import sqlite3
+
+
+conn = sqlite3.connect("dbapi_practice.db")
+cur = conn.cursor()
+
+
+# 실습 Table 초기화
+cur.execute("""
+DROP TABLE IF EXISTS Member
+""")
+
+
+cur.execute("""
+CREATE TABLE Member (
+    _id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    tel TEXT NOT NULL
+)
+""")
+
+
+# 여러 데이터를 한 번에 준비
+members = [
+    ("홍길동", "010-1111"),
+    ("김철수", "010-2222"),
+    ("이영희", "010-3333")
+]
+
+
+# 여러 Row INSERT
+cur.executemany(
+    """
+    INSERT INTO Member(name, tel)
+    VALUES (?, ?)
+    """,
+    members
+)
+
+
+# 변경 확정
+conn.commit()
+
+
+# 조회
+cur.execute("""
+SELECT
+    _id,
+    name,
+    tel
+FROM Member
+ORDER BY _id
+""")
+
+
+# 첫 번째 Row
+first_row = cur.fetchone()
+
+print("첫 번째:")
+print(first_row)
+
+
+# 나머지 Row
+remaining_rows = cur.fetchall()
+
+print("나머지:")
+
+for row in remaining_rows:
+    print(row)
+
+
+cur.close()
+conn.close()</code></pre>
+
+                    </div>
+
+
+                    <div class="integrated-flow">
+
+                        <span>executemany()</span>
+                        <b>→</b>
+
+                        <span>여러 INSERT</span>
+                        <b>→</b>
+
+                        <span>commit()</span>
+                        <b>→</b>
+
+                        <span>SELECT</span>
+                        <b>→</b>
+
+                        <span>fetchone()</span>
+                        <b>→</b>
+
+                        <strong>fetchall()</strong>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     19. rollback 보완 예제
+                ================================================== -->
+                <section class="lesson-card supplement-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">19</span>
+
+                        <div>
+                            <p class="section-kicker">Supplement Practice</p>
+                            <h2>성공하면 commit, 실패하면 rollback</h2>
+                        </div>
+                    </div>
+
+
+                    <p class="supplement-notice">
+                        아래 코드는 첨부 교안의
+                        <code>commit()</code>과 <code>rollback()</code> 역할을
+                        Python의 실제 제어 흐름으로 이해하기 위해 추가한
+                        <strong>보완 예제</strong>입니다.
+                    </p>
+
+
+                    <pre><code class="language-python">import sqlite3
+
+
+conn = sqlite3.connect("sample.db")
+cur = conn.cursor()
+
+
+try:
+    cur.execute(
+        """
+        UPDATE Member
+        SET tel = ?
+        WHERE _id = ?
+        """,
+        ("010-9999", 1)
+    )
+
+    conn.commit()
+
+    print("변경을 확정했습니다.")
+
+
+except Exception as error:
+    conn.rollback()
+
+    print("변경을 취소했습니다.")
+    print(error)
+
+
+finally:
+    cur.close()
+    conn.close()</code></pre>
+
+
+                    <div class="try-flow">
+
+                        <span>SQL 실행</span>
+                        <b>→</b>
+
+                        <span>성공?</span>
+
+                        <div>
+                            <strong>YES → commit()</strong>
+                            <strong>NO → rollback()</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <span>finally</span>
+                        <b>→</b>
+
+                        <strong>close()</strong>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     20. 자주 하는 실수
+                ================================================== -->
+                <section class="lesson-card mistake-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">20</span>
+
+                        <div>
+                            <p class="section-kicker">Beginner Mistakes</p>
+                            <h2>초보자가 자주 하는 실수</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="mistake-list">
+
+                        <article>
+                            <span>01</span>
+
+                            <div>
+                                <h3>Connection과 Cursor를 같은 객체라고 생각한다.</h3>
+
+                                <p>
+                                    Connection은 연결·Transaction,
+                                    Cursor는 SQL·Result 담당입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>02</span>
+
+                            <div>
+                                <h3>connect()가 SQL을 실행한다고 생각한다.</h3>
+
+                                <p>
+                                    connect는 Database 연결,
+                                    execute는 SQL 실행입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>03</span>
+
+                            <div>
+                                <h3>cursor()의 결과를 조회 데이터라고 생각한다.</h3>
+
+                                <p>
+                                    cursor()는 SQL 작업용
+                                    Cursor 객체를 반환합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>04</span>
+
+                            <div>
+                                <h3>execute()와 fetch()를 같은 작업이라고 생각한다.</h3>
+
+                                <p>
+                                    execute는 SQL 실행,
+                                    fetch는 SELECT Result를 가져오는 단계입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>05</span>
+
+                            <div>
+                                <h3>SELECT 후 fetch를 하지 않는다.</h3>
+
+                                <p>
+                                    execute(SELECT) 이후
+                                    fetchone/fetchmany/fetchall을 사용합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>06</span>
+
+                            <div>
+                                <h3>SELECT 뒤에 무조건 commit을 찾는다.</h3>
+
+                                <p>
+                                    기본 학습 공식은
+                                    SELECT → fetch,
+                                    변경 SQL → commit입니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>07</span>
+
+                            <div>
+                                <h3>INSERT 후 fetchall을 호출한다.</h3>
+
+                                <p>
+                                    INSERT는 변경 SQL입니다.
+                                    저장 결과가 궁금하다면 이후 SELECT를 실행합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>08</span>
+
+                            <div>
+                                <h3>UPDATE 후 commit을 잊는다.</h3>
+
+                                <p>
+                                    변경 SQL 실행 후
+                                    Transaction 확정을 생각합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>09</span>
+
+                            <div>
+                                <h3>cur.commit()이라고 작성한다.</h3>
+
+                                <p>
+                                    commit은 현재 구조에서
+                                    Connection의 역할입니다.
+                                </p>
+
+                                <code>conn.commit()</code>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>10</span>
+
+                            <div>
+                                <h3>conn.fetchall()이라고 작성한다.</h3>
+
+                                <p>
+                                    SELECT Result는 Cursor가 처리합니다.
+                                </p>
+
+                                <code>cur.fetchall()</code>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>11</span>
+
+                            <div>
+                                <h3>fetchone 결과를 값 하나라고 생각한다.</h3>
+
+                                <p>
+                                    한 Row는 보통 tuple 형태로 가져옵니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>12</span>
+
+                            <div>
+                                <h3>fetchall 결과를 tuple 하나라고 생각한다.</h3>
+
+                                <p>
+                                    여러 Row를 list 안의 tuple들로 생각하면 쉽습니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>13</span>
+
+                            <div>
+                                <h3>fetchone 결과가 없는데 바로 row[0]을 사용한다.</h3>
+
+                                <p>
+                                    결과가 없다면 None일 수 있으므로
+                                    존재 여부를 먼저 확인합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>14</span>
+
+                            <div>
+                                <h3>fetchall 결과가 없으면 None이라고 생각한다.</h3>
+
+                                <p>
+                                    교안 기준 fetchall은
+                                    결과가 없으면 빈 list를 반환합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>15</span>
+
+                            <div>
+                                <h3>execute와 executemany의 사용 상황을 구분하지 않는다.</h3>
+
+                                <p>
+                                    execute는 한 Data Set,
+                                    executemany는 여러 Data Set 처리에 연결합니다.
+                                </p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>16</span>
+
+                            <div>
+                                <h3>Cursor를 닫은 뒤 다시 execute한다.</h3>
+
+                                <p>
+                                    객체의 생명주기를 지키고
+                                    close 이후에는 새 작업 흐름을 준비해야 합니다.
+                                </p>
+                            </div>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     21. 오류 메시지
+                ================================================== -->
+                <section class="lesson-card error-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">21</span>
+
+                        <div>
+                            <p class="section-kicker">Error Reading</p>
+                            <h2>오류는 DB-API 파이프라인의 어느 단계인지 찾는다</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="error-pipeline">
+
+                        <span>Python</span>
+                        <b>→</b>
+
+                        <span>connect()</span>
+                        <b>→</b>
+
+                        <span>Connection</span>
+                        <b>→</b>
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <span>execute()</span>
+                        <b>→</b>
+
+                        <span>SQLite</span>
+                        <b>→</b>
+
+                        <span>fetch / commit</span>
+
+                    </div>
+
+
+                    <div class="error-grid">
+
+                        <article>
+                            <code>SyntaxError</code>
+
+                            <h3>Python 문법</h3>
+
+                            <p>
+                                Database에 연결하기 전
+                                Python 코드 자체를 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>NameError</code>
+
+                            <h3>변수 생성 문제</h3>
+
+                            <p>
+                                conn 또는 cur가
+                                먼저 만들어졌는지 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>TypeError</code>
+
+                            <h3>Python Type 문제</h3>
+
+                            <p>
+                                함수·메서드에 전달한
+                                Python 값의 형태를 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>KeyError</code>
+
+                            <h3>Dictionary 문제</h3>
+
+                            <p>
+                                DB 오류가 아니라
+                                Python Dictionary 접근 문제일 수 있습니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>OperationalError</code>
+
+                            <h3>SQL 실행 문제</h3>
+
+                            <p>
+                                Table·Column 이름,
+                                SQL 문법 등을 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>IntegrityError</code>
+
+                            <h3>Constraint 위반</h3>
+
+                            <p>
+                                PRIMARY KEY, UNIQUE,
+                                NOT NULL, CHECK 규칙을 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>ProgrammingError</code>
+
+                            <h3>객체 사용 순서</h3>
+
+                            <p>
+                                이미 닫힌 Cursor나 Connection을
+                                다시 사용하지 않았는지 확인합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <code>Binding Error</code>
+
+                            <h3>Parameter 전달 문제</h3>
+
+                            <p>
+                                Placeholder 개수와
+                                전달 값의 개수를 확인합니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+
+                    <h3>오류 예시 — Table 이름 문제</h3>
+
+                    <div class="error-example">
+
+                        <pre><code class="language-python">cur.execute("""
+SELECT *
+FROM Members
+""")</code></pre>
+
+                        <pre><code>sqlite3.OperationalError:
+no such table: Members</code></pre>
+
+
+                        <div class="error-analysis-grid">
+
+                            <div>
+                                <strong>sqlite3</strong>
+                                <span>SQLite 단계</span>
+                            </div>
+
+                            <div>
+                                <strong>OperationalError</strong>
+                                <span>실행 과정</span>
+                            </div>
+
+                            <div>
+                                <strong>no such table</strong>
+                                <span>Table 없음</span>
+                            </div>
+
+                            <div>
+                                <strong>Members</strong>
+                                <span>확인할 이름</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <h3>조회 결과가 없는 것은 오류가 아닐 수 있다</h3>
+
+                    <div class="empty-result-grid">
+
+                        <article>
+                            <code>fetchone()</code>
+
+                            <strong>None</strong>
+
+                            <pre><code class="language-python">if row is None:
+    print("조회 결과가 없습니다.")</code></pre>
+                        </article>
+
+
+                        <article>
+                            <code>fetchall()</code>
+
+                            <strong>[]</strong>
+
+                            <pre><code class="language-python">if not rows:
+    print("조회 결과가 없습니다.")</code></pre>
+                        </article>
+
+                    </div>
+
+
+                    <div class="error-checklist">
+
+                        <strong>오류 읽는 순서</strong>
+
+                        <ol>
+                            <li>오류 이름을 확인한다.</li>
+                            <li>어느 Line에서 발생했는지 본다.</li>
+                            <li>Python 문법 문제인지 확인한다.</li>
+                            <li>Connection이 만들어졌는지 확인한다.</li>
+                            <li>Cursor가 만들어졌는지 확인한다.</li>
+                            <li>execute 단계의 SQL을 확인한다.</li>
+                            <li>Table과 Column 이름을 확인한다.</li>
+                            <li>Constraint 위반 여부를 확인한다.</li>
+                            <li>Parameter Binding을 확인한다.</li>
+                            <li>단순히 조회 결과가 없는 상황인지 확인한다.</li>
+                        </ol>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     22. 실무 연결
+                ================================================== -->
+                <section class="lesson-card realwork-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">22</span>
+
+                        <div>
+                            <p class="section-kicker">Real World</p>
+                            <h2>DB-API 구조는 실제 Database 접근 계층의 기초다</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="realwork-grid">
+
+                        <article>
+                            <span>CREATE</span>
+
+                            <h3>회원가입</h3>
+
+                            <pre>
+사용자 입력
+↓
+Connection
+↓
+Cursor
+↓
+INSERT
+↓
+commit
+                            </pre>
+                        </article>
+
+
+                        <article>
+                            <span>READ</span>
+
+                            <h3>회원 상세</h3>
+
+                            <pre>
+GET /members/1
+↓
+SELECT
+↓
+fetchone
+↓
+Python Data
+                            </pre>
+                        </article>
+
+
+                        <article>
+                            <span>LIST</span>
+
+                            <h3>회원 목록</h3>
+
+                            <pre>
+GET /members
+↓
+SELECT
+↓
+fetchall
+↓
+list
+                            </pre>
+                        </article>
+
+
+                        <article>
+                            <span>BATCH</span>
+
+                            <h3>여러 데이터 저장</h3>
+
+                            <pre>
+Python list
+↓
+executemany
+↓
+INSERT 반복
+↓
+commit
+                            </pre>
+                        </article>
+
+
+                        <article>
+                            <span>CRAWLING</span>
+
+                            <h3>웹 크롤링</h3>
+
+                            <pre>
+Website
+↓
+Python
+↓
+Cursor
+↓
+INSERT
+↓
+SQLite
+                            </pre>
+                        </article>
+
+
+                        <article>
+                            <span>ANALYSIS</span>
+
+                            <h3>데이터 분석</h3>
+
+                            <pre>
+SQLite
+↓
+SELECT
+↓
+fetchall
+↓
+Python
+↓
+Pandas
+                            </pre>
+                        </article>
+
+                    </div>
+
+
+                    <h3>조금 더 큰 프로젝트에서는</h3>
+
+                    <div class="architecture-layer">
+
+                        <span>Application</span>
+                        <b>→</b>
+
+                        <span>Service</span>
+                        <b>→</b>
+
+                        <span class="accent">Repository / DAO</span>
+                        <b>→</b>
+
+                        <span>Connection / Cursor</span>
+                        <b>→</b>
+
+                        <strong>Database</strong>
+
+                    </div>
+
+
+                    <div class="important-box">
+
+                        <strong>이번 단원은 SQLite 전용 암기만이 아니다.</strong>
+
+                        <p>
+                            첨부 교안의 MySQL 연동에서도
+                            Connection → Cursor → execute → fetch/commit → close
+                            구조가 다시 등장합니다.
+                            따라서 이번 단원은
+                            이후 다른 DBMS를 이해하는 공통 기초가 됩니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     23. 함수 분리 실무 예제
+                ================================================== -->
+                <section class="lesson-card real-code-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">23</span>
+
+                        <div>
+                            <p class="section-kicker">Code Structure</p>
+                            <h2>Connection과 Cursor의 책임을 함수로 분리해 보기</h2>
+                        </div>
+                    </div>
+
+
+                    <h3>Connection 생성</h3>
+
+                    <pre><code class="language-python">import sqlite3
+
+
+def get_connection():
+    return sqlite3.connect("sample.db")</code></pre>
+
+
+                    <h3>회원 목록 조회</h3>
+
+                    <pre><code class="language-python">def find_all_members(conn):
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        _id,
+        name,
+        tel
+    FROM Member
+    ORDER BY _id
+    """)
+
+    rows = cur.fetchall()
+
+    cur.close()
+
+    return rows</code></pre>
+
+
+                    <h3>회원 추가</h3>
+
+                    <pre><code class="language-python">def add_member(conn, name, tel):
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO Member(name, tel)
+        VALUES (?, ?)
+        """,
+        (name, tel)
+    )
+
+    conn.commit()
+
+    cur.close()</code></pre>
+
+
+                    <div class="function-role-grid">
+
+                        <article>
+                            <code>get_connection()</code>
+                            <p>Connection 생성</p>
+                        </article>
+
+                        <article>
+                            <code>find_all_members()</code>
+                            <p>SELECT + fetchall</p>
+                        </article>
+
+                        <article>
+                            <code>add_member()</code>
+                            <p>INSERT + commit</p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     24. 면접 포인트
+                ================================================== -->
+                <section class="lesson-card interview-card">
+
+                    <div class="section-heading">
+                        <span class="section-number">24</span>
+
+                        <div>
+                            <p class="section-kicker">Interview Point</p>
+                            <h2>면접에서 설명할 수 있어야 하는 질문</h2>
+                        </div>
+                    </div>
+
+
+                    <div class="interview-list">
+
+                        <details open>
+                            <summary>
+                                Q1. Connection 객체란 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Python 프로그램과 Database 사이의
+                                    연결을 나타내는 객체입니다.
+                                    Cursor 생성, commit, rollback,
+                                    연결 종료 등의 작업과 연결됩니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q2. Cursor 객체란 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Connection을 통해
+                                    SQL을 실행하고 SELECT 결과를 처리하는
+                                    작업 객체입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q3. Connection과 Cursor의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Connection은 Database 연결과 Transaction을 관리하고,
+                                    Cursor는 SQL 실행과 조회 결과 처리를 담당합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q4. connect()는 무엇을 반환하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Database 연결을 나타내는
+                                    Connection 객체를 반환합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q5. cursor()는 무엇을 반환하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    SQL을 실행하고 조회 결과를 처리할 수 있는
+                                    Cursor 객체를 반환합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q6. execute()와 fetch()의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    execute()는 SQL을 실행하고,
+                                    fetch 계열 메서드는 SELECT로 만들어진
+                                    조회 결과를 Python으로 가져옵니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q7. fetchone(), fetchmany(), fetchall()의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    fetchone은 한 Row,
+                                    fetchmany는 지정 개수의 Row,
+                                    fetchall은 남은 전체 Row를 가져옵니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q8. execute()와 executemany()의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    execute는 하나의 SQL 실행과
+                                    한 Data Set 처리에 사용하고,
+                                    executemany는 같은 SQL을
+                                    여러 Data Set에 반복 적용할 때 사용합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q9. SELECT 후 왜 fetch가 필요한가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    SELECT SQL을 실행하는 단계와
+                                    그 조회 결과를 Python으로 가져오는 단계가
+                                    분리되어 있기 때문입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q10. INSERT·UPDATE·DELETE 후 왜 commit()을 사용하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Database 데이터를 변경하는 SQL이므로
+                                    Transaction의 변경 내용을 확정하기 위해
+                                    Connection의 commit()을 사용합니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q11. rollback()은 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    현재 Transaction에서 수행한 변경 내용을
+                                    취소할 때 사용하는 Connection 메서드입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q12. 왜 commit()은 Cursor가 아니라 Connection에서 호출하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Cursor는 SQL 실행을 담당하고,
+                                    Transaction의 확정과 취소는
+                                    Database 연결을 관리하는 Connection의 책임으로
+                                    이해할 수 있기 때문입니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q13. fetchone() 결과가 없으면 무엇이 반환되나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    교안 기준으로
+                                    <code>None</code>이 반환됩니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q14. fetchall() 결과가 없으면 무엇이 반환되나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    교안 기준으로
+                                    빈 list <code>[]</code>가 반환됩니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q15. close()는 Database를 삭제하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    아닙니다.
+                                    Cursor나 Connection의 작업과 연결을 종료하는 것이며,
+                                    Database File을 삭제하는 명령이 아닙니다.
+                                </p>
+                            </div>
+                        </details>
+
+
+                        <details>
+                            <summary>
+                                Q16. DBMS가 달라져도 DB-API 구조를 배우는 이유는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+                                <strong>A.</strong>
+
+                                <p>
+                                    Driver와 세부 연결 방식은 달라질 수 있지만
+                                    Connection, Cursor, SQL 실행,
+                                    Result 처리와 Transaction이라는
+                                    큰 구조가 반복되기 때문입니다.
+                                </p>
+                            </div>
+                        </details>
+
+                    </div>
+
+                </section>
+
+            </main>
+
+
+            <!-- =====================================================
+                 ASIDE
+            ====================================================== -->
+            <aside class="side-note">
+
+
+                <!-- 오늘의 암기 포인트 -->
+                <section>
+
+                    <p class="side-note-label">Memory</p>
+                    <h2>오늘의 암기 포인트</h2>
+
+                    <ul class="memory-list">
+
+                        <li>
+                            <code>connect()</code>는
+                            <strong>Connection 객체</strong>를 반환한다.
+                        </li>
+
+                        <li>
+                            <code>cursor()</code>는
+                            <strong>Cursor 객체</strong>를 반환한다.
+                        </li>
+
+                        <li>
+                            Connection은
+                            <strong>연결과 Transaction</strong>을 담당한다.
+                        </li>
+
+                        <li>
+                            Cursor는
+                            <strong>SQL 실행과 Result 처리</strong>를 담당한다.
+                        </li>
+
+                        <li>
+                            <code>execute()</code>는 SQL 실행,
+                            <code>fetch()</code>는 SELECT 결과 가져오기다.
+                        </li>
+
+                        <li>
+                            <code>fetchone()</code>은 한 Row,
+                            <code>fetchmany(n)</code>은 n Row,
+                            <code>fetchall()</code>은 남은 전체 Row다.
+                        </li>
+
+                        <li>
+                            SELECT는
+                            <strong>execute → fetch</strong> 흐름으로 기억한다.
+                        </li>
+
+                        <li>
+                            INSERT·UPDATE·DELETE는
+                            <strong>execute → commit</strong> 흐름으로 기억한다.
+                        </li>
+
+                        <li>
+                            문제가 있는 Transaction은
+                            <code>rollback()</code>으로 취소한다.
+                        </li>
+
+                        <li>
+                            마지막에는
+                            <code>cur.close()</code>와
+                            <code>conn.close()</code>로 작업을 종료한다.
+                        </li>
+
+                    </ul>
+
+
+                    <div class="side-dbapi-flow">
+
+                        <span>connect</span>
+                        <b>→</b>
+
+                        <span>Connection</span>
+                        <b>→</b>
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <span>execute</span>
+                        <b>→</b>
+
+                        <span>fetch / commit</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- 헷갈리기 쉬운 개념 -->
+                <section>
+
+                    <p class="side-note-label">Confusing Point</p>
+                    <h2>헷갈리기 쉬운 개념</h2>
+
+
+                    <div class="confusing-list">
+
+                        <article>
+                            <strong>Connection ≠ Cursor</strong>
+
+                            <p>
+                                Connection은 연결,
+                                Cursor는 SQL 작업입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>connect ≠ execute</strong>
+
+                            <p>
+                                connect는 DB 연결,
+                                execute는 SQL 실행입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>execute ≠ fetch</strong>
+
+                            <p>
+                                SQL 실행과
+                                SELECT 결과 가져오기는 다른 단계입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>SELECT → fetch</strong>
+
+                            <p>
+                                조회 작업의 후속 단계입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>DML → commit</strong>
+
+                            <p>
+                                INSERT·UPDATE·DELETE 변경 확정과 연결합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>commit ≠ rollback</strong>
+
+                            <p>
+                                확정과 취소는 서로 반대 역할입니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>fetchone ≠ fetchall</strong>
+
+                            <p>
+                                한 Row와 남은 전체 Row를 구분합니다.
+                            </p>
+                        </article>
+
+
+                        <article>
+                            <strong>close ≠ delete</strong>
+
+                            <p>
+                                Connection 종료와 DB 파일 삭제는 다릅니다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- 다음 단원 연결 -->
+                <section class="next-lesson-note">
+
+                    <p class="side-note-label">Next Lesson</p>
+                    <h2>다음 단원 연결</h2>
+
+
+                    <p>
+                        이번 단원에서는
+                        <strong>Python Database 작업 전체 지도</strong>를 만들었습니다.
+                    </p>
+
+
+                    <div class="current-map">
+
+                        <span>Python</span>
+                        <b>→</b>
+
+                        <span class="highlight">connect()</span>
+                        <b>→</b>
+
+                        <span>Connection</span>
+                        <b>→</b>
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <span>SQL</span>
+
+                    </div>
+
+
+                    <div class="next-question">
+
+                        <span>다음 질문</span>
+
+                        <strong>
+                            sqlite3.connect("sample.db")는
+                            실제로 어떤 Database File에 연결하며,
+                            파일이 없거나 경로가 다르면 어떻게 동작할까?
+                        </strong>
+
+                    </div>
+
+
+                    <p>
+                        다음 단원에서는
+                        <code>sqlite3</code> 모듈과
+                        <code>connect()</code>를 확대해서 살펴보고,
+                        SQLite Database File 생성·열기,
+                        상대 경로와 실제 파일 위치,
+                        <code>:memory:</code> 연결을 공부합니다.
+                    </p>
+
+
+                    <a
+                        class="next-lesson-link"
+                        href="./05_python_sqlite_connect.html"
+                    >
+                        <span>Lesson 05</span>
+
+                        Python SQLite 연결
+
+                        <strong>→</strong>
+                    </a>
+
+                </section>
+
+            </aside>
+
         </div>
-    </body>
+    </div>
+</body>
 
 </html>
