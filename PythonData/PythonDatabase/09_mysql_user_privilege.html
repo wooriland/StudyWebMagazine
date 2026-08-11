@@ -4,7 +4,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MySQL 사용자와 권한 | Python & Data 학습 매거진</title>
+
+        <meta name="description"
+            content="MySQL Account와 권한을 학습합니다. CREATE USER, User@Host, GRANT, Privilege Scope, 최소 권한, SHOW GRANTS, REVOKE, ALTER USER, FLUSH PRIVILEGES, DROP USER와 PyMySQL 연결 구조를 정리합니다.">
+
+        <title>MySQL 사용자와 권한 | Python Database 학습 매거진</title>
 
         <link rel="stylesheet" href="../../css/00_nav.css">
         <link rel="stylesheet" href="../../css/study-theme.css">
@@ -14,103 +18,4348 @@
         <script src="../../js/00_nav.js" defer></script>
     </head>
 
-    <body class="theme-python-data study-page python-database-page python-database-lesson-page python-database-lesson-09" data-nav-category="python-data" data-nav-item="python-database">
+    <body class="theme-python-data study-page python-database-page python-database-user-privilege-page"
+        data-nav-category="python-data" data-nav-item="python-database">
         <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+
+            <!-- =========================================================
+             SIDE NAVIGATION
+        ========================================================== -->
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 네비게이션"></nav>
+
 
             <div class="page-content">
+
+                <!-- =====================================================
+                 HEADER
+            ====================================================== -->
                 <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Database · Lesson 09</p>
-                    <h1>MySQL 사용자와 권한</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
+
+                    <p class="lesson-eyebrow">
+                        Python Database · Lesson 09
                     </p>
 
+                    <h1>
+                        MySQL 사용자와 권한
+
+                        <span class="title-sub">
+                            User · Host · GRANT · Privilege · Least Privilege
+                        </span>
+                    </h1>
+
+
+                    <p class="lesson-summary">
+                        MySQL Server에 접속할 수 있다는 것과
+                        모든 SQL을 실행할 수 있다는 것은 같은 의미가 아닙니다.
+                        MySQL에서는 Account를
+                        <strong>User와 접속 Host의 조합</strong>으로 이해하고,
+                        Account가 어떤 Database·Table에서
+                        SELECT·INSERT·UPDATE·DELETE 같은 작업을 수행할 수 있는지
+                        <strong>Privilege</strong>로 관리합니다.
+                        이번 단원에서는
+                        <code>CREATE USER</code>,
+                        <code>GRANT</code>,
+                        <code>ALTER USER</code>,
+                        <code>DROP USER</code>를 중심으로
+                        최소 권한 원칙과 실제 Application Account 설계까지 연결합니다.
+                    </p>
+
+
+                    <!-- 핵심 구조 -->
+                    <div class="hero-access-flow" aria-label="MySQL Account와 권한 흐름">
+                        <span>Client</span>
+                        <b>→</b>
+
+                        <span class="accent">User@Host</span>
+                        <b>→</b>
+
+                        <span>Authentication</span>
+                        <b>→</b>
+
+                        <span class="accent">Privilege</span>
+                        <b>→</b>
+
+                        <span>Database / Table</span>
+                        <b>→</b>
+
+                        <span>SQL</span>
+                    </div>
+
+
+                    <!-- root / Application User -->
+                    <div class="hero-account-grid">
+
+                        <article>
+
+                            <span>ADMIN</span>
+
+                            <strong>root</strong>
+
+                            <ul>
+                                <li>Server 관리</li>
+                                <li>User 생성</li>
+                                <li>Privilege 관리</li>
+                            </ul>
+
+                        </article>
+
+
+                        <div class="hero-account-arrow">
+                            ≠
+                        </div>
+
+
+                        <article class="app-user">
+
+                            <span>APPLICATION</span>
+
+                            <strong>app_user</strong>
+
+                            <ul>
+                                <li>필요한 Database만</li>
+                                <li>필요한 SQL만</li>
+                                <li>최소 권한</li>
+                            </ul>
+
+                        </article>
+
+                    </div>
+
+
+                    <!-- 학습 목표 -->
                     <section class="learning-goals" aria-labelledby="learningGoalsTitle">
-                        <h2 id="learningGoalsTitle">학습 목표</h2>
+                        <h2 id="learningGoalsTitle">
+                            학습 목표
+                        </h2>
+
                         <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
+
+                            <li>
+                                MySQL에서 User와 Privilege가 필요한 이유를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                root와 Application User의 역할을 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                MySQL Account를
+                                <code>'user'@'host'</code> 구조로 읽을 수 있다.
+                            </li>
+
+                            <li>
+                                같은 User 이름이라도 Host가 다르면
+                                다른 접속 조건으로 이해할 수 있다.
+                            </li>
+
+                            <li>
+                                접속 가능 여부와 SQL 실행 가능 여부를 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>CREATE USER</code>와
+                                <code>GRANT</code>의 역할을 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                SELECT·INSERT·UPDATE·DELETE 등
+                                주요 Privilege를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>*.*</code>,
+                                <code>database.*</code>,
+                                <code>database.table</code>의
+                                권한 범위를 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                최소 권한 원칙이 무엇인지 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>SHOW GRANTS</code>로
+                                실제 Account 권한을 확인할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>REVOKE</code>와
+                                <code>DROP USER</code>의 차이를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>ALTER USER</code>로
+                                Account의 비밀번호를 변경하는 흐름을 이해한다.
+                            </li>
+
+                            <li>
+                                localhost·특정 Host·넓은 Host 범위의 차이를 이해한다.
+                            </li>
+
+                            <li>
+                                교안의 <code>FLUSH PRIVILEGES</code> 설명과
+                                Step 1·2 보완 내용을 구분한다.
+                            </li>
+
+                            <li>
+                                Access denied 오류를
+                                User·Host·Password·Privilege 관점에서 읽을 수 있다.
+                            </li>
+
+                            <li>
+                                Database Password를 Source Code와 분리해야 하는 이유를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                SQL Injection 방지를 위해
+                                Parameterized Query를 계속 사용해야 함을 이해한다.
+                            </li>
+
+                            <li>
+                                SQLite·PyMySQL·Oracle Driver의
+                                Placeholder 차이를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                User/Privilege가
+                                Connection·Cursor·Transaction 생명주기와
+                                어떤 위치에서 연결되는지 이해한다.
+                            </li>
+
+                            <li>
+                                다음 PyMySQL 연동 단원에서
+                                Application Account를 실제 Connection에 사용할 준비를 한다.
+                            </li>
+
                         </ul>
                     </section>
+
                 </header>
 
+
+                <!-- =====================================================
+                 MAIN
+            ====================================================== -->
                 <main class="lesson-main">
+
+
+                    <!-- =================================================
+                     01. 왜 권한이 필요한가
+                ================================================== -->
                     <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
+                        <div class="section-heading">
 
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
+                            <span class="section-number">01</span>
 
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
-
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
                             <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                                <p class="section-kicker">Core Concept</p>
+
+                                <h2>
+                                    모든 사용자가 모든 SQL을 실행하게 두지 않는다
+                                </h2>
                             </div>
-                        </dl>
+
+                        </div>
+
+
+                        <p class="lead-text">
+                            MySQL Server에는 관리자,
+                            Backend Application,
+                            분석 프로그램,
+                            Batch 프로그램처럼
+                            서로 다른 목적의 Client가 접속할 수 있습니다.
+                            이들이 모두 root와 같은 권한을 가질 필요는 없습니다.
+                        </p>
+
+
+                        <div class="client-role-grid">
+
+                            <article>
+
+                                <span>DB ADMIN</span>
+
+                                <strong>관리자</strong>
+
+                                <ul>
+                                    <li>User 생성</li>
+                                    <li>권한 관리</li>
+                                    <li>Schema 관리</li>
+                                </ul>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>BACKEND</span>
+
+                                <strong>Application</strong>
+
+                                <ul>
+                                    <li>SELECT</li>
+                                    <li>INSERT</li>
+                                    <li>UPDATE</li>
+                                    <li>DELETE</li>
+                                </ul>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>REPORT</span>
+
+                                <strong>분석 / Report</strong>
+
+                                <ul>
+                                    <li>SELECT 중심</li>
+                                    <li>읽기 전용 가능</li>
+                                </ul>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>BATCH</span>
+
+                                <strong>수집 / Batch</strong>
+
+                                <ul>
+                                    <li>SELECT</li>
+                                    <li>INSERT</li>
+                                </ul>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="core-question-grid">
+
+                            <article>
+                                <span>WHO?</span>
+                                <strong>누가?</strong>
+                            </article>
+
+                            <article>
+                                <span>FROM WHERE?</span>
+                                <strong>어디에서?</strong>
+                            </article>
+
+                            <article>
+                                <span>WHAT?</span>
+                                <strong>무엇을?</strong>
+                            </article>
+
+                            <article>
+                                <span>WHERE?</span>
+                                <strong>어느 DB/Table에서?</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>
+                                권한은 “User가 있느냐?”만의 문제가 아니다.
+                            </strong>
+
+                            <p>
+                                누가, 어디에서 접속해서,
+                                어떤 Database·Table에
+                                어떤 Operation을 수행할 수 있는지까지 함께 봅니다.
+                            </p>
+
+                        </div>
+
                     </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./08_mysql_environment_sql.html">이전 단원</a>
-                        <a class="lesson-next" href="./10_python_pymysql.html">다음 단원</a>
-                    </nav>
+
+
+                    <!-- =================================================
+                     02. root vs Application
+                ================================================== -->
+                    <section class="lesson-card root-app-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">02</span>
+
+                            <div>
+                                <p class="section-kicker">Admin vs Application</p>
+
+                                <h2>
+                                    root와 Application User 역할 구분하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="root-app-compare">
+
+                            <article class="root-panel">
+
+                                <span>ROOT</span>
+
+                                <h3>관리 목적</h3>
+
+                                <div class="vertical-flow">
+                                    <strong>root</strong>
+                                    <b>↓</b>
+                                    <span>CREATE USER</span>
+                                    <span>GRANT</span>
+                                    <span>Server 관리</span>
+                                    <span>Schema 관리</span>
+                                </div>
+
+                            </article>
+
+
+                            <b>≠</b>
+
+
+                            <article class="app-panel">
+
+                                <span>APPLICATION USER</span>
+
+                                <h3>업무 목적</h3>
+
+                                <div class="vertical-flow">
+                                    <strong>app_user</strong>
+                                    <b>↓</b>
+                                    <span>SELECT</span>
+                                    <span>INSERT</span>
+                                    <span>UPDATE</span>
+                                    <span>DELETE</span>
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                “접속되니까 root 사용”을 Application 기본 설계로 만들지 않는다.
+                            </strong>
+
+                            <p>
+                                실제 Application에는
+                                업무에 필요한 범위만 가진 별도의 User를 두는 방향으로 설계합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     03. Account = User + Host
+                ================================================== -->
+                    <section class="lesson-card account-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">03</span>
+
+                            <div>
+                                <p class="section-kicker">Account Identity</p>
+
+                                <h2>
+                                    MySQL Account는 User + Host로 읽는다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="account-expression">
+
+                            <code>'app_user'</code>
+
+                            <b>@</b>
+
+                            <code>'localhost'</code>
+
+                        </div>
+
+
+                        <div class="account-parts">
+
+                            <article>
+
+                                <span>USER</span>
+
+                                <code>'app_user'</code>
+
+                                <p>
+                                    Account의 User Name입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>HOST</span>
+
+                                <code>'localhost'</code>
+
+                                <p>
+                                    어떤 Host에서 들어오는 접속인지와 연결됩니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-formula">
+
+                            <span>MySQL Account</span>
+                            <b>=</b>
+
+                            <strong>User + Host</strong>
+
+                        </div>
+
+
+                        <h3>같은 User 이름이어도</h3>
+
+
+                        <div class="same-user-grid">
+
+                            <article>
+                                <code>'app_user'@'localhost'</code>
+                                <span>Local 접속</span>
+                            </article>
+
+                            <b>≠</b>
+
+                            <article>
+                                <code>'app_user'@'192.168.10.20'</code>
+                                <span>특정 Host 접속</span>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     04. Access Control
+                ================================================== -->
+                    <section class="lesson-card access-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">04</span>
+
+                            <div>
+                                <p class="section-kicker">Access Control</p>
+
+                                <h2>
+                                    Login 가능 여부와 SQL 실행 가능 여부는 다르다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="access-stage-grid">
+
+                            <article>
+
+                                <span>STAGE 1</span>
+
+                                <h3>Connection Verification</h3>
+
+                                <div class="vertical-flow">
+
+                                    <span>Client</span>
+                                    <b>↓</b>
+
+                                    <span>User</span>
+                                    <span>Host</span>
+                                    <span>Password</span>
+
+                                    <b>↓</b>
+
+                                    <strong>Login 가능?</strong>
+
+                                </div>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>STAGE 2</span>
+
+                                <h3>Request Verification</h3>
+
+                                <div class="vertical-flow">
+
+                                    <span>Login 성공</span>
+                                    <b>↓</b>
+
+                                    <span>SELECT?</span>
+                                    <span>INSERT?</span>
+                                    <span>어느 DB?</span>
+
+                                    <b>↓</b>
+
+                                    <strong>SQL 실행 가능?</strong>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>Login 성공</span>
+                            <b>≠</b>
+                            <span>모든 SQL 허용</span>
+
+                        </div>
+
+
+                        <div class="authentication-grid">
+
+                            <article>
+
+                                <span>AUTHENTICATION</span>
+
+                                <strong>누구인가?</strong>
+
+                                <p>
+                                    접속 Account 확인
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>AUTHORIZATION</span>
+
+                                <strong>무엇을 할 수 있는가?</strong>
+
+                                <p>
+                                    Privilege 확인
+                                </p>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     05. CREATE USER
+                ================================================== -->
+                    <section class="lesson-card create-user-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">05</span>
+
+                            <div>
+                                <p class="section-kicker">CREATE USER</p>
+
+                                <h2>
+                                    Application Account 생성하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            첨부 교안에서는 다음 문법으로
+                            localhost에서 사용할 User Account를 생성합니다.
+                        </p>
+
+
+                        <pre><code class="language-sql">CREATE USER
+    'app_user'@'localhost'
+IDENTIFIED BY
+    '&lt;PASSWORD&gt;';</code></pre>
+
+
+                        <div class="create-user-breakdown">
+
+                            <article>
+                                <code>CREATE USER</code>
+                                <strong>Account 생성</strong>
+                            </article>
+
+                            <article>
+                                <code>'app_user'</code>
+                                <strong>User Name</strong>
+                            </article>
+
+                            <article>
+                                <code>'localhost'</code>
+                                <strong>Host</strong>
+                            </article>
+
+                            <article>
+                                <code>IDENTIFIED BY</code>
+                                <strong>인증 정보</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="account-state">
+
+                            <div>
+
+                                <span>BEFORE</span>
+
+                                <code>root@localhost</code>
+
+                            </div>
+
+                            <b>→ CREATE USER →</b>
+
+                            <div>
+
+                                <span>AFTER</span>
+
+                                <code>root@localhost</code>
+                                <code>app_user@localhost</code>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                CREATE USER ≠ Database 권한 부여
+                            </strong>
+
+                            <p>
+                                Account를 만드는 단계와
+                                SELECT·INSERT 같은 작업을 허용하는 단계는 구분해서 이해합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     06. User 확인
+                ================================================== -->
+                    <section class="lesson-card user-inspection-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">06</span>
+
+                            <div>
+                                <p class="section-kicker">Account Inspection</p>
+
+                                <h2>
+                                    생성된 User와 Host 확인하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            첨부 교안은 root로 접속한 뒤
+                            <code>mysql</code> Database를 선택하고
+                            <code>user</code> Table을 조회하는 방법을 설명합니다.
+                        </p>
+
+
+                        <pre><code class="language-sql">USE mysql;
+
+
+SELECT *
+FROM user;</code></pre>
+
+
+                        <p class="supplement-notice">
+                            Step 1·2에서는 학습 가독성을 위해
+                            필요한 Column만 명시하는 형태도 함께 정리했습니다.
+                        </p>
+
+
+                        <pre><code class="language-sql">SELECT
+    User,
+    Host
+FROM mysql.user;</code></pre>
+
+
+                        <div class="account-table-demo">
+
+                            <div class="table-head">
+                                <strong>User</strong>
+                                <strong>Host</strong>
+                            </div>
+
+                            <div>
+                                <span>root</span>
+                                <span>localhost</span>
+                            </div>
+
+                            <div>
+                                <span>app_user</span>
+                                <span>localhost</span>
+                            </div>
+
+                            <div>
+                                <span>report_user</span>
+                                <span>localhost</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="warning-box">
+
+                            <strong>
+                                System Account Table을 직접 수정하는 습관으로 연결하지 않는다.
+                            </strong>
+
+                            <p>
+                                User 관리에는
+                                CREATE USER,
+                                ALTER USER,
+                                DROP USER,
+                                GRANT 같은 전용 명령을 사용하는 흐름으로 정리합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     07. GRANT
+                ================================================== -->
+                    <section class="lesson-card grant-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">07</span>
+
+                            <div>
+                                <p class="section-kicker">GRANT</p>
+
+                                <h2>
+                                    Account에 실제 작업 권한 부여하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            첨부 교안의 대표적인 권한 부여 구조입니다.
+                        </p>
+
+
+                        <pre><code class="language-sql">GRANT ALL PRIVILEGES
+ON sampledb.*
+TO 'sample'@'localhost';</code></pre>
+
+
+                        <p>
+                            이번 학습용 Application Account에는
+                            필요한 CRUD 권한만 부여하는 예를 사용합니다.
+                        </p>
+
+
+                        <pre><code class="language-sql">GRANT
+    SELECT,
+    INSERT,
+    UPDATE,
+    DELETE
+ON python_study.*
+TO 'app_user'@'localhost';</code></pre>
+
+
+                        <div class="grant-breakdown">
+
+                            <article>
+
+                                <span>GRANT</span>
+
+                                <strong>
+                                    권한 부여
+                                </strong>
+
+                            </article>
+
+
+                            <b>+</b>
+
+
+                            <article>
+
+                                <span>WHAT</span>
+
+                                <strong>
+                                    SELECT · INSERT · UPDATE · DELETE
+                                </strong>
+
+                            </article>
+
+
+                            <b>+</b>
+
+
+                            <article>
+
+                                <span>WHERE</span>
+
+                                <strong>
+                                    python_study.*
+                                </strong>
+
+                            </article>
+
+
+                            <b>+</b>
+
+
+                            <article>
+
+                                <span>WHO</span>
+
+                                <strong>
+                                    app_user@localhost
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="grant-formula">
+
+                            <span>GRANT</span>
+                            <b>Privilege</b>
+
+                            <span>ON</span>
+                            <b>Scope</b>
+
+                            <span>TO</span>
+                            <b>Account</b>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     08. Privilege 종류
+                ================================================== -->
+                    <section class="lesson-card privilege-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">08</span>
+
+                            <div>
+                                <p class="section-kicker">Privileges</p>
+
+                                <h2>
+                                    Application에서 필요한 Operation만 선택한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="privilege-grid">
+
+                            <article>
+
+                                <span>READ</span>
+
+                                <code>SELECT</code>
+
+                                <strong>
+                                    데이터 조회
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CREATE DATA</span>
+
+                                <code>INSERT</code>
+
+                                <strong>
+                                    Row 입력
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CHANGE DATA</span>
+
+                                <code>UPDATE</code>
+
+                                <strong>
+                                    Row 수정
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>REMOVE DATA</span>
+
+                                <code>DELETE</code>
+
+                                <strong>
+                                    Row 삭제
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="admin-privilege-note">
+
+                            <strong>
+                                Application이 반드시 가질 필요는 없는 관리 작업 예
+                            </strong>
+
+                            <div>
+                                <code>DROP DATABASE</code>
+                                <code>ALTER</code>
+                                <code>CREATE USER</code>
+                                <code>GRANT OPTION</code>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     09. Privilege Scope
+                ================================================== -->
+                    <section class="lesson-card scope-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">09</span>
+
+                            <div>
+                                <p class="section-kicker">Privilege Scope</p>
+
+                                <h2>
+                                    같은 SELECT라도 어디까지 허용할지 결정한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="scope-grid">
+
+                            <article class="global-scope">
+
+                                <span>GLOBAL</span>
+
+                                <code>*.*</code>
+
+                                <div class="scope-tree">
+                                    <strong>MySQL Server</strong>
+                                    <span>├─ Database A</span>
+                                    <span>├─ Database B</span>
+                                    <span>└─ python_study</span>
+                                </div>
+
+                                <small>가장 넓은 범위</small>
+
+                            </article>
+
+
+                            <article class="database-scope">
+
+                                <span>DATABASE</span>
+
+                                <code>python_study.*</code>
+
+                                <div class="scope-tree">
+                                    <strong>python_study</strong>
+                                    <span>├─ Member</span>
+                                    <span>├─ Product</span>
+                                    <span>└─ Orders</span>
+                                </div>
+
+                            </article>
+
+
+                            <article class="table-scope">
+
+                                <span>TABLE</span>
+
+                                <code>python_study.Member</code>
+
+                                <div class="scope-tree">
+                                    <strong>python_study</strong>
+                                    <span>└─ Member</span>
+                                </div>
+
+                                <small>더 좁은 범위</small>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="scope-scale">
+
+                            <strong>*.*</strong>
+                            <b>→ 범위 축소 →</b>
+
+                            <strong>python_study.*</strong>
+                            <b>→ 범위 축소 →</b>
+
+                            <strong>python_study.Member</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     10. 최소 권한
+                ================================================== -->
+                    <section class="lesson-card least-privilege-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">10</span>
+
+                            <div>
+                                <p class="section-kicker">Least Privilege</p>
+
+                                <h2>
+                                    필요한 Operation + 필요한 Scope만 허용한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="least-flow">
+
+                            <div>
+
+                                <span>01</span>
+
+                                <strong>
+                                    Application 요구사항
+                                </strong>
+
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+
+                                <span>02</span>
+
+                                <strong>
+                                    실제 Repository SQL
+                                </strong>
+
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+
+                                <span>03</span>
+
+                                <strong>
+                                    필요한 Privilege
+                                </strong>
+
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+
+                                <span>04</span>
+
+                                <strong>
+                                    필요한 Scope
+                                </strong>
+
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div class="result">
+
+                                <span>05</span>
+
+                                <strong>
+                                    GRANT
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <h3>조회 전용 Account</h3>
+
+                        <pre><code class="language-sql">GRANT SELECT
+ON python_study.*
+TO 'report_user'@'localhost';</code></pre>
+
+
+                        <h3>CRUD Application</h3>
+
+                        <pre><code class="language-sql">GRANT
+    SELECT,
+    INSERT,
+    UPDATE,
+    DELETE
+ON python_study.*
+TO 'app_user'@'localhost';</code></pre>
+
+
+                        <h3>특정 Table만</h3>
+
+                        <pre><code class="language-sql">GRANT
+    SELECT,
+    INSERT,
+    UPDATE
+ON python_study.Member
+TO 'member_app'@'localhost';</code></pre>
+
+
+                        <div class="least-memory">
+
+                            <strong>Least Privilege</strong>
+
+                            <span>
+                                필요한 권한만
+                            </span>
+
+                            <b>+</b>
+
+                            <span>
+                                필요한 범위에만
+                            </span>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     11. SHOW GRANTS / REVOKE
+                ================================================== -->
+                    <section class="lesson-card verification-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">11</span>
+
+                            <div>
+                                <p class="section-kicker">Verify & Reduce</p>
+
+                                <h2>
+                                    SHOW GRANTS로 확인하고 REVOKE로 줄인다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            <code>SHOW GRANTS</code>와 <code>REVOKE</code>는
+                            첨부 교안의 GRANT 설명을
+                            Step 1·2에서 최소 권한 관점으로 확장한
+                            <strong>보완 학습</strong>입니다.
+                        </p>
+
+
+                        <h3>현재 권한 확인</h3>
+
+                        <pre><code class="language-sql">SHOW GRANTS
+FOR 'app_user'@'localhost';</code></pre>
+
+
+                        <div class="grant-verification-flow">
+
+                            <span>GRANT 실행</span>
+                            <b>→</b>
+
+                            <span>SHOW GRANTS</span>
+                            <b>→</b>
+
+                            <span>Privilege 확인</span>
+                            <b>→</b>
+
+                            <span>Scope 확인</span>
+
+                        </div>
+
+
+                        <h3>불필요한 DELETE 제거</h3>
+
+                        <pre><code class="language-sql">REVOKE DELETE
+ON python_study.*
+FROM 'app_user'@'localhost';</code></pre>
+
+
+                        <div class="revoke-before-after">
+
+                            <article>
+
+                                <span>BEFORE</span>
+
+                                <code>SELECT</code>
+                                <code>INSERT</code>
+                                <code>UPDATE</code>
+                                <code>DELETE</code>
+
+                            </article>
+
+
+                            <b>→ REVOKE DELETE →</b>
+
+
+                            <article>
+
+                                <span>AFTER</span>
+
+                                <code>SELECT</code>
+                                <code>INSERT</code>
+                                <code>UPDATE</code>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     12. Host 범위
+                ================================================== -->
+                    <section class="lesson-card host-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">12</span>
+
+                            <div>
+                                <p class="section-kicker">Host Scope</p>
+
+                                <h2>
+                                    localhost · 특정 Host · 넓은 Host 범위
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="host-grid">
+
+                            <article>
+
+                                <span>LOCAL</span>
+
+                                <code>'app_user'@'localhost'</code>
+
+                                <p>
+                                    MySQL Server가 있는
+                                    로컬 환경의 접속과 연결합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SPECIFIC HOST</span>
+
+                                <code>
+'app_user'@'192.168.10.20'
+                            </code>
+
+                                <p>
+                                    특정 Application Server나
+                                    접속 위치를 명시하는 방향입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article class="wide">
+
+                                <span>교안의 넓은 범위</span>
+
+                                <code>'app_user'@'%'</code>
+
+                                <p>
+                                    첨부 교안에서는
+                                    모든 Host에서 접속을 허용하는 예로 설명합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="supplement-box">
+
+                            <span>Step 1·2 보완</span>
+
+                            <p>
+                                넓은 Host 범위를 편의상 기본값으로 사용하기보다
+                                실제 Application이 어디에서 접속해야 하는지 먼저 정한 뒤
+                                필요한 범위로 제한하는 방향을 학습합니다.
+                            </p>
+
+                        </div>
+
+
+                        <div class="network-security-flow">
+
+                            <span>Account Host</span>
+                            <b>+</b>
+
+                            <span>Server Bind</span>
+                            <b>+</b>
+
+                            <span>Network</span>
+                            <b>+</b>
+
+                            <span>Firewall</span>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                MySQL Account의 Host 제한 = Network 보안 전체는 아니다.
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     13. FLUSH PRIVILEGES
+                ================================================== -->
+                    <section class="lesson-card flush-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">13</span>
+
+                            <div>
+                                <p class="section-kicker">Source vs Supplement</p>
+
+                                <h2>
+                                    FLUSH PRIVILEGES — 교안 내용과 보완 내용을 구분한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="source-current-grid">
+
+                            <article class="source">
+
+                                <span>첨부 교안</span>
+
+                                <pre><code class="language-sql">GRANT ALL PRIVILEGES
+ON sampledb.*
+TO 'sample'@'localhost';
+
+
+FLUSH PRIVILEGES;</code></pre>
+
+                                <strong>
+                                    권한 설정 적용
+                                </strong>
+
+                                <p>
+                                    교안에서는 GRANT 다음에
+                                    FLUSH PRIVILEGES를 실행하는 흐름으로 설명합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article class="supplement">
+
+                                <span>Step 1·2 보완</span>
+
+                                <div class="vertical-flow">
+
+                                    <code>CREATE USER</code>
+                                    <code>GRANT</code>
+                                    <code>REVOKE</code>
+                                    <code>ALTER USER</code>
+
+                                    <b>↓</b>
+
+                                    <strong>
+                                        일반 Account 관리 흐름
+                                    </strong>
+
+                                </div>
+
+                                <p>
+                                    이번 과정에서는
+                                    모든 GRANT 뒤에 FLUSH PRIVILEGES를
+                                    반드시 붙이는 암기 공식으로 사용하지 않습니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="warning-box">
+
+                            <strong>
+                                교안 원문을 삭제하지 않고 “교안 기준 / 보완 기준”으로 분리한다.
+                            </strong>
+
+                            <p>
+                                원문의 학습 흐름은 보존하면서
+                                Step 1·2에서 정리한 현재 관리 방식과 구분해서 기억합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     14. ALTER USER / DROP USER
+                ================================================== -->
+                    <section class="lesson-card lifecycle-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">14</span>
+
+                            <div>
+                                <p class="section-kicker">Account Lifecycle</p>
+
+                                <h2>
+                                    ALTER USER · REVOKE · DROP USER 역할 구분
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <h3>Password 변경</h3>
+
+                        <pre><code class="language-sql">ALTER USER
+    'app_user'@'localhost'
+IDENTIFIED BY
+    '&lt;NEW_PASSWORD&gt;';</code></pre>
+
+
+                        <h3>Privilege 제거</h3>
+
+                        <pre><code class="language-sql">REVOKE DELETE
+ON python_study.*
+FROM 'app_user'@'localhost';</code></pre>
+
+
+                        <h3>Account 삭제</h3>
+
+                        <pre><code class="language-sql">DROP USER
+    'app_user'@'localhost';</code></pre>
+
+
+                        <div class="lifecycle-command-grid">
+
+                            <article>
+                                <code>ALTER USER</code>
+                                <strong>Account 변경</strong>
+                            </article>
+
+                            <article>
+                                <code>REVOKE</code>
+                                <strong>Privilege 제거</strong>
+                            </article>
+
+                            <article>
+                                <code>DROP USER</code>
+                                <strong>Account 삭제</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="account-lifecycle-flow">
+
+                            <span>CREATE USER</span>
+                            <b>→</b>
+
+                            <span>GRANT</span>
+                            <b>→</b>
+
+                            <span>SHOW GRANTS</span>
+                            <b>→</b>
+
+                            <span>ALTER / REVOKE</span>
+                            <b>→</b>
+
+                            <strong>DROP USER</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     15. CLI 전체 실습
+                ================================================== -->
+                    <section class="lesson-card code-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">15</span>
+
+                            <div>
+                                <p class="section-kicker">CLI Practice</p>
+
+                                <h2>
+                                    Application User 생성부터 권한 검증까지 전체 실습
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="code-example">
+
+                            <div class="code-titlebar">
+
+                                <span>
+                                    09_mysql_user_privilege.sql
+                                </span>
+
+                                <span>
+                                    Account & Privilege
+                                </span>
+
+                            </div>
+
+
+                            <pre><code class="language-sql">-- =================================================
+-- 1. root Account로 MySQL 접속
+-- Command Prompt:
+--
+-- mysql -u root -p
+-- =================================================
+
+
+-- =================================================
+-- 2. 현재 Account 확인
+-- =================================================
+
+SELECT
+    User,
+    Host
+FROM mysql.user;
+
+
+-- =================================================
+-- 3. Application Account 생성
+-- =================================================
+
+CREATE USER
+    'app_user'@'localhost'
+IDENTIFIED BY
+    '&lt;PASSWORD&gt;';
+
+
+-- =================================================
+-- 4. 생성 확인
+-- =================================================
+
+SELECT
+    User,
+    Host
+FROM mysql.user
+WHERE User = 'app_user';
+
+
+-- =================================================
+-- 5. Application에 필요한 CRUD 권한 부여
+-- =================================================
+
+GRANT
+    SELECT,
+    INSERT,
+    UPDATE,
+    DELETE
+ON python_study.*
+TO 'app_user'@'localhost';
+
+
+-- =================================================
+-- 6. 실제 권한 확인
+-- Step 1·2 보완
+-- =================================================
+
+SHOW GRANTS
+FOR 'app_user'@'localhost';
+
+
+-- =================================================
+-- 7. Password 변경
+-- =================================================
+
+ALTER USER
+    'app_user'@'localhost'
+IDENTIFIED BY
+    '&lt;NEW_PASSWORD&gt;';
+
+
+-- =================================================
+-- 8. 필요 없는 DELETE 권한 제거
+-- Step 1·2 보완
+-- =================================================
+
+REVOKE DELETE
+ON python_study.*
+FROM 'app_user'@'localhost';
+
+
+-- =================================================
+-- 9. 다시 권한 확인
+-- =================================================
+
+SHOW GRANTS
+FOR 'app_user'@'localhost';
+
+
+-- =================================================
+-- 10. 필요 시 Account 삭제
+-- =================================================
+
+-- DROP USER
+--     'app_user'@'localhost';</code></pre>
+
+                        </div>
+
+
+                        <div class="practice-step-grid">
+
+                            <article>
+                                <span>01</span>
+                                <strong>CREATE USER</strong>
+                                <small>Account 생성</small>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <strong>GRANT</strong>
+                                <small>권한 부여</small>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <strong>SHOW GRANTS</strong>
+                                <small>권한 확인</small>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <strong>ALTER USER</strong>
+                                <small>Account 변경</small>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <strong>REVOKE</strong>
+                                <small>권한 축소</small>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <strong>DROP USER</strong>
+                                <small>Account 제거</small>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     16. 권한 테스트
+                ================================================== -->
+                    <section class="lesson-card permission-test-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">16</span>
+
+                            <div>
+                                <p class="section-kicker">Permission Test</p>
+
+                                <h2>
+                                    성공해야 하는 SQL과 실패해야 하는 SQL을 모두 확인한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            User를 만들고 GRANT했다고 끝내지 않습니다.
+                            실제 Account로 접속하여
+                            의도한 권한 구조가 맞는지 확인합니다.
+                        </p>
+
+
+                        <h3>Application User로 접속</h3>
+
+                        <pre><code>mysql -u app_user -p python_study</code></pre>
+
+
+                        <div class="permission-test-grid">
+
+                            <article class="allowed">
+
+                                <span>ALLOW</span>
+
+                                <h3>SELECT</h3>
+
+                                <pre><code class="language-sql">SELECT *
+FROM Member;</code></pre>
+
+                                <strong>
+                                    성공해야 함
+                                </strong>
+
+                            </article>
+
+
+                            <article class="allowed">
+
+                                <span>ALLOW</span>
+
+                                <h3>INSERT</h3>
+
+                                <pre><code class="language-sql">INSERT INTO Member(
+    name,
+    tel
+)
+VALUES(
+    '권한테스트',
+    '010-1234'
+);</code></pre>
+
+                                <strong>
+                                    INSERT 권한이 있다면 성공
+                                </strong>
+
+                            </article>
+
+
+                            <article class="denied">
+
+                                <span>DENY</span>
+
+                                <h3>DROP</h3>
+
+                                <pre><code class="language-sql">DROP TABLE Member;</code></pre>
+
+                                <strong>
+                                    DROP을 주지 않았다면 실패해야 함
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>
+                                권한 Test에서는 “실패해야 정상인 작업”도 확인한다.
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     17. 접속 정보 분리
+                ================================================== -->
+                    <section class="lesson-card config-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">17</span>
+
+                            <div>
+                                <p class="section-kicker">Secret Configuration</p>
+
+                                <h2>
+                                    DB 접속 정보는 Source Code와 분리한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            첨부 교안의 PyMySQL 예제는
+                            host·user·password·db를 코드에 직접 적는 학습 형태입니다.
+                            아래는 Step 1·2의
+                            <strong>실무 보완 구조</strong>입니다.
+                        </p>
+
+
+                        <div class="secret-compare">
+
+                            <article class="bad">
+
+                                <span>피해야 할 운영 구조</span>
+
+                                <pre><code class="language-python">DB_USER = "app_user"
+DB_PASSWORD = "real-password"</code></pre>
+
+                                <div class="vertical-flow">
+
+                                    <span>Source Code</span>
+                                    <b>↓</b>
+                                    <span>Git</span>
+                                    <b>↓</b>
+                                    <strong>Secret 노출 위험</strong>
+
+                                </div>
+
+                            </article>
+
+
+                            <article class="good">
+
+                                <span>분리 방향</span>
+
+                                <pre><code class="language-python">import os
+
+
+DB_HOST = os.getenv(
+    "DB_HOST"
+)
+
+DB_USER = os.getenv(
+    "DB_USER"
+)
+
+DB_PASSWORD = os.getenv(
+    "DB_PASSWORD"
+)
+
+DB_NAME = os.getenv(
+    "DB_NAME"
+)</code></pre>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="environment-flow">
+
+                            <div>
+                                <code>DB_HOST</code>
+                                <code>DB_USER</code>
+                                <code>DB_PASSWORD</code>
+                                <code>DB_NAME</code>
+                            </div>
+
+                            <b>→</b>
+
+                            <strong>Python Config</strong>
+                            <b>→</b>
+
+                            <strong>PyMySQL Connection</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     18. Parameter Query
+                ================================================== -->
+                    <section class="lesson-card parameter-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">18</span>
+
+                            <div>
+                                <p class="section-kicker">Parameterized SQL</p>
+
+                                <h2>
+                                    최소 권한과 SQL Injection 방지는 서로 다른 보안 계층이다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="parameter-security-grid">
+
+                            <article>
+
+                                <span>SQL LAYER</span>
+
+                                <strong>
+                                    Parameterized Query
+                                </strong>
+
+                                <p>
+                                    외부 Data를
+                                    SQL Code와 직접 문자열로 합치지 않습니다.
+                                </p>
+
+                                <code>WHERE name = %s</code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>ACCOUNT LAYER</span>
+
+                                <strong>
+                                    Least Privilege
+                                </strong>
+
+                                <p>
+                                    Account가 실행할 수 있는
+                                    Operation과 Scope를 제한합니다.
+                                </p>
+
+                                <code>GRANT SELECT, INSERT ...</code>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>Parameter Binding</span>
+                            <b>≠</b>
+                            <span>Privilege</span>
+
+                        </div>
+
+
+                        <h3>피해야 할 Application 코드</h3>
+
+                        <pre><code class="language-python">name = input("이름: ")
+
+
+sql = f"""
+SELECT *
+FROM Member
+WHERE name = '{name}'
+"""</code></pre>
+
+
+                        <h3>PyMySQL Parameter 방향</h3>
+
+                        <pre><code class="language-python">sql = """
+SELECT *
+FROM Member
+WHERE name = %s
+"""
+
+
+cursor.execute(
+    sql,
+    (name,)
+)</code></pre>
+
+
+                        <div class="security-layer-flow">
+
+                            <span>User Input</span>
+                            <b>→</b>
+
+                            <span>Parameter Binding</span>
+                            <b>→</b>
+
+                            <span>app_user</span>
+                            <b>→</b>
+
+                            <span>Privilege Check</span>
+                            <b>→</b>
+
+                            <strong>Database</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     19. Placeholder 비교
+                ================================================== -->
+                    <section class="lesson-card driver-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">19</span>
+
+                            <div>
+                                <p class="section-kicker">Driver Difference</p>
+
+                                <h2>
+                                    Driver가 바뀌면 Placeholder 표기도 달라질 수 있다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="driver-grid">
+
+                            <article>
+
+                                <span>SQLite · sqlite3</span>
+
+                                <code>?</code>
+
+                                <strong>위치 기반</strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SQLite · Named</span>
+
+                                <code>:name</code>
+
+                                <strong>이름 기반</strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MySQL · PyMySQL</span>
+
+                                <code>%s</code>
+
+                                <strong>tuple / list Parameter</strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>PyMySQL Mapping</span>
+
+                                <code>%(name)s</code>
+
+                                <strong>dict Parameter</strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Oracle 방향</span>
+
+                                <code>:name</code>
+
+                                <strong>Bind Variable</strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>
+                                Parameterized Query는 공통 개념,
+                                Placeholder는 Driver 문법이다.
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     20. Python 연결 예고
+                ================================================== -->
+                    <section class="lesson-card python-preview-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">20</span>
+
+                            <div>
+                                <p class="section-kicker">PyMySQL Preview</p>
+
+                                <h2>
+                                    이번에 만든 Account가 다음 Connection에 들어간다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            첨부 교안은 사용자·권한 설명 직후
+                            PyMySQL 설치와 Connection 과정으로 넘어갑니다.
+                        </p>
+
+
+                        <pre><code class="language-python">import os
+import pymysql
+
+
+DB_HOST = os.getenv(
+    "DB_HOST"
+)
+
+DB_USER = os.getenv(
+    "DB_USER"
+)
+
+DB_PASSWORD = os.getenv(
+    "DB_PASSWORD"
+)
+
+DB_NAME = os.getenv(
+    "DB_NAME"
+)
+
+
+conn = pymysql.connect(
+    host=DB_HOST,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    db=DB_NAME,
+    charset="utf8mb4"
+)</code></pre>
+
+
+                        <div class="connection-account-map">
+
+                            <article>
+
+                                <code>host</code>
+
+                                <strong>
+                                    Account의 접속 위치와 연결
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>user</code>
+
+                                <strong>
+                                    CREATE USER의 User
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>password</code>
+
+                                <strong>
+                                    Authentication
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>db</code>
+
+                                <strong>
+                                    GRANT Scope와 연결
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="connection-meaning">
+
+                            <span>
+                                app_user@host
+                            </span>
+
+                            <b>+</b>
+
+                            <span>
+                                Password
+                            </span>
+
+                            <b>+</b>
+
+                            <span>
+                                Database
+                            </span>
+
+                            <b>→</b>
+
+                            <strong>
+                                pymysql.connect()
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     21. Transaction / Lifecycle
+                ================================================== -->
+                    <section class="lesson-card dbapi-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">21</span>
+
+                            <div>
+                                <p class="section-kicker">DB-API Lifecycle</p>
+
+                                <h2>
+                                    Privilege는 DB-API 생명주기 안의 한 계층이다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="dbapi-flow">
+
+                            <div>
+                                <span>01</span>
+                                <strong>Environment</strong>
+                                <small>접속 정보</small>
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+                                <span>02</span>
+                                <strong>connect()</strong>
+                                <small>Authentication</small>
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+                                <span>03</span>
+                                <strong>Cursor</strong>
+                                <small>SQL 준비</small>
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+                                <span>04</span>
+                                <strong>execute</strong>
+                                <small>Privilege Check</small>
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+                                <span>05</span>
+                                <strong>fetch / commit</strong>
+                                <small>결과 처리</small>
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+                                <span>06</span>
+                                <strong>close</strong>
+                                <small>Resource 종료</small>
+                            </div>
+
+                        </div>
+
+
+                        <div class="privilege-transaction-grid">
+
+                            <article>
+
+                                <span>PRIVILEGE</span>
+
+                                <strong>
+                                    이 SQL을 실행해도 되는가?
+                                </strong>
+
+                            </article>
+
+
+                            <b>≠</b>
+
+
+                            <article>
+
+                                <span>TRANSACTION</span>
+
+                                <strong>
+                                    실행한 변경을 확정할 것인가?
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <pre><code class="language-python">try:
+
+    cursor.execute(
+        """
+        UPDATE Member
+        SET tel = %s
+        WHERE _id = %s
+        """,
+        (
+            new_tel,
+            member_id
+        )
+    )
+
+
+    conn.commit()
+
+
+except Exception:
+
+    conn.rollback()
+
+    raise
+
+
+finally:
+
+    cursor.close()
+    conn.close()</code></pre>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     22. 개발 도구
+                ================================================== -->
+                    <section class="lesson-card tool-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">22</span>
+
+                            <div>
+                                <p class="section-kicker">Development Tools</p>
+
+                                <h2>
+                                    MySQL CLI 중심으로 Account와 Privilege를 직접 확인한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="tool-grid">
+
+                            <article>
+
+                                <span>01</span>
+
+                                <h3>Command Prompt</h3>
+
+                                <p>
+                                    root와 Application User의
+                                    실제 Login을 비교합니다.
+                                </p>
+
+                                <code>mysql -u root -p</code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>02</span>
+
+                                <h3>MySQL CLI</h3>
+
+                                <p>
+                                    CREATE USER,
+                                    GRANT,
+                                    ALTER USER,
+                                    DROP USER를 실습합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>03</span>
+
+                                <h3>PyCharm</h3>
+
+                                <p>
+                                    User 관리 SQL 파일을 정리하고
+                                    다음 PyMySQL Connection을 준비합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>04</span>
+
+                                <h3>Python / Console</h3>
+
+                                <p>
+                                    환경 변수와
+                                    Connection Config가 준비됐는지 확인합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>권장 실습 흐름</h3>
+
+                        <div class="tool-workflow">
+
+                            <div>
+                                <span>1</span>
+                                <strong>root Login</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>2</span>
+                                <strong>CREATE USER</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>3</span>
+                                <strong>GRANT</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>4</span>
+                                <strong>SHOW GRANTS</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>5</span>
+                                <strong>User Login Test</strong>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     23. 오류 메시지
+                ================================================== -->
+                    <section class="lesson-card error-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">23</span>
+
+                            <div>
+                                <p class="section-kicker">Error Reading</p>
+
+                                <h2>
+                                    Access denied를 무조건 Password 오류라고 생각하지 않는다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="error-pipeline">
+
+                            <span>Python / Client</span>
+                            <b>→</b>
+
+                            <span>Server</span>
+                            <b>→</b>
+
+                            <span>User</span>
+                            <b>→</b>
+
+                            <span>Host</span>
+                            <b>→</b>
+
+                            <span>Password</span>
+                            <b>→</b>
+
+                            <span>Login</span>
+                            <b>→</b>
+
+                            <span>Privilege</span>
+                            <b>→</b>
+
+                            <span>Scope</span>
+                            <b>→</b>
+
+                            <span>SQL</span>
+                        </div>
+
+
+                        <div class="error-grid">
+
+                            <article>
+
+                                <code>SyntaxError</code>
+
+                                <h3>Python</h3>
+
+                                <p>
+                                    Python Connection 코드의
+                                    문법부터 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>NameError</code>
+
+                                <h3>Python 변수</h3>
+
+                                <p>
+                                    DB_USER, DB_HOST 같은
+                                    변수가 존재하는지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>TypeError</code>
+
+                                <h3>API Argument</h3>
+
+                                <p>
+                                    Connection Function에 전달한
+                                    Python 값과 호출 방법을 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>KeyError</code>
+
+                                <h3>Configuration</h3>
+
+                                <p>
+                                    dict 기반 설정의 Key 문제인지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Access denied</code>
+
+                                <h3>Login 단계</h3>
+
+                                <p>
+                                    User·Host·Password·Account 존재 여부를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Permission denied</code>
+
+                                <h3>SQL 단계</h3>
+
+                                <p>
+                                    Login은 됐지만
+                                    필요한 Privilege가 없는지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Wrong Scope</code>
+
+                                <h3>Database / Table</h3>
+
+                                <p>
+                                    권한을 다른 Database나 Table에
+                                    부여하지 않았는지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Connection Error</code>
+
+                                <h3>Server / Network</h3>
+
+                                <p>
+                                    Account 이전에
+                                    Server·Host·Port 문제인지 확인합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>상황 1 — Login 자체가 실패</h3>
+
+                        <div class="error-situation">
+
+                            <span>Connection 요청</span>
+                            <b>→</b>
+
+                            <strong class="danger">
+                                Access denied
+                            </strong>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>User?</span>
+                                <span>Host?</span>
+                                <span>Password?</span>
+                                <span>Account?</span>
+                            </div>
+
+                        </div>
+
+
+                        <h3>상황 2 — Login은 성공하지만 SELECT 실패</h3>
+
+                        <div class="error-situation">
+
+                            <span>Login 성공</span>
+                            <b>→</b>
+
+                            <code>SELECT</code>
+                            <b>→</b>
+
+                            <strong class="danger">
+                                Privilege 거부
+                            </strong>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>SHOW GRANTS</span>
+                                <span>SELECT?</span>
+                                <span>Scope?</span>
+                            </div>
+
+                        </div>
+
+
+                        <h3>상황 3 — 같은 User 이름인데 Remote 접속 실패</h3>
+
+                        <div class="host-error-compare">
+
+                            <article>
+
+                                <span>생성된 Account</span>
+
+                                <code>
+'app_user'@'localhost'
+                            </code>
+
+                            </article>
+
+
+                            <b>≠</b>
+
+
+                            <article>
+
+                                <span>실제 접속</span>
+
+                                <code>
+Remote Host
+                            </code>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="error-checklist">
+
+                            <strong>
+                                오류 읽는 순서
+                            </strong>
+
+                            <ol>
+
+                                <li>Python 또는 mysql Client 자체가 정상인가?</li>
+
+                                <li>MySQL Server가 실행 중인가?</li>
+
+                                <li>Network와 Host가 맞는가?</li>
+
+                                <li><code>'user'@'host'</code> Account가 존재하는가?</li>
+
+                                <li>Password와 Authentication 정보가 맞는가?</li>
+
+                                <li>Login 자체는 성공했는가?</li>
+
+                                <li>실행하려는 SQL의 Privilege가 있는가?</li>
+
+                                <li>Privilege가 올바른 Database Scope에 있는가?</li>
+
+                                <li>Table Scope가 맞는가?</li>
+
+                                <li>그 다음 SQL Syntax와 Constraint를 확인한다.</li>
+
+                                <li>변경 작업이면 Transaction 상태도 확인한다.</li>
+
+                            </ol>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     24. Repository
+                ================================================== -->
+                    <section class="lesson-card repository-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">24</span>
+
+                            <div>
+                                <p class="section-kicker">Repository Architecture</p>
+
+                                <h2>
+                                    Repository가 실제로 사용하는 SQL과 Account 권한을 연결한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 영역은 첨부 교안의 직접 Architecture가 아니라
+                            Step 1·2에서 추가한
+                            <strong>프로젝트 설계 보완</strong>입니다.
+                        </p>
+
+
+                        <div class="repository-flow">
+
+                            <div>
+                                <strong>Frontend</strong>
+                                <span>User Request</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div>
+                                <strong>Application</strong>
+                                <span>Controller / Route</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="service">
+                                <strong>Service</strong>
+                                <span>Business Logic</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="repository">
+                                <strong>Repository</strong>
+                                <span>SELECT / INSERT / UPDATE</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="account">
+                                <strong>app_user</strong>
+                                <span>필요한 Privilege</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div>
+                                <strong>MySQL</strong>
+                                <span>python_study</span>
+                            </div>
+
+                        </div>
+
+
+                        <h3>Repository SQL에서 권한 역산하기</h3>
+
+                        <div class="repository-privilege-grid">
+
+                            <article>
+
+                                <span>Repository Method</span>
+
+                                <strong>findAll()</strong>
+
+                                <code>SELECT</code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Repository Method</span>
+
+                                <strong>save()</strong>
+
+                                <code>INSERT</code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Repository Method</span>
+
+                                <strong>update()</strong>
+
+                                <code>UPDATE</code>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="repository-result">
+
+                            <span>Repository가 실제 사용하는 SQL</span>
+
+                            <b>→</b>
+
+                            <strong>
+                                SELECT + INSERT + UPDATE만 GRANT
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     25. 실무 연결
+                ================================================== -->
+                    <section class="lesson-card realwork-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">25</span>
+
+                            <div>
+                                <p class="section-kicker">Real World</p>
+
+                                <h2>
+                                    실제 프로젝트에서는 역할마다 권한이 다를 수 있다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="realwork-grid">
+
+                            <article>
+
+                                <span>ADMIN</span>
+
+                                <h3>DB 관리자</h3>
+
+                                <pre>
+Server 관리
+↓
+User 관리
+↓
+Privilege 관리
+↓
+Schema 관리
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>BACKEND</span>
+
+                                <h3>Application User</h3>
+
+                                <pre>
+Repository
+↓
+SELECT
+INSERT
+UPDATE
+DELETE
+↓
+Application DB
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>REPORT</span>
+
+                                <h3>분석 User</h3>
+
+                                <pre>
+Report
+↓
+SELECT only
+↓
+Database
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CRAWLER</span>
+
+                                <h3>수집 프로그램</h3>
+
+                                <pre>
+Crawler
+↓
+INSERT
+SELECT
+↓
+MySQL
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SECURITY</span>
+
+                                <h3>Secret 분리</h3>
+
+                                <pre>
+Environment
+↓
+DB_PASSWORD
+↓
+Connection
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SQL SAFETY</span>
+
+                                <h3>Parameter Query</h3>
+
+                                <pre>
+User Input
+↓
+%s
+↓
+Binding
+↓
+MySQL
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>TRANSACTION</span>
+
+                                <h3>업무 확정</h3>
+
+                                <pre>
+DML
+↓
+성공?
+↓
+commit / rollback
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>ARCHITECTURE</span>
+
+                                <h3>Repository</h3>
+
+                                <pre>
+Service
+↓
+Repository
+↓
+app_user
+↓
+MySQL
+                            </pre>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>Database Security를 여러 계층으로 보기</h3>
+
+                        <div class="security-stack">
+
+                            <div>
+                                <span>01</span>
+                                <strong>Network</strong>
+                                <small>접속 경로</small>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>02</span>
+                                <strong>User@Host</strong>
+                                <small>Account</small>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>03</span>
+                                <strong>Secret</strong>
+                                <small>Password</small>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>04</span>
+                                <strong>Privilege</strong>
+                                <small>최소 권한</small>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>05</span>
+                                <strong>Parameter</strong>
+                                <small>SQL 안전성</small>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     26. 자주 하는 실수
+                ================================================== -->
+                    <section class="lesson-card mistake-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">26</span>
+
+                            <div>
+                                <p class="section-kicker">Beginner Mistakes</p>
+
+                                <h2>
+                                    초보자가 자주 하는 실수
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="mistake-list">
+
+                            <article>
+                                <span>01</span>
+
+                                <div>
+                                    <h3>root를 Application User로 그대로 사용한다.</h3>
+
+                                    <p>
+                                        관리 계정과 Application 전용 Account를 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>02</span>
+
+                                <div>
+                                    <h3>User 이름 하나만 MySQL Account라고 생각한다.</h3>
+
+                                    <p>
+                                        <code>User + Host</code> 조합으로 읽습니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>03</span>
+
+                                <div>
+                                    <h3>같은 User 이름이면 Host가 달라도 같은 Account라고 생각한다.</h3>
+
+                                    <p>
+                                        <code>app_user@localhost</code>와
+                                        다른 Host의 Account를 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>04</span>
+
+                                <div>
+                                    <h3>CREATE USER만 하면 CRUD도 가능하다고 생각한다.</h3>
+
+                                    <p>
+                                        Account 생성과 Privilege 부여는 별도 단계입니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>05</span>
+
+                                <div>
+                                    <h3>무조건 ALL PRIVILEGES를 부여한다.</h3>
+
+                                    <p>
+                                        Application이 실제 사용하는 Operation부터 분석합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>06</span>
+
+                                <div>
+                                    <h3>무조건 *.* Scope를 사용한다.</h3>
+
+                                    <p>
+                                        Database 또는 Table 범위로 줄일 수 있는지 확인합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>07</span>
+
+                                <div>
+                                    <h3>GRANT 후 실제 권한을 확인하지 않는다.</h3>
+
+                                    <p>
+                                        Step 1·2 보완에서는
+                                        <code>SHOW GRANTS</code>로 검증합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>08</span>
+
+                                <div>
+                                    <h3>필요 없어졌는데도 Privilege를 그대로 둔다.</h3>
+
+                                    <p>
+                                        불필요한 권한은 REVOKE를 고려합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>09</span>
+
+                                <div>
+                                    <h3>Password 변경을 위해 Account를 다시 만든다.</h3>
+
+                                    <p>
+                                        기존 Account는 <code>ALTER USER</code>로 변경합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>10</span>
+
+                                <div>
+                                    <h3>넓은 Host 범위를 편하다는 이유로 기본 사용한다.</h3>
+
+                                    <p>
+                                        실제 Application이 접속하는 위치를 먼저 정의합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>11</span>
+
+                                <div>
+                                    <h3>localhost와 Remote Host를 혼동한다.</h3>
+
+                                    <p>
+                                        Account의 Host가 누구 기준의 접속 위치인지 확인합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>12</span>
+
+                                <div>
+                                    <h3>GRANT 다음에 항상 FLUSH PRIVILEGES를 붙이는 공식으로만 외운다.</h3>
+
+                                    <p>
+                                        교안 내용과 Step 1·2의 보완 내용을 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>13</span>
+
+                                <div>
+                                    <h3>mysql.user를 직접 UPDATE한다.</h3>
+
+                                    <p>
+                                        Account Management 전용 SQL을 사용합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>14</span>
+
+                                <div>
+                                    <h3>Login 성공이면 모든 SQL이 가능하다고 생각한다.</h3>
+
+                                    <p>
+                                        접속 인증과 Request Privilege를 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>15</span>
+
+                                <div>
+                                    <h3>Access denied는 무조건 Password 오류라고 생각한다.</h3>
+
+                                    <p>
+                                        User·Host·Authentication·Privilege를 단계별로 봅니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>16</span>
+
+                                <div>
+                                    <h3>Password를 Source Code에 직접 적는다.</h3>
+
+                                    <p>
+                                        환경 설정 또는 환경 변수로 분리합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>17</span>
+
+                                <div>
+                                    <h3>SQL 값을 f-string으로 직접 조립한다.</h3>
+
+                                    <p>
+                                        PyMySQL Parameter Binding을 사용합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>18</span>
+
+                                <div>
+                                    <h3>SQLite의 ?를 PyMySQL에도 그대로 사용한다.</h3>
+
+                                    <p>
+                                        Driver마다 Placeholder 문법이 다를 수 있습니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>19</span>
+
+                                <div>
+                                    <h3>Privilege와 Transaction을 같은 개념으로 생각한다.</h3>
+
+                                    <p>
+                                        실행 가능 여부와 변경 확정 여부는 서로 다른 문제입니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>20</span>
+
+                                <div>
+                                    <h3>최소 권한을 초기 설정 한 번으로 끝낸다.</h3>
+
+                                    <p>
+                                        업무 변경에 따라 SHOW GRANTS와 REVOKE를 통해 점검합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     27. 면접 포인트
+                ================================================== -->
+                    <section class="lesson-card interview-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">27</span>
+
+                            <div>
+                                <p class="section-kicker">Interview Point</p>
+
+                                <h2>
+                                    면접에서 설명할 수 있어야 하는 질문
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="interview-list">
+
+
+                            <details open>
+
+                                <summary>
+                                    Q1. MySQL Account는 어떻게 이해하면 되나요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        User Name만 보는 것이 아니라
+                                        User와 접속 Host의 조합으로 이해합니다.
+                                        대표적인 표현은
+                                        <code>'app_user'@'localhost'</code>입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q2. 같은 User 이름이면 항상 같은 Account인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Host 조건이 다르면 서로 다른 접속 Account로
+                                        구분해서 이해해야 합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q3. CREATE USER와 GRANT의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        CREATE USER는 Account를 만들고,
+                                        GRANT는 Account에 Database 작업 권한을 부여합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q4. 최소 권한 원칙이란 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Account에 업무 수행에 실제 필요한 Operation과
+                                        Object Scope만 허용하는 원칙입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q5. ALL PRIVILEGES를 항상 사용하지 않는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Application에 필요하지 않은 작업까지
+                                        수행할 수 있게 되어 권한 범위가 불필요하게 커질 수 있기 때문입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q6. *.*, db.*, db.table의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        각각 Global,
+                                        Database,
+                                        특정 Table 수준의 권한 Scope로 이해할 수 있습니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q7. SHOW GRANTS는 왜 사용하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Account에 실제 어떤 Privilege가
+                                        어느 범위로 설정되었는지 검증하기 위해 사용합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q8. REVOKE는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        이미 부여된 특정 Privilege를
+                                        Account에서 제거할 때 사용합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q9. REVOKE와 DROP USER는 어떻게 다른가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        REVOKE는 Account를 유지하면서 권한을 제거하고,
+                                        DROP USER는 Account 자체를 삭제합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q10. ALTER USER는 언제 사용하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        기존 Account의 Password 같은
+                                        Account 설정을 변경할 때 사용합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q11. localhost는 무엇을 의미하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        해당 MySQL Account의 접속 Host 조건을
+                                        Local Host로 설정한 형태로 이해합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q12. Login 성공과 SQL 실행 가능은 같은 의미인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        아닙니다.
+                                        접속 인증에 성공한 뒤에도
+                                        실행하는 SQL마다 필요한 Privilege가 있는지 확인해야 합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q13. Login은 되는데 SELECT가 실패하면 무엇을 확인하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SELECT Privilege와
+                                        Database·Table Scope가 올바른지 확인합니다.
+                                        Step 1·2에서는 SHOW GRANTS를 이용해 검증하는 흐름으로 정리했습니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q14. FLUSH PRIVILEGES는 GRANT 뒤 항상 필요한가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        첨부 교안에는 GRANT 뒤
+                                        FLUSH PRIVILEGES를 실행하는 흐름이 제시됩니다.
+                                        이번 과정에서는 이 내용을 보존하되,
+                                        Step 1·2에서 정리한 보완 내용과 구분해서 학습합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q15. root 대신 Application User를 두는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Application이 실제 필요한 범위보다
+                                        과도한 Database 권한을 갖지 않도록 하기 위해서입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q16. DB Password를 Source Code와 분리하는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Password 같은 Secret을
+                                        Git이나 Application Logic에 직접 포함하지 않고
+                                        환경별 설정으로 관리하기 위해서입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q17. Parameterized Query와 최소 권한은 같은 보안 방식인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        아닙니다.
+                                        Parameterized Query는 SQL Code와 외부 Data를 분리하고,
+                                        최소 권한은 Account가 실행할 수 있는 Operation과 범위를 제한합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q18. SQLite와 PyMySQL의 Placeholder 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQLite의 대표 위치 기반 Placeholder는
+                                        <code>?</code>이고,
+                                        교안의 PyMySQL 예에서는
+                                        <code>%s</code>를 사용합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q19. Privilege와 Transaction은 어떻게 다른가요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Privilege는 SQL을 실행할 수 있는지 결정하고,
+                                        Transaction은 실행한 변경을
+                                        확정하거나 취소하는 문제입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q20. Repository와 최소 권한은 어떻게 연결할 수 있나요?
+                                </summary>
+
+                                <div class="interview-answer">
+
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Repository가 실제 실행하는 SQL Operation을 분석하여
+                                        Application Account에 필요한 Privilege만
+                                        부여하는 방향으로 연결할 수 있습니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+                        </div>
+
+                    </section>
+
                 </main>
 
+
+                <!-- =====================================================
+                 ASIDE
+            ====================================================== -->
                 <aside class="side-note">
+
+
+                    <!-- 오늘의 암기 포인트 -->
                     <section>
-                        <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
+
+                        <p class="side-note-label">
+                            Memory
+                        </p>
+
+                        <h2>
+                            오늘의 암기 포인트
+                        </h2>
+
+
+                        <ul class="memory-list">
+
+                            <li>
+                                MySQL Account는
+                                <strong>User + Host</strong>로 이해한다.
+                            </li>
+
+                            <li>
+                                대표 표현은
+                                <code>'app_user'@'localhost'</code>이다.
+                            </li>
+
+                            <li>
+                                root와 Application User의 역할을 구분한다.
+                            </li>
+
+                            <li>
+                                <code>CREATE USER</code>는 Account 생성이다.
+                            </li>
+
+                            <li>
+                                <code>GRANT</code>는 Privilege 부여다.
+                            </li>
+
+                            <li>
+                                Account 생성과 Database 작업 권한은 같은 것이 아니다.
+                            </li>
+
+                            <li>
+                                로그인 성공과 모든 SQL 실행 가능은 같은 것이 아니다.
+                            </li>
+
+                            <li>
+                                <code>SELECT</code>,
+                                <code>INSERT</code>,
+                                <code>UPDATE</code>,
+                                <code>DELETE</code>를 주요 Application Privilege로 기억한다.
+                            </li>
+
+                            <li>
+                                <code>*.*</code>는 넓고,
+                                <code>db.*</code>,
+                                <code>db.table</code>로 범위를 줄일 수 있다.
+                            </li>
+
+                            <li>
+                                최소 권한은
+                                <strong>필요한 권한만 + 필요한 범위에만</strong>이다.
+                            </li>
+
+                            <li>
+                                Step 1·2 보완에서는
+                                <code>SHOW GRANTS</code>로 실제 권한을 확인한다.
+                            </li>
+
+                            <li>
+                                <code>REVOKE</code>는 권한 제거,
+                                <code>DROP USER</code>는 Account 제거다.
+                            </li>
+
+                            <li>
+                                <code>ALTER USER</code>는 기존 Account 변경이다.
+                            </li>
+
+                            <li>
+                                Host가 다르면 같은 User 이름도 다른 접속 조건으로 봐야 한다.
+                            </li>
+
+                            <li>
+                                Password는 Source Code와 분리한다.
+                            </li>
+
+                            <li>
+                                Application 외부 값은
+                                Parameter Binding으로 SQL에 전달한다.
+                            </li>
+
+                            <li>
+                                Privilege와 Transaction은 서로 다른 책임이다.
+                            </li>
+
                         </ul>
+
+
+                        <div class="side-account-flow">
+
+                            <span>User@Host</span>
+                            <b>→</b>
+
+                            <span>Login</span>
+                            <b>→</b>
+
+                            <span>Privilege</span>
+                            <b>→</b>
+
+                            <span>SQL</span>
+
+                        </div>
+
                     </section>
 
+
+                    <!-- 헷갈리기 쉬운 개념 -->
                     <section>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
+
+                        <p class="side-note-label">
+                            Confusing Point
+                        </p>
+
+                        <h2>
+                            헷갈리기 쉬운 개념
+                        </h2>
+
+
+                        <div class="confusing-list">
+
+                            <article>
+
+                                <strong>
+                                    root ≠ Application User
+                                </strong>
+
+                                <p>
+                                    관리자와 업무용 Account를 구분합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    User ≠ Account 전체
+                                </strong>
+
+                                <p>
+                                    MySQL Account는 User와 Host를 함께 봅니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    CREATE USER ≠ GRANT
+                                </strong>
+
+                                <p>
+                                    Account 생성과 권한 부여입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Login 성공 ≠ 모든 SQL 허용
+                                </strong>
+
+                                <p>
+                                    접속과 Request Privilege를 구분합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    ALL PRIVILEGES ≠ 좋은 기본값
+                                </strong>
+
+                                <p>
+                                    실제 Application 요구사항부터 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    *.* ≠ 특정 Database
+                                </strong>
+
+                                <p>
+                                    Global Scope와 제한된 Scope를 구분합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    REVOKE ≠ DROP USER
+                                </strong>
+
+                                <p>
+                                    Privilege 제거와 Account 삭제입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    localhost ≠ 모든 Host
+                                </strong>
+
+                                <p>
+                                    접속 위치의 범위를 구분합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Access denied ≠ Password만의 문제
+                                </strong>
+
+                                <p>
+                                    User·Host·Authentication·Privilege를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    FLUSH PRIVILEGES
+                                </strong>
+
+                                <p>
+                                    교안의 설명과 Step 1·2 보완 내용을 구분합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Parameter Binding ≠ Privilege
+                                </strong>
+
+                                <p>
+                                    SQL 안전성과 Account 권한은 다른 보안 계층입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Privilege ≠ Transaction
+                                </strong>
+
+                                <p>
+                                    실행 가능 여부와 변경 확정 여부입니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
                     </section>
 
-                    <section>
-                        <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
+
+                    <!-- 다음 단원 -->
+                    <section class="next-lesson-note">
+
+                        <p class="side-note-label">
+                            Next Lesson
+                        </p>
+
+                        <h2>
+                            다음 단원 연결
+                        </h2>
+
+
+                        <p>
+                            이제 Python Application이 사용할
+                            MySQL Account와 Privilege가 준비되었습니다.
+                        </p>
+
+
+                        <div class="current-map">
+
+                            <span>app_user</span>
+                            <b>+</b>
+
+                            <span>Host</span>
+                            <b>+</b>
+
+                            <span>Password</span>
+                            <b>+</b>
+
+                            <span>Privilege</span>
+
+                        </div>
+
+
+                        <div class="next-question">
+
+                            <span>다음 질문</span>
+
+                            <strong>
+                                준비한 Account를 Python의
+                                pymysql.connect()에 어떻게 연결하고,
+                                Cursor와 %s Placeholder를 이용해 SQL을 실행할까?
+                            </strong>
+
+                        </div>
+
+
+                        <div class="next-topic-grid">
+
+                            <span>pip install PyMySQL</span>
+                            <span>import pymysql</span>
+                            <span>connect()</span>
+                            <span>Cursor</span>
+                            <span>%s</span>
+                            <span>DictCursor</span>
+                            <span>execute()</span>
+                            <span>executemany()</span>
+                            <span>fetch</span>
+                            <span>commit</span>
+                            <span>rollback</span>
+                            <span>close</span>
+
+                        </div>
+
+
+                        <a class="next-lesson-link" href="./10_python_pymysql.html">
+                            <span>Lesson 10</span>
+
+                            PyMySQL 연동
+
+                            <strong>→</strong>
+                        </a>
+
                     </section>
+
                 </aside>
+
             </div>
         </div>
     </body>

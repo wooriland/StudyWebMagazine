@@ -4,7 +4,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>SQL 파라미터 처리 | Python & Data 학습 매거진</title>
+
+        <meta name="description"
+            content="SQLite Parameter Query를 학습합니다. Placeholder, execute, executemany, tuple과 list 데이터 전달, SQL Injection 방지, commit과 rollback, Connection 생명주기와 Repository 구조를 정리합니다.">
+
+        <title>파라미터 쿼리와 대량 입력 | Python Database 학습 매거진</title>
 
         <link rel="stylesheet" href="../../css/00_nav.css">
         <link rel="stylesheet" href="../../css/study-theme.css">
@@ -14,103 +18,3728 @@
         <script src="../../js/00_nav.js" defer></script>
     </head>
 
-    <body class="theme-python-data study-page python-database-page python-database-lesson-page python-database-lesson-06" data-nav-category="python-data" data-nav-item="python-database">
+    <body class="theme-python-data study-page python-database-page python-database-parameter-page"
+        data-nav-category="python-data" data-nav-item="python-database">
         <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+
+            <!-- =========================================================
+             SIDE NAVIGATION
+        ========================================================== -->
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 네비게이션"></nav>
+
 
             <div class="page-content">
+
+                <!-- =====================================================
+                 HEADER
+            ====================================================== -->
                 <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Database · Lesson 06</p>
-                    <h1>SQL 파라미터 처리</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
+
+                    <p class="lesson-eyebrow">
+                        Python Database · Lesson 06
                     </p>
 
+                    <h1>
+                        파라미터 쿼리와 대량 입력
+
+                        <span class="title-sub">
+                            Placeholder · Binding · execute · executemany · Transaction
+                        </span>
+                    </h1>
+
+
+                    <p class="lesson-summary">
+                        Database에 Python 값을 전달할 때는
+                        SQL 문자열에 값을 직접 이어 붙이기보다
+                        <strong>Placeholder와 Parameter Binding</strong>을 사용합니다.
+                        이번 단원에서는 SQLite의 <code>?</code> Placeholder,
+                        Named Placeholder, tuple·list·dict 전달 방법과
+                        <code>execute()</code>·<code>executemany()</code>의 차이를 학습합니다.
+                        여기에 SQL Injection 방지,
+                        <code>commit()</code>·<code>rollback()</code>,
+                        Connection과 Cursor의 생명주기,
+                        접속 정보 분리와 Repository 구조까지
+                        실제 프로젝트 관점으로 확장합니다.
+                    </p>
+
+
+                    <!-- 핵심 흐름 -->
+                    <div class="hero-parameter-flow" aria-label="Parameterized Query 전체 흐름">
+                        <span>Python Data</span>
+                        <b>→</b>
+
+                        <span class="accent">Placeholder</span>
+                        <b>→</b>
+
+                        <span class="accent">Binding</span>
+                        <b>→</b>
+
+                        <span>execute()</span>
+                        <b>/</b>
+                        <span>executemany()</span>
+                        <b>→</b>
+
+                        <span>SQLite</span>
+                    </div>
+
+
+                    <div class="hero-transaction-flow">
+
+                        <article>
+                            <span>SUCCESS</span>
+                            <strong>commit()</strong>
+                            <small>변경 확정</small>
+                        </article>
+
+                        <b>OR</b>
+
+                        <article>
+                            <span>FAIL</span>
+                            <strong>rollback()</strong>
+                            <small>변경 취소</small>
+                        </article>
+
+                        <b>→</b>
+
+                        <article>
+                            <span>FINALLY</span>
+                            <strong>close()</strong>
+                            <small>자원 정리</small>
+                        </article>
+
+                    </div>
+
+
+                    <!-- 학습 목표 -->
                     <section class="learning-goals" aria-labelledby="learningGoalsTitle">
                         <h2 id="learningGoalsTitle">학습 목표</h2>
+
                         <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
+                            <li>
+                                Parameterized Query가 왜 필요한지 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                SQL 문자열 직접 조립과 Parameter Binding의 차이를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                SQL Injection과 Parameter Query의 관계를 이해한다.
+                            </li>
+
+                            <li>
+                                SQLite의 <code>?</code> Placeholder와
+                                Python tuple/list의 연결 관계를 이해한다.
+                            </li>
+
+                            <li>
+                                Placeholder 개수와 Parameter 개수를 맞출 수 있다.
+                            </li>
+
+                            <li>
+                                한 요소 tuple의 <code>(value,)</code> 문법을 사용할 수 있다.
+                            </li>
+
+                            <li>
+                                Named Placeholder와 dict 전달 방식을 이해한다.
+                            </li>
+
+                            <li>
+                                <code>execute()</code>와
+                                <code>executemany()</code>의 차이를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                여러 Record를 list of tuples 구조로 표현할 수 있다.
+                            </li>
+
+                            <li>
+                                성공 시 <code>commit()</code>,
+                                실패 시 <code>rollback()</code> 흐름을 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                Manual Commit과 Auto Commit의 차이를 개념적으로 이해한다.
+                            </li>
+
+                            <li>
+                                Connection과 Cursor의 생명주기를 이해하고
+                                <code>finally</code> 또는 Context Manager 구조와 연결할 수 있다.
+                            </li>
+
+                            <li>
+                                Database 접속 정보를 Source Code와 분리해야 하는 이유를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                SQLite·MySQL·Oracle Driver의 Placeholder 표기가
+                                서로 다를 수 있음을 이해한다.
+                            </li>
+
+                            <li>
+                                SQL과 Database 접근 코드를 Repository 계층으로
+                                분리하는 이유를 이해한다.
+                            </li>
                         </ul>
                     </section>
+
                 </header>
 
+
+                <!-- =====================================================
+                 MAIN
+            ====================================================== -->
                 <main class="lesson-main">
+
+
+                    <!-- =================================================
+                     01. 핵심 개념
+                ================================================== -->
                     <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
+                        <div class="section-heading">
+                            <span class="section-number">01</span>
 
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
-
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
                             <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                                <p class="section-kicker">Core Concept</p>
+                                <h2>SQL 구조와 실제 Data를 분리한다</h2>
                             </div>
-                        </dl>
+                        </div>
+
+
+                        <p class="lead-text">
+                            이전 단원에서 <code>execute()</code>로 SQL을 실행하는 방법을 배웠습니다.
+                            하지만 실제 프로그램에서는 회원 이름이나 전화번호처럼
+                            실행할 때마다 달라지는 Python 값을 SQL에 전달해야 합니다.
+                        </p>
+
+
+                        <div class="parameter-problem-grid">
+
+                            <article>
+                                <span>PYTHON DATA</span>
+
+                                <pre><code class="language-python">name = "홍길동"
+tel = "010-1111-1111"</code></pre>
+
+                                <p>
+                                    프로그램 실행 중 만들어진 실제 값입니다.
+                                </p>
+                            </article>
+
+
+                            <b>→</b>
+
+
+                            <article>
+                                <span>QUESTION</span>
+
+                                <strong>
+                                    이 값을 SQL에 어떻게 전달할까?
+                                </strong>
+                            </article>
+
+
+                            <b>→</b>
+
+
+                            <article class="result">
+                                <span>PARAMETER QUERY</span>
+
+                                <pre><code class="language-sql">INSERT INTO Member(
+    name,
+    tel
+)
+VALUES (?, ?)</code></pre>
+
+                                <p>
+                                    SQL 구조와 Data를 분리합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+
+                        <div class="parameter-definition">
+
+                            <div>
+                                <strong>SQL CODE</strong>
+
+                                <code>
+WHERE name = ?
+                            </code>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <strong>DATA</strong>
+
+                                <code>
+("홍길동",)
+                            </code>
+                            </div>
+
+                            <b>→</b>
+
+                            <div class="binding-box">
+                                <strong>Binding</strong>
+
+                                <span>
+                                    Placeholder와 값을 연결
+                                </span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>이번 단원의 중심 문장</strong>
+
+                            <p>
+                                SQL 문자열 안에 Python 값을 직접 조립하는 대신,
+                                <strong>
+                                    SQL 구조는 Placeholder로 남겨 두고
+                                    실제 Data는 execute()의 별도 Parameter로 전달한다.
+                                </strong>
+                            </p>
+
+                        </div>
+
                     </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./05_python_sqlite_connect.html">이전 단원</a>
-                        <a class="lesson-next" href="./07_python_database_fetch_transaction.html">다음 단원</a>
-                    </nav>
+
+
+                    <!-- =================================================
+                     02. 문자열 직접 조립 vs Parameter
+                ================================================== -->
+                    <section class="lesson-card comparison-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">02</span>
+
+                            <div>
+                                <p class="section-kicker">Direct String vs Parameter</p>
+                                <h2>SQL 문자열 직접 결합과 Parameter Query 비교</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="unsafe-safe-grid">
+
+                            <article class="unsafe">
+
+                                <span>피해야 할 기본 습관</span>
+
+                                <h3>문자열 직접 조립</h3>
+
+                                <pre><code class="language-python">name = input("이름: ")
+
+sql = f"""
+SELECT *
+FROM Member
+WHERE name = '{name}'
+"""
+
+cur.execute(sql)</code></pre>
+
+                                <div class="flow-mini">
+
+                                    <span>SQL</span>
+                                    <b>+</b>
+                                    <span>User Input</span>
+                                    <b>→</b>
+                                    <strong>하나의 문자열</strong>
+
+                                </div>
+
+                            </article>
+
+
+                            <article class="safe">
+
+                                <span>권장 기본 구조</span>
+
+                                <h3>Parameterized Query</h3>
+
+                                <pre><code class="language-python">name = input("이름: ")
+
+sql = """
+SELECT *
+FROM Member
+WHERE name = ?
+"""
+
+cur.execute(
+    sql,
+    (name,)
+)</code></pre>
+
+                                <div class="flow-mini">
+
+                                    <span>SQL Code</span>
+                                    <b>+</b>
+                                    <span>Data</span>
+                                    <b>→</b>
+                                    <strong>Binding</strong>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>SQL Code</span>
+                            <b>≠</b>
+                            <span>User Data</span>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     03. SQL Injection
+                ================================================== -->
+                    <section class="lesson-card security-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">03</span>
+
+                            <div>
+                                <p class="section-kicker">Security Supplement</p>
+                                <h2>SQL Injection과 Parameter Query</h2>
+                            </div>
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 카드는 첨부 교안의 Placeholder 내용을
+                            실제 프로젝트 보안 관점으로 확장한
+                            <strong>실무 보완 영역</strong>입니다.
+                        </p>
+
+
+                        <p>
+                            외부 입력을 SQL 문자열에 직접 결합하면
+                            입력값과 SQL Code의 경계가 흐려질 수 있습니다.
+                            Parameter Query의 중요한 목적 중 하나는
+                            <strong>SQL Code와 Data Value를 처음부터 분리하는 것</strong>입니다.
+                        </p>
+
+
+                        <div class="injection-visual">
+
+                            <article class="direct">
+
+                                <span>문자열 직접 조합</span>
+
+                                <div class="vertical-flow">
+                                    <strong>Developer SQL</strong>
+                                    <b>↓</b>
+
+                                    <strong>+</strong>
+                                    <b>↓</b>
+
+                                    <strong>User Input</strong>
+                                    <b>↓</b>
+
+                                    <span>하나의 SQL 문자열</span>
+                                    <b>↓</b>
+
+                                    <em>
+                                        Code와 Data의 경계가 흐려질 수 있음
+                                    </em>
+                                </div>
+
+                            </article>
+
+
+                            <article class="parameterized">
+
+                                <span>Parameterized Query</span>
+
+                                <div class="split-flow">
+
+                                    <div>
+                                        <strong>SQL Code</strong>
+                                        <code>WHERE name = ?</code>
+                                    </div>
+
+                                    <div>
+                                        <strong>Data</strong>
+                                        <code>(name,)</code>
+                                    </div>
+
+                                    <b>↓</b>
+
+                                    <div class="driver-box">
+                                        <strong>Driver Binding</strong>
+                                    </div>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="security-rule-grid">
+
+                            <article>
+                                <span>RULE 01</span>
+
+                                <strong>
+                                    사용자 값을 SQL 문자열에 직접 넣지 않는다.
+                                </strong>
+                            </article>
+
+
+                            <article>
+                                <span>RULE 02</span>
+
+                                <strong>
+                                    Data Value는 Placeholder로 전달한다.
+                                </strong>
+                            </article>
+
+
+                            <article>
+                                <span>RULE 03</span>
+
+                                <strong>
+                                    동적 Identifier는 별도 검증한다.
+                                </strong>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     04. ? Placeholder
+                ================================================== -->
+                    <section class="lesson-card qmark-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">04</span>
+
+                            <div>
+                                <p class="section-kicker">Qmark Style</p>
+                                <h2>SQLite의 기본 Placeholder — ?</h2>
+                            </div>
+                        </div>
+
+
+                        <pre><code class="language-python">sql = """
+INSERT INTO Member(
+    name,
+    tel
+)
+VALUES (?, ?)
+"""
+
+
+data = (
+    "홍길동",
+    "010-1111"
+)
+
+
+cur.execute(
+    sql,
+    data
+)</code></pre>
+
+
+                        <div class="qmark-binding">
+
+                            <div class="sql-side">
+
+                                <strong>SQL</strong>
+
+                                <div>
+                                    <span>첫 번째</span>
+                                    <code>?</code>
+                                </div>
+
+                                <div>
+                                    <span>두 번째</span>
+                                    <code>?</code>
+                                </div>
+
+                            </div>
+
+
+                            <b>↔</b>
+
+
+                            <div class="data-side">
+
+                                <strong>Python Tuple</strong>
+
+                                <div>
+                                    <span>index 0</span>
+                                    <code>"홍길동"</code>
+                                </div>
+
+                                <div>
+                                    <span>index 1</span>
+                                    <code>"010-1111"</code>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="binding-result">
+
+                            <span>
+                                첫 번째 ?
+                                <b>→</b>
+                                "홍길동"
+                            </span>
+
+                            <span>
+                                두 번째 ?
+                                <b>→</b>
+                                "010-1111"
+                            </span>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>순서를 반드시 맞춘다.</strong>
+
+                            <p>
+                                Driver가 name과 tel의 의미를 추론해서
+                                Parameter 순서를 자동으로 수정해 주는 것은 아닙니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     05. 개수 / Tuple / List
+                ================================================== -->
+                    <section class="lesson-card data-structure-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">05</span>
+
+                            <div>
+                                <p class="section-kicker">Python Data Structure</p>
+                                <h2>Placeholder 개수와 tuple·list 구조 이해하기</h2>
+                            </div>
+                        </div>
+
+
+                        <h3>Placeholder 개수와 Data 개수</h3>
+
+                        <div class="count-match-grid">
+
+                            <article class="match">
+
+                                <span>MATCH</span>
+
+                                <pre><code class="language-sql">VALUES (?, ?)</code></pre>
+
+                                <pre><code class="language-python">(
+    "홍길동",
+    "010-1111"
+)</code></pre>
+
+                                <strong>2 = 2</strong>
+
+                            </article>
+
+
+                            <article class="mismatch">
+
+                                <span>MISMATCH</span>
+
+                                <pre><code class="language-sql">VALUES (?, ?)</code></pre>
+
+                                <pre><code class="language-python">(
+    "홍길동",
+)</code></pre>
+
+                                <strong>2 ≠ 1</strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>암기 공식</strong>
+
+                            <div class="equal-formula">
+                                <span>Placeholder Count</span>
+                                <b>=</b>
+                                <span>Parameter Count</span>
+                            </div>
+
+                        </div>
+
+
+                        <h3>Tuple과 List</h3>
+
+                        <div class="tuple-list-grid">
+
+                            <article>
+
+                                <span>TUPLE</span>
+
+                                <pre><code class="language-python">data = (
+    "홍길동",
+    "010-1111"
+)</code></pre>
+
+                                <p>
+                                    Row 하나의 Parameter Set을
+                                    표현할 때 이해하기 쉽습니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>LIST</span>
+
+                                <pre><code class="language-python">data = [
+    "홍길동",
+    "010-1111"
+]</code></pre>
+
+                                <p>
+                                    위치 기반 Parameter 전달에서
+                                    Sequence 형태로 사용할 수 있습니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     06. 한 요소 Tuple
+                ================================================== -->
+                    <section class="lesson-card one-tuple-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">06</span>
+
+                            <div>
+                                <p class="section-kicker">One Item Tuple</p>
+                                <h2>값 하나를 전달할 때는 쉼표를 기억한다</h2>
+                            </div>
+                        </div>
+
+
+                        <pre><code class="language-python">name = "홍길동"
+
+
+cur.execute(
+    """
+    SELECT *
+    FROM Member
+    WHERE name = ?
+    """,
+    (name,)
+)</code></pre>
+
+
+                        <div class="one-tuple-compare">
+
+                            <article class="wrong">
+
+                                <span>잘못 이해하기 쉬움</span>
+
+                                <code>("홍길동")</code>
+
+                                <strong>문자열</strong>
+
+                            </article>
+
+
+                            <b>≠</b>
+
+
+                            <article class="right">
+
+                                <span>한 요소 Tuple</span>
+
+                                <code>("홍길동",)</code>
+
+                                <strong>Tuple</strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-formula">
+
+                            <span>1 Item Tuple</span>
+                            <b>=</b>
+                            <strong>쉼표 필요</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     07. Named Placeholder
+                ================================================== -->
+                    <section class="lesson-card named-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">07</span>
+
+                            <div>
+                                <p class="section-kicker">Named Placeholder</p>
+                                <h2>:name 방식과 dict Binding</h2>
+                            </div>
+                        </div>
+
+
+                        <pre><code class="language-python">sql = """
+INSERT INTO Member(
+    name,
+    tel
+)
+VALUES(
+    :name,
+    :tel
+)
+"""
+
+
+data = {
+    "name": "홍길동",
+    "tel": "010-1111"
+}
+
+
+cur.execute(
+    sql,
+    data
+)</code></pre>
+
+
+                        <div class="named-binding">
+
+                            <div>
+                                <code>:name</code>
+                                <b>←</b>
+                                <code>data["name"]</code>
+                            </div>
+
+                            <div>
+                                <code>:tel</code>
+                                <b>←</b>
+                                <code>data["tel"]</code>
+                            </div>
+
+                        </div>
+
+
+                        <div class="qmark-named-compare">
+
+                            <article>
+
+                                <span>QMARK</span>
+
+                                <code>?</code>
+
+                                <strong>순서 기반</strong>
+
+                                <pre><code class="language-python">(name, tel)</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>NAMED</span>
+
+                                <code>:name</code>
+
+                                <strong>이름 기반</strong>
+
+                                <pre><code class="language-python">{
+    "name": name,
+    "tel": tel
+}</code></pre>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     08. 교안 기준 vs 현재 기준
+                ================================================== -->
+                    <section class="lesson-card correction-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">08</span>
+
+                            <div>
+                                <p class="section-kicker">Source vs Supplement</p>
+                                <h2>Named Placeholder — 교안 내용과 보완 내용을 구분해서 기억하기</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="source-current-grid">
+
+                            <article class="source">
+
+                                <span>첨부 교안 기준</span>
+
+                                <strong>
+                                    Python 3.14부터 Named Placeholder 사용 불가
+                                </strong>
+
+                                <p>
+                                    첨부 교안에 기재된 문장입니다.
+                                    교안 원문의 흐름을 파악할 때는 이 내용이 포함되어 있음을 기억합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article class="supplement">
+
+                                <span>Step 1·2 현재 기준 보완</span>
+
+                                <strong>
+                                    Named Placeholder 자체는 사용 가능
+                                </strong>
+
+                                <p>
+                                    Named Placeholder에는
+                                    이름에 대응하는 <code>dict</code> 형태의 Parameter를 사용한다고
+                                    구분해서 정리했습니다.
+                                </p>
+
+                                <div class="mini-rule">
+                                    <code>:name</code>
+                                    <b>→</b>
+                                    <code>{"name": value}</code>
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>학습 매거진에서는 둘을 섞지 않는다.</strong>
+
+                            <p>
+                                교안 원문과 Step 1·2의 현재 기준 보완을
+                                별도의 영역으로 표시하면
+                                원문을 보존하면서 잘못된 내용을 그대로 암기하는 문제도 줄일 수 있습니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     09. execute / executemany
+                ================================================== -->
+                    <section class="lesson-card batch-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">09</span>
+
+                            <div>
+                                <p class="section-kicker">Execute vs Executemany</p>
+                                <h2>한 Record와 여러 Record 처리하기</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="execute-many-grid">
+
+                            <article>
+
+                                <span>ONE RECORD</span>
+
+                                <h3>execute()</h3>
+
+                                <pre><code class="language-python">cur.execute(
+    sql,
+    (
+        "홍길동",
+        "010-1111"
+    )
+)</code></pre>
+
+                                <div class="record-visual">
+                                    <strong>SQL 1개</strong>
+                                    <b>+</b>
+                                    <strong>Parameter Set 1개</strong>
+                                </div>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MANY RECORDS</span>
+
+                                <h3>executemany()</h3>
+
+                                <pre><code class="language-python">cur.executemany(
+    sql,
+    members
+)</code></pre>
+
+                                <div class="record-visual">
+                                    <strong>SQL 1개</strong>
+                                    <b>+</b>
+                                    <strong>Parameter Set 여러 개</strong>
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>여러 Record를 표현하는 Python 구조</h3>
+
+                        <pre><code class="language-python">members = [
+    (
+        "홍길동",
+        "010-1111"
+    ),
+    (
+        "김철수",
+        "010-2222"
+    ),
+    (
+        "이영희",
+        "010-3333"
+    )
+]</code></pre>
+
+
+                        <div class="nested-data-visual">
+
+                            <div class="outer-list">
+
+                                <strong>List</strong>
+
+                                <div class="record">
+                                    <span>Tuple 1</span>
+                                    <code>("홍길동", "010-1111")</code>
+                                </div>
+
+                                <div class="record">
+                                    <span>Tuple 2</span>
+                                    <code>("김철수", "010-2222")</code>
+                                </div>
+
+                                <div class="record">
+                                    <span>Tuple 3</span>
+                                    <code>("이영희", "010-3333")</code>
+                                </div>
+
+                            </div>
+
+
+                            <b>→</b>
+
+
+                            <div class="batch-result">
+
+                                <strong>executemany()</strong>
+
+                                <span>INSERT 1</span>
+                                <span>INSERT 2</span>
+                                <span>INSERT 3</span>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     10. Parameter는 Value
+                ================================================== -->
+                    <section class="lesson-card identifier-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">10</span>
+
+                            <div>
+                                <p class="section-kicker">Value vs Identifier</p>
+                                <h2>Placeholder는 Data Value에 사용한다</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="value-identifier-grid">
+
+                            <article class="value">
+
+                                <span>VALUE · 적합</span>
+
+                                <pre><code class="language-sql">WHERE name = ?
+
+VALUES (?, ?)
+
+SET tel = ?</code></pre>
+
+                                <p>
+                                    name, tel, id처럼 실제 Data Value를
+                                    전달하는 위치입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article class="identifier">
+
+                                <span>IDENTIFIER · 별도 처리</span>
+
+                                <pre><code class="language-sql">SELECT *
+FROM Member
+
+ORDER BY name</code></pre>
+
+                                <p>
+                                    Member나 name처럼 SQL 구조에 해당하는
+                                    Table·Column Identifier는 별도로 다룹니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="wrong-example">
+
+                            <strong>이런 형태로 생각하지 않는다.</strong>
+
+                            <pre><code class="language-python">cur.execute(
+    "SELECT * FROM ?",
+    ("Member",)
+)</code></pre>
+
+                        </div>
+
+
+                        <h3>동적 Identifier가 꼭 필요하다면</h3>
+
+                        <pre><code class="language-python">allowed_columns = {
+    "name",
+    "joindate"
+}
+
+
+sort_column = "name"
+
+
+if sort_column not in allowed_columns:
+    raise ValueError(
+        "허용하지 않는 정렬 기준입니다."
+    )
+
+
+sql = f"""
+SELECT *
+FROM Member
+ORDER BY {sort_column}
+"""</code></pre>
+
+
+                        <div class="important-box">
+
+                            <strong>핵심은 f-string을 무조건 금지한다는 뜻이 아니다.</strong>
+
+                            <p>
+                                사용자 Data Value를 SQL Code에 직접 삽입하는 것을 피하고,
+                                SQL Identifier를 동적으로 만들어야 한다면
+                                개발자가 허용한 값인지 먼저 검증하는 구조로 분리합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     11. DBMS Placeholder 비교
+                ================================================== -->
+                    <section class="lesson-card driver-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">11</span>
+
+                            <div>
+                                <p class="section-kicker">Driver Difference</p>
+                                <h2>SQLite · MySQL · Oracle은 Placeholder 문법이 다를 수 있다</h2>
+                            </div>
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 영역은 SQLite 이후 MySQL·Oracle 학습으로 연결하기 위한
+                            <strong>실무 보완 카드</strong>입니다.
+                        </p>
+
+
+                        <div class="driver-grid">
+
+                            <article>
+
+                                <span>SQLite · sqlite3</span>
+
+                                <h3>위치 기반</h3>
+
+                                <code>?</code>
+
+                                <pre><code class="language-python">cur.execute(
+    "WHERE name = ?",
+    (name,)
+)</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SQLite · sqlite3</span>
+
+                                <h3>Named</h3>
+
+                                <code>:name</code>
+
+                                <pre><code class="language-python">cur.execute(
+    "WHERE name = :name",
+    {
+        "name": name
+    }
+)</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MySQL · PyMySQL</span>
+
+                                <h3>위치 기반</h3>
+
+                                <code>%s</code>
+
+                                <pre><code class="language-python">cur.execute(
+    "WHERE name = %s",
+    (name,)
+)</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MySQL · PyMySQL</span>
+
+                                <h3>Named Mapping</h3>
+
+                                <code>%(name)s</code>
+                            </article>
+
+
+                            <article>
+
+                                <span>Oracle · Driver</span>
+
+                                <h3>Named Binding</h3>
+
+                                <code>:name</code>
+                            </article>
+
+
+                            <article>
+
+                                <span>Oracle · Driver</span>
+
+                                <h3>위치 기반</h3>
+
+                                <code>:1</code>
+                                <code>:2</code>
+                            </article>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>기호 자체보다 개념을 먼저 기억한다.</strong>
+
+                            <div class="driver-memory">
+
+                                <span>
+                                    Parameterized Query
+                                </span>
+
+                                <b>→</b>
+
+                                <strong>
+                                    Driver마다 Placeholder 문법 확인
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     12. Transaction
+                ================================================== -->
+                    <section class="lesson-card transaction-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">12</span>
+
+                            <div>
+                                <p class="section-kicker">Transaction</p>
+                                <h2>대량 입력은 commit·rollback과 함께 생각한다</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="transaction-main-flow">
+
+                            <div>
+                                <strong>executemany()</strong>
+
+                                <span>여러 INSERT 실행</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="decision">
+                                <strong>모든 작업 성공?</strong>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="transaction-result-grid">
+
+                                <article class="commit">
+
+                                    <span>YES</span>
+
+                                    <code>conn.commit()</code>
+
+                                    <strong>변경 확정</strong>
+
+                                </article>
+
+
+                                <article class="rollback">
+
+                                    <span>NO</span>
+
+                                    <code>conn.rollback()</code>
+
+                                    <strong>변경 취소</strong>
+
+                                </article>
+
+                            </div>
+
+                        </div>
+
+
+                        <pre><code class="language-python">try:
+    cur.executemany(
+        sql,
+        members
+    )
+
+    conn.commit()
+
+
+except sqlite3.Error:
+    conn.rollback()
+
+    raise</code></pre>
+
+
+                        <div class="memory-formula">
+
+                            <span>성공</span>
+                            <b>→</b>
+                            <strong>commit()</strong>
+
+                            <span>실패</span>
+                            <b>→</b>
+                            <strong>rollback()</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     13. Auto / Manual Commit
+                ================================================== -->
+                    <section class="lesson-card autocommit-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">13</span>
+
+                            <div>
+                                <p class="section-kicker">Transaction Mode</p>
+                                <h2>Auto Commit과 Manual Commit을 구분한다</h2>
+                            </div>
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            첨부 교안에서는 직접 <code>commit()</code>과
+                            <code>rollback()</code>을 호출하는 흐름을 학습합니다.
+                            이 카드는 그 구조를 Transaction Mode 관점으로 확장합니다.
+                        </p>
+
+
+                        <div class="autocommit-grid">
+
+                            <article>
+
+                                <span>MANUAL</span>
+
+                                <h3>수동 Transaction</h3>
+
+                                <div class="vertical-flow">
+
+                                    <span>변경 SQL</span>
+                                    <b>↓</b>
+
+                                    <span>여러 작업</span>
+                                    <b>↓</b>
+
+                                    <strong>commit / rollback</strong>
+
+                                </div>
+
+                                <p>
+                                    개발자가 업무 단위를 보고
+                                    Transaction 결과를 결정합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>AUTO</span>
+
+                                <h3>Auto Commit</h3>
+
+                                <div class="vertical-flow">
+
+                                    <span>변경 SQL</span>
+                                    <b>↓</b>
+
+                                    <strong>자동 확정 방향</strong>
+
+                                </div>
+
+                                <p>
+                                    Transaction을 직접 묶어 처리하는 방식과
+                                    차이가 있음을 이해합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>이번 과정은 Manual Transaction 사고방식을 먼저 익힌다.</strong>
+
+                            <p>
+                                변경 SQL을 실행했다고 바로 끝났다고 생각하지 않고,
+                                <strong>“이 작업을 확정할 것인가, 취소할 것인가?”</strong>를
+                                생각하는 습관을 먼저 만듭니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     14. 생명주기 / finally
+                ================================================== -->
+                    <section class="lesson-card lifecycle-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">14</span>
+
+                            <div>
+                                <p class="section-kicker">Lifecycle</p>
+                                <h2>Connection과 Cursor의 생명주기 관리</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="lifecycle-flow">
+
+                            <div>
+                                <span>1</span>
+                                <strong>connect()</strong>
+                                <small>Connection 생성</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>2</span>
+                                <strong>cursor()</strong>
+                                <small>Cursor 생성</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>3</span>
+                                <strong>execute</strong>
+                                <small>DB 작업</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>4</span>
+                                <strong>commit / rollback</strong>
+                                <small>Transaction</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>5</span>
+                                <strong>close</strong>
+                                <small>자원 정리</small>
+                            </div>
+
+                        </div>
+
+
+                        <h3>finally를 이용한 명시적 정리</h3>
+
+                        <pre><code class="language-python">conn = None
+cur = None
+
+
+try:
+    conn = sqlite3.connect(
+        "sample.db"
+    )
+
+    cur = conn.cursor()
+
+    # Database 작업
+
+
+except sqlite3.Error:
+
+    if conn is not None:
+        conn.rollback()
+
+    raise
+
+
+finally:
+
+    if cur is not None:
+        cur.close()
+
+    if conn is not None:
+        conn.close()</code></pre>
+
+
+                        <div class="finally-visual">
+
+                            <span>정상 완료</span>
+                            <b>┐</b>
+
+                            <strong>finally</strong>
+
+                            <b>←</b>
+                            <span>오류 발생</span>
+
+                            <b>→</b>
+
+                            <strong>close()</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     15. Context Manager
+                ================================================== -->
+                    <section class="lesson-card context-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">15</span>
+
+                            <div>
+                                <p class="section-kicker">Context Manager</p>
+                                <h2>with 문을 사용할 때 Transaction과 close를 구분한다</h2>
+                            </div>
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 영역은 Connection 생명주기를 이해하기 위한
+                            <strong>Python 실무 보완 카드</strong>입니다.
+                        </p>
+
+
+                        <pre><code class="language-python">with conn:
+
+    conn.execute(
+        """
+        INSERT INTO Member(
+            name,
+            tel
+        )
+        VALUES (?, ?)
+        """,
+        (
+            "홍길동",
+            "010-1111"
+        )
+    )</code></pre>
+
+
+                        <div class="context-rule-grid">
+
+                            <article>
+
+                                <span>with conn</span>
+
+                                <strong>Transaction 관리</strong>
+
+                                <p>
+                                    정상 종료와 예외 발생을
+                                    commit·rollback 흐름과 연결해서 이해합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Connection close</span>
+
+                                <strong>별도 생명주기</strong>
+
+                                <p>
+                                    Transaction Context와
+                                    Connection 종료 자체를 동일하게 생각하지 않습니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>with conn</span>
+                            <b>≠</b>
+                            <span>자동 Connection close</span>
+
+                        </div>
+
+
+                        <h3>Connection 종료까지 구조화한 보완 예</h3>
+
+                        <pre><code class="language-python">import sqlite3
+
+from contextlib import closing
+
+
+with closing(
+    sqlite3.connect(
+        "sample.db"
+    )
+) as conn:
+
+    with conn:
+
+        conn.execute(
+            """
+            INSERT INTO Member(
+                name,
+                tel
+            )
+            VALUES (?, ?)
+            """,
+            (
+                "홍길동",
+                "010-1111"
+            )
+        )</code></pre>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     16. 접속 정보 분리
+                ================================================== -->
+                    <section class="lesson-card config-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">16</span>
+
+                            <div>
+                                <p class="section-kicker">Configuration</p>
+                                <h2>Database 접속 정보는 Source Code와 분리한다</h2>
+                            </div>
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            SQLite는 일반적인 로컬 File DB라
+                            계정·비밀번호가 필요하지 않지만,
+                            이후 MySQL·Oracle로 넘어갈 때 매우 중요한
+                            <strong>필수 실무 보완 내용</strong>입니다.
+                        </p>
+
+
+                        <div class="credential-risk">
+
+                            <article class="bad">
+
+                                <span>피해야 할 구조</span>
+
+                                <pre><code class="language-python">DB_USER = "root"
+DB_PASSWORD = "my-password"</code></pre>
+
+                                <div class="vertical-flow">
+
+                                    <span>Source Code</span>
+                                    <b>↓</b>
+
+                                    <span>Git Commit</span>
+                                    <b>↓</b>
+
+                                    <strong>Credential 노출 위험</strong>
+
+                                </div>
+
+                            </article>
+
+
+                            <article class="good">
+
+                                <span>분리 방향</span>
+
+                                <pre><code class="language-python">import os
+
+
+db_user = os.getenv(
+    "DB_USER"
+)
+
+db_password = os.getenv(
+    "DB_PASSWORD"
+)</code></pre>
+
+                                <div class="vertical-flow">
+
+                                    <span>Environment</span>
+                                    <b>↓</b>
+
+                                    <span>Configuration</span>
+                                    <b>↓</b>
+
+                                    <strong>Connection</strong>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>SQLite Path도 설정으로 분리할 수 있다</h3>
+
+                        <pre><code class="language-python">import os
+import sqlite3
+
+
+db_path = os.getenv(
+    "SQLITE_DB_PATH",
+    "data/app.db"
+)
+
+
+conn = sqlite3.connect(
+    db_path
+)</code></pre>
+
+
+                        <div class="environment-grid">
+
+                            <article>
+                                <span>DEV</span>
+                                <code>dev.db</code>
+                            </article>
+
+                            <article>
+                                <span>TEST</span>
+                                <code>test.db</code>
+                            </article>
+
+                            <article>
+                                <span>PRODUCTION</span>
+                                <code>app.db</code>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     17. 개발 도구
+                ================================================== -->
+                    <section class="lesson-card tool-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">17</span>
+
+                            <div>
+                                <p class="section-kicker">Development Tools</p>
+                                <h2>PyCharm · Jupyter · Console에서 Parameter Binding 확인하기</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="tool-grid">
+
+                            <article>
+                                <span>01</span>
+
+                                <h3>PyCharm</h3>
+
+                                <p>
+                                    실제 Parameter Query와
+                                    Transaction 전체 코드를 실습합니다.
+                                </p>
+
+                                <ul>
+                                    <li>tuple 값 확인</li>
+                                    <li>Placeholder 개수 확인</li>
+                                    <li>executemany 구조 확인</li>
+                                    <li>commit / rollback</li>
+                                </ul>
+                            </article>
+
+
+                            <article>
+                                <span>02</span>
+
+                                <h3>Jupyter</h3>
+
+                                <p>
+                                    Cell마다 Parameter Set을 바꾸면서
+                                    Binding 결과를 관찰하기 좋습니다.
+                                </p>
+
+                                <ul>
+                                    <li>SELECT ?</li>
+                                    <li>INSERT (?, ?)</li>
+                                    <li>executemany</li>
+                                    <li>fetchall 확인</li>
+                                </ul>
+                            </article>
+
+
+                            <article>
+                                <span>03</span>
+
+                                <h3>Python Console</h3>
+
+                                <p>
+                                    Placeholder와 Tuple의 관계를
+                                    가장 짧게 실험할 수 있습니다.
+                                </p>
+
+                                <pre><code class="language-python">cur.execute(
+    "SELECT ?",
+    ("hello",)
+)</code></pre>
+                            </article>
+
+
+                            <article>
+                                <span>04</span>
+
+                                <h3>DB Browser</h3>
+
+                                <p>
+                                    executemany 후 실제로
+                                    여러 Row가 추가되었는지 확인합니다.
+                                </p>
+
+                                <ul>
+                                    <li>Browse Data</li>
+                                    <li>Row Count</li>
+                                    <li>Data 순서</li>
+                                    <li>Rollback 결과 확인</li>
+                                </ul>
+                            </article>
+
+                        </div>
+
+
+                        <h3>권장 실습 순서</h3>
+
+                        <div class="tool-workflow">
+
+                            <div>
+                                <span>1</span>
+                                <strong>Data 준비</strong>
+                                <small>tuple/list</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>2</span>
+                                <strong>SQL 작성</strong>
+                                <small>Placeholder</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>3</span>
+                                <strong>execute</strong>
+                                <small>Binding</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>4</span>
+                                <strong>commit</strong>
+                                <small>변경 확정</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>5</span>
+                                <strong>DB Browser</strong>
+                                <small>결과 확인</small>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     18. CRUD Parameter 예제
+                ================================================== -->
+                    <section class="lesson-card code-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">18</span>
+
+                            <div>
+                                <p class="section-kicker">CRUD Example</p>
+                                <h2>INSERT · SELECT · UPDATE · DELETE 모두 Parameter로 처리하기</h2>
+                            </div>
+                        </div>
+
+
+                        <h3>INSERT</h3>
+
+                        <pre><code class="language-python">cur.execute(
+    """
+    INSERT INTO Member(
+        name,
+        tel
+    )
+    VALUES (?, ?)
+    """,
+    (
+        name,
+        tel
+    )
+)</code></pre>
+
+
+                        <h3>SELECT</h3>
+
+                        <pre><code class="language-python">cur.execute(
+    """
+    SELECT
+        _id,
+        name,
+        tel
+    FROM Member
+    WHERE name = ?
+    """,
+    (name,)
+)
+
+
+row = cur.fetchone()</code></pre>
+
+
+                        <h3>UPDATE</h3>
+
+                        <pre><code class="language-python">cur.execute(
+    """
+    UPDATE Member
+    SET tel = ?
+    WHERE _id = ?
+    """,
+    (
+        new_tel,
+        member_id
+    )
+)</code></pre>
+
+
+                        <h3>DELETE</h3>
+
+                        <pre><code class="language-python">cur.execute(
+    """
+    DELETE FROM Member
+    WHERE _id = ?
+    """,
+    (member_id,)
+)</code></pre>
+
+
+                        <div class="crud-parameter-grid">
+
+                            <article>
+                                <span>INSERT</span>
+                                <strong>새 Data 전달</strong>
+                            </article>
+
+                            <article>
+                                <span>SELECT</span>
+                                <strong>검색 조건 전달</strong>
+                            </article>
+
+                            <article>
+                                <span>UPDATE</span>
+                                <strong>새 값 + 조건 전달</strong>
+                            </article>
+
+                            <article>
+                                <span>DELETE</span>
+                                <strong>삭제 조건 전달</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>Parameter Query는 INSERT 전용 문법이 아니다.</strong>
+
+                            <p>
+                                Data Value가 들어가는 SELECT·INSERT·UPDATE·DELETE의
+                                여러 위치에서 같은 Binding 사고방식을 사용합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     19. 대량 입력 전체 코드
+                ================================================== -->
+                    <section class="lesson-card code-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">19</span>
+
+                            <div>
+                                <p class="section-kicker">Bulk Insert Example</p>
+                                <h2>executemany + commit + rollback 전체 예제</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="code-example">
+
+                            <div class="code-titlebar">
+                                <span>06_python_sqlite_parameter.py</span>
+                                <span>Bulk Parameterized Insert</span>
+                            </div>
+
+                            <pre><code class="language-python">import sqlite3
+
+
+members = [
+    (
+        "홍길동",
+        "010-1111"
+    ),
+    (
+        "김철수",
+        "010-2222"
+    ),
+    (
+        "이영희",
+        "010-3333"
+    )
+]
+
+
+conn = None
+cur = None
+
+
+try:
+    # 1. Connection
+    conn = sqlite3.connect(
+        "parameter_practice.db"
+    )
+
+
+    # 2. Cursor
+    cur = conn.cursor()
+
+
+    # 3. Table 준비
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS Member (
+        _id INTEGER
+            PRIMARY KEY
+            AUTOINCREMENT,
+
+        name TEXT NOT NULL,
+
+        tel TEXT NOT NULL
+    )
+    """)
+
+
+    # 4. Parameterized SQL
+    insert_sql = """
+    INSERT INTO Member(
+        name,
+        tel
+    )
+    VALUES (?, ?)
+    """
+
+
+    # 5. 여러 Parameter Set 실행
+    cur.executemany(
+        insert_sql,
+        members
+    )
+
+
+    # 6. 성공 → Commit
+    conn.commit()
+
+
+    # 7. 결과 조회
+    cur.execute("""
+    SELECT
+        _id,
+        name,
+        tel
+    FROM Member
+    ORDER BY _id
+    """)
+
+
+    for row in cur.fetchall():
+        print(row)
+
+
+except sqlite3.Error as error:
+
+    # 8. 실패 → Rollback
+    if conn is not None:
+        conn.rollback()
+
+
+    print(
+        "Database 작업에 실패했습니다."
+    )
+
+    print(error)
+
+
+finally:
+
+    # 9. Cursor 정리
+    if cur is not None:
+        cur.close()
+
+
+    # 10. Connection 정리
+    if conn is not None:
+        conn.close()</code></pre>
+
+                        </div>
+
+
+                        <div class="bulk-execution-flow">
+
+                            <span>List of tuples</span>
+                            <b>→</b>
+
+                            <span>Parameterized SQL</span>
+                            <b>→</b>
+
+                            <span>executemany()</span>
+                            <b>→</b>
+
+                            <span>Binding</span>
+                            <b>→</b>
+
+                            <span>INSERT × N</span>
+                            <b>→</b>
+
+                            <strong>commit / rollback</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     20. Named Bulk
+                ================================================== -->
+                    <section class="lesson-card code-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">20</span>
+
+                            <div>
+                                <p class="section-kicker">Named Bulk Example</p>
+                                <h2>Named Placeholder와 list of dicts</h2>
+                            </div>
+                        </div>
+
+
+                        <pre><code class="language-python">sql = """
+INSERT INTO Member(
+    name,
+    tel
+)
+VALUES(
+    :name,
+    :tel
+)
+"""
+
+
+members = [
+    {
+        "name": "홍길동",
+        "tel": "010-1111"
+    },
+    {
+        "name": "김철수",
+        "tel": "010-2222"
+    },
+    {
+        "name": "이영희",
+        "tel": "010-3333"
+    }
+]
+
+
+cur.executemany(
+    sql,
+    members
+)
+
+
+conn.commit()</code></pre>
+
+
+                        <div class="named-bulk-visual">
+
+                            <strong>List</strong>
+
+                            <div>
+                                <span>Dict 1</span>
+                                <code>{"name": "...", "tel": "..."}</code>
+                            </div>
+
+                            <div>
+                                <span>Dict 2</span>
+                                <code>{"name": "...", "tel": "..."}</code>
+                            </div>
+
+                            <div>
+                                <span>Dict 3</span>
+                                <code>{"name": "...", "tel": "..."}</code>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     21. 오류 메시지
+                ================================================== -->
+                    <section class="lesson-card error-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">21</span>
+
+                            <div>
+                                <p class="section-kicker">Error Reading</p>
+                                <h2>Parameter 오류는 Binding 단계부터 읽는다</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="error-pipeline">
+
+                            <span>Python</span>
+                            <b>→</b>
+
+                            <span>Connection</span>
+                            <b>→</b>
+
+                            <span>Permission</span>
+                            <b>→</b>
+
+                            <span>Cursor</span>
+                            <b>→</b>
+
+                            <span class="accent">Binding</span>
+                            <b>→</b>
+
+                            <span>SQL</span>
+                            <b>→</b>
+
+                            <span>Constraint</span>
+                            <b>→</b>
+
+                            <span>Transaction</span>
+
+                        </div>
+
+
+                        <div class="error-grid">
+
+                            <article>
+                                <code>SyntaxError</code>
+
+                                <h3>Python 문법</h3>
+
+                                <p>
+                                    괄호, 따옴표, 쉼표 등
+                                    Python 코드부터 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>NameError</code>
+
+                                <h3>Python 이름</h3>
+
+                                <p>
+                                    conn, cur, sql, name 같은
+                                    변수가 만들어졌는지 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>TypeError</code>
+
+                                <h3>Python Type</h3>
+
+                                <p>
+                                    Parameter Container와
+                                    함수 인자를 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>KeyError</code>
+
+                                <h3>Dictionary Key</h3>
+
+                                <p>
+                                    Application에서 dict Key를
+                                    잘못 사용하지 않았는지 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>ProgrammingError</code>
+
+                                <h3>Binding 문제</h3>
+
+                                <p>
+                                    Placeholder 수,
+                                    Parameter 수와 전달 방식을 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>OperationalError</code>
+
+                                <h3>SQLite 실행 / 연결</h3>
+
+                                <p>
+                                    DB File, SQL, 읽기 전용 상태 등을 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>IntegrityError</code>
+
+                                <h3>Constraint</h3>
+
+                                <p>
+                                    NOT NULL, UNIQUE, CHECK,
+                                    PRIMARY KEY 규칙을 확인합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <code>Access / Auth Error</code>
+
+                                <h3>접속 정보 / 권한</h3>
+
+                                <p>
+                                    서버형 DB에서는 계정, 비밀번호,
+                                    Host와 권한 영역도 확인합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
+
+                        <h3>오류 예시 1 — Placeholder 개수</h3>
+
+                        <div class="binding-error-example">
+
+                            <pre><code class="language-python">cur.execute(
+    """
+    INSERT INTO Member(
+        name,
+        tel
+    )
+    VALUES (?, ?)
+    """,
+    ("홍길동",)
+)</code></pre>
+
+
+                            <div class="binding-count">
+
+                                <div>
+                                    <strong>Placeholder</strong>
+                                    <span>? ?</span>
+                                    <em>2개</em>
+                                </div>
+
+                                <b>≠</b>
+
+                                <div>
+                                    <strong>Parameter</strong>
+                                    <span>("홍길동",)</span>
+                                    <em>1개</em>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <h3>오류 예시 2 — Constraint</h3>
+
+                        <div class="constraint-error">
+
+                            <span>
+                                Binding 성공
+                            </span>
+
+                            <b>→</b>
+
+                            <span>
+                                INSERT 실행
+                            </span>
+
+                            <b>→</b>
+
+                            <code>
+CHECK(length(tel) &gt;= 3)
+                        </code>
+
+                            <b>→</b>
+
+                            <strong>
+                                tel = "12"
+                            </strong>
+
+                            <b>→</b>
+
+                            <strong class="danger">
+                                IntegrityError
+                            </strong>
+
+                        </div>
+
+
+                        <h3>오류 예시 3 — Connection / Permission</h3>
+
+                        <div class="connection-error-grid">
+
+                            <article>
+
+                                <span>SQLite</span>
+
+                                <code>
+unable to open database file
+                            </code>
+
+                                <p>
+                                    Path, Directory, File 접근을 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SQLite</span>
+
+                                <code>
+attempt to write a readonly database
+                            </code>
+
+                                <p>
+                                    현재 연결이 쓰기 가능한지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MySQL 방향</span>
+
+                                <code>
+Access denied
+                            </code>
+
+                                <p>
+                                    User, Password, Host, Privilege를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Oracle 방향</span>
+
+                                <code>
+ORA-01017
+                            </code>
+
+                                <p>
+                                    Credential과 Authorization을 확인합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="error-checklist">
+
+                            <strong>오류 읽는 순서</strong>
+
+                            <ol>
+                                <li>오류 이름을 확인한다.</li>
+                                <li>Python 문법 문제인지 확인한다.</li>
+                                <li>Connection이 성공했는지 확인한다.</li>
+                                <li>접속 정보와 권한 문제인지 확인한다.</li>
+                                <li>Cursor가 정상 상태인지 확인한다.</li>
+                                <li>Placeholder 문법을 확인한다.</li>
+                                <li>Placeholder와 Parameter 개수를 비교한다.</li>
+                                <li>tuple·list·dict 전달 형태를 확인한다.</li>
+                                <li>SQL 문법과 Table·Column을 확인한다.</li>
+                                <li>Constraint 위반 여부를 확인한다.</li>
+                                <li>commit 또는 rollback 상태를 확인한다.</li>
+                            </ol>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     22. 접속 정보 + Repository
+                ================================================== -->
+                    <section class="lesson-card repository-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">22</span>
+
+                            <div>
+                                <p class="section-kicker">Repository Architecture</p>
+                                <h2>SQL과 Connection 설정을 Application Logic에서 분리하기</h2>
+                            </div>
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 카드는 첨부 교안의 직접 코드가 아니라
+                            Database 프로젝트 확장을 위한
+                            <strong>설계 보완 영역</strong>입니다.
+                        </p>
+
+
+                        <div class="project-architecture">
+
+                            <div>
+                                <strong>Application</strong>
+                                <span>User / API</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div>
+                                <strong>Service</strong>
+                                <span>Business Logic</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="accent">
+                                <strong>Repository</strong>
+                                <span>SQL / DB Access</span>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div>
+                                <strong>Database</strong>
+                                <span>SQLite / MySQL / Oracle</span>
+                            </div>
+
+                        </div>
+
+
+                        <h3>권장 프로젝트 구조 예</h3>
+
+                        <pre>
+project/
+│
+├── app.py
+├── db.py
+│
+├── service/
+│   └── member_service.py
+│
+└── repository/
+    ├── member_repository.py
+    ├── product_repository.py
+    └── order_repository.py
+                    </pre>
+
+
+                        <div class="responsibility-grid">
+
+                            <article>
+                                <span>app.py</span>
+
+                                <strong>프로그램 진입과 UI/API</strong>
+                            </article>
+
+                            <article>
+                                <span>service</span>
+
+                                <strong>업무 흐름과 Transaction 단위</strong>
+                            </article>
+
+                            <article>
+                                <span>repository</span>
+
+                                <strong>SQL과 Database 접근</strong>
+                            </article>
+
+                            <article>
+                                <span>db.py</span>
+
+                                <strong>Connection 설정</strong>
+                            </article>
+
+                        </div>
+
+
+                        <h3>`db.py` 예</h3>
+
+                        <pre><code class="language-python">import os
+import sqlite3
+
+
+def get_connection():
+
+    db_path = os.getenv(
+        "SQLITE_DB_PATH",
+        "data/app.db"
+    )
+
+
+    return sqlite3.connect(
+        db_path
+    )</code></pre>
+
+
+                        <h3>`member_repository.py` 예</h3>
+
+                        <pre><code class="language-python">def find_by_name(
+    conn,
+    name
+):
+    cur = conn.cursor()
+
+
+    try:
+        cur.execute(
+            """
+            SELECT
+                _id,
+                name,
+                tel
+            FROM Member
+            WHERE name = ?
+            """,
+            (name,)
+        )
+
+
+        return cur.fetchone()
+
+
+    finally:
+        cur.close()</code></pre>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     23. 실무 연결
+                ================================================== -->
+                    <section class="lesson-card realwork-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">23</span>
+
+                            <div>
+                                <p class="section-kicker">Real World</p>
+                                <h2>Parameter Query는 실제 데이터 흐름의 기본 규칙이다</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="realwork-grid">
+
+                            <article>
+
+                                <span>MEMBER</span>
+
+                                <h3>회원가입</h3>
+
+                                <pre>
+Form
+↓
+name / tel
+↓
+Parameterized INSERT
+↓
+commit
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SEARCH</span>
+
+                                <h3>회원 검색</h3>
+
+                                <pre>
+검색어
+↓
+WHERE name = ?
+↓
+fetchone
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CRAWLING</span>
+
+                                <h3>웹 크롤링</h3>
+
+                                <pre>
+1000 Products
+↓
+List of tuples
+↓
+executemany
+↓
+commit
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CSV</span>
+
+                                <h3>CSV 적재</h3>
+
+                                <pre>
+CSV
+↓
+Python Parsing
+↓
+Parameter Sets
+↓
+executemany
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>BACKEND</span>
+
+                                <h3>Backend API</h3>
+
+                                <pre>
+Request DTO
+↓
+Repository
+↓
+Parameterized SQL
+↓
+Database
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>ANALYSIS</span>
+
+                                <h3>분석용 DB</h3>
+
+                                <pre>
+External Data
+↓
+Bulk Insert
+↓
+SQLite
+↓
+SELECT
+↓
+Pandas
+                            </pre>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>전체 실무 흐름</h3>
+
+                        <div class="realwork-flow">
+
+                            <span>User / External Data</span>
+                            <b>→</b>
+
+                            <span>Validation</span>
+                            <b>→</b>
+
+                            <span>Repository</span>
+                            <b>→</b>
+
+                            <span>Parameterized SQL</span>
+                            <b>→</b>
+
+                            <span>Transaction</span>
+                            <b>→</b>
+
+                            <strong>Database</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     24. 자주 하는 실수
+                ================================================== -->
+                    <section class="lesson-card mistake-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">24</span>
+
+                            <div>
+                                <p class="section-kicker">Beginner Mistakes</p>
+                                <h2>초보자가 자주 하는 실수</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="mistake-list">
+
+                            <article>
+                                <span>01</span>
+
+                                <div>
+                                    <h3>사용자 값을 f-string으로 SQL에 직접 넣는다.</h3>
+
+                                    <p>
+                                        Data Value에는 Placeholder Binding을 기본으로 사용합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>02</span>
+
+                                <div>
+                                    <h3>Placeholder와 Parameter 개수가 다르다.</h3>
+
+                                    <p>
+                                        <code>?</code> 개수와 전달 데이터의 개수를 비교합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>03</span>
+
+                                <div>
+                                    <h3>Parameter 순서를 바꾼다.</h3>
+
+                                    <p>
+                                        위치 기반 Placeholder에서는 순서가 중요합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>04</span>
+
+                                <div>
+                                    <h3>한 요소 Tuple에서 쉼표를 빼먹는다.</h3>
+
+                                    <code>(value,)</code>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>05</span>
+
+                                <div>
+                                    <h3>Named Placeholder와 tuple을 섞어서 사용한다.</h3>
+
+                                    <p>
+                                        Named 방식은 dict 기반으로 이해합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>06</span>
+
+                                <div>
+                                    <h3>교안의 Python 3.14 문장을 그대로 암기한다.</h3>
+
+                                    <p>
+                                        교안 원문과 Step 1·2 현재 기준 보완을 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>07</span>
+
+                                <div>
+                                    <h3>Table Name을 ? Placeholder로 바꾸려고 한다.</h3>
+
+                                    <p>
+                                        Placeholder는 기본적으로 Data Value에 사용합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>08</span>
+
+                                <div>
+                                    <h3>executemany()에 평평한 List를 전달한다.</h3>
+
+                                    <p>
+                                        바깥 Collection 안에
+                                        Record별 Parameter Set이 있어야 합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>09</span>
+
+                                <div>
+                                    <h3>executemany() 후 commit()을 잊는다.</h3>
+
+                                    <p>
+                                        대량 INSERT도 Database 변경 작업입니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>10</span>
+
+                                <div>
+                                    <h3>commit()과 rollback()을 연달아 호출한다.</h3>
+
+                                    <p>
+                                        성공과 실패에 따라 서로 다른 방향입니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>11</span>
+
+                                <div>
+                                    <h3>Auto Commit과 Manual Transaction을 섞어서 생각한다.</h3>
+
+                                    <p>
+                                        현재 Connection의 Transaction Mode를 의식합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>12</span>
+
+                                <div>
+                                    <h3>with conn이 Connection까지 자동으로 닫는다고 생각한다.</h3>
+
+                                    <p>
+                                        Transaction 관리와 Connection 종료를 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>13</span>
+
+                                <div>
+                                    <h3>DB Password를 Source Code에 고정한다.</h3>
+
+                                    <p>
+                                        Environment Configuration으로 분리하는 방향을 사용합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>14</span>
+
+                                <div>
+                                    <h3>모든 DB Driver가 ?를 사용한다고 생각한다.</h3>
+
+                                    <p>
+                                        Driver마다 Placeholder 문법이 다를 수 있습니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>15</span>
+
+                                <div>
+                                    <h3>연결 실패를 SQL Syntax 문제라고 생각한다.</h3>
+
+                                    <p>
+                                        Connection·Credential·Permission 계층을 먼저 구분합니다.
+                                    </p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>16</span>
+
+                                <div>
+                                    <h3>SQL Injection을 특수문자 제거 문제로만 이해한다.</h3>
+
+                                    <p>
+                                        핵심은 SQL Code와 Data를 처음부터 분리하는 것입니다.
+                                    </p>
+                                </div>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     25. 면접 포인트
+                ================================================== -->
+                    <section class="lesson-card interview-card">
+
+                        <div class="section-heading">
+                            <span class="section-number">25</span>
+
+                            <div>
+                                <p class="section-kicker">Interview Point</p>
+                                <h2>면접에서 설명할 수 있어야 하는 질문</h2>
+                            </div>
+                        </div>
+
+
+                        <div class="interview-list">
+
+                            <details open>
+                                <summary>
+                                    Q1. Parameterized Query란 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQL Code에 실제 값을 직접 조립하지 않고
+                                        Placeholder를 둔 뒤,
+                                        실제 Data를 별도의 Parameter로 전달하는 방식입니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q2. Parameter Query를 사용하는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQL Code와 Data를 분리하여
+                                        값 전달을 일관되게 처리할 수 있고,
+                                        사용자 입력을 SQL 문자열에 직접 결합하는 방식보다
+                                        SQL Injection 위험을 줄이는 데 중요한 역할을 합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q3. SQLite의 기본 Placeholder는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        위치 기반 <code>?</code>와
+                                        Named Placeholder 방식을 학습할 수 있습니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q4. ? 방식에서는 Parameter를 어떻게 전달하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Placeholder의 순서와 맞는
+                                        tuple 또는 list 같은 Sequence로 전달합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q5. 한 요소 tuple은 어떻게 작성하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        <code>(value,)</code>처럼
+                                        요소 뒤에 쉼표를 붙여 작성합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q6. Named Placeholder는 어떻게 사용하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        <code>:name</code> 같은 이름을 SQL에 사용하고,
+                                        이름에 대응하는 값을 dict 형태로 전달합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q7. execute()와 executemany()의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        execute는 하나의 Parameter Set에 SQL을 적용하고,
+                                        executemany는 같은 Parameterized SQL을
+                                        여러 Parameter Set에 반복 적용합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q8. Placeholder는 Table Name에도 사용할 수 있나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        일반적으로 Bind Parameter는 Data Value를 위한 것이고,
+                                        Table·Column 같은 Identifier는 SQL 구조이므로
+                                        별도의 검증이 필요합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q9. commit()과 rollback()의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        commit은 Transaction의 변경을 확정하고,
+                                        rollback은 확정되지 않은 변경을 취소합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q10. Auto Commit과 Manual Commit은 어떻게 다른가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Auto Commit은 변경을 자동 확정하는 방향이고,
+                                        Manual Transaction은 개발자가 업무 단위를 구성한 뒤
+                                        commit 또는 rollback을 결정합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q11. finally를 사용하는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Database 작업이 성공하거나 실패하더라도
+                                        Cursor와 Connection 같은 자원을
+                                        마지막에 정리하기 위해 사용할 수 있습니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q12. Context Manager를 사용하면 Connection이 자동으로 닫히나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQLite Connection의 Transaction Context와
+                                        실제 Connection close는 구분해야 합니다.
+                                        Transaction 처리와 Connection 생명주기가 같은 개념은 아닙니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q13. DB 접속 정보를 Source Code와 분리하는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        환경별 설정을 쉽게 관리하고
+                                        비밀번호 같은 민감한 정보를
+                                        Application Logic과 분리하기 위해서입니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q14. SQLite와 MySQL의 Placeholder는 같은가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Parameterized Query라는 개념은 같지만
+                                        Python Driver에 따라 Placeholder 표기법이 다를 수 있습니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q15. Repository 계층을 사용하는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQL과 Database 접근 책임을
+                                        Application의 다른 Business Logic에서 분리하여
+                                        코드를 유지보수하기 쉽게 만들기 위해 사용할 수 있습니다.
+                                    </p>
+                                </div>
+                            </details>
+
+
+                            <details>
+                                <summary>
+                                    Q16. 대량 입력에서 Transaction이 중요한 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        여러 Record를 하나의 업무 단위로 처리하는 중
+                                        일부가 실패했을 때
+                                        전체 변경을 확정할지 취소할지 결정해야 하기 때문입니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                        </div>
+
+                    </section>
+
                 </main>
 
+
+                <!-- =====================================================
+                 ASIDE
+            ====================================================== -->
                 <aside class="side-note">
+
+
+                    <!-- 오늘의 암기 포인트 -->
                     <section>
+
+                        <p class="side-note-label">Memory</p>
                         <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
+
+                        <ul class="memory-list">
+
+                            <li>
+                                사용자 Data를 SQL 문자열에 직접 결합하지 않고
+                                <strong>Parameterized Query</strong>를 기본으로 사용한다.
+                            </li>
+
+                            <li>
+                                SQLite의 위치 기반 Placeholder는
+                                <code>?</code>이다.
+                            </li>
+
+                            <li>
+                                Placeholder 순서와 Parameter 순서를 맞춘다.
+                            </li>
+
+                            <li>
+                                Placeholder 개수와 Parameter 개수를 맞춘다.
+                            </li>
+
+                            <li>
+                                한 요소 tuple은
+                                <code>(value,)</code>처럼 쉼표가 필요하다.
+                            </li>
+
+                            <li>
+                                Named Placeholder는
+                                <code>:name</code> + dict 구조로 이해한다.
+                            </li>
+
+                            <li>
+                                <code>execute()</code>는 한 Parameter Set,
+                                <code>executemany()</code>는 여러 Parameter Set에 연결한다.
+                            </li>
+
+                            <li>
+                                대량 입력 구조는
+                                <strong>list of tuples</strong>로 이해하면 쉽다.
+                            </li>
+
+                            <li>
+                                작업 성공 시 <code>commit()</code>,
+                                실패 시 <code>rollback()</code>이다.
+                            </li>
+
+                            <li>
+                                성공·실패와 상관없이 마지막에는
+                                Connection과 Cursor의 생명주기를 정리한다.
+                            </li>
+
+                            <li>
+                                DB Password와 환경별 접속 정보는
+                                Source Code와 분리하는 방향을 사용한다.
+                            </li>
+
+                            <li>
+                                Driver마다 Placeholder 문법이 다를 수 있다.
+                            </li>
+
                         </ul>
+
+
+                        <div class="side-parameter-flow">
+
+                            <span>Data</span>
+                            <b>→</b>
+
+                            <span>Placeholder</span>
+                            <b>→</b>
+
+                            <span>Binding</span>
+                            <b>→</b>
+
+                            <span>execute</span>
+                            <b>→</b>
+
+                            <span>commit / rollback</span>
+
+                        </div>
+
                     </section>
 
+
+                    <!-- 헷갈리기 쉬운 개념 -->
                     <section>
+
+                        <p class="side-note-label">Confusing Point</p>
                         <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
+
+
+                        <div class="confusing-list">
+
+                            <article>
+                                <strong>SQL String ≠ Parameter Query</strong>
+
+                                <p>
+                                    SQL 문자열 직접 조립과
+                                    Data Binding은 서로 다른 방식입니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>? Count = Parameter Count</strong>
+
+                                <p>
+                                    Placeholder와 Data 개수를 맞춥니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>(value) ≠ (value,)</strong>
+
+                                <p>
+                                    한 요소 tuple은 쉼표가 필요합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>execute ≠ executemany</strong>
+
+                                <p>
+                                    하나의 Parameter Set과
+                                    여러 Set 처리를 구분합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>Value ≠ Identifier</strong>
+
+                                <p>
+                                    Placeholder는 기본적으로
+                                    Data Value Binding에 사용합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>commit ≠ rollback</strong>
+
+                                <p>
+                                    변경 확정과 변경 취소입니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>Auto Commit ≠ Manual Commit</strong>
+
+                                <p>
+                                    Transaction 확정 시점을
+                                    누가 관리하는지 구분합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>with conn ≠ 자동 close</strong>
+
+                                <p>
+                                    Transaction Context와
+                                    Connection 종료를 구분합니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>Driver마다 Placeholder가 다르다</strong>
+
+                                <p>
+                                    SQLite의 <code>?</code>를
+                                    모든 DBMS에 그대로 적용하지 않습니다.
+                                </p>
+                            </article>
+
+
+                            <article>
+                                <strong>교안 기준 ≠ 보완 기준</strong>
+
+                                <p>
+                                    Named Placeholder 관련 교안 내용과
+                                    Step 1·2의 현재 기준 보완을 구분합니다.
+                                </p>
+                            </article>
+
+                        </div>
+
                     </section>
 
-                    <section>
+
+                    <!-- 다음 단원 -->
+                    <section class="next-lesson-note">
+
+                        <p class="side-note-label">Next Lesson</p>
                         <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
+
+
+                        <p>
+                            이번 단원에서는
+                            <strong>Python Data를 SQL에 전달하는 방법</strong>을 배웠습니다.
+                        </p>
+
+
+                        <div class="current-map">
+
+                            <span>Python Data</span>
+                            <b>→</b>
+
+                            <span>Placeholder</span>
+                            <b>→</b>
+
+                            <span>Binding</span>
+                            <b>→</b>
+
+                            <span>execute</span>
+                            <b>→</b>
+
+                            <span>Database</span>
+                        </div>
+
+
+                        <p>
+                            그리고 변경 작업에서
+                            <code>commit()</code>과
+                            <code>rollback()</code>의 역할도 미리 확인했습니다.
+                        </p>
+
+
+                        <div class="next-question">
+
+                            <span>다음 질문</span>
+
+                            <strong>
+                                SELECT 결과는 Cursor 안에서 어떻게 이동하고,
+                                Transaction은 정확히 어디까지 확정·취소될까?
+                            </strong>
+
+                        </div>
+
+
+                        <div class="next-topic-grid">
+
+                            <span>fetchone()</span>
+                            <span>fetchmany()</span>
+                            <span>fetchall()</span>
+                            <span>commit()</span>
+                            <span>rollback()</span>
+                            <span>Transaction</span>
+
+                        </div>
+
+
+                        <a class="next-lesson-link" href="./07_python_database_fetch_transaction.html">
+                            <span>Lesson 07</span>
+
+                            조회와 트랜잭션 처리
+
+                            <strong>→</strong>
+                        </a>
+
                     </section>
+
                 </aside>
+
             </div>
         </div>
     </body>

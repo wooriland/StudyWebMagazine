@@ -4,7 +4,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>PyMySQL 연동 | Python & Data 학습 매거진</title>
+
+        <meta name="description"
+            content="Python과 MySQL을 PyMySQL로 연동하는 방법을 학습합니다. PyMySQL 설치, pymysql.connect, Connection, Cursor, DictCursor, %s Placeholder, execute, executemany, CRUD, fetch, commit, rollback, 환경 변수와 Repository 구조를 정리합니다.">
+
+        <title>Python과 MySQL 연동 | Python Database 학습 매거진</title>
 
         <link rel="stylesheet" href="../../css/00_nav.css">
         <link rel="stylesheet" href="../../css/study-theme.css">
@@ -14,103 +18,4971 @@
         <script src="../../js/00_nav.js" defer></script>
     </head>
 
-    <body class="theme-python-data study-page python-database-page python-database-lesson-page python-database-lesson-10" data-nav-category="python-data" data-nav-item="python-database">
+    <body class="theme-python-data study-page python-database-page python-database-pymysql-page"
+        data-nav-category="python-data" data-nav-item="python-database">
         <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+
+            <!-- =========================================================
+             SIDE NAVIGATION
+        ========================================================== -->
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 네비게이션"></nav>
+
 
             <div class="page-content">
+
+                <!-- =====================================================
+                 HEADER
+            ====================================================== -->
                 <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Database · Lesson 10</p>
-                    <h1>PyMySQL 연동</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
+
+                    <p class="lesson-eyebrow">
+                        Python Database · Lesson 10
                     </p>
 
+                    <h1>
+                        Python과 MySQL 연동
+
+                        <span class="title-sub">
+                            PyMySQL · Connection · DictCursor · %s · CRUD · Transaction
+                        </span>
+                    </h1>
+
+
+                    <p class="lesson-summary">
+                        지금까지 MySQL Server와 Database,
+                        Table, Application User와 Privilege를 준비했습니다.
+                        이제 Python 프로그램에서
+                        <strong>PyMySQL Driver</strong>를 이용해
+                        실제 MySQL Server에 접속합니다.
+                        <code>pymysql.connect()</code>로 Connection을 만들고,
+                        Cursor에서 Parameterized SQL을 실행하며,
+                        SELECT 결과는 fetch 계열 메서드로 가져오고
+                        INSERT·UPDATE·DELETE는
+                        <code>commit()</code> 또는
+                        <code>rollback()</code>으로 Transaction을 처리합니다.
+                    </p>
+
+
+                    <!-- 전체 핵심 흐름 -->
+                    <div class="hero-pymysql-flow" aria-label="Python과 MySQL 연동 전체 흐름">
+                        <span>Python</span>
+                        <b>→</b>
+
+                        <span class="accent">PyMySQL</span>
+                        <b>→</b>
+
+                        <span>Connection</span>
+                        <b>→</b>
+
+                        <span>Cursor</span>
+                        <b>→</b>
+
+                        <span class="accent">%s Binding</span>
+                        <b>→</b>
+
+                        <span>MySQL</span>
+                    </div>
+
+
+                    <!-- SELECT / DML 분기 -->
+                    <div class="hero-operation-grid">
+
+                        <article>
+
+                            <span>READ</span>
+
+                            <strong>SELECT</strong>
+
+                            <b>↓</b>
+
+                            <code>execute()</code>
+
+                            <b>↓</b>
+
+                            <code>fetch()</code>
+
+                            <small>Python Data</small>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>CHANGE</span>
+
+                            <strong>
+                                INSERT · UPDATE · DELETE
+                            </strong>
+
+                            <b>↓</b>
+
+                            <code>execute()</code>
+
+                            <b>↓</b>
+
+                            <div>
+                                <code>commit()</code>
+                                <span>또는</span>
+                                <code>rollback()</code>
+                            </div>
+
+                            <small>Transaction</small>
+
+                        </article>
+
+                    </div>
+
+
+                    <!-- 학습 목표 -->
                     <section class="learning-goals" aria-labelledby="learningGoalsTitle">
-                        <h2 id="learningGoalsTitle">학습 목표</h2>
+                        <h2 id="learningGoalsTitle">
+                            학습 목표
+                        </h2>
+
                         <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
+
+                            <li>
+                                PyMySQL이 Python과 MySQL Server 사이에서
+                                어떤 역할을 하는지 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                PyMySQL Package를 설치하고
+                                <code>import pymysql</code>을 실행할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>pymysql.connect()</code>의
+                                host, port, user, password, database,
+                                charset의 의미를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                앞 단원에서 만든 Application User와
+                                Python Connection의 관계를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                Connection과 Cursor의 역할을 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                일반 Cursor와
+                                <code>DictCursor</code>의 조회 결과 차이를 이해한다.
+                            </li>
+
+                            <li>
+                                PyMySQL의 <code>%s</code> Placeholder를
+                                문자열 Formatting이 아닌 Parameter Binding으로 이해한다.
+                            </li>
+
+                            <li>
+                                한 요소 Tuple의
+                                <code>(value,)</code> 문법을 정확히 사용할 수 있다.
+                            </li>
+
+                            <li>
+                                Placeholder 개수와 Parameter 개수를 맞출 수 있다.
+                            </li>
+
+                            <li>
+                                <code>execute()</code>와
+                                <code>executemany()</code>의 차이를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                PyMySQL로 INSERT·SELECT·UPDATE·DELETE를 실행할 수 있다.
+                            </li>
+
+                            <li>
+                                SELECT 결과를
+                                <code>fetchone()</code>,
+                                <code>fetchmany()</code>,
+                                <code>fetchall()</code>로 가져올 수 있다.
+                            </li>
+
+                            <li>
+                                DictCursor 조회 결과를
+                                Dictionary Key로 접근할 수 있다.
+                            </li>
+
+                            <li>
+                                변경 SQL의 성공과 실패에 따라
+                                <code>commit()</code>과
+                                <code>rollback()</code>을 사용할 수 있다.
+                            </li>
+
+                            <li>
+                                Auto Commit과 Manual Transaction을
+                                개념적으로 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>commit()</code>과
+                                <code>close()</code>가 서로 다른 책임임을 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                <code>try / except / finally</code>와
+                                Context Manager를 Resource Lifecycle과 연결할 수 있다.
+                            </li>
+
+                            <li>
+                                DB Password와 접속 정보를
+                                Source Code와 분리해야 하는 이유를 설명할 수 있다.
+                            </li>
+
+                            <li>
+                                SQL Injection 방지를 위해
+                                Parameterized Query를 사용할 수 있다.
+                            </li>
+
+                            <li>
+                                SQLite·PyMySQL·Oracle의
+                                Placeholder 문법이 다를 수 있음을 이해한다.
+                            </li>
+
+                            <li>
+                                Connection 오류, 인증 오류,
+                                권한 오류, Parameter 오류,
+                                SQL·Constraint 오류를 단계별로 구분할 수 있다.
+                            </li>
+
+                            <li>
+                                Repository와 Service로
+                                SQL과 Transaction 책임을 분리하는 방향을 이해한다.
+                            </li>
+
                         </ul>
                     </section>
+
                 </header>
 
+
+                <!-- =====================================================
+                 MAIN
+            ====================================================== -->
                 <main class="lesson-main">
+
+
+                    <!-- =================================================
+                     01. PyMySQL 개념
+                ================================================== -->
                     <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
+                        <div class="section-heading">
 
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
+                            <span class="section-number">01</span>
 
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
-
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
-
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
                             <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                                <p class="section-kicker">Core Concept</p>
+
+                                <h2>
+                                    PyMySQL은 Python과 MySQL 사이의 Driver다
+                                </h2>
                             </div>
-                        </dl>
+
+                        </div>
+
+
+                        <p class="lead-text">
+                            SQLite에서는 Python 표준 Library인
+                            <code>sqlite3</code>로 Database File을 열었습니다.
+                            MySQL에서는 별도의 Server에 접속해야 하므로
+                            이번 교안에서는 <strong>PyMySQL</strong>을 사용합니다.
+                        </p>
+
+
+                        <div class="sqlite-mysql-driver-grid">
+
+                            <article>
+
+                                <span>SQLite</span>
+
+                                <div class="vertical-flow">
+
+                                    <strong>Python</strong>
+                                    <b>↓</b>
+
+                                    <code>sqlite3</code>
+                                    <b>↓</b>
+
+                                    <strong>sample.db</strong>
+
+                                </div>
+
+                                <small>Database File</small>
+
+                            </article>
+
+
+                            <article class="mysql">
+
+                                <span>MySQL</span>
+
+                                <div class="vertical-flow">
+
+                                    <strong>Python</strong>
+                                    <b>↓</b>
+
+                                    <code>PyMySQL</code>
+                                    <b>↓</b>
+
+                                    <strong>MySQL Server</strong>
+
+                                </div>
+
+                                <small>Client · Server</small>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="driver-role-grid">
+
+                            <article>
+                                <span>01</span>
+                                <strong>Connection</strong>
+                                <p>MySQL Server에 연결</p>
+                            </article>
+
+                            <article>
+                                <span>02</span>
+                                <strong>Authentication</strong>
+                                <p>User 인증 정보 전달</p>
+                            </article>
+
+                            <article>
+                                <span>03</span>
+                                <strong>SQL</strong>
+                                <p>SQL Statement 실행</p>
+                            </article>
+
+                            <article>
+                                <span>04</span>
+                                <strong>Binding</strong>
+                                <p>Python Data 전달</p>
+                            </article>
+
+                            <article>
+                                <span>05</span>
+                                <strong>Result</strong>
+                                <p>조회 결과 수신</p>
+                            </article>
+
+                            <article>
+                                <span>06</span>
+                                <strong>Transaction</strong>
+                                <p>commit / rollback</p>
+                            </article>
+
+                        </div>
+
                     </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./09_mysql_user_privilege.html">이전 단원</a>
-                        <a class="lesson-next" href="./11_python_oracle.html">다음 단원</a>
-                    </nav>
+
+
+                    <!-- =================================================
+                     02. 설치와 Import
+                ================================================== -->
+                    <section class="lesson-card install-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">02</span>
+
+                            <div>
+                                <p class="section-kicker">Install & Import</p>
+
+                                <h2>
+                                    PyMySQL 설치 → Import → Connection 순서
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            첨부 교안에서는
+                            <code>pip install PyMySQL</code>로 Library를 설치하고,
+                            Python에서 <code>import pymysql</code>로
+                            설치 여부를 확인합니다.
+                        </p>
+
+
+                        <div class="install-sequence">
+
+                            <div>
+
+                                <span>STEP 1</span>
+
+                                <strong>
+                                    Package 설치
+                                </strong>
+
+                                <code>pip install PyMySQL</code>
+
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+
+                                <span>STEP 2</span>
+
+                                <strong>
+                                    Import
+                                </strong>
+
+                                <code>import pymysql</code>
+
+                            </div>
+
+                            <b>→</b>
+
+
+                            <div>
+
+                                <span>STEP 3</span>
+
+                                <strong>
+                                    Connection
+                                </strong>
+
+                                <code>pymysql.connect()</code>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="source-supplement-grid">
+
+                            <article>
+
+                                <span>첨부 교안</span>
+
+                                <pre><code>pip install PyMySQL</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Step 1·2 보완</span>
+
+                                <pre><code>python -m pip install PyMySQL</code></pre>
+
+                                <p>
+                                    현재 실행하는 Python과
+                                    Package 설치 대상을 더 명확하게 연결하는 방식입니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>Import 확인</h3>
+
+                        <pre><code class="language-python">import pymysql
+
+
+print(
+    "PyMySQL import 성공"
+)</code></pre>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                Package 설치 성공 ≠ MySQL Server 연결 성공
+                            </strong>
+
+                            <p>
+                                설치, Import, Server Connection은
+                                서로 다른 단계입니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     03. Connection 정보
+                ================================================== -->
+                    <section class="lesson-card connection-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">03</span>
+
+                            <div>
+                                <p class="section-kicker">Connection</p>
+
+                                <h2>
+                                    pymysql.connect()에 들어가는 정보 이해하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            첨부 교안에서는
+                            host, port, user, password, db,
+                            charset, cursorclass를 주요 Connection 정보로 설명합니다.
+                        </p>
+
+
+                        <pre><code class="language-python">conn = pymysql.connect(
+    host="localhost",
+    port=3306,
+    user="app_user",
+    password="&lt;PASSWORD&gt;",
+    database="python_study",
+    charset="utf8mb4",
+    cursorclass=pymysql.cursors.DictCursor
+)</code></pre>
+
+
+                        <div class="connection-param-grid">
+
+                            <article>
+
+                                <code>host</code>
+
+                                <strong>
+                                    MySQL Server 주소
+                                </strong>
+
+                                <p>
+                                    예: localhost
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>port</code>
+
+                                <strong>
+                                    Server Port
+                                </strong>
+
+                                <p>
+                                    예: 3306
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>user</code>
+
+                                <strong>
+                                    MySQL User
+                                </strong>
+
+                                <p>
+                                    앞 단원의 Application Account
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>password</code>
+
+                                <strong>
+                                    Authentication
+                                </strong>
+
+                                <p>
+                                    User Password
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>database</code>
+
+                                <strong>
+                                    사용할 Database
+                                </strong>
+
+                                <p>
+                                    예: python_study
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>charset</code>
+
+                                <strong>
+                                    문자 처리
+                                </strong>
+
+                                <p>
+                                    Step 1·2 보완에서는 utf8mb4
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>cursorclass</code>
+
+                                <strong>
+                                    Cursor Result 형식
+                                </strong>
+
+                                <p>
+                                    예: DictCursor
+                                </p>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     04. 교안 / 보완
+                ================================================== -->
+                    <section class="lesson-card correction-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">04</span>
+
+                            <div>
+                                <p class="section-kicker">Source vs Supplement</p>
+
+                                <h2>
+                                    교안 Connection 예제와 Step 1·2 보완 구분
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="connection-correction-grid">
+
+                            <article>
+
+                                <span>Database Parameter</span>
+
+                                <strong>첨부 교안</strong>
+
+                                <code>db="데이타베이스명"</code>
+
+                                <strong>Step 1·2 보완</strong>
+
+                                <code>database="python_study"</code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Character Set</span>
+
+                                <strong>첨부 교안</strong>
+
+                                <code>charset="utf8"</code>
+
+                                <strong>Step 1·2 보완</strong>
+
+                                <code>charset="utf8mb4"</code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Password</span>
+
+                                <strong>첨부 교안</strong>
+
+                                <p>
+                                    연결 예제 안에 직접 작성
+                                </p>
+
+                                <strong>Step 1·2 보완</strong>
+
+                                <p>
+                                    환경 변수·설정으로 분리
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>User</span>
+
+                                <strong>학습용</strong>
+
+                                <p>
+                                    임의의 접속 Account
+                                </p>
+
+                                <strong>실무 보완</strong>
+
+                                <p>
+                                    root 대신 최소 권한 Application User
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="warning-box">
+
+                            <strong>
+                                첨부 교안의 용어와 흐름은 보존하고,
+                                보완 내용은 별도의 현재 프로젝트 학습 기준으로 구분한다.
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     05. Connection / Cursor
+                ================================================== -->
+                    <section class="lesson-card object-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">05</span>
+
+                            <div>
+                                <p class="section-kicker">Object Role</p>
+
+                                <h2>
+                                    Connection과 Cursor의 책임을 나눈다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="connection-cursor-grid">
+
+                            <article>
+
+                                <span>CONNECTION</span>
+
+                                <h3>Database Session</h3>
+
+                                <div class="vertical-flow">
+
+                                    <code>pymysql.connect()</code>
+                                    <b>↓</b>
+
+                                    <strong>Connection</strong>
+
+                                </div>
+
+                                <ul>
+                                    <li>Server 연결</li>
+                                    <li>Cursor 생성</li>
+                                    <li>Transaction 관리</li>
+                                    <li>commit()</li>
+                                    <li>rollback()</li>
+                                    <li>close()</li>
+                                </ul>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CURSOR</span>
+
+                                <h3>SQL 실행 객체</h3>
+
+                                <div class="vertical-flow">
+
+                                    <code>conn.cursor()</code>
+                                    <b>↓</b>
+
+                                    <strong>Cursor</strong>
+
+                                </div>
+
+                                <ul>
+                                    <li>execute()</li>
+                                    <li>executemany()</li>
+                                    <li>fetchone()</li>
+                                    <li>fetchmany()</li>
+                                    <li>fetchall()</li>
+                                </ul>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="role-formula">
+
+                            <span>Connection</span>
+                            <b>→</b>
+                            <strong>연결 / Transaction</strong>
+
+                            <span>Cursor</span>
+                            <b>→</b>
+                            <strong>SQL / Result</strong>
+
+                        </div>
+
+
+                        <pre><code class="language-python">conn = pymysql.connect(...)
+
+cur = conn.cursor()</code></pre>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     06. DictCursor
+                ================================================== -->
+                    <section class="lesson-card dictcursor-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">06</span>
+
+                            <div>
+                                <p class="section-kicker">DictCursor</p>
+
+                                <h2>
+                                    Tuple Result와 Dictionary Result 비교하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cursor-result-grid">
+
+                            <article>
+
+                                <span>DEFAULT CURSOR</span>
+
+                                <pre><code class="language-python">row = (
+    1,
+    "홍길동",
+    "010-1111"
+)</code></pre>
+
+                                <div class="access-example">
+
+                                    <code>row[0]</code>
+                                    <span>→ _id</span>
+
+                                    <code>row[1]</code>
+                                    <span>→ name</span>
+
+                                    <code>row[2]</code>
+                                    <span>→ tel</span>
+
+                                </div>
+
+                            </article>
+
+
+                            <article class="dict">
+
+                                <span>DICT CURSOR</span>
+
+                                <pre><code class="language-python">row = {
+    "_id": 1,
+    "name": "홍길동",
+    "tel": "010-1111"
+}</code></pre>
+
+                                <div class="access-example">
+
+                                    <code>row["_id"]</code>
+                                    <span>→ 1</span>
+
+                                    <code>row["name"]</code>
+                                    <span>→ 홍길동</span>
+
+                                    <code>row["tel"]</code>
+                                    <span>→ 010-1111</span>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>DictCursor 설정</h3>
+
+                        <pre><code class="language-python">conn = pymysql.connect(
+    ...,
+    cursorclass=pymysql.cursors.DictCursor
+)</code></pre>
+
+
+                        <div class="result-memory">
+
+                            <div>
+
+                                <span>fetchall()</span>
+
+                                <strong>List</strong>
+
+                                <div>
+
+                                    <code>
+{
+    "_id": 1,
+    "name": "홍길동"
+}
+                                </code>
+
+                                    <code>
+{
+    "_id": 2,
+    "name": "김철수"
+}
+                                </code>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                DictCursor는 SQL 실행 방식이 다른 것이 아니라
+                                조회 Row의 표현 방식이 다른 Cursor다.
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     07. Parameter Binding
+                ================================================== -->
+                    <section class="lesson-card parameter-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">07</span>
+
+                            <div>
+                                <p class="section-kicker">Parameterized Query</p>
+
+                                <h2>
+                                    %s Placeholder와 Python Data를 분리한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="binding-visual">
+
+                            <article>
+
+                                <span>SQL CODE</span>
+
+                                <pre><code class="language-sql">SELECT *
+FROM Member
+WHERE name = %s</code></pre>
+
+                            </article>
+
+
+                            <b>+</b>
+
+
+                            <article>
+
+                                <span>PYTHON DATA</span>
+
+                                <pre><code class="language-python">(
+    "홍길동",
+)</code></pre>
+
+                            </article>
+
+
+                            <b>→</b>
+
+
+                            <article class="binding">
+
+                                <span>PYMYSQL</span>
+
+                                <strong>Parameter Binding</strong>
+
+                            </article>
+
+
+                            <b>→</b>
+
+
+                            <article>
+
+                                <span>DATABASE</span>
+
+                                <strong>MySQL</strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <pre><code class="language-python">sql = """
+SELECT *
+FROM Member
+WHERE name = %s
+"""
+
+
+cur.execute(
+    sql,
+    ("홍길동",)
+)</code></pre>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>%s Placeholder</span>
+                            <b>≠</b>
+                            <span>Python 직접 문자열 치환</span>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     08. SQL Injection
+                ================================================== -->
+                    <section class="lesson-card security-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">08</span>
+
+                            <div>
+                                <p class="section-kicker">SQL Safety</p>
+
+                                <h2>
+                                    SQL 문자열 직접 결합을 피한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 영역은 앞 단원부터 계속 유지하고 있는
+                            <strong>Database 과정 공통 실무 보완</strong>입니다.
+                        </p>
+
+
+                        <div class="safe-unsafe-grid">
+
+                            <article class="unsafe">
+
+                                <span>피해야 할 방식</span>
+
+                                <pre><code class="language-python">name = input("이름: ")
+
+
+sql = f"""
+SELECT *
+FROM Member
+WHERE name = '{name}'
+"""</code></pre>
+
+                                <strong>
+                                    SQL Code + 외부 Data 직접 결합
+                                </strong>
+
+                            </article>
+
+
+                            <article class="safe">
+
+                                <span>Parameter 방식</span>
+
+                                <pre><code class="language-python">sql = """
+SELECT *
+FROM Member
+WHERE name = %s
+"""
+
+
+cursor.execute(
+    sql,
+    (name,)
+)</code></pre>
+
+                                <strong>
+                                    SQL Code + Data 분리
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="security-stack">
+
+                            <div>
+                                <span>01</span>
+                                <strong>Network</strong>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>02</span>
+                                <strong>User@Host</strong>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>03</span>
+                                <strong>Secret</strong>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>04</span>
+                                <strong>Least Privilege</strong>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <span>05</span>
+                                <strong>Parameter Query</strong>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     09. Parameter 규칙
+                ================================================== -->
+                    <section class="lesson-card parameter-rule-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">09</span>
+
+                            <div>
+                                <p class="section-kicker">Binding Rules</p>
+
+                                <h2>
+                                    Tuple · Placeholder 개수 · Parameter 순서
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="parameter-rule-grid">
+
+                            <article>
+
+                                <span>RULE 1</span>
+
+                                <h3>한 요소 Tuple</h3>
+
+                                <code>(value,)</code>
+
+                                <p>
+                                    쉼표가 있어야
+                                    한 요소 Tuple입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>RULE 2</span>
+
+                                <h3>개수 일치</h3>
+
+                                <code>%s + %s</code>
+
+                                <p>
+                                    Parameter도 2개가 필요합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>RULE 3</span>
+
+                                <h3>순서 일치</h3>
+
+                                <code>(name, tel)</code>
+
+                                <p>
+                                    SQL Placeholder의 의미 순서와
+                                    Python Data 순서를 맞춥니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <pre><code class="language-python">sql = """
+INSERT INTO Member(
+    name,
+    tel
+)
+VALUES(
+    %s,
+    %s
+)
+"""
+
+
+params = (
+    "홍길동",
+    "010-1111"
+)
+
+
+cursor.execute(
+    sql,
+    params
+)</code></pre>
+
+
+                        <div class="memory-formula">
+
+                            <span>Placeholder Count</span>
+                            <b>=</b>
+                            <strong>Parameter Count</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     10. Driver Placeholder
+                ================================================== -->
+                    <section class="lesson-card driver-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">10</span>
+
+                            <div>
+                                <p class="section-kicker">Driver Difference</p>
+
+                                <h2>
+                                    DB Driver가 바뀌면 Placeholder도 달라질 수 있다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="driver-grid">
+
+                            <article>
+
+                                <span>SQLite</span>
+
+                                <code>?</code>
+
+                                <strong>
+                                    sqlite3
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SQLite Named</span>
+
+                                <code>:name</code>
+
+                                <strong>
+                                    sqlite3
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MySQL</span>
+
+                                <code>%s</code>
+
+                                <strong>
+                                    PyMySQL
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>PyMySQL Mapping</span>
+
+                                <code>%(name)s</code>
+
+                                <strong>
+                                    dict Parameter 방향
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>Oracle</span>
+
+                                <code>:name</code>
+
+                                <strong>
+                                    다음 단원
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                Parameter Binding은 공통 개념,
+                                Placeholder 표기는 Driver 문법이다.
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     11. execute / executemany
+                ================================================== -->
+                    <section class="lesson-card execute-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">11</span>
+
+                            <div>
+                                <p class="section-kicker">Execute</p>
+
+                                <h2>
+                                    execute()와 executemany() 역할 구분
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="execute-many-grid">
+
+                            <article>
+
+                                <span>ONE PARAMETER SET</span>
+
+                                <code>execute()</code>
+
+                                <pre><code class="language-python">cursor.execute(
+    sql,
+    (
+        "홍길동",
+        "010-1111"
+    )
+)</code></pre>
+
+                                <strong>
+                                    한 Data Set
+                                </strong>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>MANY PARAMETER SETS</span>
+
+                                <code>executemany()</code>
+
+                                <pre><code class="language-python">cursor.executemany(
+    sql,
+    members
+)</code></pre>
+
+                                <strong>
+                                    여러 Data Set
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>여러 Member Data</h3>
+
+                        <pre><code class="language-python">members = [
+    (
+        "홍길동",
+        "010-1111"
+    ),
+    (
+        "김철수",
+        "010-2222"
+    ),
+    (
+        "이영희",
+        "010-3333"
+    )
+]</code></pre>
+
+
+                        <div class="batch-memory">
+
+                            <strong>List</strong>
+
+                            <b>→</b>
+
+                            <div>
+                                <code>Tuple 1</code>
+                                <code>Tuple 2</code>
+                                <code>Tuple 3</code>
+                            </div>
+
+                            <b>→</b>
+
+                            <strong>executemany()</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     12. CRUD
+                ================================================== -->
+                    <section class="lesson-card crud-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">12</span>
+
+                            <div>
+                                <p class="section-kicker">CRUD</p>
+
+                                <h2>
+                                    Python에서 MySQL CRUD 연결하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="crud-grid">
+
+                            <article>
+
+                                <span>C</span>
+
+                                <strong>INSERT</strong>
+
+                                <p>
+                                    새 Row 저장
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>R</span>
+
+                                <strong>SELECT</strong>
+
+                                <p>
+                                    Row 조회
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>U</span>
+
+                                <strong>UPDATE</strong>
+
+                                <p>
+                                    Row 수정
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>D</span>
+
+                                <strong>DELETE</strong>
+
+                                <p>
+                                    Row 삭제
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="crud-branch">
+
+                            <article>
+
+                                <span>SELECT</span>
+
+                                <div class="vertical-flow">
+                                    <code>execute()</code>
+                                    <b>↓</b>
+                                    <strong>fetch</strong>
+                                </div>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>DML</span>
+
+                                <div class="vertical-flow">
+                                    <code>execute()</code>
+                                    <b>↓</b>
+                                    <strong>commit / rollback</strong>
+                                </div>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     13. SELECT / FETCH
+                ================================================== -->
+                    <section class="lesson-card fetch-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">13</span>
+
+                            <div>
+                                <p class="section-kicker">Fetch</p>
+
+                                <h2>
+                                    SELECT 결과를 Python으로 가져오기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <pre><code class="language-python">cursor.execute(
+    """
+    SELECT
+        _id,
+        name,
+        tel
+    FROM Member
+    ORDER BY _id
+    """
+)</code></pre>
+
+
+                        <div class="fetch-grid">
+
+                            <article>
+
+                                <code>fetchone()</code>
+
+                                <strong>
+                                    다음 Row 하나
+                                </strong>
+
+                                <pre><code class="language-python">row = cursor.fetchone()</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>fetchmany(n)</code>
+
+                                <strong>
+                                    다음 n개
+                                </strong>
+
+                                <pre><code class="language-python">rows = cursor.fetchmany(10)</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>fetchall()</code>
+
+                                <strong>
+                                    전체 Result
+                                </strong>
+
+                                <pre><code class="language-python">rows = cursor.fetchall()</code></pre>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="dict-fetch-flow">
+
+                            <span>SELECT</span>
+                            <b>→</b>
+
+                            <span>DictCursor</span>
+                            <b>→</b>
+
+                            <span>fetchall()</span>
+                            <b>→</b>
+
+                            <strong>
+                                List of Dict
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     14. INSERT UPDATE DELETE
+                ================================================== -->
+                    <section class="lesson-card dml-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">14</span>
+
+                            <div>
+                                <p class="section-kicker">DML</p>
+
+                                <h2>
+                                    INSERT · UPDATE · DELETE와 영향받은 Row
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <h3>INSERT</h3>
+
+                        <pre><code class="language-python">cursor.execute(
+    """
+    INSERT INTO Member(
+        name,
+        tel
+    )
+    VALUES(
+        %s,
+        %s
+    )
+    """,
+    (
+        "홍길동",
+        "010-1111"
+    )
+)
+
+
+conn.commit()</code></pre>
+
+
+                        <h3>UPDATE</h3>
+
+                        <pre><code class="language-python">affected = cursor.execute(
+    """
+    UPDATE Member
+    SET tel = %s
+    WHERE _id = %s
+    """,
+    (
+        "010-9999",
+        1
+    )
+)
+
+
+print(
+    "수정된 Row:",
+    affected
+)
+
+
+conn.commit()</code></pre>
+
+
+                        <h3>DELETE</h3>
+
+                        <pre><code class="language-python">affected = cursor.execute(
+    """
+    DELETE FROM Member
+    WHERE _id = %s
+    """,
+    (3,)
+)
+
+
+print(
+    "삭제된 Row:",
+    affected
+)
+
+
+conn.commit()</code></pre>
+
+
+                        <div class="affected-note">
+
+                            <strong>
+                                SQL 실행 성공만 보지 말고
+                                영향을 받은 Row 수도 확인한다.
+                            </strong>
+
+                            <div>
+                                <span>예상 1 Row</span>
+                                <b>→</b>
+                                <span>실제 affected</span>
+                                <b>→</b>
+                                <strong>검증</strong>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     15. Transaction
+                ================================================== -->
+                    <section class="lesson-card transaction-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">15</span>
+
+                            <div>
+                                <p class="section-kicker">Transaction</p>
+
+                                <h2>
+                                    성공하면 commit, 실패하면 rollback
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="transaction-flow">
+
+                            <div>
+                                <strong>DML 실행</strong>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div>
+                                <strong>업무 정상?</strong>
+                            </div>
+
+                            <b>↓</b>
+
+                            <div class="transaction-result">
+
+                                <article>
+
+                                    <span>SUCCESS</span>
+
+                                    <code>conn.commit()</code>
+
+                                    <strong>
+                                        변경 확정
+                                    </strong>
+
+                                </article>
+
+
+                                <article>
+
+                                    <span>FAIL</span>
+
+                                    <code>conn.rollback()</code>
+
+                                    <strong>
+                                        변경 취소
+                                    </strong>
+
+                                </article>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="transaction-mode-grid">
+
+                            <article>
+
+                                <span>MANUAL</span>
+
+                                <strong>
+                                    직접 commit / rollback
+                                </strong>
+
+                                <p>
+                                    이번 과정의 기본 학습 방식입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>AUTO COMMIT</span>
+
+                                <strong>
+                                    자동 확정 방식
+                                </strong>
+
+                                <p>
+                                    Connection의 Transaction Mode에 따라
+                                    동작 방식이 달라질 수 있습니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>Privilege</span>
+                            <b>≠</b>
+                            <span>Transaction</span>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     16. Resource Lifecycle
+                ================================================== -->
+                    <section class="lesson-card lifecycle-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">16</span>
+
+                            <div>
+                                <p class="section-kicker">Lifecycle</p>
+
+                                <h2>
+                                    Connection과 Cursor의 생명주기 관리
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="lifecycle-flow">
+
+                            <div>
+                                <span>01</span>
+                                <strong>connect()</strong>
+                                <small>Connection</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>02</span>
+                                <strong>cursor()</strong>
+                                <small>Cursor</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>03</span>
+                                <strong>execute()</strong>
+                                <small>SQL</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>04</span>
+                                <strong>fetch / commit</strong>
+                                <small>후속 작업</small>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>05</span>
+                                <strong>Cursor close</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>06</span>
+                                <strong>Connection close</strong>
+                            </div>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>commit</span>
+                            <b>≠</b>
+                            <span>close</span>
+
+                        </div>
+
+
+                        <div class="role-formula">
+
+                            <span>commit</span>
+                            <b>→</b>
+                            <strong>Transaction 확정</strong>
+
+                            <span>close</span>
+                            <b>→</b>
+                            <strong>Resource 종료</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     17. try except finally
+                ================================================== -->
+                    <section class="lesson-card exception-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">17</span>
+
+                            <div>
+                                <p class="section-kicker">Error & Resource</p>
+
+                                <h2>
+                                    try · except · finally로 안정적인 구조 만들기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <pre><code class="language-python">conn = None
+cur = None
+
+
+try:
+
+    conn = pymysql.connect(...)
+
+    cur = conn.cursor()
+
+
+    cur.execute(
+        """
+        UPDATE Member
+        SET tel = %s
+        WHERE _id = %s
+        """,
+        (
+            "010-9999",
+            1
+        )
+    )
+
+
+    conn.commit()
+
+
+except Exception as error:
+
+    if conn is not None:
+        conn.rollback()
+
+
+    print(
+        "Database 작업 실패:"
+    )
+
+    print(error)
+
+
+finally:
+
+    if cur is not None:
+        cur.close()
+
+
+    if conn is not None:
+        conn.close()</code></pre>
+
+
+                        <div class="exception-role-grid">
+
+                            <article>
+
+                                <span>TRY</span>
+
+                                <strong>
+                                    정상 작업
+                                </strong>
+
+                                <p>
+                                    Connection → Cursor → SQL → commit
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>EXCEPT</span>
+
+                                <strong>
+                                    실패 처리
+                                </strong>
+
+                                <p>
+                                    오류 확인 → rollback
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>FINALLY</span>
+
+                                <strong>
+                                    Resource 정리
+                                </strong>
+
+                                <p>
+                                    Cursor / Connection close
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                connect() 자체가 실패할 수도 있다.
+                            </strong>
+
+                            <p>
+                                따라서 Connection이 실제 생성되었는지 확인한 뒤
+                                rollback이나 close를 호출하는 구조가 안전합니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     18. Context Manager
+                ================================================== -->
+                    <section class="lesson-card context-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">18</span>
+
+                            <div>
+                                <p class="section-kicker">Context Manager</p>
+
+                                <h2>
+                                    with 문으로 Resource Scope를 표현한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 영역은 Step 1·2에서 추가한
+                            <strong>Resource 관리 보완</strong>입니다.
+                        </p>
+
+
+                        <pre><code class="language-python">with conn.cursor() as cursor:
+
+    cursor.execute(
+        """
+        SELECT
+            _id,
+            name
+        FROM Member
+        """
+    )
+
+
+    rows = cursor.fetchall()</code></pre>
+
+
+                        <div class="context-role-grid">
+
+                            <article>
+
+                                <span>CONTEXT MANAGER</span>
+
+                                <strong>
+                                    Resource Scope
+                                </strong>
+
+                                <p>
+                                    Cursor 사용 범위를 명확하게 표현합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>TRANSACTION</span>
+
+                                <strong>
+                                    commit / rollback
+                                </strong>
+
+                                <p>
+                                    Resource 관리와 별도로 생각합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="not-equal-formula">
+
+                            <span>Context Manager</span>
+                            <b>≠</b>
+                            <span>Transaction 사고 생략</span>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     19. 환경 변수
+                ================================================== -->
+                    <section class="lesson-card config-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">19</span>
+
+                            <div>
+                                <p class="section-kicker">Configuration</p>
+
+                                <h2>
+                                    접속 정보와 Secret을 Source Code에서 분리한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="secret-grid">
+
+                            <article class="unsafe">
+
+                                <span>피해야 할 운영 구조</span>
+
+                                <pre><code class="language-python">DB_USER = "app_user"
+
+DB_PASSWORD = "real-password"</code></pre>
+
+                                <strong>
+                                    Source Code 안의 실제 Secret
+                                </strong>
+
+                            </article>
+
+
+                            <article class="safe">
+
+                                <span>환경 설정 분리</span>
+
+                                <pre><code class="language-python">import os
+
+
+DB_HOST = os.getenv(
+    "DB_HOST",
+    "localhost"
+)
+
+DB_PORT = int(
+    os.getenv(
+        "DB_PORT",
+        "3306"
+    )
+)
+
+DB_USER = os.getenv(
+    "DB_USER"
+)
+
+DB_PASSWORD = os.getenv(
+    "DB_PASSWORD"
+)
+
+DB_NAME = os.getenv(
+    "DB_NAME"
+)</code></pre>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="config-flow">
+
+                            <div>
+                                <code>DB_HOST</code>
+                                <code>DB_PORT</code>
+                                <code>DB_USER</code>
+                                <code>DB_PASSWORD</code>
+                                <code>DB_NAME</code>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <strong>Python Config</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <strong>pymysql.connect()</strong>
+                            </div>
+
+                        </div>
+
+
+                        <div class="memory-box">
+
+                            <strong>
+                                Application Logic ≠ Secret Configuration
+                            </strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     20. 개발 도구
+                ================================================== -->
+                    <section class="lesson-card tool-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">20</span>
+
+                            <div>
+                                <p class="section-kicker">Development Tools</p>
+
+                                <h2>
+                                    PyCharm · Jupyter · Console · MySQL CLI 실습
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="tool-grid">
+
+                            <article>
+
+                                <span>01</span>
+
+                                <h3>PyCharm</h3>
+
+                                <p>
+                                    전체 PyMySQL Connection과
+                                    CRUD Program을 작성합니다.
+                                </p>
+
+                                <ul>
+                                    <li>Connection</li>
+                                    <li>DictCursor</li>
+                                    <li>CRUD</li>
+                                    <li>Transaction</li>
+                                </ul>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>02</span>
+
+                                <h3>Terminal</h3>
+
+                                <p>
+                                    PyMySQL Package 설치를 확인합니다.
+                                </p>
+
+                                <code>
+python -m pip install PyMySQL
+                            </code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>03</span>
+
+                                <h3>Jupyter</h3>
+
+                                <p>
+                                    Connection → Cursor → execute → fetch를
+                                    Cell 단위로 관찰합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>04</span>
+
+                                <h3>Python Console</h3>
+
+                                <p>
+                                    <code>SELECT 1</code> 같은
+                                    최소 연동 실험을 합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>05</span>
+
+                                <h3>MySQL CLI</h3>
+
+                                <p>
+                                    같은 User로 직접 접속하여
+                                    Python 문제와 DB 환경 문제를 구분합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>권장 실습 순서</h3>
+
+                        <div class="tool-workflow">
+
+                            <div>
+                                <span>1</span>
+                                <strong>Install</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>2</span>
+                                <strong>Import</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>3</span>
+                                <strong>Connect</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>4</span>
+                                <strong>SELECT 1</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>5</span>
+                                <strong>CRUD</strong>
+                            </div>
+
+                            <b>→</b>
+
+                            <div>
+                                <span>6</span>
+                                <strong>Refactor</strong>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     21. 최소 Connection 코드
+                ================================================== -->
+                    <section class="lesson-card code-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">21</span>
+
+                            <div>
+                                <p class="section-kicker">Minimal Test</p>
+
+                                <h2>
+                                    SELECT 1로 가장 작은 연동부터 확인한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="code-example">
+
+                            <div class="code-titlebar">
+
+                                <span>
+                                    10_python_pymysql.py
+                                </span>
+
+                                <span>
+                                    Minimal Connection
+                                </span>
+
+                            </div>
+
+
+                            <pre><code class="language-python">import pymysql
+
+
+conn = None
+cur = None
+
+
+try:
+
+    conn = pymysql.connect(
+        host="localhost",
+        port=3306,
+        user="app_user",
+        password="&lt;PASSWORD&gt;",
+        database="python_study",
+        charset="utf8mb4"
+    )
+
+
+    cur = conn.cursor()
+
+
+    cur.execute(
+        "SELECT 1"
+    )
+
+
+    result = cur.fetchone()
+
+
+    print(
+        "연결 테스트:",
+        result
+    )
+
+
+finally:
+
+    if cur is not None:
+        cur.close()
+
+
+    if conn is not None:
+        conn.close()</code></pre>
+
+                        </div>
+
+
+                        <div class="minimal-flow">
+
+                            <span>Python</span>
+                            <b>→</b>
+
+                            <span>PyMySQL</span>
+                            <b>→</b>
+
+                            <span>MySQL Server</span>
+                            <b>→</b>
+
+                            <span>SELECT 1</span>
+                            <b>→</b>
+
+                            <strong>Result</strong>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                처음부터 Member CRUD 전체를 테스트하지 않는다.
+                            </strong>
+
+                            <p>
+                                먼저 Python → Driver → Server → SQL 통로가
+                                정상인지 최소 단위로 확인하면 오류 범위를 줄이기 쉽습니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     22. DictCursor SELECT
+                ================================================== -->
+                    <section class="lesson-card code-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">22</span>
+
+                            <div>
+                                <p class="section-kicker">Select Practice</p>
+
+                                <h2>
+                                    DictCursor로 Member 목록 조회하기
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="code-example">
+
+                            <div class="code-titlebar">
+
+                                <span>
+                                    Member SELECT
+                                </span>
+
+                                <span>
+                                    DictCursor
+                                </span>
+
+                            </div>
+
+
+                            <pre><code class="language-python">import os
+import pymysql
+
+
+conn = None
+
+
+try:
+
+    conn = pymysql.connect(
+        host=os.getenv(
+            "DB_HOST",
+            "localhost"
+        ),
+        port=int(
+            os.getenv(
+                "DB_PORT",
+                "3306"
+            )
+        ),
+        user=os.getenv(
+            "DB_USER"
+        ),
+        password=os.getenv(
+            "DB_PASSWORD"
+        ),
+        database=os.getenv(
+            "DB_NAME",
+            "python_study"
+        ),
+        charset="utf8mb4",
+        cursorclass=(
+            pymysql.cursors.DictCursor
+        )
+    )
+
+
+    with conn.cursor() as cursor:
+
+        cursor.execute("""
+        SELECT
+            _id,
+            name,
+            tel
+        FROM Member
+        ORDER BY _id
+        """)
+
+
+        rows = cursor.fetchall()
+
+
+        for row in rows:
+
+            print(
+                row["_id"],
+                row["name"],
+                row["tel"]
+            )
+
+
+finally:
+
+    if conn is not None:
+        conn.close()</code></pre>
+
+                        </div>
+
+
+                        <div class="expected-output">
+
+                            <span>개념적인 출력</span>
+
+                            <pre><code>1 홍길동 010-1111
+2 김철수 010-2222
+3 이영희 010-3333</code></pre>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     23. LIKE Search
+                ================================================== -->
+                    <section class="lesson-card search-code-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">23</span>
+
+                            <div>
+                                <p class="section-kicker">Search</p>
+
+                                <h2>
+                                    LIKE 검색에서도 SQL과 Data를 분리한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <pre><code class="language-python">keyword = "김"
+
+
+pattern = f"%{keyword}%"
+
+
+sql = """
+SELECT
+    _id,
+    name,
+    tel
+FROM Member
+WHERE name LIKE %s
+ORDER BY name
+"""
+
+
+with conn.cursor() as cursor:
+
+    cursor.execute(
+        sql,
+        (pattern,)
+    )
+
+
+    members = cursor.fetchall()</code></pre>
+
+
+                        <div class="like-binding-flow">
+
+                            <span>keyword</span>
+                            <b>→</b>
+
+                            <span>Python Data Pattern</span>
+                            <b>→</b>
+
+                            <code>%김%</code>
+                            <b>→</b>
+
+                            <code>LIKE %s</code>
+                            <b>→</b>
+
+                            <strong>Binding</strong>
+
+                        </div>
+
+
+                        <div class="important-box">
+
+                            <strong>
+                                f-string을 사용한 위치를 구분한다.
+                            </strong>
+
+                            <p>
+                                여기서는 SQL Code를 조립한 것이 아니라
+                                검색에 사용할 <strong>Data Value</strong>를 만든 것입니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     24. executemany
+                ================================================== -->
+                    <section class="lesson-card batch-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">24</span>
+
+                            <div>
+                                <p class="section-kicker">Batch Insert</p>
+
+                                <h2>
+                                    여러 Row는 executemany()로 한 번에 연결한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <pre><code class="language-python">members = [
+    (
+        "홍길동",
+        "010-1111"
+    ),
+    (
+        "김철수",
+        "010-2222"
+    ),
+    (
+        "이영희",
+        "010-3333"
+    )
+]
+
+
+sql = """
+INSERT INTO Member(
+    name,
+    tel
+)
+VALUES(
+    %s,
+    %s
+)
+"""
+
+
+try:
+
+    with conn.cursor() as cursor:
+
+        cursor.executemany(
+            sql,
+            members
+        )
+
+
+    conn.commit()
+
+
+except Exception:
+
+    conn.rollback()
+
+    raise</code></pre>
+
+
+                        <div class="batch-flow">
+
+                            <span>List</span>
+                            <b>→</b>
+
+                            <span>Tuple × N</span>
+                            <b>→</b>
+
+                            <span>executemany()</span>
+                            <b>→</b>
+
+                            <span>Multiple INSERT</span>
+                            <b>→</b>
+
+                            <strong>commit</strong>
+
+                        </div>
+
+
+                        <div class="practical-note">
+
+                            <strong>실무 연결</strong>
+
+                            <p>
+                                Crawling 결과,
+                                CSV Row,
+                                수집 데이터를 여러 건 적재할 때
+                                같은 구조로 연결할 수 있습니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     25. 전체 Transaction 코드
+                ================================================== -->
+                    <section class="lesson-card integrated-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">25</span>
+
+                            <div>
+                                <p class="section-kicker">Integrated Practice</p>
+
+                                <h2>
+                                    Connection · Parameter · Transaction · close 전체 코드
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="code-example">
+
+                            <div class="code-titlebar">
+
+                                <span>
+                                    PyMySQL Transaction
+                                </span>
+
+                                <span>
+                                    Complete Flow
+                                </span>
+
+                            </div>
+
+
+                            <pre><code class="language-python">import os
+import pymysql
+
+
+conn = None
+
+
+try:
+
+    # ------------------------------------------
+    # 1. Connection
+    # ------------------------------------------
+
+    conn = pymysql.connect(
+        host=os.getenv(
+            "DB_HOST",
+            "localhost"
+        ),
+        port=int(
+            os.getenv(
+                "DB_PORT",
+                "3306"
+            )
+        ),
+        user=os.getenv(
+            "DB_USER"
+        ),
+        password=os.getenv(
+            "DB_PASSWORD"
+        ),
+        database=os.getenv(
+            "DB_NAME",
+            "python_study"
+        ),
+        charset="utf8mb4",
+        cursorclass=(
+            pymysql.cursors.DictCursor
+        )
+    )
+
+
+    # ------------------------------------------
+    # 2. Cursor
+    # ------------------------------------------
+
+    with conn.cursor() as cursor:
+
+
+        # --------------------------------------
+        # 3. Parameterized INSERT
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            INSERT INTO Member(
+                name,
+                tel
+            )
+            VALUES(
+                %s,
+                %s
+            )
+            """,
+            (
+                "홍길동",
+                "010-1111"
+            )
+        )
+
+
+        # --------------------------------------
+        # 4. Parameterized UPDATE
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            UPDATE Member
+            SET tel = %s
+            WHERE name = %s
+            """,
+            (
+                "010-9999",
+                "홍길동"
+            )
+        )
+
+
+    # ------------------------------------------
+    # 5. Success → Commit
+    # ------------------------------------------
+
+    conn.commit()
+
+
+except Exception as error:
+
+    # ------------------------------------------
+    # 6. Failure → Rollback
+    # ------------------------------------------
+
+    if conn is not None:
+        conn.rollback()
+
+
+    print(
+        "Database 작업 실패:"
+    )
+
+    print(error)
+
+
+finally:
+
+    # ------------------------------------------
+    # 7. Resource Close
+    # ------------------------------------------
+
+    if conn is not None:
+        conn.close()</code></pre>
+
+                        </div>
+
+
+                        <div class="integrated-flow">
+
+                            <span>Environment</span>
+                            <b>→</b>
+
+                            <span>Connection</span>
+                            <b>→</b>
+
+                            <span>Cursor</span>
+                            <b>→</b>
+
+                            <span>%s Binding</span>
+                            <b>→</b>
+
+                            <span>SQL</span>
+                            <b>→</b>
+
+                            <span>commit / rollback</span>
+                            <b>→</b>
+
+                            <strong>close</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     26. Repository / Service
+                ================================================== -->
+                    <section class="lesson-card repository-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">26</span>
+
+                            <div>
+                                <p class="section-kicker">Repository Architecture</p>
+
+                                <h2>
+                                    SQL과 Transaction 책임을 계층으로 분리한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="supplement-notice">
+                            이 영역은 첨부 교안의 직접 Architecture가 아니라
+                            Step 1·2에서 확장한
+                            <strong>실무 설계 보완</strong>입니다.
+                        </p>
+
+
+                        <div class="repository-architecture">
+
+                            <div>
+
+                                <strong>Application</strong>
+
+                                <span>
+                                    API / UI
+                                </span>
+
+                            </div>
+
+                            <b>↓</b>
+
+
+                            <div class="service">
+
+                                <strong>Service</strong>
+
+                                <span>
+                                    Business Logic
+                                    <br>
+                                    Transaction
+                                </span>
+
+                            </div>
+
+                            <b>↓</b>
+
+
+                            <div class="repository">
+
+                                <strong>Repository</strong>
+
+                                <span>
+                                    SQL
+                                    <br>
+                                    Parameter Binding
+                                </span>
+
+                            </div>
+
+                            <b>↓</b>
+
+
+                            <div>
+
+                                <strong>PyMySQL</strong>
+
+                                <span>
+                                    Driver
+                                </span>
+
+                            </div>
+
+                            <b>↓</b>
+
+
+                            <div>
+
+                                <strong>MySQL</strong>
+
+                                <span>
+                                    Database
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <h3>db.py</h3>
+
+                        <pre><code class="language-python">import os
+import pymysql
+
+
+def get_connection():
+
+    return pymysql.connect(
+        host=os.getenv(
+            "DB_HOST",
+            "localhost"
+        ),
+        port=int(
+            os.getenv(
+                "DB_PORT",
+                "3306"
+            )
+        ),
+        user=os.getenv(
+            "DB_USER"
+        ),
+        password=os.getenv(
+            "DB_PASSWORD"
+        ),
+        database=os.getenv(
+            "DB_NAME"
+        ),
+        charset="utf8mb4",
+        cursorclass=(
+            pymysql.cursors.DictCursor
+        )
+    )</code></pre>
+
+
+                        <h3>member_repository.py</h3>
+
+                        <pre><code class="language-python">def find_by_id(
+    conn,
+    member_id
+):
+
+    with conn.cursor() as cursor:
+
+        cursor.execute(
+            """
+            SELECT
+                _id,
+                name,
+                tel
+            FROM Member
+            WHERE _id = %s
+            """,
+            (member_id,)
+        )
+
+
+        return cursor.fetchone()</code></pre>
+
+
+                        <h3>Transaction Boundary</h3>
+
+                        <div class="service-transaction-flow">
+
+                            <div>
+                                <strong>Repository A</strong>
+                                <span>INSERT</span>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <strong>Repository B</strong>
+                                <span>UPDATE</span>
+                            </div>
+
+                            <b>+</b>
+
+                            <div>
+                                <strong>Repository C</strong>
+                                <span>INSERT</span>
+                            </div>
+
+                            <b>→</b>
+
+                            <div class="decision">
+                                <strong>Service</strong>
+                                <span>commit / rollback</span>
+                            </div>
+
+                        </div>
+
+
+                        <div class="role-formula">
+
+                            <span>Repository</span>
+                            <b>→</b>
+                            <strong>SQL</strong>
+
+                            <span>Service</span>
+                            <b>→</b>
+                            <strong>Business Transaction</strong>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     27. 오류
+                ================================================== -->
+                    <section class="lesson-card error-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">27</span>
+
+                            <div>
+                                <p class="section-kicker">Error Reading</p>
+
+                                <h2>
+                                    PyMySQL 오류는 연결 계층부터 순서대로 읽는다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="error-pipeline">
+
+                            <span>Python</span>
+                            <b>→</b>
+
+                            <span>PyMySQL</span>
+                            <b>→</b>
+
+                            <span>Server</span>
+                            <b>→</b>
+
+                            <span>Host / Port</span>
+                            <b>→</b>
+
+                            <span>Auth</span>
+                            <b>→</b>
+
+                            <span>Privilege</span>
+                            <b>→</b>
+
+                            <span>Database</span>
+                            <b>→</b>
+
+                            <span>Binding</span>
+                            <b>→</b>
+
+                            <span>SQL</span>
+                            <b>→</b>
+
+                            <span>Constraint</span>
+                            <b>→</b>
+
+                            <span>Transaction</span>
+
+                        </div>
+
+
+                        <div class="error-grid">
+
+                            <article>
+
+                                <code>SyntaxError</code>
+
+                                <h3>Python 문법</h3>
+
+                                <p>
+                                    괄호·콜론·따옴표 같은
+                                    Python Syntax부터 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>ModuleNotFoundError</code>
+
+                                <h3>Package</h3>
+
+                                <p>
+                                    PyMySQL 설치와
+                                    Interpreter를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>NameError</code>
+
+                                <h3>Python 변수</h3>
+
+                                <p>
+                                    DB_HOST·DB_USER 등
+                                    변수가 정의되었는지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>TypeError</code>
+
+                                <h3>API / Type</h3>
+
+                                <p>
+                                    connect() Argument와
+                                    Python Type을 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>ValueError</code>
+
+                                <h3>Config 변환</h3>
+
+                                <p>
+                                    DB_PORT 같은 환경 값을
+                                    숫자로 변환할 수 있는지 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>KeyError</code>
+
+                                <h3>DictCursor Result</h3>
+
+                                <p>
+                                    실제 Dictionary Key와
+                                    SELECT Column 이름을 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Can't connect</code>
+
+                                <h3>Connection</h3>
+
+                                <p>
+                                    Server·Host·Port·Network를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Access denied</code>
+
+                                <h3>Authentication</h3>
+
+                                <p>
+                                    User·Host·Password를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>DB Access denied</code>
+
+                                <h3>Privilege</h3>
+
+                                <p>
+                                    Login 이후 Database 권한을 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Binding Error</code>
+
+                                <h3>Parameter</h3>
+
+                                <p>
+                                    Placeholder 개수와 Parameter를 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>IntegrityError</code>
+
+                                <h3>Constraint</h3>
+
+                                <p>
+                                    PK·UNIQUE·NOT NULL 등의
+                                    Table 규칙을 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <code>Transaction</code>
+
+                                <h3>Commit / Rollback</h3>
+
+                                <p>
+                                    변경을 확정하거나 취소해야 하는지 확인합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <h3>오류 위치별 빠른 판단</h3>
+
+                        <div class="error-stage-grid">
+
+                            <article>
+
+                                <span>BEFORE CONNECTION</span>
+
+                                <strong>
+                                    Python / Package
+                                </strong>
+
+                                <code>
+SyntaxError
+ModuleNotFoundError
+                            </code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CONNECT</span>
+
+                                <strong>
+                                    Server / Authentication
+                                </strong>
+
+                                <code>
+Can't connect
+Access denied
+                            </code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>EXECUTE</span>
+
+                                <strong>
+                                    Privilege / Binding / SQL
+                                </strong>
+
+                                <code>
+Permission
+Binding
+SQL Error
+                            </code>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>DML</span>
+
+                                <strong>
+                                    Constraint / Transaction
+                                </strong>
+
+                                <code>
+IntegrityError
+rollback
+                            </code>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="error-checklist">
+
+                            <strong>
+                                오류 읽는 순서
+                            </strong>
+
+                            <ol>
+                                <li>Python 문법이 정상인가?</li>
+                                <li>PyMySQL이 설치되어 있는가?</li>
+                                <li>현재 Interpreter가 올바른가?</li>
+                                <li>MySQL Server가 실행 중인가?</li>
+                                <li>Host가 맞는가?</li>
+                                <li>Port가 맞는가?</li>
+                                <li>User@Host Account가 맞는가?</li>
+                                <li>Password가 맞는가?</li>
+                                <li>Database Privilege가 있는가?</li>
+                                <li>Database 이름이 맞는가?</li>
+                                <li>Cursor가 정상 생성됐는가?</li>
+                                <li>Placeholder 개수가 맞는가?</li>
+                                <li>Parameter 순서와 Type이 맞는가?</li>
+                                <li>SQL Syntax가 맞는가?</li>
+                                <li>Table·Column 이름이 맞는가?</li>
+                                <li>Constraint를 위반하지 않았는가?</li>
+                                <li>commit 또는 rollback이 필요한가?</li>
+                                <li>Cursor와 Connection이 정상적으로 종료됐는가?</li>
+                            </ol>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     28. 실무 연결
+                ================================================== -->
+                    <section class="lesson-card realwork-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">28</span>
+
+                            <div>
+                                <p class="section-kicker">Real World</p>
+
+                                <h2>
+                                    PyMySQL이 실제 프로젝트에서 연결되는 위치
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="realwork-grid">
+
+                            <article>
+
+                                <span>DETAIL API</span>
+
+                                <h3>회원 상세</h3>
+
+                                <pre>
+GET /members/1
+↓
+Repository
+↓
+SELECT
+↓
+fetchone
+↓
+Dict
+↓
+JSON
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>LIST API</span>
+
+                                <h3>회원 목록</h3>
+
+                                <pre>
+GET /members
+↓
+SELECT
+↓
+fetchall
+↓
+Response
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SEARCH</span>
+
+                                <h3>검색</h3>
+
+                                <pre>
+keyword
+↓
+LIKE %s
+↓
+Binding
+↓
+MySQL
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>REGISTER</span>
+
+                                <h3>회원가입</h3>
+
+                                <pre>
+Form
+↓
+Validation
+↓
+INSERT
+↓
+commit
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CRAWLING</span>
+
+                                <h3>수집 데이터</h3>
+
+                                <pre>
+Crawler
+↓
+List of tuples
+↓
+executemany
+↓
+MySQL
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>CSV</span>
+
+                                <h3>CSV 적재</h3>
+
+                                <pre>
+CSV
+↓
+Python
+↓
+Cleaning
+↓
+executemany
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>ANALYSIS</span>
+
+                                <h3>데이터 분석</h3>
+
+                                <pre>
+MySQL
+↓
+SELECT
+↓
+fetch
+↓
+Pandas
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>TRANSACTION</span>
+
+                                <h3>업무 단위</h3>
+
+                                <pre>
+Service
+↓
+여러 Repository
+↓
+commit / rollback
+                            </pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>SECURITY</span>
+
+                                <h3>접속 보안</h3>
+
+                                <pre>
+Environment
+↓
+app_user
+↓
+Least Privilege
+↓
+MySQL
+                            </pre>
+
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     29. 자주 하는 실수
+                ================================================== -->
+                    <section class="lesson-card mistake-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">29</span>
+
+                            <div>
+                                <p class="section-kicker">Beginner Mistakes</p>
+
+                                <h2>
+                                    초보자가 실제로 자주 하는 실수
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="mistake-list">
+
+                            <article>
+                                <span>01</span>
+
+                                <div>
+                                    <h3>PyMySQL을 설치하지 않고 import한다.</h3>
+                                    <p>Package 설치와 Interpreter부터 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>02</span>
+
+                                <div>
+                                    <h3>다른 Python Interpreter에 Package를 설치한다.</h3>
+                                    <p>현재 PyCharm Interpreter와 pip 대상 Python을 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>03</span>
+
+                                <div>
+                                    <h3>MySQL Server가 꺼져 있는데 SQL 코드만 수정한다.</h3>
+                                    <p>Connection 전 단계부터 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>04</span>
+
+                                <div>
+                                    <h3>Application Connection에 root를 사용한다.</h3>
+                                    <p>앞 단원에서 만든 최소 권한 User를 사용합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>05</span>
+
+                                <div>
+                                    <h3>Password를 Source Code에 직접 작성한다.</h3>
+                                    <p>Environment 또는 Configuration으로 분리합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>06</span>
+
+                                <div>
+                                    <h3>Connection과 Cursor를 같은 객체로 생각한다.</h3>
+                                    <p>연결/Transaction과 SQL/Result 책임을 구분합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>07</span>
+
+                                <div>
+                                    <h3>DictCursor가 다른 SQL 방식이라고 생각한다.</h3>
+                                    <p>주요 차이는 Row 표현 방식입니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>08</span>
+
+                                <div>
+                                    <h3>%s를 Python 문자열 Formatting으로 직접 사용한다.</h3>
+                                    <p>cursor.execute()의 Parameter로 값을 분리합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>09</span>
+
+                                <div>
+                                    <h3>%s는 문자열만 받을 수 있다고 생각한다.</h3>
+                                    <p>PyMySQL Parameter 위치로 이해합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>10</span>
+
+                                <div>
+                                    <h3>한 요소 Tuple의 쉼표를 빼먹는다.</h3>
+                                    <code>(value,)</code>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>11</span>
+
+                                <div>
+                                    <h3>Placeholder 개수와 Parameter 개수가 다르다.</h3>
+                                    <p>Binding 전에 개수를 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>12</span>
+
+                                <div>
+                                    <h3>Parameter 순서를 잘못 전달한다.</h3>
+                                    <p>SQL의 Placeholder 의미 순서와 맞춥니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>13</span>
+
+                                <div>
+                                    <h3>여러 Row를 execute() 반복만으로 처리한다.</h3>
+                                    <p>대량 입력은 executemany()를 고려합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>14</span>
+
+                                <div>
+                                    <h3>INSERT·UPDATE·DELETE 뒤 Transaction을 생각하지 않는다.</h3>
+                                    <p>성공 commit, 실패 rollback을 기본으로 생각합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>15</span>
+
+                                <div>
+                                    <h3>commit과 close를 같은 것으로 생각한다.</h3>
+                                    <p>Transaction 확정과 Resource 종료입니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>16</span>
+
+                                <div>
+                                    <h3>Connection 생성 실패에도 무조건 rollback한다.</h3>
+                                    <p>conn이 실제 생성되었는지 먼저 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>17</span>
+
+                                <div>
+                                    <h3>모든 SELECT에 fetchall()만 사용한다.</h3>
+                                    <p>한 건·Batch·전체 Result 목적을 구분합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>18</span>
+
+                                <div>
+                                    <h3>Access denied를 SQL Syntax 문제로 생각한다.</h3>
+                                    <p>User·Host·Password·Privilege를 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>19</span>
+
+                                <div>
+                                    <h3>Connection 오류 상태에서 SELECT 문만 수정한다.</h3>
+                                    <p>Server·Host·Port·Authentication부터 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>20</span>
+
+                                <div>
+                                    <h3>DictCursor Key를 추측한다.</h3>
+                                    <p>실제 SELECT Column 이름 또는 Alias를 확인합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>21</span>
+
+                                <div>
+                                    <h3>LIKE 검색어를 SQL 문자열에 직접 붙인다.</h3>
+                                    <p>Pattern은 Data로 만들고 LIKE %s에 Binding합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>22</span>
+
+                                <div>
+                                    <h3>Repository마다 무조건 commit한다.</h3>
+                                    <p>Business Transaction이 더 넓다면 Service 경계를 고려합니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>23</span>
+
+                                <div>
+                                    <h3>Privilege와 Transaction을 같은 문제로 생각한다.</h3>
+                                    <p>SQL 실행 가능 여부와 변경 확정 여부는 다릅니다.</p>
+                                </div>
+                            </article>
+
+
+                            <article>
+                                <span>24</span>
+
+                                <div>
+                                    <h3>SQLite의 ? Placeholder를 PyMySQL에 그대로 사용한다.</h3>
+                                    <p>Driver별 Parameter Style을 확인합니다.</p>
+                                </div>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                     30. 면접
+                ================================================== -->
+                    <section class="lesson-card interview-card">
+
+                        <div class="section-heading">
+
+                            <span class="section-number">30</span>
+
+                            <div>
+                                <p class="section-kicker">Interview Point</p>
+
+                                <h2>
+                                    면접에서 설명할 수 있어야 하는 질문
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="interview-list">
+
+
+                            <details open>
+
+                                <summary>
+                                    Q1. PyMySQL은 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Python Application이 MySQL Server에 연결하고
+                                        SQL을 실행할 수 있도록 사용하는 Database Driver입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q2. SQLite와 PyMySQL 연결의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQLite는 주로 Database File에 연결하지만,
+                                        PyMySQL은 Host·Port·User·Password 등의 정보로
+                                        MySQL Server에 연결합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q3. pymysql.connect()의 역할은 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        MySQL Server와 연결하고
+                                        Connection 객체를 생성하는 역할입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q4. Connection의 역할은 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        MySQL Server와의 연결,
+                                        Cursor 생성,
+                                        Transaction,
+                                        commit·rollback·close와 연결됩니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q5. Cursor의 역할은 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQL을 실행하고 Parameter를 전달하며
+                                        SELECT Result를 fetch하는 객체입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q6. Connection과 Cursor의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Connection은 연결과 Transaction,
+                                        Cursor는 SQL과 Result 처리를 담당합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q7. DictCursor란 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        조회 Row를 Column 이름을 Key로 하는
+                                        Dictionary 형태로 다루기 쉽게 하는 Cursor입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q8. 일반 Cursor와 DictCursor의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQL 실행 구조는 유사하지만
+                                        일반 Cursor는 Tuple 중심,
+                                        DictCursor는 Dictionary 중심으로
+                                        Result를 다룹니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q9. PyMySQL에서 %s는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Parameterized Query에서
+                                        Python Data가 Binding될 위치를 표시하는
+                                        Placeholder로 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q10. %s는 문자열만 받을 수 있다는 뜻인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        아닙니다.
+                                        PyMySQL Parameter Binding 위치로 이해해야 합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q11. 왜 Parameterized Query를 사용하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        외부 값을 SQL 문자열에 직접 결합하지 않고
+                                        SQL Code와 Data를 분리하기 위해 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q12. execute와 executemany의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        execute는 한 Parameter Set,
+                                        executemany는 여러 Parameter Set을
+                                        같은 SQL에 적용할 때 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q13. fetchone, fetchmany, fetchall의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        각각 다음 Row 하나,
+                                        일정 개수의 Row,
+                                        전체 Result를 가져오는 방향으로 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q14. INSERT 뒤 왜 commit을 사용하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        현재 Transaction에서 발생한
+                                        Database 변경을 확정하기 위해 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q15. rollback은 언제 사용하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Transaction 도중 오류가 발생했을 때
+                                        미확정 변경을 취소하는 데 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q16. commit과 close는 같은가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        아닙니다.
+                                        commit은 Transaction 확정,
+                                        close는 Resource 종료입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q17. 왜 DB Password를 Source Code와 분리하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Secret 노출을 줄이고
+                                        개발·테스트·운영별 Connection 설정을
+                                        분리하기 위해서입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q18. Application에서 root를 사용하지 않는 이유는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Application이 필요로 하는 범위보다
+                                        강한 Database Privilege를 갖지 않도록
+                                        최소 권한 User를 사용하기 위해서입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q19. SQLite와 PyMySQL Placeholder의 차이는 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQLite sqlite3에서는 대표적으로
+                                        <code>?</code>,
+                                        PyMySQL에서는
+                                        <code>%s</code>를 사용합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q20. Privilege와 Transaction은 같은 개념인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        아닙니다.
+                                        Privilege는 SQL 실행 가능 여부,
+                                        Transaction은 실행한 변경의 확정·취소 문제입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q21. Repository 계층의 역할은 무엇인가요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        SQL과 Database 접근 책임을
+                                        다른 Business Logic에서 분리하는 역할입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q22. 왜 Service가 Transaction 경계를 가질 수 있나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        하나의 Business 작업이 여러 Repository의
+                                        SQL을 포함할 수 있기 때문입니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q23. Connection 오류와 SQL 오류는 어떻게 구분하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        Server·Host·Port·User·Password에서 실패했다면
+                                        SQL보다 앞선 Connection 단계이고,
+                                        연결 후에는 Privilege·Binding·SQL·Constraint 순으로 확인합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+
+                            <details>
+
+                                <summary>
+                                    Q24. DictCursor에서 KeyError가 나면 무엇을 확인하나요?
+                                </summary>
+
+                                <div class="interview-answer">
+                                    <strong>A.</strong>
+
+                                    <p>
+                                        실제 SELECT Column 이름이나 Alias와
+                                        Dictionary에서 사용하는 Key 이름이 일치하는지 확인합니다.
+                                    </p>
+                                </div>
+
+                            </details>
+
+                        </div>
+
+                    </section>
+
                 </main>
 
+
+                <!-- =====================================================
+                 ASIDE
+            ====================================================== -->
                 <aside class="side-note">
+
+
+                    <!-- 오늘의 암기 포인트 -->
                     <section>
-                        <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
+
+                        <p class="side-note-label">
+                            Memory
+                        </p>
+
+                        <h2>
+                            오늘의 암기 포인트
+                        </h2>
+
+
+                        <ul class="memory-list">
+
+                            <li>
+                                Python과 MySQL 사이에서는
+                                이번 교안에서 <strong>PyMySQL</strong>을 사용한다.
+                            </li>
+
+                            <li>
+                                기본 흐름은
+                                <strong>
+                                    install → import → connect → cursor → execute
+                                </strong>
+                                이다.
+                            </li>
+
+                            <li>
+                                Connection은
+                                연결과 Transaction을 담당한다.
+                            </li>
+
+                            <li>
+                                Cursor는
+                                SQL 실행과 Result 처리를 담당한다.
+                            </li>
+
+                            <li>
+                                기본 Cursor는 Tuple 중심,
+                                DictCursor는 Dictionary 중심이다.
+                            </li>
+
+                            <li>
+                                PyMySQL의 대표 Placeholder는
+                                <code>%s</code>다.
+                            </li>
+
+                            <li>
+                                <code>%s</code>는
+                                직접 Python 문자열 치환을 하라는 의미가 아니다.
+                            </li>
+
+                            <li>
+                                한 요소 Tuple은
+                                <code>(value,)</code>다.
+                            </li>
+
+                            <li>
+                                Placeholder 개수와 Parameter 개수를 맞춘다.
+                            </li>
+
+                            <li>
+                                Parameter 순서는 SQL의 의미와 맞춘다.
+                            </li>
+
+                            <li>
+                                <code>execute()</code>는 한 Parameter Set,
+                                <code>executemany()</code>는 여러 Parameter Set이다.
+                            </li>
+
+                            <li>
+                                SELECT는
+                                <strong>execute → fetch</strong>다.
+                            </li>
+
+                            <li>
+                                INSERT·UPDATE·DELETE는
+                                Transaction을 생각한다.
+                            </li>
+
+                            <li>
+                                성공하면 <code>commit()</code>,
+                                실패하면 <code>rollback()</code>이다.
+                            </li>
+
+                            <li>
+                                <code>commit()</code>과
+                                <code>close()</code>는 다르다.
+                            </li>
+
+                            <li>
+                                Password 같은 Secret은
+                                Source Code에서 분리한다.
+                            </li>
+
+                            <li>
+                                외부 Input은 SQL 문자열에 직접 결합하지 않고
+                                Parameter Binding한다.
+                            </li>
+
+                            <li>
+                                root 대신
+                                최소 권한 Application User를 사용한다.
+                            </li>
+
+                            <li>
+                                Repository는 SQL,
+                                Service는 Business Transaction과 연결할 수 있다.
+                            </li>
+
                         </ul>
+
+
+                        <div class="side-pymysql-flow">
+
+                            <span>PyMySQL</span>
+                            <b>→</b>
+
+                            <span>Connection</span>
+                            <b>→</b>
+
+                            <span>Cursor</span>
+                            <b>→</b>
+
+                            <span>%s</span>
+                            <b>→</b>
+
+                            <span>MySQL</span>
+
+                        </div>
+
                     </section>
 
+
+                    <!-- 헷갈리기 쉬운 개념 -->
                     <section>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
+
+                        <p class="side-note-label">
+                            Confusing Point
+                        </p>
+
+                        <h2>
+                            헷갈리기 쉬운 개념
+                        </h2>
+
+
+                        <div class="confusing-list">
+
+                            <article>
+
+                                <strong>
+                                    PyMySQL ≠ MySQL Server
+                                </strong>
+
+                                <p>
+                                    PyMySQL은 Python Driver,
+                                    MySQL은 Database Server입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Install ≠ Connection
+                                </strong>
+
+                                <p>
+                                    Package 설치와 Server 접속은 다른 단계입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Connection ≠ Cursor
+                                </strong>
+
+                                <p>
+                                    연결·Transaction과 SQL·Result의 역할을 구분합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Tuple Cursor ≠ DictCursor
+                                </strong>
+
+                                <p>
+                                    조회 Row의 표현 방식이 다릅니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    %s Placeholder ≠ Python 문자열 Formatting
+                                </strong>
+
+                                <p>
+                                    값은 execute()의 Parameter로 별도 전달합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    %s ≠ String 전용
+                                </strong>
+
+                                <p>
+                                    Driver Parameter 위치로 이해합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    (value) ≠ (value,)
+                                </strong>
+
+                                <p>
+                                    한 요소 Tuple에는 쉼표가 필요합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    execute ≠ executemany
+                                </strong>
+
+                                <p>
+                                    한 Parameter Set과 여러 Parameter Set입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    commit ≠ close
+                                </strong>
+
+                                <p>
+                                    Transaction 확정과 Connection 종료입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Privilege ≠ Transaction
+                                </strong>
+
+                                <p>
+                                    실행 가능 여부와 변경 확정 여부입니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Access denied ≠ SQL Syntax
+                                </strong>
+
+                                <p>
+                                    User·Host·Password·Privilege부터 확인합니다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <strong>
+                                    Repository ≠ Service
+                                </strong>
+
+                                <p>
+                                    SQL 책임과 Business Logic·Transaction 책임을 구분합니다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
                     </section>
 
-                    <section>
-                        <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
+
+                    <!-- 다음 단원 -->
+                    <section class="next-lesson-note">
+
+                        <p class="side-note-label">
+                            Next Lesson
+                        </p>
+
+                        <h2>
+                            다음 단원 연결
+                        </h2>
+
+
+                        <p>
+                            이번 단원까지 학습하면
+                            Python에서 MySQL Server를 사용하는
+                            전체 DB-API 흐름이 연결됩니다.
+                        </p>
+
+
+                        <div class="current-flow">
+
+                            <span>Driver</span>
+                            <b>→</b>
+
+                            <span>Connection</span>
+                            <b>→</b>
+
+                            <span>Cursor</span>
+                            <b>→</b>
+
+                            <span>Parameter</span>
+                            <b>→</b>
+
+                            <span>SQL</span>
+                            <b>→</b>
+
+                            <span>Transaction</span>
+
+                        </div>
+
+
+                        <div class="next-question">
+
+                            <span>다음 질문</span>
+
+                            <strong>
+                                MySQL에서 익힌 Connection → Cursor →
+                                Parameterized SQL → fetch / Transaction 구조는
+                                Oracle에서도 어떻게 반복될까?
+                            </strong>
+
+                        </div>
+
+
+                        <div class="next-topic-grid">
+
+                            <span>Oracle Driver</span>
+                            <span>Connection</span>
+                            <span>Host</span>
+                            <span>Port</span>
+                            <span>Service Name</span>
+                            <span>Cursor</span>
+                            <span>:name</span>
+                            <span>execute()</span>
+                            <span>fetch</span>
+                            <span>commit</span>
+                            <span>rollback</span>
+                            <span>close</span>
+
+                        </div>
+
+
+                        <a class="next-lesson-link" href="./11_python_oracle.html">
+                            <span>Lesson 11</span>
+
+                            Python Oracle 연동
+
+                            <strong>→</strong>
+                        </a>
+
                     </section>
+
                 </aside>
+
             </div>
         </div>
     </body>

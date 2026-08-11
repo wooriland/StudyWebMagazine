@@ -1,118 +1,4226 @@
 <!DOCTYPE html>
 <html lang="ko">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MySQL 환경과 SQL | Python & Data 학습 매거진</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <link rel="stylesheet" href="../../css/00_nav.css">
-        <link rel="stylesheet" href="../../css/study-theme.css">
-        <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
-        <link rel="stylesheet" href="../../css/PythonData/PythonDatabase/08_mysql_environment_sql.css">
+    <meta
+        name="description"
+        content="MySQL Server와 Client 구조, 설치와 접속, Database와 Table 생성, 주요 자료형, INSERT SELECT UPDATE DELETE, WHERE LIKE ORDER BY LIMIT, Transaction과 실무 Database 보안 구조를 학습합니다."
+    >
 
-        <script src="../../js/00_nav.js" defer></script>
-    </head>
+    <title>MySQL 설치와 기본 SQL | Python Database 학습 매거진</title>
 
-    <body class="theme-python-data study-page python-database-page python-database-lesson-page python-database-lesson-08" data-nav-category="python-data" data-nav-item="python-database">
-        <div class="layout">
-            <nav class="side-nav" id="sideNav" data-root="../../"></nav>
+    <link rel="stylesheet" href="../../css/00_nav.css">
+    <link rel="stylesheet" href="../../css/study-theme.css">
+    <link rel="stylesheet" href="../../css/PythonData/python-data-common.css">
+    <link rel="stylesheet" href="../../css/PythonData/PythonDatabase/08_mysql_environment_sql.css">
 
-            <div class="page-content">
-                <header class="lesson-hero">
-                    <p class="lesson-eyebrow">Python Database · Lesson 08</p>
-                    <h1>MySQL 환경과 SQL</h1>
-                    <p class="lesson-summary">
-                        이 단원은 Step 1에서 교안 내용을 정리하고, Step 2에서 흐름과 예제로 구조화한 뒤, Step 3에서 복습·면접 포인트까지 확장합니다.
+    <script src="../../js/00_nav.js" defer></script>
+</head>
+
+<body
+    class="theme-python-data study-page python-database-page python-database-mysql-environment-page"
+    data-nav-category="python-data"
+    data-nav-item="python-database"
+>
+    <div class="layout">
+
+        <!-- =========================================================
+             SIDE NAVIGATION
+        ========================================================== -->
+        <nav
+            class="side-nav"
+            id="sideNav"
+            data-root="../../"
+            aria-label="학습 매거진 네비게이션"
+        ></nav>
+
+
+        <div class="page-content">
+
+            <!-- =====================================================
+                 HEADER
+            ====================================================== -->
+            <header class="lesson-hero">
+
+                <p class="lesson-eyebrow">
+                    Python Database · Lesson 08
+                </p>
+
+                <h1>
+                    MySQL 설치와 기본 SQL
+
+                    <span class="title-sub">
+                        File 기반 SQLite에서 Server 기반 MySQL로 확장하기
+                    </span>
+                </h1>
+
+
+                <p class="lesson-summary">
+                    지금까지 SQLite에서는
+                    <code>sample.db</code> 같은 Database File을 직접 열어 사용했습니다.
+                    이번 단원부터는 구조가 달라집니다.
+                    MySQL에서는 <strong>Client가 실행 중인 MySQL Server에 접속</strong>하고,
+                    User 인증을 거친 뒤 Database를 선택하여
+                    그 안의 Table에 SQL을 실행합니다.
+                    설치와 접속부터
+                    <code>SHOW DATABASES</code>,
+                    <code>CREATE DATABASE</code>,
+                    <code>USE</code>,
+                    <code>CREATE TABLE</code>,
+                    CRUD와 조건 검색까지
+                    하나의 흐름으로 연결합니다.
+                </p>
+
+
+                <!-- SQLite → MySQL 전환 -->
+                <div class="hero-transition">
+
+                    <article>
+
+                        <span>BEFORE · SQLite</span>
+
+                        <div class="hero-stack">
+                            <strong>Python</strong>
+                            <b>↓</b>
+                            <strong>sqlite3</strong>
+                            <b>↓</b>
+                            <code>sample.db</code>
+                        </div>
+
+                        <small>File 중심</small>
+
+                    </article>
+
+
+                    <div class="transition-arrow">
+                        →
+                        <span>확장</span>
+                    </div>
+
+
+                    <article class="mysql-side">
+
+                        <span>NOW · MySQL</span>
+
+                        <div class="hero-stack">
+                            <strong>Client</strong>
+                            <b>↓</b>
+                            <strong>MySQL Server</strong>
+                            <b>↓</b>
+                            <strong>Database</strong>
+                            <b>↓</b>
+                            <strong>Table</strong>
+                        </div>
+
+                        <small>Client · Server 중심</small>
+
+                    </article>
+
+                </div>
+
+
+                <!-- 핵심 사용 흐름 -->
+                <div
+                    class="hero-mysql-flow"
+                    aria-label="MySQL 기본 작업 흐름"
+                >
+                    <span>Server</span>
+                    <b>→</b>
+
+                    <span>Login</span>
+                    <b>→</b>
+
+                    <span class="accent">Database</span>
+                    <b>→</b>
+
+                    <span class="accent">Table</span>
+                    <b>→</b>
+
+                    <span>CRUD</span>
+                    <b>→</b>
+
+                    <span>Transaction</span>
+                </div>
+
+
+                <!-- 학습 목표 -->
+                <section
+                    class="learning-goals"
+                    aria-labelledby="learningGoalsTitle"
+                >
+                    <h2 id="learningGoalsTitle">
+                        학습 목표
+                    </h2>
+
+                    <ul>
+                        <li>
+                            SQLite와 MySQL의 실행 구조 차이를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            MySQL Server와 Client의 역할을 구분할 수 있다.
+                        </li>
+
+                        <li>
+                            MySQL 설치와 Server 실행이 서로 다른 단계임을 이해한다.
+                        </li>
+
+                        <li>
+                            PATH가 MySQL Client 실행과 어떤 관계가 있는지 이해한다.
+                        </li>
+
+                        <li>
+                            <code>mysql -u root -p</code> 명령의 구성 요소를 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            Server → Database → Table → Row 계층을 설명할 수 있다.
+                        </li>
+
+                        <li>
+                            <code>SHOW DATABASES</code>,
+                            <code>CREATE DATABASE</code>,
+                            <code>USE</code>,
+                            <code>SHOW TABLES</code>의 역할을 구분한다.
+                        </li>
+
+                        <li>
+                            MySQL의 정수·실수·문자·날짜/시간 자료형을 분류할 수 있다.
+                        </li>
+
+                        <li>
+                            <code>CHAR</code>와 <code>VARCHAR</code>,
+                            <code>FLOAT/DOUBLE</code>과 <code>DECIMAL</code>을 구분한다.
+                        </li>
+
+                        <li>
+                            Member Table을 직접 생성하고 Schema를 확인할 수 있다.
+                        </li>
+
+                        <li>
+                            INSERT·SELECT·UPDATE·DELETE를 실행할 수 있다.
+                        </li>
+
+                        <li>
+                            WHERE·AND·OR·LIKE를 이용해 조건 검색을 구성할 수 있다.
+                        </li>
+
+                        <li>
+                            ORDER BY와 LIMIT를 이용해 정렬과 결과 제한을 구현할 수 있다.
+                        </li>
+
+                        <li>
+                            UPDATE·DELETE 전에 SELECT로 대상을 확인하는 습관을 이해한다.
+                        </li>
+
+                        <li>
+                            DELETE·DROP TABLE·DROP DATABASE의 삭제 범위를 구분한다.
+                        </li>
+
+                        <li>
+                            ALTER TABLE을 이용한 Schema 변경을 이해한다.
+                        </li>
+
+                        <li>
+                            Auto Commit과 Manual Transaction의 차이를 개념적으로 이해한다.
+                        </li>
+
+                        <li>
+                            Parameterized Query와 DB 접속 정보 분리 규칙을 MySQL에도 연결한다.
+                        </li>
+
+                        <li>
+                            MySQL 연결·인증·권한 오류와 SQL 오류를 구분할 수 있다.
+                        </li>
+
+                        <li>
+                            다음 사용자·권한 단원으로 자연스럽게 연결할 수 있다.
+                        </li>
+                    </ul>
+                </section>
+
+            </header>
+
+
+            <!-- =====================================================
+                 MAIN
+            ====================================================== -->
+            <main class="lesson-main">
+
+
+                <!-- =================================================
+                     01. 핵심 개념
+                ================================================== -->
+                <section class="lesson-card concept-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">01</span>
+
+                        <div>
+                            <p class="section-kicker">Core Concept</p>
+
+                            <h2>
+                                SQLite에서는 File, MySQL에서는 Server에 연결한다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="sqlite-mysql-grid">
+
+                        <article>
+
+                            <span>SQLite</span>
+
+                            <pre><code class="language-python">sqlite3.connect(
+    "sample.db"
+)</code></pre>
+
+                            <div class="vertical-flow">
+                                <strong>Python</strong>
+                                <b>↓</b>
+                                <strong>SQLite Engine</strong>
+                                <b>↓</b>
+                                <strong>sample.db</strong>
+                            </div>
+
+                            <p>
+                                하나의 Database File을 중심으로 사용하는
+                                Embedded Database 구조입니다.
+                            </p>
+
+                        </article>
+
+
+                        <article class="mysql">
+
+                            <span>MySQL</span>
+
+                            <pre><code>mysql -u root -p</code></pre>
+
+                            <div class="vertical-flow">
+                                <strong>Client</strong>
+                                <b>↓</b>
+                                <strong>MySQL Server</strong>
+                                <b>↓</b>
+                                <strong>Database</strong>
+                                <b>↓</b>
+                                <strong>Table</strong>
+                            </div>
+
+                            <p>
+                                Client가 Server에 접속하는
+                                Client–Server 구조를 중심으로 이해합니다.
+                            </p>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="memory-box">
+
+                        <strong>이번 단원의 가장 중요한 변화</strong>
+
+                        <p>
+                            SQL 문법 자체보다 먼저
+                            <strong>
+                                Server · Client · User · Connection · Database
+                            </strong>
+                            라는 실행 환경이 추가되었다는 점을 이해합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     02. Client / Server
+                ================================================== -->
+                <section class="lesson-card architecture-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">02</span>
+
+                        <div>
+                            <p class="section-kicker">Client · Server</p>
+
+                            <h2>
+                                MySQL Server와 Client 역할 구분하기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="client-server-flow">
+
+                        <div class="client-group">
+
+                            <span>CLIENT</span>
+
+                            <article>
+                                <strong>mysql CLI</strong>
+                                <small>Command Line Client</small>
+                            </article>
+
+                            <article>
+                                <strong>Python App</strong>
+                                <small>PyMySQL 등</small>
+                            </article>
+
+                            <article>
+                                <strong>GUI Tool</strong>
+                                <small>DB Client</small>
+                            </article>
+
+                        </div>
+
+
+                        <div class="network-arrow">
+                            <span>Connection</span>
+                            <b>→</b>
+                        </div>
+
+
+                        <div class="server-node">
+
+                            <span>SERVER</span>
+
+                            <strong>MySQL Server</strong>
+
+                            <ul>
+                                <li>Client 접속 처리</li>
+                                <li>User 인증</li>
+                                <li>SQL 실행</li>
+                                <li>Transaction 관리</li>
+                                <li>Database 관리</li>
+                            </ul>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="not-equal-formula">
+
+                        <span>mysql Client</span>
+                        <b>≠</b>
+                        <span>MySQL Server</span>
+
+                    </div>
+
+
+                    <div class="important-box">
+
+                        <strong>
+                            같은 PC에서도 Client와 Server는 개념적으로 분리된다.
+                        </strong>
+
+                        <p>
+                            <code>localhost</code>는
+                            Server가 현재 PC에 있다는 뜻이지
+                            Client와 Server가 같은 프로그램이라는 의미가 아닙니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     03. 설치
+                ================================================== -->
+                <section class="lesson-card install-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">03</span>
+
+                        <div>
+                            <p class="section-kicker">Installation</p>
+
+                            <h2>
+                                MySQL 설치와 Server 준비 흐름
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <p>
+                        첨부 교안에서는 Windows에서
+                        MySQL Community Server와 Installer를 사용하고
+                        <strong>Run MySQL Configurator</strong>를 실행하는 흐름을 설명합니다.
+                        Linux 계열에서는
+                        <code>mysql-server</code> 설치와
+                        Service 시작 과정을 설명합니다.
                     </p>
 
-                    <section class="learning-goals" aria-labelledby="learningGoalsTitle">
-                        <h2 id="learningGoalsTitle">학습 목표</h2>
-                        <ul>
-                            <li>이 단원의 핵심 개념을 이해한다.</li>
-                            <li>Python & Data 전체 흐름에서 이 단원의 위치를 파악한다.</li>
-                            <li>이후 실습과 프로젝트에 연결할 준비를 한다.</li>
-                        </ul>
-                    </section>
-                </header>
 
-                <main class="lesson-main">
-                    <section class="lesson-card concept-card">
-                        <h2>핵심 개념 설명</h2>
-                        <p>이 영역은 Step 1에서 교안 내용을 바탕으로 자세히 채울 예정입니다.</p>
-                    </section>
+                    <div class="install-flow">
 
-                    <section class="lesson-card visual-card">
-                        <h2>그림처럼 이해</h2>
-                        <div class="visual-placeholder">흐름도 또는 상태 변화 도식 영역</div>
-                    </section>
+                        <div>
+                            <span>01</span>
+                            <strong>MySQL 설치</strong>
+                            <small>Community Server</small>
+                        </div>
 
-                    <section class="lesson-card tool-card">
-                        <h2>개발 도구와 실행 흐름</h2>
-                        <p>PyCharm, Jupyter, 콘솔 또는 데이터 도구 조작 흐름을 정리할 예정입니다.</p>
-                    </section>
+                        <b>→</b>
 
-                    <section class="lesson-card code-card">
-                        <h2>Python 코드 예제</h2>
-                        <pre><code class="language-python"># 코드 예제 작성 영역
-</code></pre>
-                    </section>
+                        <div>
+                            <span>02</span>
+                            <strong>Configurator</strong>
+                            <small>Server 설정</small>
+                        </div>
 
-                    <section class="lesson-card mistake-card">
-                        <h2>자주 하는 실수</h2>
-                        <p>초보자가 자주 헷갈리는 내용과 점검 기준을 작성할 예정입니다.</p>
-                    </section>
+                        <b>→</b>
 
-                    <section class="lesson-card error-card">
-                        <h2>오류 메시지 읽는 법</h2>
-                        <p>대표 오류와 해석 방법을 작성할 예정입니다.</p>
-                    </section>
+                        <div>
+                            <span>03</span>
+                            <strong>root 설정</strong>
+                            <small>관리 Account</small>
+                        </div>
 
-                    <section class="lesson-card practice-card">
-                        <h2>실습 문제</h2>
-                        <p>단계별 실습 문제와 확인 포인트를 작성할 예정입니다.</p>
-                    </section>
+                        <b>→</b>
 
-                    <section class="lesson-card realwork-card">
-                        <h2>실무 연결</h2>
-                        <p>실제 데이터 수집, 저장, 분석, 시각화 프로젝트와 연결되는 내용을 작성할 예정입니다.</p>
-                    </section>
+                        <div>
+                            <span>04</span>
+                            <strong>Service</strong>
+                            <small>Server 실행</small>
+                        </div>
 
-                    <section class="lesson-card interview-card">
-                        <h2>면접 포인트</h2>
-                        <dl class="interview-list">
-                            <div>
-                                <dt>질문</dt>
-                                <dd>답변 작성 영역</dd>
+                        <b>→</b>
+
+                        <div>
+                            <span>05</span>
+                            <strong>Client 접속</strong>
+                            <small>mysql -u root -p</small>
+                        </div>
+
+                    </div>
+
+
+                    <div class="source-current-grid">
+
+                        <article class="source">
+
+                            <span>교안 기준</span>
+
+                            <strong>
+                                특정 과거 Installer 파일명과 설정 절차
+                            </strong>
+
+                            <p>
+                                교안에는 당시의 구체적인 MSI 파일명,
+                                Visual C++ Redistributable 설치,
+                                MySQL 삭제 후 재설치 과정이 포함되어 있습니다.
+                            </p>
+
+                        </article>
+
+
+                        <article class="current">
+
+                            <span>Step 1·2 보완</span>
+
+                            <strong>
+                                버전 번호보다 설치 구조를 기억
+                            </strong>
+
+                            <p>
+                                학습 목표는 특정 Installer 이름을 암기하는 것이 아니라
+                                Server 설치 → 설정 → 실행 → Client 접속 구조를 이해하는 것입니다.
+                            </p>
+
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     04. PATH / Server state
+                ================================================== -->
+                <section class="lesson-card environment-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">04</span>
+
+                        <div>
+                            <p class="section-kicker">Environment</p>
+
+                            <h2>
+                                설치 · PATH · Server 실행을 분리해서 본다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="environment-state-grid">
+
+                        <article>
+
+                            <span>INSTALL</span>
+
+                            <strong>프로그램 설치</strong>
+
+                            <p>
+                                MySQL Server와 Client 프로그램이
+                                시스템에 설치되어 있는가?
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>PATH</span>
+
+                            <strong>Client 명령 검색</strong>
+
+                            <p>
+                                Command Prompt에서
+                                <code>mysql</code> 명령을 찾을 수 있는가?
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>SERVICE</span>
+
+                            <strong>Server 실행</strong>
+
+                            <p>
+                                설치된 MySQL Server가
+                                실제로 실행 중인가?
+                            </p>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="path-flow">
+
+                        <span>Command Prompt</span>
+                        <b>→</b>
+
+                        <code>mysql</code>
+                        <b>→</b>
+
+                        <span>PATH 검색</span>
+                        <b>→</b>
+
+                        <strong>mysql Client 실행</strong>
+
+                    </div>
+
+
+                    <div class="important-box">
+
+                        <strong>설치 완료 ≠ Server 실행 중</strong>
+
+                        <p>
+                            SQL 오류를 확인하기 전에
+                            Client 실행과 Server 실행 상태가 정상인지 먼저 확인해야 합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     05. 접속
+                ================================================== -->
+                <section class="lesson-card login-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">05</span>
+
+                        <div>
+                            <p class="section-kicker">Login</p>
+
+                            <h2>
+                                mysql -u root -p 명령 읽기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <pre><code>mysql -u root -p</code></pre>
+
+
+                    <div class="login-token-grid">
+
+                        <article>
+                            <code>mysql</code>
+                            <strong>Client 실행</strong>
+                        </article>
+
+                        <article>
+                            <code>-u</code>
+                            <strong>User 지정</strong>
+                        </article>
+
+                        <article>
+                            <code>root</code>
+                            <strong>관리 User</strong>
+                        </article>
+
+                        <article>
+                            <code>-p</code>
+                            <strong>Password Prompt</strong>
+                        </article>
+
+                    </div>
+
+
+                    <div class="login-flow">
+
+                        <span>User</span>
+                        <b>→</b>
+
+                        <span>mysql Client</span>
+                        <b>→</b>
+
+                        <span>Authentication</span>
+                        <b>→</b>
+
+                        <strong>MySQL Server</strong>
+
+                    </div>
+
+
+                    <div class="security-note">
+
+                        <strong>Password는 Prompt에서 입력하는 습관</strong>
+
+                        <pre><code>mysql -u root -p
+
+Enter password:</code></pre>
+
+                        <p>
+                            Password 값을 명령행 문자열이나
+                            Source Code에 직접 노출하는 습관으로 이어지지 않도록 합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     06. Database hierarchy
+                ================================================== -->
+                <section class="lesson-card hierarchy-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">06</span>
+
+                        <div>
+                            <p class="section-kicker">Hierarchy</p>
+
+                            <h2>
+                                Server → Database → Table → Row 계층
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="mysql-hierarchy">
+
+                        <div class="server-layer">
+
+                            <span>SERVER</span>
+
+                            <strong>MySQL Server</strong>
+
+
+                            <div class="database-layer">
+
+                                <span>DATABASE</span>
+
+                                <strong>python_study</strong>
+
+
+                                <div class="table-layer">
+
+                                    <span>TABLE</span>
+
+                                    <strong>Member</strong>
+
+
+                                    <div class="row-layer">
+
+                                        <p>
+                                            <b>Row 1</b>
+                                            <span>홍길동</span>
+                                        </p>
+
+                                        <p>
+                                            <b>Row 2</b>
+                                            <span>김철수</span>
+                                        </p>
+
+                                        <p>
+                                            <b>Row 3</b>
+                                            <span>이영희</span>
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
                             </div>
-                        </dl>
-                    </section>
-                    <nav class="lesson-pagination" aria-label="단원 이동">
-                        <a class="lesson-prev" href="./07_python_database_fetch_transaction.html">이전 단원</a>
-                        <a class="lesson-next" href="./09_mysql_user_privilege.html">다음 단원</a>
-                    </nav>
-                </main>
 
-                <aside class="side-note">
-                    <section>
-                        <h2>오늘의 암기 포인트</h2>
-                        <ul>
-                            <li>이 단원의 핵심 문장은 Step 1과 Step 2 완료 후 정리합니다.</li>
-                        </ul>
-                    </section>
+                        </div>
 
-                    <section>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <p>비교가 필요한 개념과 자주 하는 착각을 정리할 예정입니다.</p>
-                    </section>
+                    </div>
 
-                    <section>
-                        <h2>다음 단원 연결</h2>
-                        <p>다음 단원에서 현재 개념을 이어 받아 더 구체적인 실습 흐름으로 확장합니다.</p>
-                    </section>
-                </aside>
-            </div>
+
+                    <div class="not-equal-formula">
+
+                        <span>Server</span>
+                        <b>≠</b>
+                        <span>Database</span>
+                        <b>≠</b>
+                        <span>Table</span>
+                        <b>≠</b>
+                        <span>Row</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     07. Database commands
+                ================================================== -->
+                <section class="lesson-card command-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">07</span>
+
+                        <div>
+                            <p class="section-kicker">Database Commands</p>
+
+                            <h2>
+                                Database 목록 → 생성 → 선택 → Table 확인
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="command-sequence">
+
+                        <article>
+
+                            <span>01</span>
+
+                            <code>SHOW DATABASES;</code>
+
+                            <strong>목록 확인</strong>
+
+                        </article>
+
+                        <b>→</b>
+
+
+                        <article>
+
+                            <span>02</span>
+
+                            <code>CREATE DATABASE</code>
+
+                            <strong>Database 생성</strong>
+
+                        </article>
+
+                        <b>→</b>
+
+
+                        <article>
+
+                            <span>03</span>
+
+                            <code>USE</code>
+
+                            <strong>현재 Database 선택</strong>
+
+                        </article>
+
+                        <b>→</b>
+
+
+                        <article>
+
+                            <span>04</span>
+
+                            <code>SHOW TABLES;</code>
+
+                            <strong>Table 목록 확인</strong>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>실습</h3>
+
+                    <pre><code class="language-sql">SHOW DATABASES;
+
+
+CREATE DATABASE python_study
+CHARACTER SET utf8mb4;
+
+
+USE python_study;
+
+
+SHOW TABLES;</code></pre>
+
+
+                    <div class="important-box">
+
+                        <strong>CREATE DATABASE ≠ USE</strong>
+
+                        <p>
+                            Database를 만드는 것과
+                            이후 SQL의 기본 작업 대상으로 선택하는 것은 서로 다른 단계입니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     08. Character set & current corrections
+                ================================================== -->
+                <section class="lesson-card correction-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">08</span>
+
+                        <div>
+                            <p class="section-kicker">Source vs Supplement</p>
+
+                            <h2>
+                                교안 기준과 Step 1·2 보완을 구분해서 공부한다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="correction-grid">
+
+                        <article>
+
+                            <span>설치 파일</span>
+
+                            <strong>교안</strong>
+                            <p>과거 특정 Installer 파일명</p>
+
+                            <strong>보완</strong>
+                            <p>파일명보다 Server 설치·설정 흐름 이해</p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>Character Set</span>
+
+                            <strong>교안</strong>
+                            <code>utf8</code>
+
+                            <strong>보완</strong>
+                            <code>utf8mb4</code>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>TINYINT</span>
+
+                            <strong>교안 표현</strong>
+                            <p>일부 범위 값에 오차 존재</p>
+
+                            <strong>보완</strong>
+                            <p>Signed 최대 127</p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>SMALLINT UNSIGNED</span>
+
+                            <strong>교안 표현</strong>
+                            <p>최대 65536</p>
+
+                            <strong>보완</strong>
+                            <p>최대 65535</p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>BIGINT</span>
+
+                            <strong>교안 표현</strong>
+                            <p>무제한 수</p>
+
+                            <strong>보완</strong>
+                            <p>8-byte 유한 정수형</p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>FLOAT(M,D)</span>
+
+                            <strong>교안</strong>
+                            <p>길이·소수 자릿수 중심 설명</p>
+
+                            <strong>보완</strong>
+                            <p>현재 학습에서는 FLOAT/DOUBLE과 DECIMAL 구분 중심</p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>Remote Bind</span>
+
+                            <strong>교안</strong>
+                            <code>0.0.0.0</code>
+
+                            <strong>보완</strong>
+                            <p>초보 로컬 실습에서는 원격 개방을 기본값으로 사용하지 않음</p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>root</span>
+
+                            <strong>교안 실습</strong>
+                            <p>root 중심</p>
+
+                            <strong>보완</strong>
+                            <p>Application은 별도 최소 권한 User 방향</p>
+
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     09. Data types
+                ================================================== -->
+                <section class="lesson-card datatype-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">09</span>
+
+                        <div>
+                            <p class="section-kicker">Data Types</p>
+
+                            <h2>
+                                MySQL 주요 자료형 분류하기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="datatype-category-grid">
+
+                        <article>
+
+                            <span>NUMERIC</span>
+
+                            <h3>정수형</h3>
+
+                            <div class="type-chips">
+                                <code>TINYINT</code>
+                                <code>SMALLINT</code>
+                                <code>MEDIUMINT</code>
+                                <code>INT</code>
+                                <code>BIGINT</code>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>NUMERIC</span>
+
+                            <h3>실수 / 소수</h3>
+
+                            <div class="type-chips">
+                                <code>FLOAT</code>
+                                <code>DOUBLE</code>
+                                <code>DECIMAL</code>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>STRING</span>
+
+                            <h3>문자열</h3>
+
+                            <div class="type-chips">
+                                <code>CHAR</code>
+                                <code>VARCHAR</code>
+                                <code>TEXT</code>
+                                <code>MEDIUMTEXT</code>
+                                <code>LONGTEXT</code>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>TEMPORAL</span>
+
+                            <h3>날짜·시간</h3>
+
+                            <div class="type-chips">
+                                <code>DATE</code>
+                                <code>TIME</code>
+                                <code>DATETIME</code>
+                                <code>TIMESTAMP</code>
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="type-decision-grid">
+
+                        <article>
+                            <span>ID</span>
+                            <strong>INT 계열</strong>
+                        </article>
+
+                        <article>
+                            <span>가격</span>
+                            <strong>DECIMAL</strong>
+                        </article>
+
+                        <article>
+                            <span>이름</span>
+                            <strong>VARCHAR</strong>
+                        </article>
+
+                        <article>
+                            <span>전화번호</span>
+                            <strong>VARCHAR</strong>
+                        </article>
+
+                        <article>
+                            <span>가입일</span>
+                            <strong>DATETIME</strong>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     10. Numeric types
+                ================================================== -->
+                <section class="lesson-card numeric-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">10</span>
+
+                        <div>
+                            <p class="section-kicker">Numeric Type</p>
+
+                            <h2>
+                                정수 · UNSIGNED · DECIMAL 이해하기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <h3>정수형 크기 흐름</h3>
+
+                    <div class="integer-scale">
+
+                        <span>TINYINT</span>
+                        <b>→</b>
+                        <span>SMALLINT</span>
+                        <b>→</b>
+                        <span>MEDIUMINT</span>
+                        <b>→</b>
+                        <span>INT</span>
+                        <b>→</b>
+                        <span>BIGINT</span>
+
+                    </div>
+
+
+                    <h3>UNSIGNED</h3>
+
+                    <div class="signed-grid">
+
+                        <article>
+                            <span>SIGNED</span>
+                            <strong>음수 · 0 · 양수</strong>
+                        </article>
+
+                        <article>
+                            <span>UNSIGNED</span>
+                            <strong>0 이상의 값</strong>
+                        </article>
+
+                    </div>
+
+
+                    <h3>FLOAT / DOUBLE vs DECIMAL</h3>
+
+                    <div class="exact-approx-grid">
+
+                        <article>
+                            <span>APPROXIMATE</span>
+                            <strong>FLOAT · DOUBLE</strong>
+                            <p>근사 실수값</p>
+                        </article>
+
+                        <article>
+                            <span>EXACT</span>
+                            <strong>DECIMAL</strong>
+                            <p>정확한 고정 소수점 값</p>
+
+                            <code>DECIMAL(10, 2)</code>
+                        </article>
+
+                    </div>
+
+
+                    <div class="important-box">
+
+                        <strong>금액과 측정값은 같은 숫자가 아니다.</strong>
+
+                        <p>
+                            정확한 금전 값을 표현할지,
+                            근사 실수 표현이 적절한지
+                            Data의 의미를 보고 자료형을 선택합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     11. String temporal
+                ================================================== -->
+                <section class="lesson-card string-date-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">11</span>
+
+                        <div>
+                            <p class="section-kicker">String · Temporal</p>
+
+                            <h2>
+                                CHAR · VARCHAR · TEXT와 날짜/시간 Type
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="string-type-grid">
+
+                        <article>
+
+                            <span>CHAR</span>
+
+                            <strong>고정 길이</strong>
+
+                            <pre><code class="language-sql">code CHAR(5)</code></pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>VARCHAR</span>
+
+                            <strong>가변 길이</strong>
+
+                            <pre><code class="language-sql">name VARCHAR(50)</code></pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>TEXT</span>
+
+                            <strong>긴 문자열</strong>
+
+                            <pre><code class="language-sql">description TEXT</code></pre>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="phone-note">
+
+                        <strong>
+                            전화번호는 숫자처럼 보여도 문자열이다.
+                        </strong>
+
+                        <code>010-1234-5678</code>
+
+                        <p>
+                            산술 계산 대상이 아니고,
+                            앞의 0이나 구분 문자가 의미를 가지므로
+                            <code>VARCHAR</code> 계열이 자연스럽습니다.
+                        </p>
+
+                    </div>
+
+
+                    <div class="temporal-grid">
+
+                        <article>
+                            <code>DATE</code>
+                            <span>날짜</span>
+                        </article>
+
+                        <article>
+                            <code>TIME</code>
+                            <span>시간</span>
+                        </article>
+
+                        <article>
+                            <code>DATETIME</code>
+                            <span>날짜 + 시간</span>
+                        </article>
+
+                        <article>
+                            <code>TIMESTAMP</code>
+                            <span>날짜·시간 Type</span>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     12. Member table
+                ================================================== -->
+                <section class="lesson-card schema-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">12</span>
+
+                        <div>
+                            <p class="section-kicker">Table Schema</p>
+
+                            <h2>
+                                Member Table 만들기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <pre><code class="language-sql">CREATE TABLE IF NOT EXISTS Member (
+
+    _id INT UNSIGNED
+        NOT NULL
+        AUTO_INCREMENT,
+
+    name VARCHAR(50)
+        NOT NULL,
+
+    tel VARCHAR(20)
+        NOT NULL
+        DEFAULT 'unknown',
+
+    joindate DATETIME
+        NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (_id),
+
+    UNIQUE KEY uq_member_name_tel (
+        name,
+        tel
+    ),
+
+    CONSTRAINT chk_member_tel
+        CHECK (
+            CHAR_LENGTH(tel) >= 3
+        )
+
+);</code></pre>
+
+
+                    <div class="schema-visual">
+
+                        <article>
+
+                            <span>_id</span>
+
+                            <strong>INT UNSIGNED</strong>
+
+                            <div>
+                                <code>PRIMARY KEY</code>
+                                <code>AUTO_INCREMENT</code>
+                                <code>NOT NULL</code>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>name</span>
+
+                            <strong>VARCHAR(50)</strong>
+
+                            <div>
+                                <code>NOT NULL</code>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>tel</span>
+
+                            <strong>VARCHAR(20)</strong>
+
+                            <div>
+                                <code>NOT NULL</code>
+                                <code>DEFAULT</code>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>joindate</span>
+
+                            <strong>DATETIME</strong>
+
+                            <div>
+                                <code>DEFAULT CURRENT_TIMESTAMP</code>
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>Schema 확인</h3>
+
+                    <pre><code class="language-sql">DESC Member;</code></pre>
+
+
+                    <div class="desc-grid">
+
+                        <span>Field</span>
+                        <span>Type</span>
+                        <span>Null</span>
+                        <span>Key</span>
+                        <span>Default</span>
+                        <span>Extra</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     13. INSERT / SELECT
+                ================================================== -->
+                <section class="lesson-card crud-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">13</span>
+
+                        <div>
+                            <p class="section-kicker">CRUD · Create & Read</p>
+
+                            <h2>
+                                INSERT로 입력하고 SELECT로 조회하기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <h3>INSERT</h3>
+
+                    <pre><code class="language-sql">INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '홍길동',
+    '010-1111-1111'
+);
+
+
+INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '김철수',
+    '010-2222-2222'
+);
+
+
+INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '김민수',
+    '010-3333-3333'
+);</code></pre>
+
+
+                    <div class="column-value-map">
+
+                        <span>name</span>
+                        <b>←</b>
+                        <strong>홍길동</strong>
+
+                        <span>tel</span>
+                        <b>←</b>
+                        <strong>010-1111-1111</strong>
+
+                    </div>
+
+
+                    <h3>SELECT</h3>
+
+                    <pre><code class="language-sql">SELECT *
+FROM Member;
+
+
+SELECT
+    _id,
+    name,
+    tel
+FROM Member;</code></pre>
+
+
+                    <div class="crud-memory">
+
+                        <article>
+                            <span>C</span>
+                            <strong>INSERT</strong>
+                            <small>Row 생성</small>
+                        </article>
+
+                        <article>
+                            <span>R</span>
+                            <strong>SELECT</strong>
+                            <small>Row 조회</small>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     14. WHERE / LIKE
+                ================================================== -->
+                <section class="lesson-card search-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">14</span>
+
+                        <div>
+                            <p class="section-kicker">Search</p>
+
+                            <h2>
+                                WHERE · AND · OR · LIKE 조건 검색
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <h3>WHERE</h3>
+
+                    <pre><code class="language-sql">SELECT *
+FROM Member
+WHERE name = '홍길동';</code></pre>
+
+
+                    <div class="filter-flow">
+
+                        <span>Member 전체</span>
+                        <b>→</b>
+
+                        <code>WHERE</code>
+                        <b>→</b>
+
+                        <strong>조건을 만족하는 Row</strong>
+
+                    </div>
+
+
+                    <h3>AND / OR</h3>
+
+                    <div class="and-or-grid">
+
+                        <article>
+
+                            <span>AND</span>
+
+                            <pre><code class="language-sql">WHERE
+    name = '홍길동'
+    AND
+    tel = '010-1111-1111'</code></pre>
+
+                            <strong>
+                                두 조건 모두
+                            </strong>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>OR</span>
+
+                            <pre><code class="language-sql">WHERE
+    name = '홍길동'
+    OR
+    name = '김철수'</code></pre>
+
+                            <strong>
+                                하나 이상
+                            </strong>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>LIKE</h3>
+
+                    <div class="like-grid">
+
+                        <article>
+                            <code>'%김%'</code>
+                            <strong>포함</strong>
+                        </article>
+
+                        <article>
+                            <code>'김%'</code>
+                            <strong>김으로 시작</strong>
+                        </article>
+
+                        <article>
+                            <code>'%수'</code>
+                            <strong>수로 끝</strong>
+                        </article>
+
+                        <article>
+                            <code>'_철%'</code>
+                            <strong>두 번째 글자가 철</strong>
+                        </article>
+
+                    </div>
+
+
+                    <div class="like-symbol-grid">
+
+                        <article>
+                            <code>%</code>
+                            <span>여러 문자 Pattern</span>
+                        </article>
+
+                        <article>
+                            <code>_</code>
+                            <span>한 문자 위치</span>
+                        </article>
+
+                    </div>
+
+
+                    <div class="not-equal-formula">
+
+                        <span>=</span>
+                        <b>≠</b>
+                        <span>LIKE</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     15. ORDER / LIMIT
+                ================================================== -->
+                <section class="lesson-card list-query-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">15</span>
+
+                        <div>
+                            <p class="section-kicker">Sort · Limit</p>
+
+                            <h2>
+                                ORDER BY와 LIMIT로 목록 Query 만들기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <h3>ORDER BY</h3>
+
+                    <pre><code class="language-sql">SELECT *
+FROM Member
+ORDER BY name ASC;
+
+
+SELECT *
+FROM Member
+ORDER BY name DESC;</code></pre>
+
+
+                    <div class="order-grid">
+
+                        <article>
+                            <code>ASC</code>
+                            <strong>오름차순</strong>
+                        </article>
+
+                        <article>
+                            <code>DESC</code>
+                            <strong>내림차순</strong>
+                        </article>
+
+                    </div>
+
+
+                    <h3>LIMIT</h3>
+
+                    <pre><code class="language-sql">SELECT *
+FROM Member
+ORDER BY _id
+LIMIT 3;
+
+
+SELECT *
+FROM Member
+ORDER BY _id
+LIMIT 3, 3;</code></pre>
+
+
+                    <div class="pagination-visual">
+
+                        <div>
+                            <span>Page 1</span>
+                            <strong>OFFSET 0</strong>
+                            <code>LIMIT 10</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>Page 2</span>
+                            <strong>OFFSET 10</strong>
+                            <code>LIMIT 10</code>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>Page 3</span>
+                            <strong>OFFSET 20</strong>
+                            <code>LIMIT 10</code>
+                        </div>
+
+                    </div>
+
+
+                    <h3>SELECT 전체 조립</h3>
+
+                    <pre><code class="language-sql">SELECT
+    _id,
+    name,
+    tel
+FROM Member
+WHERE name LIKE '김%'
+ORDER BY name ASC
+LIMIT 10;</code></pre>
+
+
+                    <div class="select-pipeline">
+
+                        <span>SELECT / FROM</span>
+                        <b>→</b>
+
+                        <span>WHERE</span>
+                        <b>→</b>
+
+                        <span>ORDER BY</span>
+                        <b>→</b>
+
+                        <strong>LIMIT</strong>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     16. UPDATE DELETE
+                ================================================== -->
+                <section class="lesson-card change-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">16</span>
+
+                        <div>
+                            <p class="section-kicker">CRUD · Update & Delete</p>
+
+                            <h2>
+                                UPDATE와 DELETE는 WHERE를 먼저 확인한다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <h3>UPDATE</h3>
+
+                    <pre><code class="language-sql">SELECT *
+FROM Member
+WHERE _id = 1;
+
+
+UPDATE Member
+SET tel = '010-9999-9999'
+WHERE _id = 1;</code></pre>
+
+
+                    <h3>DELETE</h3>
+
+                    <pre><code class="language-sql">SELECT *
+FROM Member
+WHERE _id = 3;
+
+
+DELETE FROM Member
+WHERE _id = 3;</code></pre>
+
+
+                    <div class="safe-change-flow">
+
+                        <span>WHERE 작성</span>
+                        <b>→</b>
+
+                        <span>SELECT로 대상 확인</span>
+                        <b>→</b>
+
+                        <span>변경 범위 확인</span>
+                        <b>→</b>
+
+                        <strong>UPDATE / DELETE</strong>
+
+                    </div>
+
+
+                    <div class="danger-box">
+
+                        <strong>WHERE가 빠져도 Syntax Error가 아닐 수 있다.</strong>
+
+                        <pre><code class="language-sql">UPDATE Member
+SET tel = 'unknown';
+
+
+DELETE FROM Member;</code></pre>
+
+                        <p>
+                            Database가 오류 없이 실행했다고 해서
+                            내가 원하는 Row만 변경됐다는 의미는 아닙니다.
+                        </p>
+
+                    </div>
+
+
+                    <div class="crud-memory">
+
+                        <article>
+                            <span>U</span>
+                            <strong>UPDATE</strong>
+                            <small>Row 수정</small>
+                        </article>
+
+                        <article>
+                            <span>D</span>
+                            <strong>DELETE</strong>
+                            <small>Row 삭제</small>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     17. ALTER / DROP
+                ================================================== -->
+                <section class="lesson-card ddl-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">17</span>
+
+                        <div>
+                            <p class="section-kicker">DDL</p>
+
+                            <h2>
+                                ALTER · DROP과 Row 변경을 구분한다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="alter-grid">
+
+                        <article>
+
+                            <span>ADD</span>
+
+                            <pre><code class="language-sql">ALTER TABLE Member
+ADD COLUMN email VARCHAR(100);</code></pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>MODIFY</span>
+
+                            <pre><code class="language-sql">ALTER TABLE Member
+MODIFY COLUMN tel VARCHAR(30);</code></pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>RENAME</span>
+
+                            <pre><code class="language-sql">ALTER TABLE Member
+RENAME COLUMN tel TO phone;</code></pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>DROP COLUMN</span>
+
+                            <pre><code class="language-sql">ALTER TABLE Member
+DROP COLUMN email;</code></pre>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="delete-level-grid">
+
+                        <article>
+                            <code>DELETE</code>
+                            <strong>Row 삭제</strong>
+                        </article>
+
+                        <article>
+                            <code>DROP TABLE</code>
+                            <strong>Table 삭제</strong>
+                        </article>
+
+                        <article>
+                            <code>DROP DATABASE</code>
+                            <strong>Database 삭제</strong>
+                        </article>
+
+                    </div>
+
+
+                    <div class="not-equal-formula">
+
+                        <span>UPDATE</span>
+                        <b>≠</b>
+                        <span>ALTER TABLE</span>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     18. Transaction
+                ================================================== -->
+                <section class="lesson-card transaction-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">18</span>
+
+                        <div>
+                            <p class="section-kicker">Transaction</p>
+
+                            <h2>
+                                Auto Commit과 Manual Transaction
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <p class="supplement-notice">
+                        첨부 교안의 MySQL 기본 SQL을
+                        앞 단원의 Transaction 학습과 연결한
+                        <strong>실무 보완 카드</strong>입니다.
+                    </p>
+
+
+                    <div class="transaction-mode-grid">
+
+                        <article>
+
+                            <span>AUTO COMMIT</span>
+
+                            <div class="vertical-flow">
+                                <strong>Statement</strong>
+                                <b>↓</b>
+                                <strong>자동 확정 방향</strong>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>MANUAL</span>
+
+                            <div class="vertical-flow">
+                                <code>START TRANSACTION</code>
+                                <b>↓</b>
+                                <span>여러 DML</span>
+                                <b>↓</b>
+                                <strong>COMMIT / ROLLBACK</strong>
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>Manual Transaction 실습</h3>
+
+                    <pre><code class="language-sql">START TRANSACTION;
+
+
+UPDATE Member
+SET tel = '010-7777-7777'
+WHERE _id = 1;
+
+
+SELECT *
+FROM Member
+WHERE _id = 1;
+
+
+ROLLBACK;</code></pre>
+
+
+                    <div class="transaction-result">
+
+                        <span>변경 SQL</span>
+                        <b>→</b>
+
+                        <span>정상?</span>
+
+                        <div>
+                            <strong>YES → COMMIT</strong>
+                            <strong>NO → ROLLBACK</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="warning-box">
+
+                        <strong>
+                            DDL을 DML과 동일한 rollback 대상으로 단순하게 생각하지 않는다.
+                        </strong>
+
+                        <p>
+                            <code>CREATE</code>,
+                            <code>ALTER</code>,
+                            <code>DROP</code>은
+                            Schema 변경 작업이므로
+                            Transaction 실습은 우선
+                            INSERT·UPDATE·DELETE 중심으로 이해합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     19. 개발 도구
+                ================================================== -->
+                <section class="lesson-card tool-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">19</span>
+
+                        <div>
+                            <p class="section-kicker">Development Tools</p>
+
+                            <h2>
+                                CLI를 중심으로 MySQL 환경을 관찰한다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="tool-grid">
+
+                        <article>
+
+                            <span>01</span>
+
+                            <h3>Command Prompt</h3>
+
+                            <p>
+                                MySQL Client 실행과
+                                Server 접속을 확인합니다.
+                            </p>
+
+                            <code>mysql -u root -p</code>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>02</span>
+
+                            <h3>MySQL CLI</h3>
+
+                            <p>
+                                Database·Table 생성과
+                                CRUD SQL의 중심 실습 도구입니다.
+                            </p>
+
+                            <code>SHOW DATABASES;</code>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>03</span>
+
+                            <h3>PyCharm</h3>
+
+                            <p>
+                                SQL 파일을 정리하고
+                                Terminal에서 MySQL CLI를 실행하며
+                                다음 PyMySQL 연동을 준비합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>04</span>
+
+                            <h3>Jupyter / Python</h3>
+
+                            <p>
+                                이번 단원에서는 보조 도구로 사용하고
+                                실제 Python MySQL Connection은 뒤에서 확대합니다.
+                            </p>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>권장 실습 순서</h3>
+
+                    <div class="tool-workflow">
+
+                        <div>
+                            <span>1</span>
+                            <strong>Server 확인</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>2</span>
+                            <strong>Login</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>3</span>
+                            <strong>Database</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>4</span>
+                            <strong>Table</strong>
+                        </div>
+
+                        <b>→</b>
+
+                        <div>
+                            <span>5</span>
+                            <strong>CRUD</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     20. CLI 전체 실습
+                ================================================== -->
+                <section class="lesson-card code-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">20</span>
+
+                        <div>
+                            <p class="section-kicker">CLI Practice</p>
+
+                            <h2>
+                                MySQL 기본 SQL 전체 실습
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="code-example">
+
+                        <div class="code-titlebar">
+                            <span>mysql_basic.sql</span>
+                            <span>Lesson 08</span>
+                        </div>
+
+
+                        <pre><code class="language-sql">-- =============================================
+-- 1. Database 확인
+-- =============================================
+
+SHOW DATABASES;
+
+
+-- =============================================
+-- 2. 학습 Database 생성
+-- =============================================
+
+CREATE DATABASE IF NOT EXISTS python_study
+CHARACTER SET utf8mb4;
+
+
+-- =============================================
+-- 3. Database 선택
+-- =============================================
+
+USE python_study;
+
+
+-- =============================================
+-- 4. Table 목록
+-- =============================================
+
+SHOW TABLES;
+
+
+-- =============================================
+-- 5. Member Table
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS Member (
+
+    _id INT UNSIGNED
+        NOT NULL
+        AUTO_INCREMENT,
+
+    name VARCHAR(50)
+        NOT NULL,
+
+    tel VARCHAR(20)
+        NOT NULL
+        DEFAULT 'unknown',
+
+    joindate DATETIME
+        NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (_id),
+
+    UNIQUE KEY uq_member_name_tel (
+        name,
+        tel
+    ),
+
+    CONSTRAINT chk_member_tel
+        CHECK (
+            CHAR_LENGTH(tel) >= 3
+        )
+
+);
+
+
+-- =============================================
+-- 6. Schema 확인
+-- =============================================
+
+DESC Member;
+
+
+-- =============================================
+-- 7. INSERT
+-- =============================================
+
+INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '홍길동',
+    '010-1111-1111'
+);
+
+
+INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '김철수',
+    '010-2222-2222'
+);
+
+
+INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '김민수',
+    '010-3333-3333'
+);
+
+
+INSERT INTO Member (
+    name,
+    tel
+)
+VALUES (
+    '이영희',
+    '010-4444-4444'
+);
+
+
+-- =============================================
+-- 8. 전체 조회
+-- =============================================
+
+SELECT *
+FROM Member;
+
+
+-- =============================================
+-- 9. 특정 Column
+-- =============================================
+
+SELECT
+    _id,
+    name AS member_name,
+    tel
+FROM Member;
+
+
+-- =============================================
+-- 10. WHERE / LIKE / ORDER / LIMIT
+-- =============================================
+
+SELECT
+    _id,
+    name,
+    tel
+FROM Member
+WHERE name LIKE '김%'
+ORDER BY name ASC
+LIMIT 10;
+
+
+-- =============================================
+-- 11. UPDATE 대상 확인
+-- =============================================
+
+SELECT *
+FROM Member
+WHERE _id = 1;
+
+
+-- =============================================
+-- 12. UPDATE
+-- =============================================
+
+UPDATE Member
+SET tel = '010-9999-9999'
+WHERE _id = 1;
+
+
+-- =============================================
+-- 13. DELETE 대상 확인
+-- =============================================
+
+SELECT *
+FROM Member
+WHERE _id = 3;
+
+
+-- =============================================
+-- 14. DELETE
+-- =============================================
+
+DELETE FROM Member
+WHERE _id = 3;
+
+
+-- =============================================
+-- 15. 최종 확인
+-- =============================================
+
+SELECT *
+FROM Member
+ORDER BY _id;</code></pre>
+
+                    </div>
+
+
+                    <div class="execution-check-grid">
+
+                        <article>
+                            <span>Database</span>
+                            <strong>python_study 존재?</strong>
+                        </article>
+
+                        <article>
+                            <span>Table</span>
+                            <strong>Member 존재?</strong>
+                        </article>
+
+                        <article>
+                            <span>Schema</span>
+                            <strong>Type·Key 정상?</strong>
+                        </article>
+
+                        <article>
+                            <span>INSERT</span>
+                            <strong>Row 추가?</strong>
+                        </article>
+
+                        <article>
+                            <span>UPDATE</span>
+                            <strong>한 Row만 변경?</strong>
+                        </article>
+
+                        <article>
+                            <span>DELETE</span>
+                            <strong>원하는 Row만 삭제?</strong>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     21. Python 연동 예고
+                ================================================== -->
+                <section class="lesson-card python-preview-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">21</span>
+
+                        <div>
+                            <p class="section-kicker">Python Preview</p>
+
+                            <h2>
+                                SQLite DB-API 구조가 MySQL에서도 다시 나타난다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <p>
+                        첨부 교안은 사용자·권한 설명 다음에
+                        PyMySQL 설치와
+                        <code>pymysql.connect()</code>,
+                        Cursor,
+                        <code>execute()</code>,
+                        <code>fetch()</code>,
+                        <code>commit()</code>,
+                        <code>close()</code> 흐름으로 이어집니다.
+                    </p>
+
+
+                    <div class="dbapi-compare">
+
+                        <article>
+
+                            <span>SQLite</span>
+
+                            <div class="vertical-flow">
+                                <code>sqlite3.connect()</code>
+                                <b>↓</b>
+                                <span>Connection</span>
+                                <b>↓</b>
+                                <span>Cursor</span>
+                                <b>↓</b>
+                                <span>execute()</span>
+                            </div>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>MySQL</span>
+
+                            <div class="vertical-flow">
+                                <code>pymysql.connect()</code>
+                                <b>↓</b>
+                                <span>Connection</span>
+                                <b>↓</b>
+                                <span>Cursor</span>
+                                <b>↓</b>
+                                <span>execute()</span>
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>접속 정보 구조 미리 보기</h3>
+
+                    <pre><code class="language-python">import os
+
+
+db_host = os.getenv("DB_HOST")
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_name = os.getenv("DB_NAME")</code></pre>
+
+
+                    <pre><code class="language-python"># 다음 PyMySQL 단원에서 확대할 구조
+
+conn = pymysql.connect(
+    host=db_host,
+    user=db_user,
+    password=db_password,
+    database=db_name,
+    charset="utf8mb4"
+)</code></pre>
+
+
+                    <div class="important-box">
+
+                        <strong>
+                            이번 Lesson 08에서는 MySQL Server와 SQL 환경이 중심이다.
+                        </strong>
+
+                        <p>
+                            Python 연결 코드는 전체 흐름을 미리 보는 정도로 두고,
+                            실제 PyMySQL 사용법은 뒤의 전용 단원에서 확대합니다.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     22. Security
+                ================================================== -->
+                <section class="lesson-card security-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">22</span>
+
+                        <div>
+                            <p class="section-kicker">Database Safety</p>
+
+                            <h2>
+                                Parameter Query와 접속 정보 분리 규칙 유지하기
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <p class="supplement-notice">
+                        이 카드는 앞의 SQLite Parameter 단원부터 유지하고 있는
+                        <strong>Database 과정 공통 실무 보완 규칙</strong>입니다.
+                    </p>
+
+
+                    <div class="security-grid">
+
+                        <article class="bad">
+
+                            <span>피해야 할 구조</span>
+
+                            <pre><code class="language-python">sql = f"""
+SELECT *
+FROM Member
+WHERE name = '{name}'
+"""</code></pre>
+
+                            <strong>
+                                외부 값을 SQL 문자열에 직접 조립
+                            </strong>
+
+                        </article>
+
+
+                        <article class="good">
+
+                            <span>MySQL Python 연결 방향</span>
+
+                            <pre><code class="language-python">sql = """
+SELECT *
+FROM Member
+WHERE name = %s
+"""
+
+
+cur.execute(
+    sql,
+    (name,)
+)</code></pre>
+
+                            <strong>
+                                Driver Parameter Binding
+                            </strong>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="placeholder-compare">
+
+                        <article>
+                            <span>SQLite</span>
+                            <code>?</code>
+                        </article>
+
+                        <article>
+                            <span>PyMySQL</span>
+                            <code>%s</code>
+                        </article>
+
+                        <article>
+                            <span>Oracle 방향</span>
+                            <code>:name</code>
+                        </article>
+
+                    </div>
+
+
+                    <div class="credential-rule">
+
+                        <strong>
+                            DB Password는 Source Code와 분리
+                        </strong>
+
+                        <div>
+                            <span>Environment</span>
+                            <b>→</b>
+                            <span>Connection Config</span>
+                            <b>→</b>
+                            <strong>Application</strong>
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     23. Error
+                ================================================== -->
+                <section class="lesson-card error-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">23</span>
+
+                        <div>
+                            <p class="section-kicker">Error Reading</p>
+
+                            <h2>
+                                MySQL 오류는 SQL보다 앞 단계부터 읽는다
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="error-pipeline">
+
+                        <span>Client</span>
+                        <b>→</b>
+
+                        <span>Server</span>
+                        <b>→</b>
+
+                        <span>Host / Port</span>
+                        <b>→</b>
+
+                        <span>User / Password</span>
+                        <b>→</b>
+
+                        <span>Privilege</span>
+                        <b>→</b>
+
+                        <span>Database</span>
+                        <b>→</b>
+
+                        <span>Table</span>
+                        <b>→</b>
+
+                        <span>SQL</span>
+                        <b>→</b>
+
+                        <span>Constraint</span>
+                    </div>
+
+
+                    <div class="error-grid">
+
+                        <article>
+
+                            <code>mysql not recognized</code>
+
+                            <h3>Client / PATH</h3>
+
+                            <p>
+                                MySQL Client 설치와
+                                PATH 설정을 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>Can't connect</code>
+
+                            <h3>Server</h3>
+
+                            <p>
+                                MySQL Server 실행,
+                                Host와 Port를 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>Access denied</code>
+
+                            <h3>Authentication</h3>
+
+                            <p>
+                                User·Host·Password·Privilege를 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>No database selected</code>
+
+                            <h3>Database</h3>
+
+                            <p>
+                                <code>USE database;</code> 여부를 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>Unknown database</code>
+
+                            <h3>Database Name</h3>
+
+                            <p>
+                                <code>SHOW DATABASES</code>로
+                                실제 존재 여부를 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>Table doesn't exist</code>
+
+                            <h3>Table</h3>
+
+                            <p>
+                                현재 Database와
+                                <code>SHOW TABLES</code>를 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>Unknown column</code>
+
+                            <h3>Column</h3>
+
+                            <p>
+                                <code>DESC Member</code>로
+                                Schema를 확인합니다.
+                            </p>
+
+                        </article>
+
+
+                        <article>
+
+                            <code>Duplicate entry</code>
+
+                            <h3>Constraint</h3>
+
+                            <p>
+                                PRIMARY KEY 또는 UNIQUE 제약을 확인합니다.
+                            </p>
+
+                        </article>
+
+                    </div>
+
+
+                    <h3>오류가 없는데도 잘못된 경우</h3>
+
+                    <div class="logic-error-grid">
+
+                        <article>
+
+                            <span>UPDATE</span>
+
+                            <pre><code class="language-sql">UPDATE Member
+SET tel = 'unknown';</code></pre>
+
+                            <strong>WHERE 누락</strong>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>DELETE</span>
+
+                            <pre><code class="language-sql">DELETE FROM Member;</code></pre>
+
+                            <strong>WHERE 누락</strong>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="important-box">
+
+                        <strong>Query OK ≠ 내 의도대로 실행</strong>
+
+                        <p>
+                            SQL 문법이 정상이어도
+                            Business Logic 관점에서는 잘못된 Query일 수 있습니다.
+                        </p>
+
+                    </div>
+
+
+                    <div class="error-checklist">
+
+                        <strong>오류 읽는 순서</strong>
+
+                        <ol>
+                            <li>mysql Client 자체가 실행되는가?</li>
+                            <li>MySQL Server가 실행 중인가?</li>
+                            <li>Host와 Port가 맞는가?</li>
+                            <li>User와 Password가 맞는가?</li>
+                            <li>현재 User에게 필요한 Privilege가 있는가?</li>
+                            <li>Database가 존재하는가?</li>
+                            <li>현재 올바른 Database를 USE했는가?</li>
+                            <li>Table이 존재하는가?</li>
+                            <li>Column 이름이 맞는가?</li>
+                            <li>SQL Syntax가 맞는가?</li>
+                            <li>Constraint를 위반했는가?</li>
+                            <li>Transaction 상태는 어떤가?</li>
+                        </ol>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     24. Repository
+                ================================================== -->
+                <section class="lesson-card repository-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">24</span>
+
+                        <div>
+                            <p class="section-kicker">Repository Architecture</p>
+
+                            <h2>
+                                MySQL이 Application 구조에서 위치하는 곳
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <p class="supplement-notice">
+                        이 영역은 첨부 교안의 직접 Architecture가 아니라
+                        MySQL SQL을 실제 프로젝트에 연결하기 위한
+                        <strong>설계 보완 카드</strong>입니다.
+                    </p>
+
+
+                    <div class="repository-flow">
+
+                        <div>
+                            <strong>Frontend / Client</strong>
+                            <span>User Request</span>
+                        </div>
+
+                        <b>↓</b>
+
+                        <div>
+                            <strong>Application</strong>
+                            <span>Controller / Route</span>
+                        </div>
+
+                        <b>↓</b>
+
+                        <div class="service">
+                            <strong>Service</strong>
+                            <span>Business Logic / Transaction</span>
+                        </div>
+
+                        <b>↓</b>
+
+                        <div class="repository">
+                            <strong>Repository</strong>
+                            <span>SQL / Parameter Binding</span>
+                        </div>
+
+                        <b>↓</b>
+
+                        <div>
+                            <strong>MySQL Server</strong>
+                            <span>Database / Table</span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="repository-role-grid">
+
+                        <article>
+                            <span>Application</span>
+                            <strong>입출력 · API</strong>
+                        </article>
+
+                        <article>
+                            <span>Service</span>
+                            <strong>업무 흐름 · Transaction</strong>
+                        </article>
+
+                        <article>
+                            <span>Repository</span>
+                            <strong>SQL · DB Access</strong>
+                        </article>
+
+                        <article>
+                            <span>MySQL</span>
+                            <strong>Data 저장</strong>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     25. Real world
+                ================================================== -->
+                <section class="lesson-card realwork-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">25</span>
+
+                        <div>
+                            <p class="section-kicker">Real World</p>
+
+                            <h2>
+                                MySQL 기본 SQL이 실제 프로젝트에서 사용되는 위치
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="realwork-grid">
+
+                        <article>
+
+                            <span>REGISTER</span>
+
+                            <h3>회원가입</h3>
+
+                            <pre>
+Form
+↓
+Validation
+↓
+Parameterized INSERT
+↓
+MySQL
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>DETAIL</span>
+
+                            <h3>회원 상세</h3>
+
+                            <pre>
+GET /members/1
+↓
+SELECT
+↓
+WHERE
+↓
+1 Row
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>SEARCH</span>
+
+                            <h3>검색</h3>
+
+                            <pre>
+Search Input
+↓
+LIKE
+↓
+MySQL
+↓
+Result
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>LIST</span>
+
+                            <h3>목록 정렬</h3>
+
+                            <pre>
+GET /members
+↓
+ORDER BY
+↓
+Result
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>PAGING</span>
+
+                            <h3>Pagination</h3>
+
+                            <pre>
+page / size
+↓
+LIMIT / OFFSET
+↓
+Current Page
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>CRAWLING</span>
+
+                            <h3>수집 데이터 저장</h3>
+
+                            <pre>
+Crawler
+↓
+Repository
+↓
+INSERT
+↓
+MySQL Server
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>ANALYSIS</span>
+
+                            <h3>데이터 분석</h3>
+
+                            <pre>
+MySQL
+↓
+SELECT
+↓
+Python
+↓
+Pandas
+                            </pre>
+
+                        </article>
+
+
+                        <article>
+
+                            <span>TRANSACTION</span>
+
+                            <h3>업무 단위</h3>
+
+                            <pre>
+여러 DML
+↓
+모두 성공?
+↓
+COMMIT / ROLLBACK
+                            </pre>
+
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     26. 실수
+                ================================================== -->
+                <section class="lesson-card mistake-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">26</span>
+
+                        <div>
+                            <p class="section-kicker">Beginner Mistakes</p>
+
+                            <h2>
+                                초보자가 자주 하는 실수
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="mistake-list">
+
+                        <article>
+                            <span>01</span>
+                            <div>
+                                <h3>설치와 Server 실행을 같은 것으로 생각한다.</h3>
+                                <p>설치 상태와 Service 실행 상태를 따로 확인합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>02</span>
+                            <div>
+                                <h3>mysql Client와 MySQL Server를 같은 것으로 생각한다.</h3>
+                                <p>접속을 요청하는 쪽과 Database를 관리하는 쪽을 구분합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>03</span>
+                            <div>
+                                <h3>root를 일반 Application User처럼 사용한다.</h3>
+                                <p>관리 계정과 Application 전용 계정을 분리하는 방향으로 학습합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>04</span>
+                            <div>
+                                <h3>CREATE DATABASE 후 USE를 잊는다.</h3>
+                                <p>생성과 선택은 서로 다른 단계입니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>05</span>
+                            <div>
+                                <h3>Server · Database · Table을 같은 개념으로 본다.</h3>
+                                <p>계층 구조로 구분합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>06</span>
+                            <div>
+                                <h3>SQLite처럼 Type을 지나치게 느슨하게 생각한다.</h3>
+                                <p>Column의 의미에 맞는 자료형을 설계합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>07</span>
+                            <div>
+                                <h3>BIGINT를 무제한 정수라고 암기한다.</h3>
+                                <p>교안 원문과 Step 1·2 보완 내용을 구분합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>08</span>
+                            <div>
+                                <h3>전화번호를 숫자형으로 만든다.</h3>
+                                <p>계산값인지 식별 문자열인지 먼저 판단합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>09</span>
+                            <div>
+                                <h3>FLOAT와 DECIMAL을 같은 소수형으로 생각한다.</h3>
+                                <p>근사값과 정확한 값을 구분합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>10</span>
+                            <div>
+                                <h3>%와 _의 LIKE Pattern을 혼동한다.</h3>
+                                <p>%는 여러 문자, _는 한 문자 위치입니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>11</span>
+                            <div>
+                                <h3>=와 LIKE를 같은 비교라고 생각한다.</h3>
+                                <p>Value 비교와 Pattern 검색을 구분합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>12</span>
+                            <div>
+                                <h3>ASC와 DESC를 반대로 기억한다.</h3>
+                                <p>ASC 오름차순, DESC 내림차순입니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>13</span>
+                            <div>
+                                <h3>UPDATE에서 WHERE를 빼먹는다.</h3>
+                                <p>변경 전에 같은 WHERE로 SELECT를 실행합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>14</span>
+                            <div>
+                                <h3>DELETE에서 WHERE를 빼먹는다.</h3>
+                                <p>삭제 대상도 먼저 SELECT로 확인합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>15</span>
+                            <div>
+                                <h3>DELETE와 DROP을 같은 삭제라고 생각한다.</h3>
+                                <p>Row·Table·Database 삭제 범위를 구분합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>16</span>
+                            <div>
+                                <h3>SQL Literal과 Application의 문자열 조립을 혼동한다.</h3>
+                                <p>외부 입력은 Parameter Binding으로 전달합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>17</span>
+                            <div>
+                                <h3>DB Password를 Source Code에 직접 적는다.</h3>
+                                <p>환경 설정이나 환경 변수로 분리하는 방향을 사용합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>18</span>
+                            <div>
+                                <h3>모든 Driver가 SQLite의 ?를 사용한다고 생각한다.</h3>
+                                <p>PyMySQL은 다른 Placeholder 문법을 사용합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>19</span>
+                            <div>
+                                <h3>Access denied를 SQL Syntax 오류라고 생각한다.</h3>
+                                <p>User·Host·Password·Privilege 계층을 먼저 확인합니다.</p>
+                            </div>
+                        </article>
+
+
+                        <article>
+                            <span>20</span>
+                            <div>
+                                <h3>Query OK라면 항상 올바른 결과라고 생각한다.</h3>
+                                <p>UPDATE·DELETE의 실제 변경 범위를 반드시 확인합니다.</p>
+                            </div>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- =================================================
+                     27. Interview
+                ================================================== -->
+                <section class="lesson-card interview-card">
+
+                    <div class="section-heading">
+
+                        <span class="section-number">27</span>
+
+                        <div>
+                            <p class="section-kicker">Interview Point</p>
+
+                            <h2>
+                                면접에서 설명할 수 있어야 하는 질문
+                            </h2>
+                        </div>
+
+                    </div>
+
+
+                    <div class="interview-list">
+
+
+                        <details open>
+
+                            <summary>
+                                Q1. SQLite와 MySQL의 구조적 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    SQLite는 File 기반 Embedded Database로 사용하기 쉽고,
+                                    MySQL은 Client가 실행 중인 Database Server에 연결하는
+                                    Client–Server 구조를 중심으로 사용합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q2. MySQL Server와 Client의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    Server는 Database와 SQL 처리,
+                                    User 인증과 Transaction 등을 관리하고,
+                                    Client는 Server에 접속하여 요청을 보냅니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q3. mysql -u root -p는 무엇을 의미하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    mysql Client를 실행해 root User로 접속하고
+                                    Password 입력을 요청하는 명령입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q4. CREATE DATABASE와 USE는 무엇이 다른가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    CREATE DATABASE는 Database를 생성하고,
+                                    USE는 현재 Session에서 작업할 기본 Database를 선택합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q5. Server, Database, Table, Row의 관계는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    하나의 Server가 여러 Database를 관리하고,
+                                    Database 안에 여러 Table,
+                                    Table 안에 여러 Row가 존재하는 계층 구조입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q6. DESC 명령은 왜 사용하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    Table의 Column Type, Null,
+                                    Key, Default, Extra 같은 Schema 정보를
+                                    확인할 때 사용합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q7. AUTO_INCREMENT는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    새로운 Row를 INSERT할 때
+                                    증가하는 값을 자동으로 생성하도록 하는 Column 속성입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q8. UNSIGNED는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    정수 Column에서 음수 범위를 사용하지 않고
+                                    0 이상의 범위를 사용하도록 하는 속성입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q9. FLOAT/DOUBLE과 DECIMAL은 어떻게 다른가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    FLOAT와 DOUBLE은 근사 실수 표현,
+                                    DECIMAL은 정확한 Fixed-Point 값에 적합한 Type입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q10. CHAR와 VARCHAR의 차이는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    CHAR는 고정 길이,
+                                    VARCHAR는 가변 길이 문자열입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q11. WHERE의 역할은 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    조건을 만족하는 Row를 선택하여
+                                    SELECT·UPDATE·DELETE 등의 대상 범위를 정합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q12. LIKE의 %와 _는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    %는 여러 문자 길이의 Pattern,
+                                    _는 한 문자 위치를 나타냅니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q13. ORDER BY의 ASC와 DESC는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    ASC는 오름차순,
+                                    DESC는 내림차순 정렬입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q14. LIMIT는 실무에서 어디에 연결되나요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    조회 결과 수를 제한하며
+                                    Backend의 Pagination 구현과 연결됩니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q15. UPDATE와 ALTER TABLE은 무엇이 다른가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    UPDATE는 Row Data를 수정하고,
+                                    ALTER TABLE은 Table Schema를 변경합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q16. DELETE와 DROP TABLE은 무엇이 다른가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    DELETE는 Row를 삭제하고,
+                                    DROP TABLE은 Table 자체를 삭제합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q17. COMMIT과 ROLLBACK은 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    COMMIT은 Transaction 변경을 확정하고,
+                                    ROLLBACK은 미확정 변경을 취소합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q18. MySQL의 Auto Commit은 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    Statement의 변경 결과가 자동으로 확정되는
+                                    Transaction Mode의 한 형태입니다.
+                                    여러 SQL을 하나의 업무로 묶을 때는
+                                    명시적 Transaction을 사용할 수 있습니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q19. 실제 Application에서 root 사용을 피하는 이유는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    Application이 필요로 하는 범위보다
+                                    과도한 Database 권한을 갖지 않도록
+                                    별도의 User에 필요한 Privilege만 부여하는 방향이 안전하기 때문입니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q20. Parameterized Query를 사용하는 이유는 무엇인가요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    외부 Data를 SQL Code에 직접 문자열로 결합하지 않고
+                                    Driver Parameter로 분리하여 전달하기 위해 사용합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q21. Access denied 오류가 나오면 무엇을 확인하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    SQL Syntax보다
+                                    User·Host·Password·Authentication·Privilege 영역을
+                                    먼저 확인합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+
+                        <details>
+
+                            <summary>
+                                Q22. Repository 계층은 왜 사용하나요?
+                            </summary>
+
+                            <div class="interview-answer">
+
+                                <strong>A.</strong>
+
+                                <p>
+                                    SQL과 Database 접근 책임을
+                                    Application의 다른 Business Logic과 분리해
+                                    유지보수하기 쉽게 만들기 위해 사용합니다.
+                                </p>
+
+                            </div>
+
+                        </details>
+
+                    </div>
+
+                </section>
+
+            </main>
+
+
+            <!-- =====================================================
+                 ASIDE
+            ====================================================== -->
+            <aside class="side-note">
+
+
+                <!-- 오늘의 암기 포인트 -->
+                <section>
+
+                    <p class="side-note-label">Memory</p>
+
+                    <h2>
+                        오늘의 암기 포인트
+                    </h2>
+
+
+                    <ul class="memory-list">
+
+                        <li>
+                            SQLite는 File 중심,
+                            MySQL은 Server 중심으로 이해한다.
+                        </li>
+
+                        <li>
+                            MySQL에서는 Client가 Server에 접속한다.
+                        </li>
+
+                        <li>
+                            <code>mysql -u root -p</code>로
+                            root Account 접속 흐름을 시작한다.
+                        </li>
+
+                        <li>
+                            설치와 Server 실행은 서로 다른 단계다.
+                        </li>
+
+                        <li>
+                            기본 계층은
+                            <strong>Server → Database → Table → Row</strong>다.
+                        </li>
+
+                        <li>
+                            <code>SHOW DATABASES</code>는 목록,
+                            <code>CREATE DATABASE</code>는 생성,
+                            <code>USE</code>는 선택이다.
+                        </li>
+
+                        <li>
+                            <code>SHOW TABLES</code>로
+                            현재 Database의 Table을 확인한다.
+                        </li>
+
+                        <li>
+                            Table을 만들고 나면
+                            <code>DESC</code>로 Schema를 확인한다.
+                        </li>
+
+                        <li>
+                            FLOAT·DOUBLE은 근사,
+                            DECIMAL은 정확한 소수 값에 연결한다.
+                        </li>
+
+                        <li>
+                            CHAR는 고정 길이,
+                            VARCHAR는 가변 길이다.
+                        </li>
+
+                        <li>
+                            CRUD는
+                            INSERT · SELECT · UPDATE · DELETE다.
+                        </li>
+
+                        <li>
+                            SELECT Query는
+                            <strong>FROM → WHERE → ORDER BY → LIMIT</strong> 흐름으로 읽는다.
+                        </li>
+
+                        <li>
+                            LIKE의 <code>%</code>는 여러 문자,
+                            <code>_</code>는 한 문자 위치다.
+                        </li>
+
+                        <li>
+                            UPDATE·DELETE 전에
+                            같은 WHERE로 SELECT를 먼저 실행한다.
+                        </li>
+
+                        <li>
+                            DELETE는 Row,
+                            DROP TABLE은 Table,
+                            DROP DATABASE는 Database를 제거한다.
+                        </li>
+
+                        <li>
+                            Transaction 성공은 COMMIT,
+                            실패 취소는 ROLLBACK이다.
+                        </li>
+
+                        <li>
+                            Application의 외부 값은
+                            SQL 문자열 직접 결합이 아니라 Parameter Binding을 사용한다.
+                        </li>
+
+                        <li>
+                            DB Password는 Source Code와 분리한다.
+                        </li>
+
+                    </ul>
+
+
+                    <div class="side-mysql-flow">
+
+                        <span>Server</span>
+                        <b>→</b>
+
+                        <span>Database</span>
+                        <b>→</b>
+
+                        <span>Table</span>
+                        <b>→</b>
+
+                        <span>SQL</span>
+                    </div>
+
+                </section>
+
+
+                <!-- 헷갈리기 쉬운 개념 -->
+                <section>
+
+                    <p class="side-note-label">
+                        Confusing Point
+                    </p>
+
+                    <h2>
+                        헷갈리기 쉬운 개념
+                    </h2>
+
+
+                    <div class="confusing-list">
+
+                        <article>
+                            <strong>Client ≠ Server</strong>
+                            <p>접속하는 쪽과 Database를 관리하는 쪽입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>Install ≠ Running</strong>
+                            <p>설치됐다고 Server가 항상 실행 중인 것은 아닙니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>Server ≠ Database</strong>
+                            <p>Server 안에 여러 Database가 존재할 수 있습니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>CREATE DATABASE ≠ USE</strong>
+                            <p>Database 생성과 현재 작업 대상 선택입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>CREATE TABLE ≠ INSERT</strong>
+                            <p>Schema 생성과 Row 입력입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>CHAR ≠ VARCHAR</strong>
+                            <p>고정 길이와 가변 길이입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>FLOAT ≠ DECIMAL</strong>
+                            <p>근사 값과 정확한 Fixed-Point 값입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>= ≠ LIKE</strong>
+                            <p>정확한 값 비교와 Pattern 검색입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>UPDATE ≠ ALTER TABLE</strong>
+                            <p>Row Data와 Table Schema 변경입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>DELETE ≠ DROP</strong>
+                            <p>Row 삭제와 객체 삭제입니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>root ≠ Application User</strong>
+                            <p>관리 계정과 최소 권한 Application 계정을 구분합니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>SQL Literal ≠ 문자열 직접 결합</strong>
+                            <p>Application 외부 입력은 Parameter Binding을 사용합니다.</p>
+                        </article>
+
+
+                        <article>
+                            <strong>Access denied ≠ SQL Syntax Error</strong>
+                            <p>인증·Host·Privilege 영역을 먼저 확인합니다.</p>
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+                <!-- 다음 단원 -->
+                <section class="next-lesson-note">
+
+                    <p class="side-note-label">
+                        Next Lesson
+                    </p>
+
+                    <h2>
+                        다음 단원 연결
+                    </h2>
+
+
+                    <p>
+                        이번 단원에서는
+                        <code>root</code> Account로 Server에 접속하여
+                        Database와 Table을 만들고 SQL을 실행했습니다.
+                    </p>
+
+
+                    <div class="current-map">
+
+                        <span>Client</span>
+                        <b>→</b>
+
+                        <span>root</span>
+                        <b>→</b>
+
+                        <span>MySQL Server</span>
+                        <b>→</b>
+
+                        <span>Database</span>
+                    </div>
+
+
+                    <div class="next-question">
+
+                        <span>다음 질문</span>
+
+                        <strong>
+                            실제 Application도 계속 root를 사용해야 할까?
+                            특정 Database에 SELECT·INSERT만 허용하려면 어떻게 해야 할까?
+                        </strong>
+
+                    </div>
+
+
+                    <div class="next-topic-grid">
+
+                        <span>CREATE USER</span>
+                        <span>User@Host</span>
+                        <span>GRANT</span>
+                        <span>Privilege</span>
+                        <span>SHOW GRANTS</span>
+                        <span>Access denied</span>
+                    </div>
+
+
+                    <p>
+                        다음 단원에서는
+                        MySQL Account의
+                        <strong>User + Host</strong> 구조와
+                        최소 권한 원칙,
+                        Database·Table 단위의 Privilege를 공부합니다.
+                    </p>
+
+
+                    <a
+                        class="next-lesson-link"
+                        href="./09_mysql_user_privilege.html"
+                    >
+                        <span>Lesson 09</span>
+
+                        MySQL 사용자와 권한
+
+                        <strong>→</strong>
+                    </a>
+
+                </section>
+
+            </aside>
+
         </div>
-    </body>
+    </div>
+</body>
 
 </html>
