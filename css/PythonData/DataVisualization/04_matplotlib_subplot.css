@@ -1,13 +1,2495 @@
 @charset "UTF-8";
 
 /*
- * Page: 04_matplotlib_subplot.html
- * Course: Data Visualization
+ * ============================================================
+ * Page:
+ * 04_matplotlib_subplot.html
+ *
+ * Course:
+ * Data Visualization
+ *
+ * Lesson:
+ * 여러 그래프와 Subplot
+ *
+ * Role:
+ * - Figure / Axes hierarchy
+ * - rows / cols / position
+ * - add_subplot 시각화
+ * - 여러 Axes 레이아웃
+ * - 객체 생성 흐름
+ * - 코드 / 오류 / 실무 연결
+ * ============================================================
  */
 
-.data-visualization-lesson-04 {
-    --lesson-accent: var(--data-visualization-accent);
-    --lesson-accent-soft: var(--data-visualization-soft);
+/* ============================================================
+   0. PAGE VARIABLES
+============================================================ */
+
+.matplotlib-subplot-page {
+    --lesson-accent: var(--data-visualization-accent, #6574d9);
+
+    --lesson-accent-soft: var(--data-visualization-soft, rgba(101, 116, 217, 0.1));
+
+    --subplot-border: rgba(100, 116, 139, 0.22);
+
+    --subplot-border-strong: rgba(71, 85, 105, 0.42);
+
+    --subplot-surface: rgba(255, 255, 255, 0.76);
+
+    --subplot-surface-soft: rgba(248, 250, 252, 0.9);
+
+    --subplot-text-soft: #64748b;
+
+    --subplot-code-bg: #111827;
+
+    --subplot-code-text: #e5edf8;
+
+    --subplot-warning: #d97706;
+
+    --subplot-warning-soft: rgba(245, 158, 11, 0.1);
+
+    --subplot-danger: #dc2626;
+
+    --subplot-danger-soft: rgba(239, 68, 68, 0.08);
+
+    --subplot-success: #16a34a;
+
+    --subplot-success-soft: rgba(34, 197, 94, 0.08);
 }
 
-/* 이 단원만의 시각 자료 스타일은 이후 Step 작업에서 추가합니다. */
+/* ============================================================
+   1. HERO
+============================================================ */
+
+.matplotlib-subplot-page .lesson-hero .title-en {
+    display: block;
+
+    margin-top: 0.25rem;
+
+    font-size: 0.48em;
+    font-weight: 700;
+
+    opacity: 0.72;
+}
+
+.matplotlib-subplot-page .hero-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.45rem;
+
+    margin-top: 1.35rem;
+}
+
+.matplotlib-subplot-page .hero-flow span {
+    padding: 0.43rem 0.65rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 999px;
+
+    background: var(--subplot-surface);
+
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.matplotlib-subplot-page .hero-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ------------------------------------------------------------
+   Hero Rule
+------------------------------------------------------------ */
+
+.matplotlib-subplot-page .hero-rule {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.7rem;
+
+    margin-top: 1rem;
+    padding: 0.95rem 1.1rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 14px;
+
+    background: linear-gradient(135deg, var(--lesson-accent-soft), rgba(255, 255, 255, 0.62));
+}
+
+.matplotlib-subplot-page .hero-rule-label {
+    padding: 0.25rem 0.55rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent);
+
+    color: #fff;
+
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .hero-rule strong {
+    color: var(--lesson-accent);
+}
+
+/* ------------------------------------------------------------
+   Hero Memory
+------------------------------------------------------------ */
+
+.matplotlib-subplot-page .hero-memory {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--lesson-accent);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .hero-memory strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.matplotlib-subplot-page .hero-memory p {
+    margin: 0;
+
+    line-height: 1.7;
+}
+
+/* ============================================================
+   2. COMMON
+============================================================ */
+
+.matplotlib-subplot-page .section-heading {
+    margin-bottom: 1.35rem;
+}
+
+.matplotlib-subplot-page .section-kicker {
+    margin: 0 0 0.35rem;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.76rem;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.matplotlib-subplot-page .subsection-title {
+    margin-top: 2.1rem;
+    margin-bottom: 1rem;
+
+    font-size: 1.08rem;
+}
+
+.matplotlib-subplot-page .lead-text {
+    font-size: 1.02rem;
+    line-height: 1.85;
+}
+
+.matplotlib-subplot-page code {
+    font-family: 'Consolas', 'SFMono-Regular', monospace;
+}
+
+/* ============================================================
+   3. CODE BLOCK
+============================================================ */
+
+.matplotlib-subplot-page .code-block {
+    margin: 1rem 0;
+
+    padding: 1rem 1.1rem;
+
+    overflow-x: auto;
+
+    border-radius: 13px;
+
+    background: var(--subplot-code-bg);
+
+    color: var(--subplot-code-text);
+
+    font-size: 0.87rem;
+    line-height: 1.7;
+
+    tab-size: 4;
+}
+
+.matplotlib-subplot-page .code-block code {
+    color: inherit;
+
+    white-space: pre;
+}
+
+/* ============================================================
+   4. FIGURE HIERARCHY
+============================================================ */
+
+.matplotlib-subplot-page .figure-hierarchy {
+    max-width: 820px;
+
+    margin: 1.3rem auto;
+}
+
+.matplotlib-subplot-page .figure-level {
+    padding: 3.2rem 1rem 1rem;
+
+    position: relative;
+
+    border: 3px solid var(--lesson-accent);
+
+    border-radius: 17px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .hierarchy-label {
+    position: absolute;
+
+    top: 0.85rem;
+    left: 1rem;
+
+    color: var(--lesson-accent);
+
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .figure-level > strong {
+    position: absolute;
+
+    top: 0.85rem;
+    right: 1rem;
+
+    color: var(--subplot-text-soft);
+
+    font-size: 0.76rem;
+}
+
+.matplotlib-subplot-page .axes-hierarchy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.matplotlib-subplot-page .axes-hierarchy-grid article {
+    min-height: 110px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.matplotlib-subplot-page .axes-hierarchy-grid article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.75rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .axes-hierarchy-grid article strong {
+    margin-top: 0.3rem;
+}
+
+/* ============================================================
+   5. CONCEPT RULE
+============================================================ */
+
+.matplotlib-subplot-page .concept-rule-box {
+    padding: 1rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 12px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .concept-rule-box > strong {
+    display: block;
+
+    margin-bottom: 0.6rem;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .rule-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.45rem;
+}
+
+.matplotlib-subplot-page .rule-flow span {
+    padding: 0.5rem 0.65rem;
+
+    border-radius: 8px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .rule-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   6. PURPOSE
+============================================================ */
+
+.matplotlib-subplot-page .purpose-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.matplotlib-subplot-page .purpose-grid article {
+    padding: 0.9rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 11px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .purpose-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 2rem;
+    height: 2rem;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.7rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .purpose-grid h4 {
+    margin: 0.55rem 0 0.35rem;
+}
+
+.matplotlib-subplot-page .purpose-grid p {
+    margin: 0;
+
+    font-size: 0.83rem;
+    line-height: 1.6;
+}
+
+/* ============================================================
+   7. PARAMETERS
+============================================================ */
+
+.matplotlib-subplot-page .parameter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.matplotlib-subplot-page .parameter-grid article {
+    padding: 0.85rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 10px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .parameter-grid code {
+    color: var(--lesson-accent);
+
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .parameter-grid strong {
+    display: block;
+
+    margin: 0.3rem 0;
+}
+
+.matplotlib-subplot-page .parameter-grid p {
+    margin: 0;
+
+    font-size: 0.82rem;
+}
+
+/* ============================================================
+   8. SUBPLOT READING
+============================================================ */
+
+.matplotlib-subplot-page .subplot-read {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+
+    gap: 0.55rem;
+    align-items: center;
+
+    max-width: 700px;
+}
+
+.matplotlib-subplot-page .subplot-read article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .subplot-read article span {
+    display: block;
+
+    color: var(--lesson-accent);
+
+    font-size: 1.5rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .subplot-read article strong {
+    display: block;
+
+    margin: 0.2rem 0;
+}
+
+.matplotlib-subplot-page .subplot-read article p {
+    margin: 0;
+
+    font-size: 0.78rem;
+}
+
+.matplotlib-subplot-page .subplot-read > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .position-card {
+    border-color: var(--lesson-accent) !important;
+
+    background: var(--lesson-accent-soft) !important;
+}
+
+/* ============================================================
+   9. SUBPLOT LAYOUT
+============================================================ */
+
+.matplotlib-subplot-page .subplot-layout {
+    display: grid;
+
+    gap: 0.55rem;
+
+    max-width: 600px;
+
+    margin: 1rem auto;
+}
+
+.matplotlib-subplot-page .layout-2x2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.matplotlib-subplot-page .subplot-layout article,
+.matplotlib-subplot-page .subplot-layout > span {
+    min-height: 95px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .subplot-layout article.active {
+    border: 2px solid var(--lesson-accent);
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .subplot-layout article span {
+    color: var(--lesson-accent);
+
+    font-size: 1.3rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .subplot-layout small {
+    margin-top: 0.25rem;
+
+    color: var(--subplot-text-soft);
+}
+
+.matplotlib-subplot-page .subplot-layout.small > span {
+    min-height: 70px;
+
+    font-size: 0.82rem;
+}
+
+/* ============================================================
+   10. IMPORTANT BOX
+============================================================ */
+
+.matplotlib-subplot-page .important-box {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--lesson-accent);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .important-box strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.matplotlib-subplot-page .important-box p {
+    margin: 0;
+
+    line-height: 1.7;
+}
+
+/* ============================================================
+   11. AXES VS PLOT
+============================================================ */
+
+.matplotlib-subplot-page .axes-plot-compare {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.matplotlib-subplot-page .axes-plot-compare article {
+    padding: 0.9rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 10px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .axes-plot-compare pre {
+    padding: 0.7rem;
+
+    overflow-x: auto;
+
+    border-radius: 8px;
+
+    background: var(--subplot-code-bg);
+
+    color: var(--subplot-code-text);
+}
+
+.matplotlib-subplot-page .axes-plot-compare article > strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .axes-plot-compare > i {
+    color: var(--subplot-danger);
+
+    font-size: 1.35rem;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .stage-label {
+    display: inline-flex;
+
+    padding: 0.18rem 0.45rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+/* ============================================================
+   12. LAYOUT EXAMPLES
+============================================================ */
+
+.matplotlib-subplot-page .layout-example-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.matplotlib-subplot-page .layout-example-grid article {
+    padding: 0.85rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 10px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .layout-example-grid h4 {
+    margin: 0 0 0.65rem;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .mini-layout {
+    display: grid;
+
+    gap: 0.25rem;
+
+    margin-bottom: 0.65rem;
+}
+
+.matplotlib-subplot-page .mini-layout span {
+    min-height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 5px;
+
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.matplotlib-subplot-page .one-two {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.matplotlib-subplot-page .two-one {
+    grid-template-columns: 1fr;
+}
+
+.matplotlib-subplot-page .two-two {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.matplotlib-subplot-page .two-three {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.matplotlib-subplot-page .layout-example-grid code {
+    font-size: 0.72rem;
+}
+
+/* ============================================================
+   13. OBJECT METHODS
+============================================================ */
+
+.matplotlib-subplot-page .object-method-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 0.6rem;
+}
+
+.matplotlib-subplot-page .object-method-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .object-method-grid code {
+    display: block;
+
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+.matplotlib-subplot-page .object-method-grid span {
+    display: block;
+
+    margin-top: 0.3rem;
+
+    font-size: 0.78rem;
+}
+
+/* ============================================================
+   14. FIGSIZE FLOW
+============================================================ */
+
+.matplotlib-subplot-page .figsize-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.45rem;
+}
+
+.matplotlib-subplot-page .figsize-flow span,
+.matplotlib-subplot-page .figsize-flow strong {
+    padding: 0.5rem 0.65rem;
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .figsize-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   15. ARANGE
+============================================================ */
+
+.matplotlib-subplot-page .arange-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+
+    gap: 0.45rem;
+}
+
+.matplotlib-subplot-page .arange-flow article {
+    flex: 1 1 120px;
+
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .arange-flow article strong,
+.matplotlib-subplot-page .arange-flow article code,
+.matplotlib-subplot-page .arange-flow article small {
+    display: block;
+}
+
+.matplotlib-subplot-page .arange-flow article code {
+    margin-top: 0.25rem;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .arange-flow article small {
+    margin-top: 0.2rem;
+
+    color: var(--subplot-text-soft);
+}
+
+.matplotlib-subplot-page .arange-flow > i {
+    align-self: center;
+
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .arange-result {
+    border-color: var(--lesson-accent) !important;
+
+    background: var(--lesson-accent-soft) !important;
+}
+
+/* ============================================================
+   16. SUPPLEMENT
+============================================================ */
+
+.matplotlib-subplot-page .supplement-box {
+    margin-top: 1.3rem;
+    padding: 1rem;
+
+    border: 1px dashed var(--lesson-accent);
+
+    border-radius: 12px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .supplement-tag,
+.matplotlib-subplot-page .supplement-inline {
+    display: inline-flex;
+
+    padding: 0.18rem 0.45rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent);
+
+    color: #fff;
+
+    font-size: 0.65rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .supplement-box h3 {
+    margin: 0.6rem 0 0.4rem;
+}
+
+/* ============================================================
+   17. INDEX COMPARE
+============================================================ */
+
+.matplotlib-subplot-page .index-compare {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.matplotlib-subplot-page .index-compare article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: rgba(255, 255, 255, 0.7);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .index-compare article span,
+.matplotlib-subplot-page .index-compare article strong,
+.matplotlib-subplot-page .index-compare article code {
+    display: block;
+}
+
+.matplotlib-subplot-page .index-compare article strong {
+    margin: 0.25rem 0;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .index-compare > i {
+    color: var(--subplot-danger);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   18. VISUAL FIGURE
+============================================================ */
+
+.matplotlib-subplot-page .visual-figure {
+    position: relative;
+
+    max-width: 760px;
+
+    margin: 0 auto 1rem;
+
+    padding: 3rem 1rem 1rem;
+
+    border: 3px solid var(--lesson-accent);
+
+    border-radius: 16px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .figure-caption {
+    position: absolute;
+
+    top: 0.75rem;
+    left: 1rem;
+
+    color: var(--lesson-accent);
+
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .empty-figure {
+    min-height: 200px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.matplotlib-subplot-page .empty-message {
+    color: var(--subplot-text-soft);
+
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.matplotlib-subplot-page .visual-grid {
+    display: grid;
+
+    gap: 0.65rem;
+}
+
+.matplotlib-subplot-page .two-two-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.matplotlib-subplot-page .axes-box,
+.matplotlib-subplot-page .axes-placeholder {
+    min-height: 130px;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 9px;
+}
+
+.matplotlib-subplot-page .axes-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.matplotlib-subplot-page .axes-placeholder {
+    border-style: dashed;
+
+    opacity: 0.42;
+}
+
+.matplotlib-subplot-page .axes-box.active {
+    border: 2px solid var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .axes-box strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .axes-box span {
+    margin-top: 0.2rem;
+
+    font-size: 0.75rem;
+}
+
+/* ============================================================
+   19. FAKE LINE
+============================================================ */
+
+.matplotlib-subplot-page .fake-line {
+    position: relative;
+
+    width: 80%;
+    height: 65px;
+
+    margin-top: 0.55rem;
+
+    border-left: 1px solid var(--subplot-border);
+
+    border-bottom: 1px solid var(--subplot-border);
+}
+
+.matplotlib-subplot-page .fake-line span {
+    position: absolute;
+
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .fake-line span:nth-child(1) {
+    left: 10%;
+    bottom: 15%;
+}
+
+.matplotlib-subplot-page .fake-line span:nth-child(2) {
+    left: 35%;
+    bottom: 28%;
+}
+
+.matplotlib-subplot-page .fake-line span:nth-child(3) {
+    left: 60%;
+    bottom: 45%;
+}
+
+.matplotlib-subplot-page .fake-line span:nth-child(4) {
+    left: 85%;
+    bottom: 70%;
+}
+
+.matplotlib-subplot-page .fast-rise-line span:nth-child(2) {
+    bottom: 38%;
+}
+
+.matplotlib-subplot-page .fast-rise-line span:nth-child(3) {
+    bottom: 62%;
+}
+
+.matplotlib-subplot-page .fast-rise-line span:nth-child(4) {
+    bottom: 88%;
+}
+
+.matplotlib-subplot-page .soft-rise-line span:nth-child(2) {
+    bottom: 22%;
+}
+
+.matplotlib-subplot-page .soft-rise-line span:nth-child(3) {
+    bottom: 38%;
+}
+
+.matplotlib-subplot-page .soft-rise-line span:nth-child(4) {
+    bottom: 55%;
+}
+
+.matplotlib-subplot-page .late-rise-line span:nth-child(1),
+.matplotlib-subplot-page .late-rise-line span:nth-child(2) {
+    bottom: 18%;
+}
+
+.matplotlib-subplot-page .late-rise-line span:nth-child(3) {
+    bottom: 42%;
+}
+
+.matplotlib-subplot-page .late-rise-line span:nth-child(4) {
+    bottom: 75%;
+}
+
+/* ============================================================
+   20. OBJECT BUILD FLOW
+============================================================ */
+
+.matplotlib-subplot-page .object-build-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.4rem;
+}
+
+.matplotlib-subplot-page .object-build-flow article {
+    width: min(100%, 620px);
+
+    padding: 0.75rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .object-build-flow article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.65rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .object-build-flow article code,
+.matplotlib-subplot-page .object-build-flow article strong {
+    display: block;
+}
+
+.matplotlib-subplot-page .object-build-flow article code {
+    margin: 0.2rem 0;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .object-build-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   21. REFERENCE MAP
+============================================================ */
+
+.matplotlib-subplot-page .reference-map {
+    display: grid;
+    grid-template-columns: 1fr auto 1.4fr;
+
+    gap: 0.8rem;
+
+    max-width: 700px;
+
+    margin: 0 auto;
+}
+
+.matplotlib-subplot-page .reference-variables,
+.matplotlib-subplot-page .reference-arrows,
+.matplotlib-subplot-page .reference-objects {
+    display: grid;
+    grid-template-rows: repeat(5, 1fr);
+
+    gap: 0.4rem;
+}
+
+.matplotlib-subplot-page .reference-variables code,
+.matplotlib-subplot-page .reference-objects span {
+    display: flex;
+    align-items: center;
+
+    min-height: 42px;
+
+    padding: 0.45rem;
+
+    border-radius: 7px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .reference-variables code {
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+.matplotlib-subplot-page .reference-arrows span {
+    display: flex;
+    align-items: center;
+
+    color: var(--lesson-accent);
+
+    font-weight: 900;
+}
+
+/* ============================================================
+   22. SHARED X
+============================================================ */
+
+.matplotlib-subplot-page .shared-x-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .shared-x-source {
+    padding: 0.75rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--lesson-accent-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .shared-x-source strong,
+.matplotlib-subplot-page .shared-x-source code {
+    display: block;
+}
+
+.matplotlib-subplot-page .shared-x-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .shared-x-grid {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .shared-x-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .shared-x-grid strong,
+.matplotlib-subplot-page .shared-x-grid span {
+    display: block;
+}
+
+.matplotlib-subplot-page .shared-x-grid strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .shared-x-grid span {
+    margin-top: 0.2rem;
+
+    font-size: 0.75rem;
+}
+
+/* ============================================================
+   23. WARNING
+============================================================ */
+
+.matplotlib-subplot-page .warning-box {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--subplot-warning);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--subplot-warning-soft);
+}
+
+.matplotlib-subplot-page .warning-box strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.matplotlib-subplot-page .warning-box p {
+    margin: 0;
+}
+
+/* ============================================================
+   24. DUAL INDEX
+============================================================ */
+
+.matplotlib-subplot-page .dual-index-visual {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+}
+
+.matplotlib-subplot-page .dual-index-visual > article {
+    padding: 0.9rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 10px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .dual-index-visual h4 {
+    margin-top: 0;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .dual-index-visual > article > strong {
+    display: block;
+
+    margin-top: 0.6rem;
+
+    text-align: center;
+}
+
+/* ============================================================
+   25. TOOL GRID
+============================================================ */
+
+.matplotlib-subplot-page .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.75rem;
+}
+
+.matplotlib-subplot-page .tool-grid article {
+    padding: 0.85rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 10px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .tool-label {
+    display: inline-flex;
+
+    padding: 0.2rem 0.5rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .tool-grid h3 {
+    margin: 0.55rem 0;
+}
+
+.matplotlib-subplot-page .tool-grid ul {
+    margin-bottom: 0;
+    padding-left: 1.15rem;
+}
+
+/* ============================================================
+   26. PRACTICE FLOW / NOTEBOOK FLOW
+============================================================ */
+
+.matplotlib-subplot-page .practice-flow,
+.matplotlib-subplot-page .notebook-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.4rem;
+}
+
+.matplotlib-subplot-page .practice-flow > div,
+.matplotlib-subplot-page .notebook-flow > div {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+
+    width: min(100%, 620px);
+
+    padding: 0.65rem 0.8rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .practice-flow strong,
+.matplotlib-subplot-page .notebook-flow strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .practice-flow > i,
+.matplotlib-subplot-page .notebook-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   27. PROGRESSIVE CODE
+============================================================ */
+
+.matplotlib-subplot-page .progressive-code-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.matplotlib-subplot-page .progressive-code-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 10px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .progressive-code-grid article > span {
+    display: inline-flex;
+
+    padding: 0.17rem 0.45rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .progressive-code-grid pre {
+    margin: 0.65rem 0 0;
+
+    padding: 0.7rem;
+
+    overflow-x: auto;
+
+    border-radius: 8px;
+
+    background: var(--subplot-code-bg);
+
+    color: var(--subplot-code-text);
+
+    font-size: 0.76rem;
+}
+
+/* ============================================================
+   28. CHECK GRID
+============================================================ */
+
+.matplotlib-subplot-page .check-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .check-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+/* ============================================================
+   29. CODE RESULTS
+============================================================ */
+
+.matplotlib-subplot-page .code-result-layout {
+    display: grid;
+
+    gap: 0.6rem;
+}
+
+.matplotlib-subplot-page .one-two-result {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.matplotlib-subplot-page .code-result-layout article {
+    min-height: 90px;
+
+    padding: 0.7rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .code-result-layout article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.7rem;
+}
+
+/* ============================================================
+   30. OBJECT COUNT
+============================================================ */
+
+.matplotlib-subplot-page .object-count-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .object-count-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .object-count-grid strong,
+.matplotlib-subplot-page .object-count-grid span {
+    display: block;
+}
+
+.matplotlib-subplot-page .object-count-grid strong {
+    color: var(--lesson-accent);
+}
+
+/* ============================================================
+   31. PATTERN SUMMARY
+============================================================ */
+
+.matplotlib-subplot-page .pattern-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .pattern-summary-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .pattern-summary-grid article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.matplotlib-subplot-page .pattern-summary-grid article strong {
+    display: block;
+
+    margin-top: 0.2rem;
+
+    color: var(--lesson-accent);
+
+    font-size: 1.5rem;
+}
+
+.matplotlib-subplot-page .pattern-summary-grid article p {
+    margin: 0.2rem 0 0;
+}
+
+/* ============================================================
+   32. CODE FLOW
+============================================================ */
+
+.matplotlib-subplot-page .code-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.45rem;
+}
+
+.matplotlib-subplot-page .code-flow span,
+.matplotlib-subplot-page .code-flow strong {
+    padding: 0.45rem 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .code-flow strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .code-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   33. ANALYSIS DASHBOARD
+============================================================ */
+
+.matplotlib-subplot-page .analysis-dashboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.65rem;
+
+    padding: 1rem;
+
+    border: 3px solid var(--lesson-accent);
+
+    border-radius: 14px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .analysis-dashboard article {
+    padding: 0.8rem;
+
+    min-height: 100px;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 9px;
+
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.matplotlib-subplot-page .analysis-dashboard article span,
+.matplotlib-subplot-page .analysis-dashboard article strong,
+.matplotlib-subplot-page .analysis-dashboard article small {
+    display: block;
+}
+
+.matplotlib-subplot-page .analysis-dashboard article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.matplotlib-subplot-page .analysis-dashboard article strong {
+    margin: 0.3rem 0;
+}
+
+.matplotlib-subplot-page .analysis-dashboard article small {
+    color: var(--subplot-text-soft);
+}
+
+/* ============================================================
+   34. ANALYSIS RESULT
+============================================================ */
+
+.matplotlib-subplot-page .analysis-result-box {
+    margin-top: 0.9rem;
+    padding: 0.9rem;
+
+    border-left: 4px solid var(--lesson-accent);
+
+    border-radius: 0 10px 10px 0;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .analysis-result-box strong {
+    display: block;
+
+    margin-bottom: 0.3rem;
+}
+
+.matplotlib-subplot-page .analysis-result-box p {
+    margin: 0;
+}
+
+/* ============================================================
+   35. NESTED STRUCTURE
+============================================================ */
+
+.matplotlib-subplot-page .nested-structure {
+    padding: 1rem;
+
+    border: 2px solid var(--lesson-accent);
+
+    border-radius: 11px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .nested-structure > div {
+    margin-top: 0.6rem;
+    padding: 0.75rem;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.matplotlib-subplot-page .nested-structure > div span {
+    display: block;
+
+    margin-top: 0.25rem;
+
+    padding: 0.35rem;
+
+    border-radius: 6px;
+
+    background: var(--subplot-surface-soft);
+
+    font-size: 0.78rem;
+}
+
+/* ============================================================
+   36. AXES INDEX
+============================================================ */
+
+.matplotlib-subplot-page .axes-index-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .axes-index-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .axes-index-grid code {
+    display: block;
+
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+.matplotlib-subplot-page .axes-index-grid span {
+    display: block;
+
+    margin-top: 0.2rem;
+
+    font-size: 0.78rem;
+}
+
+/* ============================================================
+   37. ERROR
+============================================================ */
+
+.matplotlib-subplot-page .error-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin: 1rem 0;
+}
+
+.matplotlib-subplot-page .error-flow span,
+.matplotlib-subplot-page .error-flow strong {
+    padding: 0.48rem 0.62rem;
+
+    border-radius: 8px;
+
+    background: var(--subplot-danger-soft);
+}
+
+.matplotlib-subplot-page .error-flow strong {
+    color: var(--subplot-danger);
+}
+
+.matplotlib-subplot-page .error-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .error-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.8rem;
+}
+
+.matplotlib-subplot-page .error-item {
+    padding: 0.9rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 11px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .error-item h3 {
+    margin-top: 0;
+
+    color: var(--subplot-danger);
+
+    font-size: 0.96rem;
+}
+
+.matplotlib-subplot-page .error-item pre {
+    padding: 0.7rem;
+
+    overflow-x: auto;
+
+    border-radius: 8px;
+
+    background: var(--subplot-code-bg);
+
+    color: var(--subplot-code-text);
+
+    font-size: 0.75rem;
+}
+
+.matplotlib-subplot-page .formula-check {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.4rem;
+
+    margin-top: 0.5rem;
+}
+
+.matplotlib-subplot-page .formula-check code,
+.matplotlib-subplot-page .formula-check strong {
+    padding: 0.35rem 0.5rem;
+
+    border-radius: 6px;
+
+    background: var(--lesson-accent-soft);
+}
+
+/* ============================================================
+   38. ERROR PRINCIPLE
+============================================================ */
+
+.matplotlib-subplot-page .error-principle {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--subplot-danger);
+
+    border-radius: 0 11px 11px 0;
+
+    background: var(--subplot-danger-soft);
+}
+
+.matplotlib-subplot-page .error-principle strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.matplotlib-subplot-page .error-principle p {
+    margin: 0;
+}
+
+/* ============================================================
+   39. DEBUG
+============================================================ */
+
+.matplotlib-subplot-page .debug-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .debug-grid article {
+    padding: 0.65rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .debug-grid strong {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.matplotlib-subplot-page .debug-grid span {
+    display: block;
+
+    margin-top: 0.2rem;
+}
+
+/* ============================================================
+   40. REAL WORK PIPELINE
+============================================================ */
+
+.matplotlib-subplot-page .realwork-pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+
+    gap: 0.45rem;
+
+    margin-top: 1rem;
+}
+
+.matplotlib-subplot-page .realwork-pipeline > div {
+    flex: 1 1 125px;
+
+    padding: 0.75rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .realwork-pipeline > div.active {
+    border-color: var(--lesson-accent);
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .realwork-pipeline strong,
+.matplotlib-subplot-page .realwork-pipeline span {
+    display: block;
+}
+
+.matplotlib-subplot-page .realwork-pipeline span {
+    margin-top: 0.2rem;
+
+    font-size: 0.72rem;
+}
+
+.matplotlib-subplot-page .realwork-pipeline > i {
+    align-self: center;
+
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   41. USE CASE
+============================================================ */
+
+.matplotlib-subplot-page .use-case-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.65rem;
+}
+
+.matplotlib-subplot-page .use-case-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .use-case-grid article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.matplotlib-subplot-page .use-case-grid article strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.matplotlib-subplot-page .use-case-grid p {
+    margin: 0;
+
+    font-size: 0.8rem;
+}
+
+/* ============================================================
+   42. SCHEMA CHIPS
+============================================================ */
+
+.matplotlib-subplot-page .schema-chips {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.4rem;
+
+    margin-bottom: 0.8rem;
+}
+
+.matplotlib-subplot-page .schema-chips code {
+    padding: 0.32rem 0.5rem;
+
+    border-radius: 7px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.76rem;
+}
+
+/* ============================================================
+   43. DASHBOARD PREVIEW
+============================================================ */
+
+.matplotlib-subplot-page .dashboard-preview {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.6rem;
+
+    padding: 0.8rem;
+
+    border: 2px solid var(--lesson-accent);
+
+    border-radius: 11px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .dashboard-preview article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--subplot-border-strong);
+
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, 0.76);
+}
+
+.matplotlib-subplot-page .dashboard-preview span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+}
+
+.matplotlib-subplot-page .dashboard-preview strong {
+    display: block;
+
+    margin-top: 0.2rem;
+}
+
+/* ============================================================
+   44. BEFORE / AFTER
+============================================================ */
+
+.matplotlib-subplot-page .before-after-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+
+    gap: 0.7rem;
+    align-items: center;
+}
+
+.matplotlib-subplot-page .before-after-grid article {
+    padding: 0.85rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .before-after-grid article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.matplotlib-subplot-page .before-after-grid article strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.matplotlib-subplot-page .before-after-grid article p {
+    margin: 0;
+}
+
+.matplotlib-subplot-page .before-after-grid > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   45. WEB ANALOGY
+============================================================ */
+
+.matplotlib-subplot-page .web-analogy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.65rem;
+}
+
+.matplotlib-subplot-page .web-analogy-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 9px;
+
+    background: var(--subplot-surface-soft);
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .web-analogy-grid strong,
+.matplotlib-subplot-page .web-analogy-grid i,
+.matplotlib-subplot-page .web-analogy-grid code {
+    display: block;
+}
+
+.matplotlib-subplot-page .web-analogy-grid i {
+    margin: 0.25rem 0;
+
+    color: var(--subplot-text-soft);
+
+    font-style: normal;
+}
+
+.matplotlib-subplot-page .web-analogy-grid code {
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+/* ============================================================
+   46. INTERVIEW
+============================================================ */
+
+.matplotlib-subplot-page .interview-list {
+    display: grid;
+
+    gap: 0.75rem;
+}
+
+.matplotlib-subplot-page .interview-list article {
+    padding: 0.95rem 1rem;
+
+    border: 1px solid var(--subplot-border);
+
+    border-radius: 11px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .interview-list h3 {
+    margin: 0 0 0.45rem;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.96rem;
+}
+
+.matplotlib-subplot-page .interview-list p {
+    margin: 0;
+
+    line-height: 1.75;
+}
+
+/* ============================================================
+   47. ASIDE
+============================================================ */
+
+.matplotlib-subplot-page .memory-list strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .confusion-list {
+    display: grid;
+
+    gap: 0.55rem;
+}
+
+.matplotlib-subplot-page .confusion-list article {
+    padding: 0.65rem;
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .confusion-list strong {
+    display: block;
+
+    margin-bottom: 0.2rem;
+
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .confusion-list p {
+    margin: 0;
+
+    font-size: 0.84rem;
+}
+
+/* ============================================================
+   48. NEXT LESSON
+============================================================ */
+
+.matplotlib-subplot-page .next-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin: 0.9rem 0;
+
+    text-align: center;
+}
+
+.matplotlib-subplot-page .next-flow span,
+.matplotlib-subplot-page .next-flow strong {
+    width: 100%;
+
+    padding: 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .next-flow .current {
+    border: 1px solid var(--lesson-accent);
+
+    background: var(--lesson-accent-soft);
+}
+
+.matplotlib-subplot-page .next-flow strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .next-flow small {
+    display: block;
+
+    margin-top: 0.15rem;
+
+    font-weight: 600;
+}
+
+.matplotlib-subplot-page .next-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ------------------------------------------------------------
+   Next Question
+------------------------------------------------------------ */
+
+.matplotlib-subplot-page .next-question {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.45rem;
+
+    margin-top: 0.8rem;
+}
+
+.matplotlib-subplot-page .next-question span,
+.matplotlib-subplot-page .next-question strong {
+    padding: 0.45rem 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--subplot-surface-soft);
+}
+
+.matplotlib-subplot-page .next-question strong {
+    color: var(--lesson-accent);
+}
+
+.matplotlib-subplot-page .next-question i {
+    color: var(--subplot-danger);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ------------------------------------------------------------
+   Next Preview
+------------------------------------------------------------ */
+
+.matplotlib-subplot-page .next-preview {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.4rem;
+
+    margin-top: 0.8rem;
+}
+
+.matplotlib-subplot-page .next-preview code {
+    padding: 0.35rem 0.5rem;
+
+    border-radius: 7px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.76rem;
+}
+
+.matplotlib-subplot-page .next-lesson-link {
+    display: inline-block;
+
+    margin-top: 0.9rem;
+
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+/* ============================================================
+   49. RESPONSIVE - TABLET
+============================================================ */
+
+@media (max-width: 1100px) {
+    .matplotlib-subplot-page .purpose-grid,
+    .matplotlib-subplot-page .layout-example-grid,
+    .matplotlib-subplot-page .object-method-grid,
+    .matplotlib-subplot-page .pattern-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .matplotlib-subplot-page .shared-x-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ============================================================
+   50. RESPONSIVE - SMALL TABLET
+============================================================ */
+
+@media (max-width: 850px) {
+    .matplotlib-subplot-page .parameter-grid,
+    .matplotlib-subplot-page .tool-grid,
+    .matplotlib-subplot-page .use-case-grid,
+    .matplotlib-subplot-page .dashboard-preview,
+    .matplotlib-subplot-page .web-analogy-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .axes-plot-compare,
+    .matplotlib-subplot-page .index-compare,
+    .matplotlib-subplot-page .before-after-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .axes-plot-compare > i,
+    .matplotlib-subplot-page .index-compare > i,
+    .matplotlib-subplot-page .before-after-grid > i {
+        text-align: center;
+    }
+
+    .matplotlib-subplot-page .dual-index-visual {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .error-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .progressive-code-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   51. RESPONSIVE - MOBILE
+============================================================ */
+
+@media (max-width: 620px) {
+    .matplotlib-subplot-page .hero-flow {
+        gap: 0.32rem;
+    }
+
+    .matplotlib-subplot-page .hero-flow span {
+        padding: 0.35rem 0.48rem;
+
+        font-size: 0.72rem;
+    }
+
+    .matplotlib-subplot-page .axes-hierarchy-grid,
+    .matplotlib-subplot-page .two-two-grid,
+    .matplotlib-subplot-page .analysis-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .subplot-read {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .subplot-read > i {
+        text-align: center;
+    }
+
+    .matplotlib-subplot-page .purpose-grid,
+    .matplotlib-subplot-page .layout-example-grid,
+    .matplotlib-subplot-page .object-method-grid,
+    .matplotlib-subplot-page .shared-x-grid,
+    .matplotlib-subplot-page .pattern-summary-grid,
+    .matplotlib-subplot-page .object-count-grid,
+    .matplotlib-subplot-page .debug-grid,
+    .matplotlib-subplot-page .axes-index-grid,
+    .matplotlib-subplot-page .check-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .matplotlib-subplot-page .reference-map {
+        grid-template-columns: 1fr auto 1.3fr;
+    }
+
+    .matplotlib-subplot-page .practice-flow > div,
+    .matplotlib-subplot-page .notebook-flow > div {
+        grid-template-columns: 1fr;
+
+        gap: 0.2rem;
+    }
+
+    .matplotlib-subplot-page .realwork-pipeline > i {
+        display: none;
+    }
+
+    .matplotlib-subplot-page .code-block {
+        font-size: 0.78rem;
+    }
+}
