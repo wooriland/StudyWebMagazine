@@ -1,13 +1,3013 @@
 @charset "UTF-8";
 
 /*
- * Page: 09_seaborn_relation.html
- * Course: Data Visualization
+ * ============================================================
+ * Page:
+ * 09_seaborn_relation.html
+ *
+ * Lesson:
+ * 관계와 상관관계 시각화
+ *
+ * Core:
+ * - scatterplot
+ * - jointplot
+ * - correlation
+ * - correlation matrix
+ * - heatmap
+ * - correlation != causation
+ * ============================================================
  */
 
-.data-visualization-lesson-09 {
-    --lesson-accent: var(--data-visualization-accent);
-    --lesson-accent-soft: var(--data-visualization-soft);
+/* ============================================================
+   0. PAGE VARIABLES
+============================================================ */
+
+.seaborn-relation-page {
+    --lesson-accent: var(--data-visualization-accent, #6574d9);
+
+    --lesson-accent-soft: var(--data-visualization-soft, rgba(101, 116, 217, 0.1));
+
+    --relation-border: rgba(100, 116, 139, 0.22);
+
+    --relation-border-strong: rgba(71, 85, 105, 0.42);
+
+    --relation-surface: rgba(255, 255, 255, 0.78);
+
+    --relation-surface-soft: rgba(248, 250, 252, 0.92);
+
+    --relation-text-soft: #64748b;
+
+    --relation-code-bg: #111827;
+
+    --relation-code-text: #e5edf8;
+
+    --relation-warning: #d97706;
+
+    --relation-warning-soft: rgba(245, 158, 11, 0.1);
+
+    --relation-danger: #dc2626;
+
+    --relation-danger-soft: rgba(239, 68, 68, 0.08);
+
+    --relation-success: #16a34a;
+
+    --relation-success-soft: rgba(34, 197, 94, 0.08);
+
+    --corr-positive: rgba(101, 116, 217, 0.88);
+
+    --corr-positive-mid: rgba(101, 116, 217, 0.58);
+
+    --corr-positive-soft: rgba(101, 116, 217, 0.28);
+
+    --corr-neutral: rgba(226, 232, 240, 0.9);
+
+    --corr-negative: rgba(220, 38, 38, 0.62);
+
+    --corr-negative-soft: rgba(220, 38, 38, 0.28);
 }
 
-/* 이 단원만의 시각 자료 스타일은 이후 Step 작업에서 추가합니다. */
+/* ============================================================
+   1. HERO
+============================================================ */
+
+.seaborn-relation-page .lesson-hero .title-en {
+    display: block;
+
+    margin-top: 0.25rem;
+
+    font-size: 0.48em;
+    font-weight: 700;
+
+    opacity: 0.72;
+}
+
+.seaborn-relation-page .hero-rule {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.7rem;
+
+    margin-top: 1.35rem;
+    padding: 0.95rem 1.1rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 14px;
+
+    background: linear-gradient(135deg, var(--lesson-accent-soft), rgba(255, 255, 255, 0.64));
+}
+
+.seaborn-relation-page .hero-rule-label {
+    padding: 0.25rem 0.55rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent);
+
+    color: #fff;
+
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .hero-rule strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .hero-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.42rem;
+
+    margin-top: 1rem;
+}
+
+.seaborn-relation-page .hero-flow span {
+    padding: 0.42rem 0.62rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 999px;
+
+    background: var(--relation-surface);
+
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.seaborn-relation-page .hero-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .hero-memory {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--lesson-accent);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--lesson-accent-soft);
+}
+
+.seaborn-relation-page .hero-memory strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.seaborn-relation-page .hero-memory p {
+    margin: 0;
+
+    line-height: 1.75;
+}
+
+/* ============================================================
+   2. COMMON
+============================================================ */
+
+.seaborn-relation-page .section-heading {
+    margin-bottom: 1.35rem;
+}
+
+.seaborn-relation-page .section-kicker {
+    margin: 0 0 0.35rem;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.76rem;
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.seaborn-relation-page .subsection-title {
+    margin-top: 2.1rem;
+    margin-bottom: 1rem;
+
+    font-size: 1.08rem;
+}
+
+.seaborn-relation-page .lead-text {
+    font-size: 1.02rem;
+    line-height: 1.85;
+}
+
+.seaborn-relation-page code {
+    font-family: 'Consolas', 'SFMono-Regular', monospace;
+}
+
+.seaborn-relation-page .chip-list,
+.seaborn-relation-page .schema-chips {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.35rem;
+}
+
+.seaborn-relation-page .chip-list code,
+.seaborn-relation-page .schema-chips code {
+    padding: 0.27rem 0.45rem;
+
+    border-radius: 7px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.74rem;
+}
+
+.seaborn-relation-page .supplement-inline {
+    display: inline-flex;
+
+    padding: 0.17rem 0.44rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent);
+
+    color: #fff;
+
+    font-size: 0.63rem;
+    font-weight: 900;
+
+    vertical-align: middle;
+}
+
+/* ============================================================
+   3. CODE BLOCK
+============================================================ */
+
+.seaborn-relation-page .code-block {
+    margin: 1rem 0;
+
+    padding: 1rem 1.1rem;
+
+    overflow-x: auto;
+
+    border-radius: 13px;
+
+    background: var(--relation-code-bg);
+
+    color: var(--relation-code-text);
+
+    font-size: 0.87rem;
+    line-height: 1.7;
+
+    tab-size: 4;
+}
+
+.seaborn-relation-page .code-block code {
+    color: inherit;
+
+    white-space: pre;
+}
+
+/* ============================================================
+   4. RELATION CHOICE
+============================================================ */
+
+.seaborn-relation-page .relation-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+}
+
+.seaborn-relation-page .relation-choice-grid > article {
+    padding: 1rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 12px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .concept-badge {
+    display: inline-flex;
+
+    padding: 0.2rem 0.52rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .relation-choice-grid h4 {
+    margin: 0.55rem 0 0.7rem;
+}
+
+.seaborn-relation-page .choice-result {
+    margin-top: 0.65rem;
+    padding: 0.7rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: rgba(255, 255, 255, 0.75);
+}
+
+.seaborn-relation-page .choice-result span,
+.seaborn-relation-page .choice-result strong {
+    display: block;
+}
+
+.seaborn-relation-page .choice-result span {
+    color: var(--relation-text-soft);
+
+    font-size: 0.67rem;
+}
+
+.seaborn-relation-page .choice-result strong {
+    margin-top: 0.25rem;
+
+    color: var(--lesson-accent);
+}
+
+/* ============================================================
+   5. ROW TO POINT
+============================================================ */
+
+.seaborn-relation-page .row-point-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 0.75fr auto 0.75fr;
+
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.seaborn-relation-page .row-point-flow article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .row-point-flow article > span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .row-point-flow code,
+.seaborn-relation-page .row-point-flow strong {
+    display: block;
+
+    margin-top: 0.25rem;
+}
+
+.seaborn-relation-page .row-point-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .point-result {
+    text-align: center;
+}
+
+.seaborn-relation-page .sample-point {
+    display: block;
+
+    width: 22px;
+    height: 22px;
+
+    margin: 0.8rem auto 0;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+/* ============================================================
+   6. SCATTER READING
+============================================================ */
+
+.seaborn-relation-page .scatter-reading-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.seaborn-relation-page .scatter-reading-grid article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .scatter-reading-grid span {
+    color: var(--lesson-accent);
+
+    font-size: 0.65rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .scatter-reading-grid strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.seaborn-relation-page .scatter-reading-grid p {
+    margin: 0;
+
+    font-size: 0.77rem;
+}
+
+/* ============================================================
+   7. DIRECTION SCATTERS
+============================================================ */
+
+.seaborn-relation-page .direction-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.seaborn-relation-page .direction-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .direction-grid article > span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .direction-grid article > strong {
+    display: block;
+
+    margin-top: 0.6rem;
+}
+
+.seaborn-relation-page .mini-scatter {
+    position: relative;
+
+    height: 170px;
+
+    margin-top: 0.6rem;
+
+    border-left: 2px solid var(--relation-border-strong);
+
+    border-bottom: 2px solid var(--relation-border-strong);
+}
+
+.seaborn-relation-page .mini-scatter i {
+    position: absolute;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+/* Positive */
+
+.seaborn-relation-page .positive-scatter .p1 {
+    left: 12%;
+    bottom: 12%;
+}
+
+.seaborn-relation-page .positive-scatter .p2 {
+    left: 28%;
+    bottom: 28%;
+}
+
+.seaborn-relation-page .positive-scatter .p3 {
+    left: 45%;
+    bottom: 46%;
+}
+
+.seaborn-relation-page .positive-scatter .p4 {
+    left: 65%;
+    bottom: 65%;
+}
+
+.seaborn-relation-page .positive-scatter .p5 {
+    left: 82%;
+    bottom: 82%;
+}
+
+/* Negative */
+
+.seaborn-relation-page .negative-scatter .p1 {
+    left: 12%;
+    bottom: 82%;
+}
+
+.seaborn-relation-page .negative-scatter .p2 {
+    left: 28%;
+    bottom: 66%;
+}
+
+.seaborn-relation-page .negative-scatter .p3 {
+    left: 45%;
+    bottom: 48%;
+}
+
+.seaborn-relation-page .negative-scatter .p4 {
+    left: 65%;
+    bottom: 30%;
+}
+
+.seaborn-relation-page .negative-scatter .p5 {
+    left: 82%;
+    bottom: 12%;
+}
+
+/* Random */
+
+.seaborn-relation-page .random-scatter .p1 {
+    left: 12%;
+    bottom: 65%;
+}
+
+.seaborn-relation-page .random-scatter .p2 {
+    left: 30%;
+    bottom: 20%;
+}
+
+.seaborn-relation-page .random-scatter .p3 {
+    left: 47%;
+    bottom: 72%;
+}
+
+.seaborn-relation-page .random-scatter .p4 {
+    left: 63%;
+    bottom: 38%;
+}
+
+.seaborn-relation-page .random-scatter .p5 {
+    left: 84%;
+    bottom: 58%;
+}
+
+/* ============================================================
+   8. SUPPLEMENT / NONLINEAR
+============================================================ */
+
+.seaborn-relation-page .supplement-box {
+    margin-top: 1.2rem;
+    padding: 1rem;
+
+    border: 1px dashed var(--lesson-accent);
+
+    border-radius: 12px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.seaborn-relation-page .supplement-tag {
+    display: inline-flex;
+
+    padding: 0.17rem 0.44rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent);
+
+    color: #fff;
+
+    font-size: 0.63rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .supplement-box h3 {
+    margin: 0.6rem 0 0.7rem;
+}
+
+.seaborn-relation-page .nonlinear-demo {
+    position: relative;
+
+    height: 190px;
+
+    border-left: 2px solid var(--relation-border-strong);
+
+    border-bottom: 2px solid var(--relation-border-strong);
+}
+
+.seaborn-relation-page .nonlinear-demo i {
+    position: absolute;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+.seaborn-relation-page .nonlinear-demo .n1 {
+    left: 10%;
+    bottom: 80%;
+}
+
+.seaborn-relation-page .nonlinear-demo .n2 {
+    left: 22%;
+    bottom: 55%;
+}
+
+.seaborn-relation-page .nonlinear-demo .n3 {
+    left: 35%;
+    bottom: 30%;
+}
+
+.seaborn-relation-page .nonlinear-demo .n4 {
+    left: 50%;
+    bottom: 14%;
+}
+
+.seaborn-relation-page .nonlinear-demo .n5 {
+    left: 65%;
+    bottom: 30%;
+}
+
+.seaborn-relation-page .nonlinear-demo .n6 {
+    left: 78%;
+    bottom: 55%;
+}
+
+.seaborn-relation-page .nonlinear-demo .n7 {
+    left: 90%;
+    bottom: 80%;
+}
+
+/* ============================================================
+   9. HUE ROLES
+============================================================ */
+
+.seaborn-relation-page .hue-role-grid,
+.seaborn-relation-page .method-role-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.6rem;
+}
+
+.seaborn-relation-page .hue-role-grid article,
+.seaborn-relation-page .method-role-grid article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .hue-role-grid code,
+.seaborn-relation-page .method-role-grid code {
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+.seaborn-relation-page .hue-role-grid strong,
+.seaborn-relation-page .method-role-grid strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.seaborn-relation-page .hue-role-grid p,
+.seaborn-relation-page .method-role-grid p {
+    margin: 0;
+}
+
+/* ============================================================
+   10. SOURCE CORE
+============================================================ */
+
+.seaborn-relation-page .source-core-box,
+.seaborn-relation-page .source-note {
+    padding: 0.9rem;
+
+    border: 1px dashed var(--relation-warning);
+
+    border-radius: 10px;
+
+    background: var(--relation-warning-soft);
+}
+
+.seaborn-relation-page .source-core-box > span {
+    display: inline-flex;
+
+    padding: 0.17rem 0.43rem;
+
+    border-radius: 999px;
+
+    background: var(--relation-warning);
+
+    color: #fff;
+
+    font-size: 0.64rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .source-core-box p,
+.seaborn-relation-page .source-note p {
+    margin-bottom: 0;
+}
+
+/* ============================================================
+   11. JOINT ROLES
+============================================================ */
+
+.seaborn-relation-page .joint-role-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr 1fr;
+
+    gap: 0.7rem;
+}
+
+.seaborn-relation-page .joint-role-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .joint-role-grid article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .joint-role-grid strong {
+    display: block;
+
+    margin: 0.3rem 0;
+}
+
+.seaborn-relation-page .joint-main {
+    border-color: var(--lesson-accent) !important;
+
+    background: var(--lesson-accent-soft) !important;
+}
+
+/* ============================================================
+   12. KIND GRID
+============================================================ */
+
+.seaborn-relation-page .kind-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.seaborn-relation-page .kind-grid article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .kind-grid code {
+    color: var(--lesson-accent);
+
+    font-weight: 900;
+}
+
+.seaborn-relation-page .kind-grid strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.seaborn-relation-page .kind-grid p {
+    margin: 0;
+
+    font-size: 0.76rem;
+}
+
+/* ============================================================
+   13. LESSON BRIDGE
+============================================================ */
+
+.seaborn-relation-page .lesson-bridge {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+
+    gap: 0.6rem;
+    align-items: center;
+
+    margin-top: 1rem;
+}
+
+.seaborn-relation-page .lesson-bridge article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .lesson-bridge article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .lesson-bridge strong {
+    display: block;
+
+    margin: 0.3rem 0;
+}
+
+.seaborn-relation-page .lesson-bridge > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .bridge-result {
+    border-color: var(--lesson-accent) !important;
+
+    background: var(--lesson-accent-soft) !important;
+}
+
+/* ============================================================
+   14. CORR FLOW
+============================================================ */
+
+.seaborn-relation-page .corr-flow,
+.seaborn-relation-page .code-flow,
+.seaborn-relation-page .project-flow,
+.seaborn-relation-page .eda-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.42rem;
+}
+
+.seaborn-relation-page .corr-flow span,
+.seaborn-relation-page .code-flow span,
+.seaborn-relation-page .project-flow span,
+.seaborn-relation-page .eda-flow span,
+.seaborn-relation-page .corr-flow strong,
+.seaborn-relation-page .code-flow strong,
+.seaborn-relation-page .project-flow strong,
+.seaborn-relation-page .eda-flow strong {
+    padding: 0.44rem 0.58rem;
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .corr-flow strong,
+.seaborn-relation-page .code-flow strong,
+.seaborn-relation-page .project-flow strong,
+.seaborn-relation-page .eda-flow strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .corr-flow i,
+.seaborn-relation-page .code-flow i,
+.seaborn-relation-page .project-flow i,
+.seaborn-relation-page .eda-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   15. CORRELATION SCALE
+============================================================ */
+
+.seaborn-relation-page .correlation-scale {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr auto;
+
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.seaborn-relation-page .corr-point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    min-width: 90px;
+}
+
+.seaborn-relation-page .corr-point strong {
+    font-size: 1.15rem;
+}
+
+.seaborn-relation-page .corr-point span {
+    margin-top: 0.2rem;
+
+    font-size: 0.68rem;
+}
+
+.seaborn-relation-page .negative-end {
+    color: var(--relation-danger);
+}
+
+.seaborn-relation-page .positive-end {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .zero {
+    color: var(--relation-text-soft);
+}
+
+.seaborn-relation-page .corr-line {
+    height: 6px;
+
+    border-radius: 999px;
+
+    background: linear-gradient(90deg, var(--relation-danger), rgba(226, 232, 240, 0.9), var(--lesson-accent));
+}
+
+/* ============================================================
+   16. CORR READING
+============================================================ */
+
+.seaborn-relation-page .correlation-reading-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.65rem;
+
+    margin-top: 1rem;
+}
+
+.seaborn-relation-page .correlation-reading-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .correlation-reading-grid strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .correlation-reading-grid p {
+    margin: 0.3rem 0 0;
+}
+
+/* ============================================================
+   17. CAUSATION WARNING
+============================================================ */
+
+.seaborn-relation-page .causation-warning {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--relation-danger);
+
+    border-radius: 0 11px 11px 0;
+
+    background: var(--relation-danger-soft);
+}
+
+.seaborn-relation-page .warning-tag {
+    display: inline-flex;
+
+    padding: 0.17rem 0.43rem;
+
+    border-radius: 999px;
+
+    background: var(--relation-danger);
+
+    color: #fff;
+
+    font-size: 0.64rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .causation-warning h3 {
+    margin: 0.55rem 0 0.7rem;
+}
+
+.seaborn-relation-page .causation-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.4rem;
+}
+
+.seaborn-relation-page .causation-flow span,
+.seaborn-relation-page .causation-flow strong {
+    padding: 0.45rem 0.58rem;
+
+    border-radius: 8px;
+
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.seaborn-relation-page .causation-flow i {
+    color: var(--relation-danger);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .danger-text {
+    color: var(--relation-danger);
+}
+
+/* ============================================================
+   18. MATRIX TABLE
+============================================================ */
+
+.seaborn-relation-page .matrix-table-wrap {
+    overflow-x: auto;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+}
+
+.seaborn-relation-page .correlation-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 620px;
+}
+
+.seaborn-relation-page .correlation-table th,
+.seaborn-relation-page .correlation-table td {
+    padding: 0.7rem;
+
+    border: 1px solid var(--relation-border);
+
+    text-align: center;
+}
+
+.seaborn-relation-page .correlation-table th {
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .correlation-table .diag {
+    background: var(--corr-positive);
+
+    color: #fff;
+
+    font-weight: 900;
+}
+
+.seaborn-relation-page .correlation-table .strong-positive {
+    background: var(--corr-positive-mid);
+
+    font-weight: 900;
+}
+
+.seaborn-relation-page .correlation-table .strong-negative {
+    background: var(--corr-negative);
+
+    color: #fff;
+
+    font-weight: 900;
+}
+
+/* ============================================================
+   19. MATRIX MEMORY
+============================================================ */
+
+.seaborn-relation-page .matrix-memory-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.7rem;
+
+    margin-top: 0.8rem;
+}
+
+.seaborn-relation-page .matrix-memory-grid article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .matrix-memory-grid strong {
+    color: var(--lesson-accent);
+}
+
+/* ============================================================
+   20. HEATMAP OPTIONS
+============================================================ */
+
+.seaborn-relation-page .heatmap-option-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.6rem;
+}
+
+.seaborn-relation-page .heatmap-option-grid article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .heatmap-option-grid code {
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+.seaborn-relation-page .heatmap-option-grid strong {
+    display: block;
+
+    margin-top: 0.25rem;
+}
+
+/* ============================================================
+   21. ANALYSIS LOOP
+============================================================ */
+
+.seaborn-relation-page .analysis-loop {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+
+    gap: 0.4rem;
+}
+
+.seaborn-relation-page .analysis-loop > div {
+    flex: 1 1 110px;
+
+    padding: 0.65rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .analysis-loop > div strong,
+.seaborn-relation-page .analysis-loop > div span {
+    display: block;
+}
+
+.seaborn-relation-page .analysis-loop > div strong {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+}
+
+.seaborn-relation-page .analysis-loop > i {
+    align-self: center;
+
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .analysis-loop-result {
+    border-color: var(--lesson-accent) !important;
+
+    background: var(--lesson-accent-soft) !important;
+}
+
+/* ============================================================
+   22. DATA TRANSFORM
+============================================================ */
+
+.seaborn-relation-page .data-transform-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.42rem;
+}
+
+.seaborn-relation-page .data-transform-flow article {
+    width: min(100%, 650px);
+
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+
+    text-align: center;
+}
+
+.seaborn-relation-page .data-transform-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .step-label {
+    display: inline-flex;
+
+    padding: 0.16rem 0.42rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.63rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .data-transform-flow article strong,
+.seaborn-relation-page .data-transform-flow article code {
+    display: block;
+
+    margin-top: 0.25rem;
+}
+
+.seaborn-relation-page .accent-step {
+    border-color: var(--lesson-accent) !important;
+
+    background: var(--lesson-accent-soft) !important;
+}
+
+/* ============================================================
+   23. SCATTER ANATOMY
+============================================================ */
+
+.seaborn-relation-page .scatter-anatomy {
+    position: relative;
+
+    max-width: 800px;
+
+    margin: 0 auto;
+
+    padding: 1rem 1rem 3rem 3rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 12px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .scatter-area {
+    position: relative;
+
+    height: 340px;
+
+    border-left: 2px solid var(--relation-border-strong);
+
+    border-bottom: 2px solid var(--relation-border-strong);
+}
+
+.seaborn-relation-page .scatter-area .dot {
+    position: absolute;
+
+    width: 11px;
+    height: 11px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+
+    z-index: 2;
+}
+
+.seaborn-relation-page .scatter-area .d1 {
+    left: 8%;
+    bottom: 10%;
+}
+
+.seaborn-relation-page .scatter-area .d2 {
+    left: 18%;
+    bottom: 19%;
+}
+
+.seaborn-relation-page .scatter-area .d3 {
+    left: 29%;
+    bottom: 31%;
+}
+
+.seaborn-relation-page .scatter-area .d4 {
+    left: 42%;
+    bottom: 38%;
+}
+
+.seaborn-relation-page .scatter-area .d5 {
+    left: 54%;
+    bottom: 56%;
+}
+
+.seaborn-relation-page .scatter-area .d6 {
+    left: 66%;
+    bottom: 65%;
+}
+
+.seaborn-relation-page .scatter-area .d7 {
+    left: 78%;
+    bottom: 79%;
+}
+
+.seaborn-relation-page .scatter-area .d8 {
+    left: 90%;
+    bottom: 86%;
+}
+
+.seaborn-relation-page .trend-guide {
+    position: absolute;
+
+    left: 6%;
+    bottom: 10%;
+
+    width: 90%;
+    height: 3px;
+
+    transform: rotate(-39deg);
+
+    transform-origin: left center;
+
+    background: rgba(101, 116, 217, 0.24);
+}
+
+.seaborn-relation-page .y-axis-label {
+    position: absolute;
+
+    left: 0;
+    top: 45%;
+
+    transform: rotate(-90deg);
+
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.seaborn-relation-page .x-axis-label {
+    position: absolute;
+
+    left: 53%;
+    bottom: 0.8rem;
+
+    transform: translateX(-50%);
+
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+/* ============================================================
+   24. SCATTER OBSERVATION
+============================================================ */
+
+.seaborn-relation-page .scatter-observation {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.6rem;
+
+    margin-top: 0.9rem;
+}
+
+.seaborn-relation-page .scatter-observation article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .scatter-observation strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .scatter-observation p {
+    margin: 0.25rem 0 0;
+}
+
+/* ============================================================
+   25. JOINTPLOT VISUAL
+============================================================ */
+
+.seaborn-relation-page .jointplot-visual {
+    max-width: 760px;
+
+    margin: 0 auto;
+
+    padding: 1rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 12px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .joint-top {
+    height: 100px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 4px;
+
+    margin-right: 150px;
+
+    position: relative;
+
+    border-bottom: 1px solid var(--relation-border);
+}
+
+.seaborn-relation-page .joint-top strong {
+    position: absolute;
+
+    right: 0;
+    top: 0;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.seaborn-relation-page .mini-hist {
+    flex: 1;
+
+    display: block;
+
+    background: var(--corr-positive-soft);
+}
+
+.seaborn-relation-page .jh1 {
+    height: 25%;
+}
+
+.seaborn-relation-page .jh2 {
+    height: 55%;
+}
+
+.seaborn-relation-page .jh3 {
+    height: 85%;
+}
+
+.seaborn-relation-page .jh4 {
+    height: 58%;
+}
+
+.seaborn-relation-page .jh5 {
+    height: 30%;
+}
+
+.seaborn-relation-page .joint-layout {
+    display: grid;
+    grid-template-columns: 1fr 140px;
+
+    gap: 0.5rem;
+
+    margin-top: 0.5rem;
+}
+
+.seaborn-relation-page .joint-center {
+    position: relative;
+
+    height: 300px;
+
+    border-left: 2px solid var(--relation-border-strong);
+
+    border-bottom: 2px solid var(--relation-border-strong);
+}
+
+.seaborn-relation-page .joint-center strong {
+    position: absolute;
+
+    right: 0.5rem;
+    top: 0.5rem;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.seaborn-relation-page .jdot {
+    position: absolute;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+.seaborn-relation-page .jd1 {
+    left: 10%;
+    bottom: 12%;
+}
+
+.seaborn-relation-page .jd2 {
+    left: 28%;
+    bottom: 30%;
+}
+
+.seaborn-relation-page .jd3 {
+    left: 46%;
+    bottom: 48%;
+}
+
+.seaborn-relation-page .jd4 {
+    left: 65%;
+    bottom: 66%;
+}
+
+.seaborn-relation-page .jd5 {
+    left: 84%;
+    bottom: 84%;
+}
+
+.seaborn-relation-page .joint-right {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+
+    gap: 4px;
+}
+
+.seaborn-relation-page .joint-right strong {
+    position: absolute;
+
+    right: 0;
+    top: 0;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+}
+
+.seaborn-relation-page .mini-horizontal-hist {
+    display: block;
+
+    height: 15%;
+
+    background: var(--corr-positive-soft);
+}
+
+.seaborn-relation-page .joint-right .r1 {
+    width: 30%;
+}
+
+.seaborn-relation-page .joint-right .r2 {
+    width: 55%;
+}
+
+.seaborn-relation-page .joint-right .r3 {
+    width: 88%;
+}
+
+.seaborn-relation-page .joint-right .r4 {
+    width: 65%;
+}
+
+.seaborn-relation-page .joint-right .r5 {
+    width: 35%;
+}
+
+/* ============================================================
+   26. HEATMAP VISUAL
+============================================================ */
+
+.seaborn-relation-page .heatmap-visual {
+    min-width: 640px;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+.seaborn-relation-page .heatmap-label-row,
+.seaborn-relation-page .heatmap-row {
+    display: grid;
+    grid-template-columns: 130px repeat(4, 1fr);
+}
+
+.seaborn-relation-page .heatmap-label-row > *,
+.seaborn-relation-page .heatmap-row > * {
+    padding: 0.7rem;
+
+    text-align: center;
+}
+
+.seaborn-relation-page .heatmap-label-row {
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .heatmap-row > strong {
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .heat-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 62px;
+}
+
+.seaborn-relation-page .h-pos-strong {
+    background: var(--corr-positive);
+
+    color: #fff;
+
+    font-weight: 900;
+}
+
+.seaborn-relation-page .h-pos {
+    background: var(--corr-positive-mid);
+
+    font-weight: 800;
+}
+
+.seaborn-relation-page .h-neg {
+    background: var(--corr-negative);
+
+    color: #fff;
+
+    font-weight: 800;
+}
+
+.seaborn-relation-page .h-neg-soft {
+    background: var(--corr-negative-soft);
+}
+
+/* ============================================================
+   27. HEATMAP LEGEND
+============================================================ */
+
+.seaborn-relation-page .heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.5rem;
+
+    margin-top: 0.7rem;
+}
+
+.seaborn-relation-page .heatmap-legend span {
+    padding: 0.35rem 0.55rem;
+
+    border-radius: 7px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .legend-negative {
+    color: var(--relation-danger);
+
+    font-weight: 800;
+}
+
+.seaborn-relation-page .legend-positive {
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+/* ============================================================
+   28. MAP TO MAGNIFIER
+============================================================ */
+
+.seaborn-relation-page .map-magnifier-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.seaborn-relation-page .map-magnifier-flow article {
+    padding: 0.85rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .map-magnifier-flow article > span {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .map-magnifier-flow strong,
+.seaborn-relation-page .map-magnifier-flow code {
+    display: block;
+
+    margin-top: 0.25rem;
+}
+
+.seaborn-relation-page .map-magnifier-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .small-positive-scatter {
+    position: relative;
+
+    height: 130px;
+
+    margin-top: 0.5rem;
+
+    border-left: 2px solid var(--relation-border);
+
+    border-bottom: 2px solid var(--relation-border);
+}
+
+.seaborn-relation-page .small-positive-scatter i {
+    position: absolute;
+
+    width: 9px;
+    height: 9px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+.seaborn-relation-page .small-positive-scatter .s1 {
+    left: 12%;
+    bottom: 12%;
+}
+
+.seaborn-relation-page .small-positive-scatter .s2 {
+    left: 30%;
+    bottom: 30%;
+}
+
+.seaborn-relation-page .small-positive-scatter .s3 {
+    left: 48%;
+    bottom: 48%;
+}
+
+.seaborn-relation-page .small-positive-scatter .s4 {
+    left: 66%;
+    bottom: 67%;
+}
+
+.seaborn-relation-page .small-positive-scatter .s5 {
+    left: 84%;
+    bottom: 84%;
+}
+
+/* ============================================================
+   29. OUTLIER
+============================================================ */
+
+.seaborn-relation-page .outlier-scatter {
+    position: relative;
+
+    height: 190px;
+
+    border-left: 2px solid var(--relation-border-strong);
+
+    border-bottom: 2px solid var(--relation-border-strong);
+}
+
+.seaborn-relation-page .outlier-scatter i {
+    position: absolute;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+}
+
+.seaborn-relation-page .outlier-scatter .normal {
+    background: var(--lesson-accent);
+}
+
+.seaborn-relation-page .outlier-scatter .o1 {
+    left: 12%;
+    bottom: 12%;
+}
+
+.seaborn-relation-page .outlier-scatter .o2 {
+    left: 25%;
+    bottom: 25%;
+}
+
+.seaborn-relation-page .outlier-scatter .o3 {
+    left: 38%;
+    bottom: 38%;
+}
+
+.seaborn-relation-page .outlier-scatter .o4 {
+    left: 52%;
+    bottom: 52%;
+}
+
+.seaborn-relation-page .outlier-scatter .o5 {
+    left: 65%;
+    bottom: 65%;
+}
+
+.seaborn-relation-page .outlier-point {
+    right: 8%;
+    bottom: 8%;
+
+    width: 14px !important;
+    height: 14px !important;
+
+    background: var(--relation-danger);
+}
+
+.seaborn-relation-page .outlier-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin-top: 0.8rem;
+}
+
+.seaborn-relation-page .outlier-flow span,
+.seaborn-relation-page .outlier-flow strong {
+    padding: 0.45rem 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .outlier-flow strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .outlier-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   30. CAUSATION STEPS
+============================================================ */
+
+.seaborn-relation-page .causation-steps {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.seaborn-relation-page .causation-steps article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .causation-steps article span {
+    color: var(--lesson-accent);
+
+    font-size: 0.65rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .causation-steps strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.seaborn-relation-page .causation-steps p {
+    margin: 0;
+
+    font-size: 0.77rem;
+}
+
+.seaborn-relation-page .causation-steps > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   31. FIGURE / AXES
+============================================================ */
+
+.seaborn-relation-page .figure-relation-structure {
+    position: relative;
+
+    max-width: 700px;
+
+    margin: 0 auto;
+
+    padding: 3rem 1rem 1rem;
+
+    border: 3px solid var(--lesson-accent);
+
+    border-radius: 15px;
+
+    background: var(--lesson-accent-soft);
+}
+
+.seaborn-relation-page .figure-label {
+    position: absolute;
+
+    top: 0.8rem;
+    left: 1rem;
+
+    color: var(--lesson-accent);
+
+    font-weight: 900;
+}
+
+.seaborn-relation-page .axes-relation-box {
+    position: relative;
+
+    padding: 2.8rem 1rem 1rem;
+
+    border: 1px solid var(--relation-border-strong);
+
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.78);
+
+    text-align: center;
+}
+
+.seaborn-relation-page .axes-label {
+    position: absolute;
+
+    top: 0.7rem;
+    left: 0.8rem;
+
+    font-weight: 900;
+}
+
+.seaborn-relation-page .relation-mini-chart {
+    position: relative;
+
+    height: 190px;
+
+    border-left: 2px solid var(--relation-border);
+
+    border-bottom: 2px solid var(--relation-border);
+}
+
+.seaborn-relation-page .relation-mini-chart i {
+    position: absolute;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    background: var(--lesson-accent);
+}
+
+.seaborn-relation-page .rmp1 {
+    left: 10%;
+    bottom: 12%;
+}
+
+.seaborn-relation-page .rmp2 {
+    left: 28%;
+    bottom: 30%;
+}
+
+.seaborn-relation-page .rmp3 {
+    left: 48%;
+    bottom: 48%;
+}
+
+.seaborn-relation-page .rmp4 {
+    left: 67%;
+    bottom: 68%;
+}
+
+.seaborn-relation-page .rmp5 {
+    left: 86%;
+    bottom: 84%;
+}
+
+.seaborn-relation-page .axes-relation-box > strong {
+    display: block;
+
+    margin-top: 0.6rem;
+
+    color: var(--lesson-accent);
+}
+
+/* ============================================================
+   32. TOOL GRID
+============================================================ */
+
+.seaborn-relation-page .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.75rem;
+}
+
+.seaborn-relation-page .tool-grid article {
+    padding: 0.85rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .tool-label {
+    display: inline-flex;
+
+    padding: 0.18rem 0.46rem;
+
+    border-radius: 999px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .tool-grid h3 {
+    margin: 0.55rem 0;
+}
+
+.seaborn-relation-page .tool-grid ul {
+    margin-bottom: 0;
+    padding-left: 1.15rem;
+}
+
+/* ============================================================
+   33. DATA CHECK / TEMPLATE
+============================================================ */
+
+.seaborn-relation-page .data-check-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.6rem;
+}
+
+.seaborn-relation-page .analysis-template {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    gap: 0.6rem;
+}
+
+.seaborn-relation-page .data-check-grid article,
+.seaborn-relation-page .analysis-template article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .data-check-grid strong,
+.seaborn-relation-page .analysis-template strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .data-check-grid p,
+.seaborn-relation-page .analysis-template p {
+    margin: 0.25rem 0 0;
+
+    font-size: 0.77rem;
+}
+
+/* ============================================================
+   34. PRACTICE / NOTEBOOK
+============================================================ */
+
+.seaborn-relation-page .practice-flow,
+.seaborn-relation-page .notebook-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.4rem;
+}
+
+.seaborn-relation-page .practice-flow > div,
+.seaborn-relation-page .notebook-flow > div {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+
+    width: min(100%, 660px);
+
+    padding: 0.65rem 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .practice-flow strong,
+.seaborn-relation-page .notebook-flow strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .practice-flow > i,
+.seaborn-relation-page .notebook-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   35. WARNING
+============================================================ */
+
+.seaborn-relation-page .warning-box,
+.seaborn-relation-page .sample-warning {
+    margin-top: 1rem;
+    padding: 0.9rem;
+
+    border-left: 4px solid var(--relation-warning);
+
+    border-radius: 0 10px 10px 0;
+
+    background: var(--relation-warning-soft);
+}
+
+.seaborn-relation-page .warning-box strong,
+.seaborn-relation-page .sample-warning strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.seaborn-relation-page .warning-box p,
+.seaborn-relation-page .sample-warning p {
+    margin: 0;
+}
+
+/* ============================================================
+   36. KIND CODE
+============================================================ */
+
+.seaborn-relation-page .kind-code-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.seaborn-relation-page .kind-code-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .kind-code-grid article > span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .kind-code-grid pre,
+.seaborn-relation-page .corr-method-grid pre {
+    margin-bottom: 0;
+
+    padding: 0.7rem;
+
+    overflow-x: auto;
+
+    border-radius: 8px;
+
+    background: var(--relation-code-bg);
+
+    color: var(--relation-code-text);
+}
+
+/* ============================================================
+   37. HEATMAP SCATTER FLOW
+============================================================ */
+
+.seaborn-relation-page .heatmap-scatter-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.seaborn-relation-page .heatmap-scatter-flow article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .heatmap-scatter-flow span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+}
+
+.seaborn-relation-page .heatmap-scatter-flow strong {
+    display: block;
+
+    margin-top: 0.25rem;
+}
+
+.seaborn-relation-page .heatmap-scatter-flow > i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   38. CORR METHOD GRID
+============================================================ */
+
+.seaborn-relation-page .corr-method-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.6rem;
+}
+
+.seaborn-relation-page .corr-method-grid article {
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .corr-method-grid article > span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+    font-weight: 900;
+}
+
+/* ============================================================
+   39. RESULT ANALYSIS
+============================================================ */
+
+.seaborn-relation-page .result-analysis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.65rem;
+}
+
+.seaborn-relation-page .result-analysis article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .result-analysis span {
+    color: var(--lesson-accent);
+
+    font-size: 0.67rem;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .result-analysis p {
+    margin: 0.3rem 0 0;
+}
+
+/* ============================================================
+   40. MISTAKES
+============================================================ */
+
+.seaborn-relation-page .mistake-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.65rem;
+}
+
+.seaborn-relation-page .mistake-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 10px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .mistake-grid strong {
+    color: var(--relation-warning);
+}
+
+.seaborn-relation-page .mistake-grid p {
+    margin: 0.3rem 0 0;
+
+    font-size: 0.78rem;
+}
+
+/* ============================================================
+   41. ERRORS
+============================================================ */
+
+.seaborn-relation-page .error-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin: 1rem 0;
+}
+
+.seaborn-relation-page .error-flow span,
+.seaborn-relation-page .error-flow strong {
+    padding: 0.46rem 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--relation-danger-soft);
+}
+
+.seaborn-relation-page .error-flow strong {
+    color: var(--relation-danger);
+}
+
+.seaborn-relation-page .error-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .error-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.8rem;
+}
+
+.seaborn-relation-page .error-item {
+    padding: 0.9rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 11px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .error-item h3 {
+    margin-top: 0;
+
+    color: var(--relation-danger);
+
+    font-size: 0.96rem;
+}
+
+.seaborn-relation-page .error-item pre {
+    padding: 0.7rem;
+
+    overflow-x: auto;
+
+    border-radius: 8px;
+
+    background: var(--relation-code-bg);
+
+    color: var(--relation-code-text);
+
+    font-size: 0.75rem;
+}
+
+.seaborn-relation-page .error-item p,
+.seaborn-relation-page .error-item li {
+    line-height: 1.65;
+}
+
+.seaborn-relation-page .error-principle {
+    margin-top: 1rem;
+    padding: 1rem;
+
+    border-left: 4px solid var(--relation-danger);
+
+    border-radius: 0 11px 11px 0;
+
+    background: var(--relation-danger-soft);
+}
+
+.seaborn-relation-page .error-principle strong {
+    display: block;
+
+    margin-bottom: 0.35rem;
+}
+
+.seaborn-relation-page .error-principle p {
+    margin: 0;
+}
+
+/* ============================================================
+   42. DEBUG
+============================================================ */
+
+.seaborn-relation-page .debug-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.seaborn-relation-page .debug-grid article {
+    padding: 0.65rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .debug-grid strong {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+}
+
+.seaborn-relation-page .debug-grid span {
+    display: block;
+
+    margin-top: 0.2rem;
+}
+
+/* ============================================================
+   43. REAL WORK PIPELINE
+============================================================ */
+
+.seaborn-relation-page .realwork-pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+
+    gap: 0.42rem;
+
+    margin-top: 1rem;
+}
+
+.seaborn-relation-page .realwork-pipeline > div {
+    flex: 1 1 120px;
+
+    padding: 0.75rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+
+    text-align: center;
+}
+
+.seaborn-relation-page .realwork-pipeline > div.active {
+    border-color: var(--lesson-accent);
+
+    background: var(--lesson-accent-soft);
+}
+
+.seaborn-relation-page .realwork-pipeline strong,
+.seaborn-relation-page .realwork-pipeline span {
+    display: block;
+}
+
+.seaborn-relation-page .realwork-pipeline span {
+    margin-top: 0.2rem;
+
+    font-size: 0.71rem;
+}
+
+.seaborn-relation-page .realwork-pipeline > i {
+    align-self: center;
+
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   44. USE CASE
+============================================================ */
+
+.seaborn-relation-page .use-case-grid,
+.seaborn-relation-page .server-log-grid,
+.seaborn-relation-page .vehicle-relation-grid,
+.seaborn-relation-page .ml-relation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.65rem;
+}
+
+.seaborn-relation-page .use-case-grid article,
+.seaborn-relation-page .server-log-grid article,
+.seaborn-relation-page .vehicle-relation-grid article,
+.seaborn-relation-page .ml-relation-grid article {
+    padding: 0.8rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 9px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .use-case-grid span {
+    color: var(--lesson-accent);
+
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.seaborn-relation-page .use-case-grid strong,
+.seaborn-relation-page .server-log-grid strong,
+.seaborn-relation-page .vehicle-relation-grid strong,
+.seaborn-relation-page .ml-relation-grid strong {
+    display: block;
+
+    margin: 0.25rem 0;
+}
+
+.seaborn-relation-page .use-case-grid p,
+.seaborn-relation-page .server-log-grid p,
+.seaborn-relation-page .vehicle-relation-grid p,
+.seaborn-relation-page .ml-relation-grid p {
+    margin: 0;
+}
+
+/* ============================================================
+   45. SERVER LOG
+============================================================ */
+
+.seaborn-relation-page .server-log-grid code {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .server-log-grid i {
+    font-style: normal;
+    font-weight: 900;
+}
+
+/* ============================================================
+   46. SENSOR GRID
+============================================================ */
+
+.seaborn-relation-page .sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    gap: 0.55rem;
+}
+
+.seaborn-relation-page .sensor-grid article {
+    padding: 0.7rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .sensor-grid code {
+    color: var(--lesson-accent);
+}
+
+/* ============================================================
+   47. INTERVIEW
+============================================================ */
+
+.seaborn-relation-page .interview-list {
+    display: grid;
+
+    gap: 0.75rem;
+}
+
+.seaborn-relation-page .interview-list article {
+    padding: 0.95rem 1rem;
+
+    border: 1px solid var(--relation-border);
+
+    border-radius: 11px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .interview-list h3 {
+    margin: 0 0 0.45rem;
+
+    color: var(--lesson-accent);
+
+    font-size: 0.96rem;
+}
+
+.seaborn-relation-page .interview-list p {
+    margin: 0;
+
+    line-height: 1.75;
+}
+
+/* ============================================================
+   48. ASIDE
+============================================================ */
+
+.seaborn-relation-page .memory-list strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .confusion-list {
+    display: grid;
+
+    gap: 0.55rem;
+}
+
+.seaborn-relation-page .confusion-list article {
+    padding: 0.65rem;
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .confusion-list strong {
+    display: block;
+
+    margin-bottom: 0.2rem;
+
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .confusion-list p {
+    margin: 0;
+
+    font-size: 0.83rem;
+}
+
+/* ============================================================
+   49. NEXT
+============================================================ */
+
+.seaborn-relation-page .next-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    margin: 0.9rem 0;
+
+    text-align: center;
+}
+
+.seaborn-relation-page .next-flow span,
+.seaborn-relation-page .next-flow strong {
+    width: 100%;
+
+    padding: 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .next-flow .current {
+    border: 1px solid var(--lesson-accent);
+
+    background: var(--lesson-accent-soft);
+}
+
+.seaborn-relation-page .next-flow strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .next-flow small {
+    display: block;
+
+    margin-top: 0.15rem;
+
+    font-weight: 600;
+}
+
+.seaborn-relation-page .next-flow i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .next-question {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.45rem;
+
+    margin-top: 0.8rem;
+}
+
+.seaborn-relation-page .next-question span,
+.seaborn-relation-page .next-question strong {
+    padding: 0.45rem 0.6rem;
+
+    border-radius: 8px;
+
+    background: var(--relation-surface-soft);
+}
+
+.seaborn-relation-page .next-question strong {
+    color: var(--lesson-accent);
+}
+
+.seaborn-relation-page .next-question i {
+    color: var(--lesson-accent);
+
+    font-style: normal;
+    font-weight: 900;
+}
+
+.seaborn-relation-page .next-preview {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.4rem;
+
+    margin-top: 0.8rem;
+}
+
+.seaborn-relation-page .next-preview code {
+    padding: 0.34rem 0.48rem;
+
+    border-radius: 7px;
+
+    background: var(--lesson-accent-soft);
+
+    color: var(--lesson-accent);
+
+    font-size: 0.74rem;
+}
+
+.seaborn-relation-page .next-lesson-link {
+    display: inline-block;
+
+    margin-top: 0.9rem;
+
+    color: var(--lesson-accent);
+
+    font-weight: 800;
+}
+
+/* ============================================================
+   50. RESPONSIVE - LARGE TABLET
+============================================================ */
+
+@media (max-width: 1100px) {
+    .seaborn-relation-page .scatter-reading-grid,
+    .seaborn-relation-page .kind-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .seaborn-relation-page .analysis-template {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .seaborn-relation-page .mistake-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .seaborn-relation-page .sensor-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ============================================================
+   51. RESPONSIVE - TABLET
+============================================================ */
+
+@media (max-width: 850px) {
+    .seaborn-relation-page .relation-choice-grid,
+    .seaborn-relation-page .direction-grid,
+    .seaborn-relation-page .correlation-reading-grid,
+    .seaborn-relation-page .matrix-memory-grid,
+    .seaborn-relation-page .kind-code-grid,
+    .seaborn-relation-page .result-analysis {
+        grid-template-columns: 1fr;
+    }
+
+    .seaborn-relation-page .row-point-flow,
+    .seaborn-relation-page .lesson-bridge,
+    .seaborn-relation-page .heatmap-scatter-flow,
+    .seaborn-relation-page .map-magnifier-flow,
+    .seaborn-relation-page .causation-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .seaborn-relation-page .row-point-flow > i,
+    .seaborn-relation-page .lesson-bridge > i,
+    .seaborn-relation-page .heatmap-scatter-flow > i,
+    .seaborn-relation-page .map-magnifier-flow > i,
+    .seaborn-relation-page .causation-steps > i {
+        text-align: center;
+
+        transform: rotate(90deg);
+    }
+
+    .seaborn-relation-page .joint-role-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seaborn-relation-page .tool-grid,
+    .seaborn-relation-page .use-case-grid,
+    .seaborn-relation-page .server-log-grid,
+    .seaborn-relation-page .vehicle-relation-grid,
+    .seaborn-relation-page .ml-relation-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seaborn-relation-page .error-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seaborn-relation-page .corr-method-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   52. RESPONSIVE - MOBILE
+============================================================ */
+
+@media (max-width: 620px) {
+    .seaborn-relation-page .hero-flow {
+        gap: 0.3rem;
+    }
+
+    .seaborn-relation-page .hero-flow span {
+        padding: 0.34rem 0.46rem;
+
+        font-size: 0.7rem;
+    }
+
+    .seaborn-relation-page .scatter-reading-grid,
+    .seaborn-relation-page .hue-role-grid,
+    .seaborn-relation-page .method-role-grid,
+    .seaborn-relation-page .kind-grid,
+    .seaborn-relation-page .heatmap-option-grid,
+    .seaborn-relation-page .data-check-grid,
+    .seaborn-relation-page .analysis-template,
+    .seaborn-relation-page .mistake-grid,
+    .seaborn-relation-page .debug-grid,
+    .seaborn-relation-page .sensor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seaborn-relation-page .correlation-scale {
+        grid-template-columns: 1fr;
+
+        text-align: center;
+    }
+
+    .seaborn-relation-page .corr-line {
+        width: 6px;
+        height: 60px;
+
+        margin: 0 auto;
+
+        background: linear-gradient(180deg, var(--relation-danger), rgba(226, 232, 240, 0.9), var(--lesson-accent));
+    }
+
+    .seaborn-relation-page .heatmap-visual {
+        overflow-x: auto;
+    }
+
+    .seaborn-relation-page .joint-layout {
+        grid-template-columns: 1fr 85px;
+    }
+
+    .seaborn-relation-page .joint-top {
+        margin-right: 95px;
+    }
+
+    .seaborn-relation-page .scatter-area {
+        height: 250px;
+    }
+
+    .seaborn-relation-page .practice-flow > div,
+    .seaborn-relation-page .notebook-flow > div {
+        grid-template-columns: 1fr;
+
+        gap: 0.2rem;
+    }
+
+    .seaborn-relation-page .analysis-loop > i,
+    .seaborn-relation-page .realwork-pipeline > i {
+        display: none;
+    }
+
+    .seaborn-relation-page .code-block {
+        font-size: 0.78rem;
+    }
+}
