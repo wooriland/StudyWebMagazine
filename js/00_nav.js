@@ -285,6 +285,230 @@
             ]
         },
         {
+            title: 'AI & Machine Learning',
+            className: 'nav-group-ai-ml',
+            category: 'ai-machine-learning',
+            folder: 'AIMachineLearning',
+            items: [
+                {
+                    label: 'AI',
+                    folder: 'AIMachineLearning',
+                    children: [
+                        { label: '00. AI Course Index', path: 'AIMachineLearning/AI/00_ai_index.html', folder: 'AIMachineLearning', navItem: 'course-ai', match: 'page' },
+                        { label: '01. 인공지능이란?', path: 'AIMachineLearning/AI/01_ai_concept.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '02. 규칙 기반 AI와 학습 기반 AI', path: 'AIMachineLearning/AI/02_rule_based_learning_based.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '03. 머신러닝과 딥러닝', path: 'AIMachineLearning/AI/03_machine_learning_deep_learning.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '04. 머신러닝의 학습 방법', path: 'AIMachineLearning/AI/04_machine_learning_types.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '05. Feature와 Label', path: 'AIMachineLearning/AI/05_feature_label.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '06. Parameter와 Hyperparameter', path: 'AIMachineLearning/AI/06_parameter_hyperparameter.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '07. 오차와 손실 함수', path: 'AIMachineLearning/AI/07_error_loss_function.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '08. 경사하강법', path: 'AIMachineLearning/AI/08_gradient_descent.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '09. 선형회귀', path: 'AIMachineLearning/AI/09_linear_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '10. Ridge와 Lasso', path: 'AIMachineLearning/AI/10_ridge_lasso.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '11. 로지스틱 회귀', path: 'AIMachineLearning/AI/11_logistic_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '12. 다중 분류와 Softmax', path: 'AIMachineLearning/AI/12_multiclass_softmax.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '13. 분류 모델 평가', path: 'AIMachineLearning/AI/13_classification_metrics.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '14. 퍼셉트론', path: 'AIMachineLearning/AI/14_perceptron.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '15. XOR와 다층 퍼셉트론', path: 'AIMachineLearning/AI/15_xor_mlp.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '16. 인공신경망', path: 'AIMachineLearning/AI/16_neural_network.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '17. 순전파', path: 'AIMachineLearning/AI/17_forward_propagation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '18. 역전파', path: 'AIMachineLearning/AI/18_back_propagation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '19. 활성화 함수', path: 'AIMachineLearning/AI/19_activation_function.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '20. Optimizer', path: 'AIMachineLearning/AI/20_optimizer.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '21. TensorFlow와 Keras', path: 'AIMachineLearning/AI/21_tensorflow_keras.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '22. 딥러닝 성능 개선', path: 'AIMachineLearning/AI/22_deep_learning_performance.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '23. CNN 기초', path: 'AIMachineLearning/AI/23_cnn_basics.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '24. Convolution과 Pooling', path: 'AIMachineLearning/AI/24_convolution_pooling.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '25. 대표 CNN 구조와 전이학습', path: 'AIMachineLearning/AI/25_cnn_architecture_transfer_learning.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '26. 객체 탐지와 YOLO', path: 'AIMachineLearning/AI/26_object_detection_yolo.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '27. 자연어 처리와 Embedding', path: 'AIMachineLearning/AI/27_nlp_embedding.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '28. RNN에서 Transformer까지', path: 'AIMachineLearning/AI/28_rnn_transformer.html', folder: 'AIMachineLearning', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'AI Machine Learning',
+                    folder: 'AIMachineLearning',
+                    children: [
+                        { label: '00. AI Machine Learning Course Index', path: 'AIMachineLearning/MachineLearning/00_machine_learning_index.html', folder: 'AIMachineLearning', navItem: 'course-machine-learning', match: 'page' },
+                        {
+                            label: 'PART 1. 회귀와 분류의 수학적 기초',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 01. NumPy 단순 선형회귀', path: 'AIMachineLearning/MachineLearning/01_numpy_simple_linear_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 02. NumPy 다중 선형회귀', path: 'AIMachineLearning/MachineLearning/02_numpy_multiple_linear_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 03. LinearRegression과 SGDRegressor', path: 'AIMachineLearning/MachineLearning/03_linear_regression_vs_sgd_regressor.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 04. Ridge와 Lasso', path: 'AIMachineLearning/MachineLearning/04_ridge_lasso.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 05. 주택가격 다중 선형회귀', path: 'AIMachineLearning/MachineLearning/05_housing_multiple_linear_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 06. 붓꽃 데이터 선형회귀', path: 'AIMachineLearning/MachineLearning/06_iris_linear_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 07. NumPy 이진 로지스틱 회귀', path: 'AIMachineLearning/MachineLearning/07_numpy_binary_logistic_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 08. NumPy 다중 로지스틱 회귀', path: 'AIMachineLearning/MachineLearning/08_numpy_multiclass_logistic_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 09. 붓꽃 로지스틱 회귀', path: 'AIMachineLearning/MachineLearning/09_iris_logistic_regression.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 2. 퍼셉트론과 FFNN',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 10. 단층 퍼셉트론', path: 'AIMachineLearning/MachineLearning/10_single_layer_perceptron.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 11. XOR', path: 'AIMachineLearning/MachineLearning/11_xor.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 12. MLP', path: 'AIMachineLearning/MachineLearning/12_mlp.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 13. 활성화 함수', path: 'AIMachineLearning/MachineLearning/13_activation_function.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 14. FFNN 주택가격 예측', path: 'AIMachineLearning/MachineLearning/14_ffnn_housing_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 15. FFNN 손글씨 분류', path: 'AIMachineLearning/MachineLearning/15_ffnn_mnist_classification.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 16. FFNN 붓꽃 분류', path: 'AIMachineLearning/MachineLearning/16_ffnn_iris_classification.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 3. Keras 모델 작성과 학습 제어',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 17. Sequential 단순 선형회귀', path: 'AIMachineLearning/MachineLearning/17_sequential_simple_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 18. Sequential 다중 선형회귀', path: 'AIMachineLearning/MachineLearning/18_sequential_multiple_regression.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 19. Sequential 이진 분류', path: 'AIMachineLearning/MachineLearning/19_sequential_binary_classification.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 20. Sequential 다중 분류', path: 'AIMachineLearning/MachineLearning/20_sequential_multiclass_classification.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 21. Sequential Custom Training Loop', path: 'AIMachineLearning/MachineLearning/21_sequential_custom_training_loop.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 22. Functional API', path: 'AIMachineLearning/MachineLearning/22_functional_api.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 23. Functional API 다중 출력', path: 'AIMachineLearning/MachineLearning/23_functional_multi_output.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 24. Functional Custom Training Loop', path: 'AIMachineLearning/MachineLearning/24_functional_custom_training_loop.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 25. Model Subclassing', path: 'AIMachineLearning/MachineLearning/25_model_subclassing.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 26. Subclassing Custom Training Loop', path: 'AIMachineLearning/MachineLearning/26_subclassing_custom_training_loop.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 27. ModelCheckpoint', path: 'AIMachineLearning/MachineLearning/27_model_checkpoint.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 28. EarlyStopping', path: 'AIMachineLearning/MachineLearning/28_early_stopping.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 29. Keras 모델 저장과 복원', path: 'AIMachineLearning/MachineLearning/29_model_save_restore.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 30. TensorBoard', path: 'AIMachineLearning/MachineLearning/30_tensorboard.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 31. 딥러닝 모델 성능 개선', path: 'AIMachineLearning/MachineLearning/31_deep_learning_performance.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 4. CNN과 전이학습',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 32. Convolution 연산', path: 'AIMachineLearning/MachineLearning/32_convolution_operations.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 33. CNN 고양이·개 이미지 분류', path: 'AIMachineLearning/MachineLearning/33_cnn_cat_dog_classification.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 34. 이미지 데이터 증강', path: 'AIMachineLearning/MachineLearning/34_image_data_augmentation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 35. ResNet50 전이학습', path: 'AIMachineLearning/MachineLearning/35_resnet50_transfer_learning.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 36. ResNet50 사전학습 모델 추론', path: 'AIMachineLearning/MachineLearning/36_resnet50_inference.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 37. MobileNet 전이학습', path: 'AIMachineLearning/MachineLearning/37_mobilenet_transfer_learning.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 38. VGG16 사전학습 모델', path: 'AIMachineLearning/MachineLearning/38_vgg16_inference.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 39. VGG19 특징 추출', path: 'AIMachineLearning/MachineLearning/39_vgg19_feature_extraction.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 40. 1D CNN IMDb 감성 분석', path: 'AIMachineLearning/MachineLearning/40_1d_cnn_imdb_sentiment.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 5. YOLO 기반 컴퓨터 비전',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 41. YOLO 객체 탐지', path: 'AIMachineLearning/MachineLearning/41_yolo_object_detection.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 42. Custom YOLO 학습', path: 'AIMachineLearning/MachineLearning/42_custom_yolo_training.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 43. YOLO 마스크 탐지', path: 'AIMachineLearning/MachineLearning/43_yolo_mask_detection.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 44. AI Hub YOLO 학습', path: 'AIMachineLearning/MachineLearning/44_aihub_yolo_training.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 45. YOLO 영상 탐지', path: 'AIMachineLearning/MachineLearning/45_yolo_video_detection.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 46. YOLO Pose Estimation', path: 'AIMachineLearning/MachineLearning/46_yolo_pose_estimation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 47. Custom YOLO Pose', path: 'AIMachineLearning/MachineLearning/47_custom_yolo_pose.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 48. Custom YOLO Video Pose', path: 'AIMachineLearning/MachineLearning/48_custom_yolo_video_pose.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 49. YOLO Classification', path: 'AIMachineLearning/MachineLearning/49_yolo_classification.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 50. YOLO Instance Segmentation', path: 'AIMachineLearning/MachineLearning/50_yolo_instance_segmentation.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 6. 추천 시스템 실습',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 51. Word2Vec 콘텐츠 기반 추천', path: 'AIMachineLearning/MachineLearning/51_word2vec_content_recommendation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 52. TF-IDF 콘텐츠 기반 추천', path: 'AIMachineLearning/MachineLearning/52_tfidf_content_recommendation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 53. 사용자 기반 협업 필터링', path: 'AIMachineLearning/MachineLearning/53_user_based_collaborative_filtering.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 54. 딥러닝 Hybrid Recommendation', path: 'AIMachineLearning/MachineLearning/54_deep_hybrid_recommendation.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 7. RNN · Attention · Transformer',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 55. RNN 구조', path: 'AIMachineLearning/MachineLearning/55_rnn_basics.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 56. 자연어 처리 전처리', path: 'AIMachineLearning/MachineLearning/56_nlp_preprocessing.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 57. Bi-LSTM 주가 예측', path: 'AIMachineLearning/MachineLearning/57_bilstm_stock_prediction.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 58. 네이버 영화 리뷰 감성 분석', path: 'AIMachineLearning/MachineLearning/58_naver_movie_sentiment.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 59. Seq2Seq 기계번역', path: 'AIMachineLearning/MachineLearning/59_seq2seq_translation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 60. Attention Seq2Seq 기계번역', path: 'AIMachineLearning/MachineLearning/60_attention_seq2seq_translation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 61. Attention Seq2Seq 챗봇', path: 'AIMachineLearning/MachineLearning/61_attention_seq2seq_chatbot.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 62. Transformer 기계번역', path: 'AIMachineLearning/MachineLearning/62_transformer_translation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 63. Transformer 챗봇', path: 'AIMachineLearning/MachineLearning/63_transformer_chatbot.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        },
+                        {
+                            label: 'PART 8. RAG와 LangChain',
+                            folder: 'AIMachineLearning',
+                            children: [
+                        { label: 'ML 64. RAG 개념과 문서 기반 챗봇', path: 'AIMachineLearning/MachineLearning/64_rag_document_chatbot.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: 'ML 65. LangChain 문서 챗봇', path: 'AIMachineLearning/MachineLearning/65_langchain_document_chatbot.html', folder: 'AIMachineLearning', match: 'page' }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    label: 'Roboflow',
+                    folder: 'AIMachineLearning',
+                    children: [
+                        { label: '00. Roboflow Course Index', path: 'AIMachineLearning/Roboflow/00_roboflow_index.html', folder: 'AIMachineLearning', navItem: 'course-roboflow', match: 'page' },
+                        { label: '01. Roboflow란?', path: 'AIMachineLearning/Roboflow/01_roboflow_concept.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '02. Project 생성', path: 'AIMachineLearning/Roboflow/02_project_creation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '03. 이미지 Upload', path: 'AIMachineLearning/Roboflow/03_image_upload.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '04. Annotation', path: 'AIMachineLearning/Roboflow/04_annotation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '05. Dataset 관리', path: 'AIMachineLearning/Roboflow/05_dataset_management.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '06. Version과 데이터 증강', path: 'AIMachineLearning/Roboflow/06_version_augmentation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '07. Dataset Export', path: 'AIMachineLearning/Roboflow/07_dataset_export.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '08. YOLO Dataset과 data.yaml', path: 'AIMachineLearning/Roboflow/08_yolo_dataset_yaml.html', folder: 'AIMachineLearning', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'Recommendation System / 추천시스템',
+                    folder: 'AIMachineLearning',
+                    children: [
+                        { label: '00. Recommendation System / 추천시스템 Course Index', path: 'AIMachineLearning/RecommendationSystem/00_recommendation_system_index.html', folder: 'AIMachineLearning', navItem: 'course-recommendation', match: 'page' },
+                        { label: '01. 추천시스템이란?', path: 'AIMachineLearning/RecommendationSystem/01_recommendation_concept.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '02. Content-Based Recommendation', path: 'AIMachineLearning/RecommendationSystem/02_content_based.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '03. Collaborative Filtering', path: 'AIMachineLearning/RecommendationSystem/03_collaborative_filtering.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '04. User-Based Filtering', path: 'AIMachineLearning/RecommendationSystem/04_user_based_filtering.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '05. Item-Based Filtering', path: 'AIMachineLearning/RecommendationSystem/05_item_based_filtering.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '06. User-Based와 Item-Based 비교', path: 'AIMachineLearning/RecommendationSystem/06_user_item_comparison.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '07. Hybrid Recommendation', path: 'AIMachineLearning/RecommendationSystem/07_hybrid_recommendation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '08. Hybrid 결합 전략', path: 'AIMachineLearning/RecommendationSystem/08_hybrid_strategy.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '09. Model-Based Recommendation', path: 'AIMachineLearning/RecommendationSystem/09_model_based_recommendation.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '10. Deep Learning Hybrid Recommendation', path: 'AIMachineLearning/RecommendationSystem/10_deep_hybrid_recommendation.html', folder: 'AIMachineLearning', match: 'page' }
+                    ]
+                },
+                {
+                    label: 'OpenAI API',
+                    folder: 'AIMachineLearning',
+                    children: [
+                        { label: '00. OpenAI API Course Index', path: 'AIMachineLearning/OpenAIAPI/00_openai_api_index.html', folder: 'AIMachineLearning', navItem: 'course-openai-api', match: 'page' },
+                        { label: '01. OpenAI API란?', path: 'AIMachineLearning/OpenAIAPI/01_openai_api_concept.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '02. Prompt', path: 'AIMachineLearning/OpenAIAPI/02_prompt.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '03. Token', path: 'AIMachineLearning/OpenAIAPI/03_token.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '04. Model과 Context Window', path: 'AIMachineLearning/OpenAIAPI/04_model_context_window.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '05. Rate Limit', path: 'AIMachineLearning/OpenAIAPI/05_rate_limit.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '06. Temperature', path: 'AIMachineLearning/OpenAIAPI/06_temperature.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '07. Messages와 Role', path: 'AIMachineLearning/OpenAIAPI/07_messages_role.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '08. API 개발환경 준비', path: 'AIMachineLearning/OpenAIAPI/08_api_environment.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '09. API Key와 보안', path: 'AIMachineLearning/OpenAIAPI/09_api_key_security.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '10. Prompt Engineering', path: 'AIMachineLearning/OpenAIAPI/10_prompt_engineering.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '11. AI Coding Prompt', path: 'AIMachineLearning/OpenAIAPI/11_ai_coding_prompt.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '12. Completion과 Chat Completion', path: 'AIMachineLearning/OpenAIAPI/12_completion_chat_completion.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '13. Python SDK', path: 'AIMachineLearning/OpenAIAPI/13_python_sdk.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '14. REST API', path: 'AIMachineLearning/OpenAIAPI/14_rest_api.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '15. Image API', path: 'AIMachineLearning/OpenAIAPI/15_image_api.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '16. Function Calling', path: 'AIMachineLearning/OpenAIAPI/16_function_calling.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '17. Multimodal', path: 'AIMachineLearning/OpenAIAPI/17_multimodal.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '18. Multi-turn Chatbot', path: 'AIMachineLearning/OpenAIAPI/18_multi_turn_chatbot.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '19. 대화 메모리와 Token 최적화', path: 'AIMachineLearning/OpenAIAPI/19_chat_memory_token.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '20. LM Studio와 Local LLM', path: 'AIMachineLearning/OpenAIAPI/20_lm_studio_local_llm.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '21. Reasoning', path: 'AIMachineLearning/OpenAIAPI/21_reasoning.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '22. API 비용·권한·프로젝트 운영', path: 'AIMachineLearning/OpenAIAPI/22_api_operation.html', folder: 'AIMachineLearning', match: 'page' }
+                    ]
+                }
+            ]
+        },
+        {
             title: 'Frontend',
             className: 'nav-group-frontend',
             items: [
@@ -359,7 +583,7 @@
         );
 
         navGroups.forEach(function (group) {
-            const groupIsActive = group.items.some(isCurrentCategory);
+            const groupIsActive = group.items.some(isCurrentCategory) || isCurrentTopGroup(group);
             const details = document.createElement('details');
             details.className = 'nav-group ' + group.className;
             details.open = groupIsActive;
@@ -384,6 +608,15 @@
     function createNavItem(item) {
         const listItem = document.createElement('li');
 
+        if (item.planned) {
+            const plannedItem = document.createElement('span');
+            plannedItem.className = 'nav-sub-item nav-planned';
+            plannedItem.textContent = item.label;
+            plannedItem.setAttribute('aria-disabled', 'true');
+            listItem.appendChild(plannedItem);
+
+            return listItem;
+        }
         if (item.children && item.children.length > 0) {
             const childGroupIsActive = isCurrentCategory(item);
             const details = document.createElement('details');
@@ -467,11 +700,26 @@
         return currentPath.endsWith('/00_index.html') || currentPath.endsWith('/');
     }
 
+    function isCurrentTopGroup(group) {
+        if (group.category && currentNavCategory === group.category) {
+            return true;
+        }
+
+        if (group.folder && currentPath.includes('/' + normalizePath(group.folder) + '/')) {
+            return true;
+        }
+
+        return false;
+    }
     function isCurrentPage(relativePath) {
         return currentPath.endsWith('/' + normalizePath(relativePath));
     }
 
     function isCurrentCategory(item) {
+        if (item.planned) {
+            return false;
+        }
+
         if (item.children && item.children.length > 0) {
             return item.children.some(isCurrentCategory);
         }
@@ -505,6 +753,7 @@
             'javabasics': 'javabasics',
             'oraclesqldeveloper': 'oraclesqldeveloper',
             'pythondata': 'pythondata',
+            'aimachinelearning': 'aimachinelearning',
             'react': 'react',
             'springboot': 'springboot'
         };
@@ -515,7 +764,15 @@
     function getRootPrefix(path) {
         const legacyPythonDataMarker = '/html/PythonData/';
         const pythonDataMarker = '/PythonData/';
+        const aiMachineLearningMarker = '/AIMachineLearning/';
 
+
+        if (path.includes(aiMachineLearningMarker)) {
+            const relativePath = path.split(aiMachineLearningMarker)[1] || '';
+            const depth = relativePath.split('/').filter(Boolean).length;
+
+            return '../'.repeat(depth);
+        }
         if (path.includes(legacyPythonDataMarker)) {
             const relativePath = path.split(legacyPythonDataMarker)[1] || '';
             const depth = relativePath.split('/').filter(Boolean).length + 1;
