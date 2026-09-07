@@ -1,236 +1,2629 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="17. 순전파 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>17. 순전파 | AI | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/17_forward_propagation.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+            content="17. 순전파. 입력부터 가중합, 활성화, 예측값, 손실까지 숫자와 Shape으로 추적하고 순전파와 Parameter Update를 구분합니다.">
+        <title>17. 순전파 | AI | AI &amp; Machine Learning</title>
 
-<body class="theme-ai-ml study-page ai-ml-page ai-course-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="ai"
-      data-lesson="17"
-      data-step="0"
-      data-status="skeleton">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/17_forward_propagation.css">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 01</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+    <body class="theme-ai-ml study-page ai-ml-page ai-course-page ai-lesson-page ai-forward-propagation-page"
+        data-nav-category="ai-machine-learning" data-nav-item="course-ai" data-course="ai" data-lesson="17">
+        <a class="skip-link fp-skip" href="#lesson-main">
+            본문 바로가기
+        </a>
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI · 17</p>
-                        <h1>17. 순전파</h1>
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+
+            <div class="page-content">
+
+                <!-- HEADER: 단원 제목 · 핵심 요약 · 학습 목표 -->
+                <header class="lesson-hero ai-ml-hero fp-hero">
+
+                    <p class="fp-eyebrow">
+                        AI &amp; MACHINE LEARNING · AI · LESSON 17
+                    </p>
+
+                    <h1>
+                        17. 순전파
+                        <span>
+                            입력된 숫자가 예측값이 되는 과정을<br>
+                            Layer 순서대로 따라가다
+                        </span>
+                    </h1>
+
+                    <p class="fp-lead">
+                        순전파는 현재 Weight와 Bias를 사용해 입력을
+                        가중합과 활성화로 변환하며 최종 출력을 계산하는 과정입니다.
+                        <strong>
+                            현재 모델을 사용하는 계산과
+                            모델을 개선하는 Update를 구분합니다.
+                        </strong>
+                    </p>
+
+                    <div class="fp-tags" aria-label="핵심 키워드">
+                        <span>Forward Propagation</span>
+                        <span>Input · Weight · Bias</span>
+                        <span>Activation · Prediction</span>
+                        <span>Shape · Loss</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <div class="fp-hero-notes">
+                        <p>
+                            <b>교안의 학습 흐름</b>
+                            예측값 계산과 실제값에 대한 손실 계산을
+                            순전파 쪽에 연결합니다.
+                        </p>
+
+                        <p>
+                            <b>이 페이지의 구분</b>
+                            모델 출력 계산 → 손실 계산 → Gradient →
+                            Update를 나누어 읽습니다.
+                        </p>
+                    </div>
+
+                    <section class="learning-goals fp-goals" aria-labelledby="goals-title">
+                        <h2 id="goals-title">학습 목표</h2>
+
+                        <ol>
+                            <li>
+                                <code>X → Z₁ → H₁ → Z₂ → Ŷ</code>의
+                                값과 역할을 설명합니다.
+                            </li>
+                            <li>
+                                고정 Parameter로 두 Sample을 계산하고
+                                Shape·중간값을 확인합니다.
+                            </li>
+                            <li>
+                                Score·확률·Class·Loss를 구분하고
+                                실제 Label이 필요한 위치를 찾습니다.
+                            </li>
+                            <li>
+                                순전파·Epoch·학습/추론 모드·Parameter Update의
+                                차이를 설명합니다.
+                            </li>
+                        </ol>
+                    </section>
+                </header>
+
+                <div class="content-layout fp-content">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <nav class="chapter-map fp-toc" aria-label="17단원 목차">
+                            <p>LESSON MAP</p>
+
+                            <ol>
+                                <li><a href="#core">핵심 정의와 범위</a></li>
+                                <li><a href="#why">왜 배우는가</a></li>
+                                <li><a href="#symbols">값과 기호</a></li>
+                                <li><a href="#formula">뉴런·Layer 수식</a></li>
+                                <li><a href="#flow">그림처럼 이해</a></li>
+                                <li><a href="#activation">활성화와 순서</a></li>
+                                <li><a href="#hand">손계산</a></li>
+                                <li><a href="#batch">Batch와 Shape</a></li>
+                                <li><a href="#course-models">교안 구조 비교</a></li>
+                                <li><a href="#notebook">47번 코드 읽기</a></li>
+                                <li><a href="#workflow">환경·실행 흐름</a></li>
+                                <li><a href="#epoch">Epoch와 Batch</a></li>
+                                <li><a href="#numpy">순전파 코드</a></li>
+                                <li><a href="#trace">실행 결과 추적</a></li>
+                                <li><a href="#prediction">출력 해석</a></li>
+                                <li><a href="#softmax">Softmax 예제</a></li>
+                                <li><a href="#loss">Loss 연결</a></li>
+                                <li><a href="#mode">학습·추론 모드</a></li>
+                                <li><a href="#mistakes">자주 하는 실수</a></li>
+                                <li><a href="#errors">오류 메시지</a></li>
+                                <li><a href="#practice">실무 연결</a></li>
+                                <li><a href="#interview">면접 포인트</a></li>
+                                <li><a href="#sources">자료 구분</a></li>
+                                <li><a href="#next">역전파 연결</a></li>
+                            </ol>
+                        </nav>
+
+                        <!-- 01. 핵심 개념 -->
+                        <section id="core" class="lesson-card fp-card" aria-labelledby="core-title">
+                            <p class="fp-kicker">01 · CORE CONCEPT</p>
+
+                            <h2 id="core-title">
+                                현재 Parameter로 출력값을 계산합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안 기준 · A §6-2
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <p>
+                                교안은 입력과 가중치의 곱을 합산하고
+                                활성화 함수를 통과시키는 연산을 출력층까지 수행하는 과정을
+                                순전파라고 설명합니다.
+                                학습을 정리할 때는
+                                <strong>예측값과 실제값의 손실 계산까지</strong>
+                                연결합니다.
+                            </p>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>모델 출력 계산</h3>
+                                    <p><code>Ŷ = F(X; θ)</code></p>
+                                    <p>
+                                        입력 X와 현재 Parameter θ로 답을 만듭니다.
+                                        θ는 Weight·Bias 전체를 묶은 표기입니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>실제값과 손실 계산</h3>
+                                    <p><code>L = ℒ(Y, Ŷ)</code></p>
+                                    <p>
+                                        만들어진 답을 실제값 Y와 비교합니다.
+                                        이 기본 지도학습의 모델 출력 계산에는
+                                        Y가 직접 들어가지 않습니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="fp-callout">
+                                <h3>
+                                    교안의 범위를 유지하면서 계산 단계를 나눕니다
+                                </h3>
+                                <p>
+                                    교안은 “순전파에서 예측과 손실을 계산한다”는
+                                    학습 흐름으로 설명합니다.
+                                    여기서는 그 안의 <b>모델 계산</b>과
+                                    <b>Loss 계산</b>을 구분합니다.
+                                    이후 Gradient 계산과 Parameter Update는
+                                    별도로 연결합니다.
+                                </p>
+                            </div>
+
+                            <p class="fp-takeaway">
+                                예측값을 만들었다는 사실과
+                                모델이 학습되었다는 사실은 다릅니다.
+                            </p>
+                        </section>
+
+                        <!-- 02. 등장 배경 -->
+                        <section id="why" class="lesson-card fp-card" aria-labelledby="why-title">
+                            <p class="fp-kicker">02 · WHY FORWARD?</p>
+
+                            <h2 id="why-title">
+                                구조도에 실제 숫자를 넣는 단계입니다
+                            </h2>
+
+                            <ol class="fp-flow">
+                                <li>
+                                    <b>16. 인공신경망</b>
+                                    <span>어떤 Layer가 연결되어 있는가?</span>
+                                </li>
+                                <li>
+                                    <b>17. 순전파</b>
+                                    <span>그 Layer에서 값이 어떻게 바뀌는가?</span>
+                                </li>
+                                <li>
+                                    <b>18. 역전파</b>
+                                    <span>각 계산이 Loss에 어떤 영향을 주는가?</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                현재 모델이 어떤 답을 내는지 계산해야
+                                틀린 정도도 확인할 수 있습니다.
+                                순전파는 학습이 끝난 뒤에만 사용하는 과정이 아니라
+                                학습 중에도 반복해서 사용합니다.
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>Weight를 적용한다</h3>
+                                    <p><code>x=3, w=0.5 → wx=1.5</code></p>
+                                    <p>
+                                        곱셈 결과가 생겼지만 w는 여전히 0.5입니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Weight를 학습한다</h3>
+                                    <p>
+                                        Loss에 대한 Gradient와 Update 규칙을 이용해
+                                        Parameter를 수정합니다.
+                                        순전파만 실행했다고 일어나는 변화가 아닙니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p class="fp-source">보완 비유</p>
+
+                            <p>
+                                현재 설비 설정이 Parameter, 원재료가 입력,
+                                가공 공정이 Layer 계산, 완성품이 예측값,
+                                품질 검사가 Loss입니다.
+                                제품을 만들고 검사한 뒤
+                                <b>설비 설정을 조정하는 단계</b>가 별도로 필요합니다.
+                            </p>
+                        </section>
+
+                        <!-- 03. 표기 -->
+                        <section id="symbols" class="lesson-card fp-card" aria-labelledby="symbols-title">
+                            <p class="fp-kicker">03 · VALUES &amp; SYMBOLS</p>
+
+                            <h2 id="symbols-title">
+                                Z·H·예측값·실제값을 서로 다른 값으로 읽습니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안의 계산 흐름을 읽기 위한 보완 표기 정리
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="순전파의 값과 기호" tabindex="0">
+                                <table>
+                                    <caption>
+                                        값의 이름보다 현재 계산에서의 역할을 확인합니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">기호</th>
+                                            <th scope="col">의미</th>
+                                            <th scope="col">확인할 점</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">X</th>
+                                            <td>입력 데이터</td>
+                                            <td>Sample 수와 Feature 수를 구분</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">W / b</th>
+                                            <td>Weight Matrix / Bias Vector</td>
+                                            <td>현재 계산의 Parameter</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Z</th>
+                                            <td>활성화 전 가중합</td>
+                                            <td>중간값인지 최종 Score인지 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">H / A</th>
+                                            <td>활성화 후 값</td>
+                                            <td>Hidden에서는 중간 표현</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">P</th>
+                                            <td>분류의 확률 출력</td>
+                                            <td>선택한 Class와 구분</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Ŷ</th>
+                                            <td>예측값</td>
+                                            <td>회귀값·확률 등 문맥에 맞게 해석</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Y</th>
+                                            <td>실제값·Label</td>
+                                            <td>예측을 평가하는 비교 기준</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">L</th>
+                                            <td>Loss</td>
+                                            <td>차이를 수치화한 값, Update 자체가 아님</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">θ</th>
+                                            <td>Parameter 전체</td>
+                                            <td>모든 W와 b를 묶어 나타내는 기호</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="fp-callout fp-warning">
+                                <h3>Hidden의 0은 Class 0이 아닙니다</h3>
+                                <p>
+                                    <code>Z=-0.4 → ReLU → H=0</code>은
+                                    내부 계산 결과입니다.
+                                    최종 출력층에서 Class를 결정했다는 뜻이 아닙니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                Parameter와 Hyperparameter도 다릅니다.
+                                W·b는 학습값이며,
+                                Learning Rate·Batch Size 같은 설정은 학습 방식을 정합니다.
+                                이번 고정 순전파 예제에는
+                                Learning Rate나 Optimizer가 필요하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 04. 수식 -->
+                        <section id="formula" class="lesson-card fp-card" aria-labelledby="formula-title">
+                            <p class="fp-kicker">
+                                04 · NEURON → LAYER → NETWORK
+                            </p>
+
+                            <h2 id="formula-title">
+                                한 번의 가중합을 여러 뉴런과 여러 Layer로 확장합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안 A의 가중합·활성화, 교안 B의 순전파 코드
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <div class="fp-equation">
+                                <p>
+                                    <b>뉴런 하나</b>
+                                    <code>
+                                    z = w₁x₁+w₂x₂+w₃x₃+b → h=f(z)
+                                </code>
+                                </p>
+                                <p>
+                                    <b>Layer 전체</b>
+                                    <code>Z=XW+b → H=f(Z)</code>
+                                </p>
+                                <p>
+                                    <b>두 Layer</b>
+                                    <code>Ŷ = g(f(XW₁+b₁)W₂+b₂)</code>
+                                </p>
+                            </div>
+
+                            <p>
+                                Weight를 입력마다 곱한 뒤 합산하고
+                                Bias를 더한 후 Activation을 적용합니다.
+                                Bias를 생략하면 일반적으로
+                                원래 모델과 다른 함수를 계산합니다.
+                            </p>
+
+                            <div class="fp-callout fp-supplement">
+                                <h3>보완 표기 · Sample은 행, Feature는 열</h3>
+                                <p>
+                                    <code>X=(B,D)</code>,
+                                    <code>W=(D,H)</code>이면
+                                    <code>XW=(B,H)</code>입니다.
+                                    B는 Batch의 Sample 수,
+                                    D는 입력 Feature 수,
+                                    H는 여기서 출력 뉴런 수입니다.
+                                </p>
+                                <p>
+                                    교안의 <code>Wx+b</code>와
+                                    이 페이지의 <code>XW+b</code>는
+                                    벡터 방향에 따른 표기 차이입니다.
+                                    행렬곱 순서를 임의로 바꾸지 않습니다.
+                                    Hidden 행렬 H₁과 차원 기호 H도 문맥으로 구분합니다.
+                                </p>
+                            </div>
+
+                            <details class="fp-detail">
+                                <summary>
+                                    보완 수식 · Layer가 더 많다면?
+                                </summary>
+                                <p>
+                                    <code>A⁽⁰⁾=X</code>로 두고 각 Layer를
+                                    <code>Z⁽ℓ⁾=A⁽ℓ−1⁾W⁽ℓ⁾+b⁽ℓ⁾</code>,
+                                    <code>A⁽ℓ⁾=f⁽ℓ⁾(Z⁽ℓ⁾)</code>로 반복합니다.
+                                </p>
+                                <p>
+                                    위첨자 (ℓ)는 거듭제곱이 아니라
+                                    <b>Layer 번호</b>입니다.
+                                    신경망은 이전 함수의 결과가 다음 함수의 입력이 되는
+                                    합성 함수로 읽을 수 있습니다.
+                                </p>
+                            </details>
+                        </section>
+
+                        <!-- 05. 그림처럼 이해 -->
+                        <section id="flow" class="lesson-card fp-card" aria-labelledby="flow-title">
+                            <p class="fp-kicker">05 · READ THE TWO PATHS</p>
+
+                            <h2 id="flow-title">
+                                입력은 모델을 통과하고,
+                                Label은 비교 지점으로 들어갑니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안의 흐름을 계산 역할별로 나눈 보완 도식
+                            </p>
+
+                            <figure class="fp-figure">
+                                <div class="fp-parameter-band">
+                                    <b>이번 계산에 제공되는 Parameter</b>
+                                    <code>W₁ · b₁ · W₂ · b₂</code>
+                                </div>
+
+                                <ol class="fp-flow fp-value-flow">
+                                    <li><b>X</b><span>입력</span></li>
+                                    <li><b>Z₁</b><span>첫 가중합</span></li>
+                                    <li><b>H₁</b><span>활성화 출력</span></li>
+                                    <li><b>Z₂</b><span>다음 가중합</span></li>
+                                    <li><b>Ŷ</b><span>최종 출력</span></li>
+                                </ol>
+
+                                <div class="fp-join">
+                                    <p>
+                                        <b>경로 A</b>
+                                        <code>
+                                        입력 X → 모델 F(X;θ) → 예측값 Ŷ
+                                    </code>
+                                    </p>
+                                    <p>
+                                        <b>경로 B</b>
+                                        <code>
+                                        실제 Label Y → 비교 기준으로 전달
+                                    </code>
+                                    </p>
+                                    <p class="fp-joined">
+                                        <b>두 경로가 만나는 곳</b>
+                                        <code>ℒ(Y, Ŷ) → Loss</code>
+                                    </p>
+                                </div>
+
+                                <figcaption>
+                                    기본 지도학습의 역할도입니다.
+                                    실제 Label을 모델의 정답 생성용 입력으로
+                                    넣는 그림이 아닙니다.
+                                </figcaption>
+                            </figure>
+
+                            <p>
+                                Layer 1에서 H₁은 Output이지만
+                                Layer 2에서는 Input입니다.
+                                입력과 출력이라는 말을 전체 모델 기준인지,
+                                개별 Layer 기준인지 구분합니다.
+                            </p>
+
+                            <p class="fp-takeaway">
+                                값은 계산·변환되며 이동합니다.
+                                현재 Parameter는 각 단계에서 사용하는 기준입니다.
+                            </p>
+                        </section>
+
+                        <!-- 06. 활성화 -->
+                        <section id="activation" class="lesson-card fp-card" aria-labelledby="activation-title">
+                            <p class="fp-kicker">06 · ACTIVATION &amp; ORDER</p>
+
+                            <h2 id="activation-title">
+                                활성화는 모두 0과 1을 고르는 연산이 아닙니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안의 활성화 개념 + 공식 함수 동작 확인
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-c">[C]</a>
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="활성화 함수의 비교" tabindex="0">
+                                <table>
+                                    <caption>
+                                        값의 범위와 사용 위치를 함께 확인합니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">함수</th>
+                                            <th scope="col">계산</th>
+                                            <th scope="col">읽는 방법</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">ReLU</th>
+                                            <td>max(0,z)</td>
+                                            <td>원소별로 음수는 0, 양수는 그대로</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Sigmoid</th>
+                                            <td>1 / (1+e⁻ᶻ)</td>
+                                            <td>각 Score를 0~1 사이 값으로 변환</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Softmax</th>
+                                            <td>exp(zₖ) / Σⱼexp(zⱼ)</td>
+                                            <td>
+                                                지정된 축의 Score들을
+                                                합이 1인 분포로 변환
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Linear / Identity</th>
+                                            <td>g(z)=z</td>
+                                            <td>출력층의 가중합을 그대로 반환</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>교안의 Dense 흐름</h3>
+                                    <p><code>H=ReLU(XW+b)</code></p>
+                                    <p>
+                                        가중합과 Bias를 반영한 뒤 활성화합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>순서를 바꾼 다른 계산</h3>
+                                    <p><code>H=ReLU(X)W+b</code></p>
+                                    <p>
+                                        입력을 먼저 변환하므로
+                                        일반적으로 같은 결과가 아닙니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="fp-equation">
+                                <code>
+                                H=XW₁+b₁, Y=HW₂+b₂
+                                → Y=X(W₁W₂)+(b₁W₂+b₂)
+                            </code>
+                            </div>
+
+                            <p>
+                                위 식은 비선형 활성화를 빼면 여러 선형 계산이
+                                하나로 합쳐진다는 보완 전개입니다.
+                                Hidden Layer 수만 아니라
+                                <b>어떤 활성화를 어디에 적용했는지</b> 확인합니다.
+                            </p>
+
+                            <p>
+                                출력층이 선형이어도 앞 Hidden에 비선형 Activation이 있으면
+                                전체 모델은 비선형일 수 있습니다.
+                                Hidden을 매번 Threshold로 0·1로 바꾸는 것은
+                                이번 MLP 구조가 아닙니다.
+                            </p>
+                        </section>
+
+                        <!-- 07. 고정값 손계산 -->
+                        <section id="hand" class="lesson-card fp-card" aria-labelledby="hand-title">
+                            <p class="fp-kicker">07 · TRACE ONE SAMPLE</p>
+
+                            <h2 id="hand-title">
+                                앞 단원의 3 → 2 → 1을 계산 순서대로 추적합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                보완 예제 · 설명용 고정값 ·
+                                Hidden ReLU + 선형 출력 · 학습 결과가 아닙니다
+                            </p>
+
+                            <pre class="fp-matrix" tabindex="0" aria-label="손계산에 사용하는 입력과 Parameter"><code>X  = [[1, 2, 3]]
+W₁ = [[ 0.2, -0.1],
+      [ 0.5,  0.2],
+      [-0.2, -0.3]]
+b₁ = [0.1, 0.2]
+W₂ = [[0.4], [-0.6]]
+b₂ = [0.1]</code></pre>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>Hidden Node 1</h3>
+                                    <p>
+                                        <code>
+                                        1×0.2 + 2×0.5 + 3×(-0.2) + 0.1
+                                    </code>
+                                    </p>
+                                    <p><b>= 0.7</b></p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Hidden Node 2</h3>
+                                    <p>
+                                        <code>
+                                        1×(-0.1) + 2×0.2 + 3×(-0.3) + 0.2
+                                    </code>
+                                    </p>
+                                    <p><b>= -0.4</b></p>
+                                </article>
+                            </div>
+
+                            <ol class="fp-flow">
+                                <li>
+                                    <b>가중합 Z₁</b>
+                                    <code>[0.7,-0.4]</code>
+                                </li>
+                                <li>
+                                    <b>ReLU 출력 H₁</b>
+                                    <code>[0.7,0]</code>
+                                </li>
+                                <li>
+                                    <b>출력 가중합 Z₂</b>
+                                    <code>0.7×0.4+0×(-0.6)+0.1</code>
+                                </li>
+                                <li>
+                                    <b>선형 예측값</b>
+                                    <code>Ŷ = 0.38</code>
+                                </li>
+                            </ol>
+
+                            <div class="fp-callout">
+                                <h3>어느 값이 변했고 어느 값은 그대로인가?</h3>
+                                <p>
+                                    X에서 중간값과 최종 출력이 계산되었습니다.
+                                    이 과정에서 지정한 W₁·b₁·W₂·b₂는
+                                    수정하지 않았습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 08. 두 Sample과 차원 -->
+                        <section id="batch" class="lesson-card fp-card" aria-labelledby="batch-title">
+                            <p class="fp-kicker">08 · BATCH &amp; SHAPE</p>
+
+                            <h2 id="batch-title">
+                                같은 Parameter를 두 Sample에 각각 적용합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                손계산 보완 예제에 Sample [0,1,1] 추가
+                            </p>
+
+                            <p>
+                                두 번째 Sample의 Hidden 가중합은
+                                <code>
+                                0×0.2+1×0.5+1×(-0.2)+0.1=0.4
+                            </code>,
+                                <code>
+                                0×(-0.1)+1×0.2+1×(-0.3)+0.2=0.1
+                            </code>입니다.
+                            </p>
+
+                            <p>
+                                두 값 모두 ReLU 이후 유지됩니다.
+                                출력은
+                                <code>0.4×0.4+0.1×(-0.6)+0.1=0.20</code>입니다.
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="두 Sample의 계산 추적" tabindex="0">
+                                <table>
+                                    <caption>
+                                        각 입력 행에 대응하는 예측값
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">입력</th>
+                                            <th scope="col">Z₁</th>
+                                            <th scope="col">H₁</th>
+                                            <th scope="col">Ŷ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">[1,2,3]</th>
+                                            <td>[0.7,-0.4]</td>
+                                            <td>[0.7,0]</td>
+                                            <td>0.38</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">[0,1,1]</th>
+                                            <td>[0.4,0.1]</td>
+                                            <td>[0.4,0.1]</td>
+                                            <td>0.20</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="fp-table" role="region" aria-label="고정 신경망의 Shape" tabindex="0">
+                                <table>
+                                    <caption>
+                                        Batch 2개, 입력 3개, Hidden 2개, 출력 1개
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">값</th>
+                                            <th scope="col">Shape</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">X</th>
+                                            <td>(2,3)</td>
+                                            <td>두 Sample의 입력</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">W₁ / b₁</th>
+                                            <td>(3,2) / (2,)</td>
+                                            <td>Hidden Parameter</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Z₁ / H₁</th>
+                                            <td>(2,2)</td>
+                                            <td>Sample별 Hidden 값</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">W₂ / b₂</th>
+                                            <td>(2,1) / (1,)</td>
+                                            <td>Output Parameter</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Z₂ / Ŷ</th>
+                                            <td>(2,1)</td>
+                                            <td>Sample별 출력 하나</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="fp-equation">
+                                <code>
+                                (2,3) @ (3,2)
+                                → (2,2) @ (2,1)
+                                → (2,1)
+                            </code>
+                            </div>
+
+                            <p>
+                                여기서는 Sample들을 섞어 예측 하나를 만드는 것이 아닙니다.
+                                같은 Bias Vector를 각 행에 더하는 데
+                                Broadcasting을 사용합니다.
+                                <a href="#ref-d">[D]</a>
+                            </p>
+
+                            <div class="fp-callout fp-warning">
+                                <h3>원소별 곱과 행렬곱</h3>
+                                <p>
+                                    <code>X * W</code>는 원소별 곱,
+                                    <code>X @ W</code>는 행렬곱입니다.
+                                    뉴런 하나에서 <code>sum(x*w)</code>로
+                                    내적을 구한 예제와
+                                    Batch·여러 뉴런을 함께 계산하는
+                                    <code>X@W</code>를 구분합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 09. 다른 교안 구조 -->
+                        <section id="course-models" class="lesson-card fp-card" aria-labelledby="course-title">
+                            <p class="fp-kicker">
+                                09 · SAME PRINCIPLE, DIFFERENT MODEL
+                            </p>
+
+                            <h2 id="course-title">
+                                같은 순전파 원리를 큰 구조에 반복합니다
+                            </h2>
+
+                            <div class="fp-table" role="region" aria-label="예제 모델의 구조 비교" tabindex="0">
+                                <table>
+                                    <caption>
+                                        교안 구조와 손계산 모델을 하나로 섞지 않습니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">예제</th>
+                                            <th scope="col">구조</th>
+                                            <th scope="col">활성화</th>
+                                            <th scope="col">Shape 흐름</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">손계산 보완</th>
+                                            <td>3 → 2 → 1</td>
+                                            <td>Hidden ReLU, 선형 출력</td>
+                                            <td>
+                                                (B,3) → (B,2) → (B,1)
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                AI 교안 기본 붓꽃
+                                            </th>
+                                            <td>4 → 64 → 3</td>
+                                            <td>Hidden ReLU, Softmax 출력</td>
+                                            <td>
+                                                (B,4) → (B,64) → (B,3)
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">통합교안 51번</th>
+                                            <td>4 → 64 → 16 → 3</td>
+                                            <td>
+                                                Hidden 둘 모두 ReLU,
+                                                Softmax 출력
+                                            </td>
+                                            <td>
+                                                (B,4) → (B,64) → (B,16) → (B,3)
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="fp-source">
+                                AI 교안 §6-3 <a href="#ref-a">[A]</a> ·
+                                통합교안 51번 <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <p>
+                                Layer가 추가되면 중간 가중합·활성화 계산도 추가됩니다.
+                                기본 붓꽃 모델은
+                                <code>
+                                Z₁=XW₁+b₁ → H₁=ReLU(Z₁)
+                                → Z₂=H₁W₂+b₂ → P=Softmax(Z₂)
+                            </code>로 읽습니다.
+                            </p>
+
+                            <p>
+                                반면 다음에 볼 47번의 직접 구현은
+                                Hidden과 출력 모두 Sigmoid입니다.
+                                순전파의 원리가 같다는 이유로
+                                Activation까지 같다고 설명하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 10. 원본 코드와 검토 메모 -->
+                        <section id="notebook" class="lesson-card fp-card" aria-labelledby="notebook-title">
+                            <p class="fp-kicker">10 · NOTEBOOK 47</p>
+
+                            <h2 id="notebook-title">
+                                원본의 z1 → h1 → z2 → h2를 그대로 읽습니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안 B · 47번 Cell 005의 계산 부분 발췌.
+                                공백·주변 주석 생략.
+                                독립 실행용 코드가 아닙니다.
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <pre class="fp-code" tabindex="0" aria-label="교안 47번 fit 내부 순전파 발췌"><code>z1 = np.dot(self.__x, self.__W1) + self.__b1
+h1 = sigmoid(z1)
+
+z2 = np.dot(h1, self.__W2) + self.__b2
+h2 = sigmoid(z2)</code></pre>
+
+                            <p>
+                                <code>z1</code>은 Hidden 가중합,
+                                <code>h1</code>은 Hidden 출력,
+                                <code>z2</code>는 출력층 가중합,
+                                <code>h2</code>는 최종 Sigmoid 값입니다.
+                            </p>
+
+                            <pre class="fp-code" tabindex="0" aria-label="교안 47번 predict 계산 부분 발췌"><code>z1 = np.dot(x, self.__W1) + self.__b1
+h1 = sigmoid(z1)
+z2 = np.dot(h1, self.__W2) + self.__b2
+h2 = sigmoid(z2)
+
+pred = []
+for value in h2:
+    if value > threshold:
+        pred.append(1)
+    else:
+        pred.append(0)
+return pred</code></pre>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>fit()</h3>
+                                    <p>
+                                        순전파 후 실제 Label을 사용하여
+                                        학습 계산과 Parameter Update를 반복합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>predict()</h3>
+                                    <p>
+                                        같은 순전파를 수행한 뒤 Threshold로 Class를 반환합니다.
+                                        이 메서드는 Label을 받지 않습니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="fp-callout fp-warning">
+                                <h3>원본의 경계 규칙</h3>
+                                <p>
+                                    <code>value &gt; threshold</code>이므로
+                                    정확히 0.5인 값을 Threshold 0.5와 비교하면
+                                    Class 0입니다.
+                                    <code>&gt;=</code>로 바꾸면 동률 처리도 바뀝니다.
+                                    발췌 코드는 원본의 &gt;를 유지합니다.
+                                </p>
+                            </div>
+
+                            <details class="fp-detail">
+                                <summary>
+                                    교안 검토 메모 · Gradient Scalar화는
+                                    순전파와 분리합니다
+                                </summary>
+
+                                <p>
+                                    원본에는
+                                    <code>
+                                    grad_W2 = np.mean(np.dot(h1.T, loss2))
+                                </code>처럼 행렬 전체 평균으로 Gradient를
+                                    Scalar화하는 부분이 있습니다.
+                                </p>
+
+                                <p>
+                                    통합교안 47번의 검토 메모는
+                                    각 Weight Matrix의 Shape을 유지하도록
+                                    수정해야 한다고 지적합니다.
+                                    이 부분을 올바른 역전파 코드처럼 재사용하지 않습니다.
+                                    이번에는 순전파를 읽고,
+                                    Gradient 수정은 다음 단원에서 별도로 검토합니다.
+                                </p>
+
+                                <p>
+                                    원본 손실 함수의 <code>delta=1e-5</code> 덧셈도
+                                    원본 구현으로 구분합니다.
+                                    뒤의 보완 수식·Softmax 코드를 원본 Cell로 제시하지 않습니다.
+                                </p>
+                            </details>
+                        </section>
+
+                        <!-- 11. 환경/실행 -->
+                        <section id="workflow" class="lesson-card fp-card" aria-labelledby="workflow-title">
+                            <p class="fp-kicker">
+                                11 · ENVIRONMENT &amp; WORKFLOW
+                            </p>
+
+                            <h2 id="workflow-title">
+                                학습·평가·새 입력의 예측에서 모두 순전파를 사용합니다
+                            </h2>
+
+                            <p>
+                                아래 Python 예제는 이 HTML 안에서 자동 실행되지 않습니다.
+                                NumPy가 준비된 Jupyter 또는 Python 스크립트에
+                                복사해 실행합니다.
+                                고정값 계산에는 데이터 다운로드·GPU·API 호출이 필요하지 않습니다.
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="순전파의 사용 상황" tabindex="0">
+                                <table>
+                                    <caption>
+                                        기본 지도학습과 일반적인 built-in 평가·추론 흐름
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">상황</th>
+                                            <th scope="col">순전파 이후</th>
+                                            <th scope="col">Label</th>
+                                            <th scope="col">Optimizer Update</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">학습</th>
+                                            <td>Loss → Gradient → Update</td>
+                                            <td>Loss에 사용</td>
+                                            <td>수행</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">검증·테스트</th>
+                                            <td>Loss·Metric 평가</td>
+                                            <td>평가에 사용</td>
+                                            <td>일반적으로 없음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">새 입력 예측</th>
+                                            <td>출력 해석·후처리</td>
+                                            <td>출력 계산에 불필요</td>
+                                            <td>일반적으로 없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="fp-source">
+                                공식 API 흐름 보완
+                                <a href="#ref-e">[E]</a>
+                            </p>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>NumPy 직접 구현</h3>
+                                    <p>
+                                        가중합과 Activation 수식을 직접 씁니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Sequential</h3>
+                                    <p>
+                                        연결된 Layer를 순서대로 호출합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Model Subclassing</h3>
+                                    <p>
+                                        교안은 <code>call()</code> 안에
+                                        순방향 로직을 구현하고
+                                        최종 출력을 반환한다고 설명합니다.
+                                        <a href="#ref-a">[A]</a>
+                                    </p>
+                                </article>
+                            </div>
+
+                            <ol class="fp-flow">
+                                <li>
+                                    <b>값 준비</b>
+                                    <span>
+                                        입력·Parameter·Shape을 확인합니다.
+                                    </span>
+                                </li>
+                                <li>
+                                    <b>층별 계산</b>
+                                    <span>
+                                        Z와 Activation 출력을 구분해 기록합니다.
+                                    </span>
+                                </li>
+                                <li>
+                                    <b>출력 해석</b>
+                                    <span>
+                                        수치·확률·Class를 구분합니다.
+                                    </span>
+                                </li>
+                                <li>
+                                    <b>필요한 다음 단계</b>
+                                    <span>
+                                        Label이 있다면 손실·평가,
+                                        학습이면 Update로 연결합니다.
+                                    </span>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <!-- 12. Batch와 epoch -->
+                        <section id="epoch" class="lesson-card fp-card" aria-labelledby="epoch-title">
+                            <p class="fp-kicker">
+                                12 · FORWARD PASS ≠ EPOCH
+                            </p>
+
+                            <h2 id="epoch-title">
+                                한 Epoch 안에 여러 Batch의 순전파가 들어갈 수 있습니다
+                            </h2>
+
+                            <p class="fp-source">
+                                보완 가정 · Sample 120개, Batch Size 32,
+                                마지막 작은 Batch 사용, 일반적인 Batch별 Update
+                            </p>
+
+                            <ol class="fp-flow">
+                                <li><b>Batch 1</b><span>32개</span></li>
+                                <li><b>Batch 2</b><span>32개</span></li>
+                                <li><b>Batch 3</b><span>32개</span></li>
+                                <li><b>Batch 4</b><span>24개</span></li>
+                            </ol>
+
+                            <p>
+                                이 가정에서는 한 Epoch에
+                                네 번의 학습 Batch 순전파가 들어갑니다.
+                                각 Batch에서 순전파 → Loss → 역전파 → Update를 수행합니다.
+                                사용자 정의 Loop·Gradient 누적·마지막 Batch 제외 설정에는
+                                같은 횟수를 강제하지 않습니다.
+                                <a href="#ref-e">[E]</a>
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="BGD SGD Mini-batch 비교" tabindex="0">
+                                <table>
+                                    <caption>
+                                        교안의 구분 기준은 한 Update에 사용하는
+                                        데이터의 양입니다 [A]
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">방식</th>
+                                            <th scope="col">
+                                                기본적으로 한 Update에 사용하는 데이터
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">BGD</th>
+                                            <td>전체 학습 데이터</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">SGD</th>
+                                            <td>Sample 하나</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Mini-batch</th>
+                                            <td>
+                                                여러 Sample로 이루어진 일부 Batch
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="fp-takeaway">
+                                순전파는 한 입력 묶음의 계산이고,
+                                Epoch는 데이터 전체를 한 차례 사용하는 단위입니다.
+                            </p>
+                        </section>
+
+                        <!-- 13. 실행 코드 -->
+                        <section id="numpy" class="lesson-card fp-card" aria-labelledby="numpy-title">
+                            <p class="fp-kicker">13 · NUMPY FORWARD TRACE</p>
+
+                            <h2 id="numpy-title">
+                                Label 없이 계산하고 Parameter가 그대로인지 확인합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                독립 실행 가능한 보완 예제 ·
+                                위 손계산과 동일한 고정값 · 원본 학습 코드 아님
+                            </p>
+
+                            <p>
+                                입력·Weight·Bias의 Shape과 유한값을 검사합니다.
+                                이 보완 함수는 Bias를 1차원으로 받도록 제한하며,
+                                다른 Bias 표현까지 자동 변환하는 일반 라이브러리는 아닙니다.
+                            </p>
+
+                            <pre class="fp-code" tabindex="0" aria-label="순전파 전체 NumPy 보완 코드"><code data-example="forward">import numpy as np
+from numpy.typing import ArrayLike, NDArray
+
+FloatArray = NDArray[np.float64]
+
+
+def forward(
+    x: ArrayLike,
+    w1: ArrayLike,
+    b1: ArrayLike,
+    w2: ArrayLike,
+    b2: ArrayLike,
+) -&gt; dict[str, FloatArray]:
+    """보완 예제: Hidden ReLU + 선형 출력. 학습은 하지 않습니다."""
+    x, w1, b1, w2, b2 = [
+        np.asarray(value, dtype=np.float64)
+        for value in (x, w1, b1, w2, b2)
+    ]
+
+    if any(a.ndim != 2 for a in (x, w1, w2)):
+        raise ValueError("입력과 Weight는 2차원 배열이어야 합니다.")
+    if any(a.size == 0 for a in (x, w1, b1, w2, b2)):
+        raise ValueError("빈 입력 또는 빈 Parameter는 사용할 수 없습니다.")
+    if x.shape[1] != w1.shape[0]:
+        raise ValueError("입력 Feature 수와 W1의 입력 차원이 다릅니다.")
+    if w1.shape[1] != w2.shape[0]:
+        raise ValueError("Hidden 출력 차원과 W2의 입력 차원이 다릅니다.")
+    if b1.shape != (w1.shape[1],) or b2.shape != (w2.shape[1],):
+        raise ValueError("각 Bias는 해당 출력 차원 길이의 1차원 배열이어야 합니다.")
+    if not all(np.isfinite(a).all() for a in (x, w1, b1, w2, b2)):
+        raise ValueError("입력 또는 Parameter에 NaN·무한대가 있습니다.")
+
+    # 새 계산값을 만듭니다. 입력 Parameter를 수정하지 않습니다.
+    with np.errstate(over="raise", invalid="raise"):
+        z1 = x @ w1 + b1
+        h1 = np.maximum(z1, 0.0)
+        z2 = h1 @ w2 + b2
+
+    if not all(np.isfinite(a).all() for a in (z1, h1, z2)):
+        raise FloatingPointError("계산 결과에 NaN·무한대가 발생했습니다.")
+
+    return {
+        "Z1": z1,
+        "H1": h1,
+        "Z2": z2,
+        "y_hat": z2.copy(),
+    }
+
+
+# 설명용 고정값입니다. 교안에서 학습된 Parameter가 아닙니다.
+x = np.array([
+    [1.0, 2.0, 3.0],
+    [0.0, 1.0, 1.0],
+])
+w1 = np.array([
+    [0.2, -0.1],
+    [0.5,  0.2],
+    [-0.2, -0.3],
+])
+b1 = np.array([0.1, 0.2])
+w2 = np.array([[0.4], [-0.6]])
+b2 = np.array([0.1])
+
+parameters = (w1, b1, w2, b2)
+before = [p.copy() for p in parameters]
+trace = forward(x, *parameters)
+
+np.set_printoptions(precision=2, suppress=True)
+for name, value in trace.items():
+    print(f"{name} shape={value.shape}")
+    print(value)
+
+unchanged = all(
+    np.array_equal(old, current)
+    for old, current in zip(before, parameters)
+)
+print("Parameter unchanged:", unchanged)
+
+# 부동소수점 결과는 근사 비교합니다.
+assert unchanged
+assert np.allclose(trace["Z1"], [[0.7, -0.4], [0.4, 0.1]])
+assert np.allclose(trace["H1"], [[0.7, 0.0], [0.4, 0.1]])
+assert np.allclose(trace["y_hat"], [[0.38], [0.20]])</code></pre>
+
+                            <p>
+                                <code>@</code>는 행렬곱,
+                                Bias 덧셈은 Broadcasting,
+                                <code>np.maximum(z1,0)</code>은 ReLU입니다.
+                                출력값 복사는 반환 결과를 구분하기 위한 보완 처리입니다.
+                                <a href="#ref-d">[D]</a>
+                            </p>
+                        </section>
+
+                        <!-- 14. 실행 결과 -->
+                        <section id="trace" class="lesson-card fp-card" aria-labelledby="trace-title">
+                            <p class="fp-kicker">14 · EXECUTION RESULT</p>
+
+                            <h2 id="trace-title">
+                                중간값과 최종값을 같은 순서로 대조합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                보완 코드 실행 결과 ·
+                                이 출력은 학습된 교안 모델의 평가 결과가 아닙니다
+                            </p>
+
+                            <pre class="fp-output" tabindex="0" aria-label="순전파 코드의 실제 실행 출력"><code>Z1 shape=(2, 2)
+[[ 0.7 -0.4]
+ [ 0.4  0.1]]
+H1 shape=(2, 2)
+[[0.7 0. ]
+ [0.4 0.1]]
+Z2 shape=(2, 1)
+[[0.38]
+ [0.2 ]]
+y_hat shape=(2, 1)
+[[0.38]
+ [0.2 ]]
+Parameter unchanged: True</code></pre>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>Z1 → H1</h3>
+                                    <p>
+                                        -0.4만 ReLU에서 0이 됩니다.
+                                        두 번째 Sample의 0.4·0.1은 유지됩니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Z2 = y_hat</h3>
+                                    <p>
+                                        이번 모델은 선형 출력이므로
+                                        최종 가중합이 예측값입니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Parameter unchanged</h3>
+                                    <p>
+                                        계산 전후의 모든 W·b가 같습니다.
+                                        모델 출력은 만들었지만 학습하지 않았습니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="fp-callout">
+                                <h3>고정값 검사의 범위</h3>
+                                <p>
+                                    <code>np.allclose()</code>로 부동소수점 계산 결과를
+                                    근사 비교하고, Parameter는 원본 복사본과
+                                    <code>np.array_equal()</code>로 확인합니다.
+                                    이 검사는 예제의 계산 검증이며
+                                    모델 정확도 검증이 아닙니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 15. 출력 의미 -->
+                        <section id="prediction" class="lesson-card fp-card" aria-labelledby="prediction-title">
+                            <p class="fp-kicker">
+                                15 · SCORE / PROBABILITY / CLASS
+                            </p>
+
+                            <h2 id="prediction-title">
+                                마지막 함수가 달라지면 출력의 의미도 달라집니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안의 기본 회귀·분류 설계
+                                <a href="#ref-a">[A]</a> ·
+                                숫자는 별도 보완 계산
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="문제에 따른 최종 출력" tabindex="0">
+                                <table>
+                                    <caption>
+                                        이번 단원은 교안의 기본 출력 구성을 사용합니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">문제</th>
+                                            <th scope="col">출력 방식</th>
+                                            <th scope="col">해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">단일값 회귀</th>
+                                            <td>선형 출력</td>
+                                            <td>예측 수치</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">이진 분류</th>
+                                            <td>Sigmoid</td>
+                                            <td>
+                                                Positive 확률 →
+                                                Threshold로 Class 선택
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                단일 Label 다중 분류
+                                            </th>
+                                            <td>Softmax</td>
+                                            <td>
+                                                Class 확률 분포 →
+                                                argmax 등으로 선택
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>앞의 선형 모델</h3>
+                                    <p><code>z=0.38 → ŷ=0.38</code></p>
+                                    <p>그대로 예측 수치입니다.</p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>다른 출력 설계를 가정</h3>
+                                    <p><code>σ(0.38) ≈ 0.593873</code></p>
+                                    <p>
+                                        Sigmoid를 적용하는 별도 계산입니다.
+                                        위 코드가 자동으로 이진 분류 모델이 되는 것은 아닙니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                보완 계산에서 <code>p &gt; 0.5</code>를 사용하면
+                                Class 1을 선택합니다.
+                                Parameter는 임의로 정한 값이므로
+                                실제 문제에서 신뢰할 만한 예측이라는 뜻은 아닙니다.
+                            </p>
+
+                            <p class="fp-takeaway">
+                                Score → 확률 → Class 선택 → 실제 Label과 비교는
+                                서로 다른 해석 단계입니다.
+                            </p>
+                        </section>
+
+                        <!-- 16. Softmax -->
+                        <section id="softmax" class="lesson-card fp-card" aria-labelledby="softmax-title">
+                            <p class="fp-kicker">16 · SOFTMAX &amp; AXIS</p>
+
+                            <h2 id="softmax-title">
+                                각 Sample의 Class Score를 함께 정규화합니다
+                            </h2>
+
+                            <p class="fp-source">
+                                별도 가상 Logits [2,1,0]의 보완 계산 ·
+                                공식 함수 의미 <a href="#ref-c">[C]</a>
+                            </p>
+
+                            <div class="fp-equation">
+                                <p>
+                                    <code>pₖ = exp(zₖ) / Σⱼexp(zⱼ)</code>
+                                </p>
+                                <p>
+                                    <code>
+                                    [2,1,0] →
+                                    [0.665241, 0.244728, 0.090031]
+                                </code>
+                                </p>
+                            </div>
+
+                            <p>
+                                Class 순서가 [0,1,2]라면 가장 큰 값의 위치인
+                                Class 0을 선택합니다.
+                                이 Logits는 위 회귀 모델이나 교안 붓꽃 모델에서 나온
+                                실제 출력이 아닙니다.
+                            </p>
+
+                            <div class="fp-callout fp-supplement">
+                                <h3>최댓값을 빼도 같은 분포가 되는 이유</h3>
+                                <p>
+                                    <code>exp(zₖ-m)/Σⱼexp(zⱼ-m)</code>에서
+                                    공통 배율 exp(-m)이 약분됩니다.
+                                    m을 행별 최댓값으로 두면
+                                    [2,1,0]은 [0,-1,-2]가 됩니다.
+                                    큰 양수의 exp 계산을 피하는 수치 안정화이며,
+                                    입력 오류나 Weight 발산을 치료하는 것은 아닙니다.
+                                </p>
+                            </div>
+
+                            <pre class="fp-code" tabindex="0" aria-label="행별 Softmax 독립 실행 예제"><code data-example="softmax">import numpy as np
+from numpy.typing import ArrayLike, NDArray
+
+
+def softmax_rows(logits: ArrayLike) -&gt; NDArray[np.float64]:
+    """보완 예제: (Sample 수, Class 수)에 행별 Softmax를 적용합니다."""
+    z = np.asarray(logits, dtype=np.float64)
+    if z.ndim != 2 or z.size == 0:
+        raise ValueError("비어 있지 않은 2차원 Logits가 필요합니다.")
+    if not np.isfinite(z).all():
+        raise ValueError("Logits에 NaN·무한대가 있습니다.")
+
+    # 큰 양수의 exp 계산을 피합니다. 표현 범위를 벗어난 계산은 알립니다.
+    with np.errstate(over="raise", invalid="raise", under="ignore"):
+        shifted = z - np.max(z, axis=1, keepdims=True)
+        exp_values = np.exp(shifted)
+        probabilities = exp_values / np.sum(
+            exp_values, axis=1, keepdims=True
+        )
+
+    return probabilities
+
+
+# 별도의 가상 Class Score입니다. 위 회귀 예제의 출력이 아닙니다.
+probabilities = softmax_rows([[2.0, 1.0, 0.0]])
+np.set_printoptions(precision=6, suppress=True)
+print(probabilities)
+print("Class:", np.argmax(probabilities, axis=1))
+print("Row sum:", probabilities.sum(axis=1))
+
+assert np.allclose(probabilities.sum(axis=1), 1.0)</code></pre>
+
+                            <h3>보완 코드의 실행 결과</h3>
+
+                            <pre class="fp-output" tabindex="0" aria-label="Softmax 실행 출력"><code>[[0.665241 0.244728 0.090031]]
+Class: [0]
+Row sum: [1.]</code></pre>
+
+                            <p>
+                                <code>(B,K)</code>에서 <code>axis=1</code>은
+                                같은 Sample의 Class끼리 계산한다는 뜻입니다.
+                                <code>axis=0</code>은 다른 Sample들을 같은 열에서 묶으므로
+                                여기서는 의도와 다릅니다.
+                                행별 확률 합이 약 1인지 확인합니다.
+                            </p>
+                        </section>
+
+                        <!-- 17. Loss -->
+                        <section id="loss" class="lesson-card fp-card" aria-labelledby="loss-title">
+                            <p class="fp-kicker">17 · PREDICTION → LOSS</p>
+
+                            <h2 id="loss-title">
+                                손실 계산은 실제값과 비교하는 단계입니다
+                            </h2>
+
+                            <p class="fp-source">
+                                교안의 MSE·Cross Entropy 구분
+                                <a href="#ref-a">[A]</a> ·
+                                아래 숫자는 가정한 Label의 보완 예제
+                            </p>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>회귀 · Sample 하나</h3>
+                                    <p>
+                                        첫 Sample의 예측값 ŷ=0.38,
+                                        실제값을 y=1.00으로 가정합니다.
+                                    </p>
+                                    <p>
+                                        <code>L=(1.00-0.38)²=0.3844</code>
+                                    </p>
+                                    <p>
+                                        두 Sample 전체의 평균이 아니라,
+                                        이 Sample 하나의 제곱오차입니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>다중 분류 · Sample 하나</h3>
+                                    <p>
+                                        앞 Softmax 예제의 실제 정답을
+                                        Class 0으로 가정합니다.
+                                    </p>
+                                    <p>
+                                        <code>L=-ln(p₀)≈0.407606</code>
+                                    </p>
+                                    <p>
+                                        자연로그와 반올림 전 확률로 계산한 보완 값입니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                서로 다른 문제·손실 함수의 숫자 크기만 비교해
+                                어느 모델이 좋다고 판단하지 않습니다.
+                                <b>
+                                    Loss를 계산했다고 Parameter가 수정된 것도 아닙니다.
+                                </b>
+                            </p>
+
+                            <div class="fp-callout">
+                                <h3>MSE와 Cross Entropy의 역할</h3>
+                                <p>
+                                    MSE는 교안의 회귀 예측 오차를,
+                                    Cross Entropy는 분류 출력과 정답의 차이를 측정하는
+                                    기본 예입니다.
+                                    Activation이 값을 만드는 방법이라면
+                                    Loss는 만들어진 값을 평가하는 기준입니다.
+                                </p>
+                            </div>
+
+                            <details class="fp-detail">
+                                <summary>
+                                    보완·API 확인 · Label Shape와 from_logits
+                                </summary>
+
+                                <p>
+                                    단일 출력 예측 (N,1)과 Label (N,)을
+                                    NumPy로 직접 빼면 (N,N)으로 확장될 수 있습니다.
+                                    반면 다중 분류의 정수 Label (B,)와
+                                    예측 (B,K)은 Sparse Loss의 정상 형식일 수 있습니다.
+                                </p>
+
+                                <p>
+                                    Softmax 확률 입력인지,
+                                    Softmax 전 Logits 입력인지에 맞춰
+                                    <code>from_logits</code>를 설정합니다.
+                                    “항상 Shape을 같게 한다”보다
+                                    Loss의 기대 형식을 확인하는 것이 정확합니다.
+                                    <a href="#ref-f">[F]</a>
+                                </p>
+                            </details>
+                        </section>
+
+                        <!-- 18. 모드 -->
+                        <section id="mode" class="lesson-card fp-card" aria-labelledby="mode-title">
+                            <p class="fp-kicker">
+                                18 · TRAINING / INFERENCE MODE
+                            </p>
+
+                            <h2 id="mode-title">
+                                고정 Dense 예제의 성질을 모든 Layer로 확대하지 않습니다
+                            </h2>
+
+                            <p class="fp-source">
+                                Step 1·2의 공식 문서 보완 영역 ·
+                                이후 성능 개선 단원과 연결
+                                <a href="#ref-g">[G]</a>
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="Dropout과 Batch Normalization 모드 비교"
+                                tabindex="0">
+                                <table>
+                                    <caption>
+                                        아래는 일반적인 설정 기준이며
+                                        Layer 설정도 함께 확인합니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Layer</th>
+                                            <th scope="col">학습 모드</th>
+                                            <th scope="col">일반적인 추론 모드</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                이번 고정 Dense·ReLU 예제
+                                            </th>
+                                            <td colspan="2">
+                                                같은 입력·Parameter에
+                                                같은 수학적 계산을 적용
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Dropout</th>
+                                            <td>일부 값을 무작위로 제외</td>
+                                            <td>일반적으로 비활성화</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Batch Normalization
+                                            </th>
+                                            <td>
+                                                현재 Batch 통계 사용,
+                                                이동 통계 갱신
+                                            </td>
+                                            <td>저장된 이동 통계 사용</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Dropout 때문에 같은 입력의 순방향 결과가 달라질 수 있습니다.
+                                Batch Normalization의 이동 평균·분산 갱신은
+                                Optimizer가 학습 가능한 Weight를 수정하는 Update와
+                                구분되는 상태 변화입니다.
+                            </p>
+
+                            <p class="fp-takeaway">
+                                순전파의 목적은 출력 계산입니다.
+                                학습 가능한 Weight의 최적화와
+                                일부 Layer의 모드·상태 변화를 구분합니다.
+                            </p>
+
+                            <p>
+                                “순전파에서는 모든 상태가 절대 변하지 않는다” 대신,
+                                이번 예제의 범위와 사용 중인 Layer를 명시합니다.
+                            </p>
+                        </section>
+
+                        <!-- 19. 실수 -->
+                        <section id="mistakes" class="lesson-card fp-card" aria-labelledby="mistakes-title">
+                            <p class="fp-kicker">19 · COMMON MISTAKES</p>
+
+                            <h2 id="mistakes-title">
+                                계산·해석·학습을 같은 일로 취급하지 않습니다
+                            </h2>
+
+                            <p class="fp-source">
+                                Step 1·2의 복습 ·
+                                교안 기준과 앞서 표시한 보완 설명
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="순전파에서 자주 하는 실수" tabindex="0">
+                                <table>
+                                    <caption>
+                                        오해를 오른쪽 문장으로 바로잡아 봅니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">자주 하는 착각</th>
+                                            <th scope="col">올바른 해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                순전파가 Weight를 더 좋은 값으로 바꾼다.
+                                            </th>
+                                            <td>
+                                                현재 Parameter를 사용하며
+                                                Gradient·Update와 구분합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                순전파만 반복하면 자동으로 학습된다.
+                                            </th>
+                                            <td>
+                                                Parameter를 수정하지 않으면
+                                                이번 고정 함수는 그대로입니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                예측할 때 실제 Label을 먼저 넣어야 한다.
+                                            </th>
+                                            <td>
+                                                이 기본 모델의 출력 계산에는 불필요하며
+                                                Loss·평가에서 비교합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                입력을 그대로 다음 Layer에 전달한다.
+                                            </th>
+                                            <td>
+                                                가중합·활성화로 다른 값을 만들어 전달합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Z와 H는 같은 값이다.</th>
+                                            <td>
+                                                Activation 전 가중합과 후의 출력을 구분합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                모든 Activation은 0·1을 고른다.
+                                            </th>
+                                            <td>
+                                                ReLU·Sigmoid·Softmax·Linear의
+                                                계산과 출력이 다릅니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Hidden 값 0은 Class 0이다.
+                                            </th>
+                                            <td>
+                                                중간 계산 결과와 최종 Class 선택은 다릅니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                X * W와 X @ W는 같다.
+                                            </th>
+                                            <td>원소별 곱과 행렬곱을 구분합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Bias를 빼도 같은 모델이다.
+                                            </th>
+                                            <td>
+                                                일반적으로 다른 함수를 계산합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Activation의 위치를 바꿔도 된다.
+                                            </th>
+                                            <td>
+                                                f(XW+b)와 f(X)W+b는 일반적으로 다릅니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                출력 Activation이 없으면 아무 계산도 없다.
+                                            </th>
+                                            <td>출력층의 HW+b는 계산합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Softmax를 Batch 전체에 한 번 적용한다.
+                                            </th>
+                                            <td>
+                                                각 Sample의 Class 축을 확인합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Shape만 맞으면 입력도 올바르다.
+                                            </th>
+                                            <td>
+                                                Feature 의미·순서·전처리도 일치해야 합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                높은 확률은 정답을 보장한다.
+                                            </th>
+                                            <td>
+                                                실제 Label과 비교하는 평가가 필요합니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Loss를 구했으면 Update도 끝났다.
+                                            </th>
+                                            <td>
+                                                Gradient 계산과 Parameter 수정은 별도입니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                순전파 한 번이 Epoch 한 번이다.
+                                            </th>
+                                            <td>
+                                                한 Epoch 안에 여러 Batch 계산이
+                                                들어갈 수 있습니다.
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                어떤 모델도 순전파 중 상태가 바뀌지 않는다.
+                                            </th>
+                                            <td>
+                                                Dropout·Batch Normalization 등의
+                                                모드와 설정을 구분합니다.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 20. 오류 -->
+                        <section id="errors" class="lesson-card fp-card" aria-labelledby="errors-title">
+                            <p class="fp-kicker">
+                                20 · ERROR MESSAGES &amp; DEBUGGING
+                            </p>
+
+                            <h2 id="errors-title">
+                                처음 기대와 달라진 계산 지점을 찾습니다
+                            </h2>
+
+                            <p class="fp-source">
+                                재실습용 보완 예시 ·
+                                교안에 저장된 실제 오류 로그가 아님 ·
+                                버전에 따라 문구는 달라질 수 있습니다
+                            </p>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>행렬곱 차원 오류</h3>
+                                    <p>
+                                        <code>
+                                        matmul ... core dimension mismatch
+                                    </code>
+                                    </p>
+                                    <p>
+                                        (2,3) @ (4,2)는 연결 차원이 다릅니다.
+                                        (2,3) @ (3,2)처럼 맞아야 합니다.
+                                        X와 W의 Shape부터 확인합니다.
+                                        <a href="#ref-d">[D]</a>
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Bias Broadcasting 오류</h3>
+                                    <p>
+                                        <code>
+                                        operands could not be broadcast together
+                                    </code>
+                                    </p>
+                                    <p>
+                                        출력 (2,4)에 Bias (3,)을 더하려는지 확인합니다.
+                                        오류가 없어도 의도하지 않은 확장이 가능하므로
+                                        결과 Shape을 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Batch 차원 누락</h3>
+                                    <p><code>(3,) ≠ (1,3)</code></p>
+                                    <p>
+                                        Sample 하나·Feature 세 개가 맞다면
+                                        2차원 함수에 (1,3)으로 전달합니다.
+                                        잘못된 Feature 개수를 reshape로 숨기지 않습니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Label의 조용한 Broadcasting</h3>
+                                    <p>
+                                        <code>(N,1) - (N,) → (N,N)</code>
+                                    </p>
+                                    <p>
+                                        단일 출력 문제의 직접 뺄셈인지 확인합니다.
+                                        Sparse 분류 Loss는 정수 Label과 예측 Shape이
+                                        원래 다를 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>Softmax 축 오류</h3>
+                                    <p><code>axis=0 vs axis=1</code></p>
+                                    <p>
+                                        (B,K)에서는 Class 축에 적용합니다.
+                                        <code>probabilities.sum(axis=1)</code>이
+                                        약 1인지 확인합니다.
+                                        <a href="#ref-c">[C]</a>
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>지수 계산 Overflow</h3>
+                                    <p>
+                                        <code>overflow encountered in exp</code>
+                                    </p>
+                                    <p>
+                                        어느 Layer의 Z부터 큰 값이 생겼는지 확인합니다.
+                                        입력 Scale·학습 중 Weight 발산을 살펴보고,
+                                        Softmax 최대값 이동 같은 안정화와
+                                        원인 해결을 구분합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>log(0)·NaN·inf</h3>
+                                    <p>
+                                        <code>
+                                        divide by zero encountered in log
+                                    </code>
+                                    </p>
+                                    <p>
+                                        원본 47번은 delta=1e-5를 더합니다.
+                                        보완 구현의 Clipping 또는 Logits 기반 손실과
+                                        원본을 구분합니다.
+                                        X부터 Loss까지 최초 비정상 위치를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>같은 입력인데 결과 변화</h3>
+                                    <p>오류인지 의도한 모드인지 구분</p>
+                                    <p>
+                                        매번 Weight를 초기화하는지,
+                                        중간 학습 Update가 있었는지,
+                                        Dropout·상태 있는 Layer가
+                                        학습 모드인지 확인합니다.
+                                        <a href="#ref-g">[G]</a>
+                                    </p>
+                                </article>
+                            </div>
+
+                            <details class="fp-detail">
+                                <summary>
+                                    보완 손계산 · Broadcasting이 조용히 잘못되는 경우
+                                </summary>
+
+                                <pre class="fp-matrix" tabindex="0" aria-label="Label Broadcasting의 잘못된 결과와 의도한 결과"><code>y_pred = [[0.38], [0.20]]  # (2,1)
+y_true = [1.0, 0.0]       # (2,)
+
+직접 뺄셈 결과 (2,2):
+[[-0.62, 0.38],
+ [-0.80, 0.20]]
+
+Sample별로 원한 차이 (2,1):
+[[-0.62],
+ [ 0.20]]</code></pre>
+
+                                <p>
+                                    이 단일 출력 예제에서 의도가 확인되었다면
+                                    Label을 <code>reshape(-1,1)</code>로 맞춥니다.
+                                    모든 분류 Loss에 같은 변경을 적용하지는 않습니다.
+                                    <a href="#ref-d">[D]</a>
+                                    <a href="#ref-f">[F]</a>
+                                </p>
+                            </details>
+
+                            <p class="fp-takeaway">
+                                입력 의미 → Shape·dtype·유한값 →
+                                W₁·b₁ → Z₁ → H₁ → W₂·b₂ → Z₂ →
+                                출력 축·선택 규칙 → Label·Loss
+                            </p>
+                        </section>
+
+                        <!-- 21. 실무 -->
+                        <section id="practice" class="lesson-card fp-card" aria-labelledby="practice-title">
+                            <p class="fp-kicker">21 · PROJECT CONNECTION</p>
+
+                            <h2 id="practice-title">
+                                모델을 호출하는 것과 올바르게 연결하는 것은 다릅니다
+                            </h2>
+
+                            <p class="fp-source">
+                                Step 1·2의 프로그램 설계 보완 예시
+                            </p>
+
+                            <ol class="fp-flow">
+                                <li>
+                                    <b>사용자 요청</b>
+                                    <span>항목·형식·단위·누락 확인</span>
+                                </li>
+                                <li>
+                                    <b>전처리</b>
+                                    <span>
+                                        학습 때와 같은 변환·Feature 순서
+                                    </span>
+                                </li>
+                                <li>
+                                    <b>순전파</b>
+                                    <span>
+                                        정해진 Parameter 버전과 실행 모드
+                                    </span>
+                                </li>
+                                <li>
+                                    <b>후처리</b>
+                                    <span>
+                                        확률·Class 이름·응답 형식 연결
+                                    </span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                학습 입력이 <code>[길이,너비,높이]</code>인데
+                                서비스가 <code>[높이,너비,길이]</code>를 전달하면
+                                Shape은 같아도 다른 의미의 계산입니다.
+                                전처리·후처리를 모델 안에 포함할 수도 있으므로
+                                포함 범위를 명확하게 정합니다.
+                            </p>
+
+                            <div class="fp-table" role="region" aria-label="모델 사용 조건 기록" tabindex="0">
+                                <table>
+                                    <caption>개발 관점의 기록 예</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">명시할 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">입력 계약</th>
+                                            <td>
+                                                Feature 의미·순서·단위·Shape
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">전처리</th>
+                                            <td>
+                                                학습 시 사용한 변환과 적용 범위
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">출력 계약</th>
+                                            <td>
+                                                수치·Logits·확률·Class 인덱스의 의미
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">실행 조건</th>
+                                            <td>
+                                                학습/추론 모드와 Parameter 버전
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">진단</th>
+                                            <td>
+                                                Layer별 Shape·범위·유한값 등 필요한 정보
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="fp-grid">
+                                <article class="fp-box">
+                                    <h3>학습 자체가 잘되지 않음</h3>
+                                    <p>
+                                        Loss·Gradient·Optimizer·데이터·모델 표현력을
+                                        점검합니다.
+                                    </p>
+                                </article>
+
+                                <article class="fp-box">
+                                    <h3>서비스에 연결한 뒤 결과가 달라짐</h3>
+                                    <p>
+                                        Parameter 로딩·Feature 순서·전처리·
+                                        실행 모드·후처리를 점검합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p class="fp-callout fp-warning">
+                                개발용 고정 데이터에서는 중간값 전체를 확인할 수 있지만,
+                                운영 환경에서는 사용자 입력과 중간값을
+                                무조건 기록하지 않습니다.
+                                민감정보 노출 가능성과
+                                실제 필요한 진단 범위를 함께 고려합니다.
+                            </p>
+                        </section>
+
+                        <!-- 22. 면접 -->
+                        <section id="interview" class="lesson-card fp-card" aria-labelledby="interview-title">
+                            <p class="fp-kicker">22 · INTERVIEW POINTS</p>
+
+                            <h2 id="interview-title">
+                                계산·해석·학습의 차이를 자신의 말로 설명합니다
+                            </h2>
+
+                            <p>
+                                먼저 답을 말하고 펼쳐서 비교하세요.
+                                답변은 앞 카드의 교안 내용과 보완 설명을 복습합니다.
+                            </p>
+
+                            <div class="fp-faq">
+                                <details>
+                                    <summary>Q1. 순전파란 무엇인가요?</summary>
+                                    <p>
+                                        입력에서 출력 방향으로 현재 모델의 계산을
+                                        수행해 예측값을 만듭니다.
+                                        교안의 학습 설명에서는 실제값과의
+                                        손실 계산까지 연결합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q2. 순전파가 Weight를 학습시키나요?
+                                    </summary>
+                                    <p>
+                                        현재 Weight를 사용합니다.
+                                        학습하려면 Loss에 대한 Gradient 계산과
+                                        Parameter Update가 추가로 필요합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q3. “가중치 계산”은 어떤 뜻인가요?
+                                    </summary>
+                                    <p>
+                                        입력에 현재 Weight를 곱해 가중합을 계산한다는 뜻입니다.
+                                        최적의 Weight를 찾는 것과 구분합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q4. Z와 H는 무엇이 다른가요?
+                                    </summary>
+                                    <p>
+                                        Z는 가중합, H는 Activation을 적용한 값입니다.
+                                        Hidden Layer의 H는 중간 표현입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q5. 앞 Layer의 Output은 다음 Layer에서 무엇인가요?
+                                    </summary>
+                                    <p>
+                                        다음 Layer의 Input입니다.
+                                        입력·출력을 전체 모델 기준인지
+                                        현재 Layer 기준인지 구분합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q6. 예측하려면 실제 Label이 필요한가요?
+                                    </summary>
+                                    <p>
+                                        이 기본 모델의 출력 계산에는 필요하지 않습니다.
+                                        예측과 비교해 Loss·성능을 계산할 때 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q7. 출력 활성화가 없으면 출력층도 생략되나요?
+                                    </summary>
+                                    <p>
+                                        아닙니다. 출력층의 HW+b를 계산하고
+                                        그 결과를 그대로 반환합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q8. Hidden ReLU 출력 0은 Class 0인가요?
+                                    </summary>
+                                    <p>
+                                        아닙니다. 내부 뉴런의 계산값이 0이라는 뜻이며
+                                        최종 Class 선택과 다릅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q9. 순전파 한 번과 Epoch 한 번은 무엇이 다른가요?
+                                    </summary>
+                                    <p>
+                                        순전파는 한 입력 묶음의 계산,
+                                        Epoch는 정해진 학습 데이터 전체를
+                                        한 차례 사용하는 단위입니다.
+                                        한 Epoch에 여러 Batch 계산이 들어갈 수 있습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q10. X * W와 X @ W는 무엇이 다른가요?
+                                    </summary>
+                                    <p>
+                                        원소별 곱과 행렬곱입니다.
+                                        Batch와 여러 뉴런을 함께 처리하는 Dense에서는
+                                        행렬곱의 연결 차원을 맞춥니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q11. Softmax는 어느 축에 적용하나요?
+                                    </summary>
+                                    <p>
+                                        (Batch, Class)라면 같은 Sample의
+                                        Class Score들을 함께 계산하는 Class 축입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q12. 높은 확률이면 정답인가요?
+                                    </summary>
+                                    <p>
+                                        확률 추정값과 실제 정답 여부는 다릅니다.
+                                        동일 Sample의 실제 Label과 비교해야 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q13. 원본 fit과 predict는 무엇이 다른가요?
+                                    </summary>
+                                    <p>
+                                        둘 다 순전파를 사용합니다.
+                                        fit은 학습 계산과 Update를 포함하고
+                                        predict는 Threshold로 Class를 반환합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q14. 순전파에서 아무 상태도 변하지 않나요?
+                                    </summary>
+                                    <p>
+                                        Weight의 Gradient 기반 최적화와 구분해야 합니다.
+                                        Batch Normalization은 학습 모드에서
+                                        이동 통계를 갱신할 수 있고
+                                        Dropout은 무작위성을 추가합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q15. 왜 중간값을 확인하나요?
+                                    </summary>
+                                    <p>
+                                        처음 잘못된 계산 위치를 찾는 데 유용하고,
+                                        이후 역전파의 미분 계산에도 연결됩니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q16. 다음 역전파 단원에서 무엇을 배우나요?
+                                    </summary>
+                                    <p>
+                                        Loss에 대해 W₁·b₁·W₂·b₂가 미친 영향을
+                                        Gradient로 구하는 과정을 공부합니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+
+                        <!-- 23. 근거와 범위 -->
+                        <section id="sources" class="lesson-card fp-card" aria-labelledby="sources-title">
+                            <p class="fp-kicker">23 · SOURCES &amp; SCOPE</p>
+
+                            <h2 id="sources-title">
+                                교안·발췌 코드·보완 예제의 범위를 구분합니다
+                            </h2>
+
+                            <dl class="fp-definitions fp-references">
+                                <div id="ref-a">
+                                    <dt>[A] AI 교안</dt>
+                                    <dd>
+                                        <cite>28_AI교안v2.pdf</cite>
+                                        §6-2 순전파와 학습,
+                                        §6-2-1 BGD·SGD·Mini-batch,
+                                        활성화 함수 설명,
+                                        §6-3 붓꽃 기본 구성,
+                                        Model Subclassing의 call 설명.
+                                        순전파와 손실 연결은
+                                        PDF 23~24번째 페이지에서 확인했습니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-b">
+                                    <dt>[B] 통합교안</dt>
+                                    <dd>
+                                        <cite>
+                                            AI_MachineLearning_통합교안_36-100.pdf
+                                        </cite>.
+                                        47번의 89쪽 검토 메모와
+                                        90쪽 Cell 005의 fit·predict,
+                                        51번의 132쪽 Layer 구성을 참고합니다.
+                                        원본 Gradient Scalar화는
+                                        별도 검토 메모로 유지합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-c">
+                                    <dt>[C] Dense·Activation</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/core_layers/dense/" target="_blank"
+                                            rel="noopener noreferrer">Keras Dense</a>와
+                                        <a href="https://keras.io/api/layers/activations/" target="_blank"
+                                            rel="noopener noreferrer">활성화 함수 문서</a>.
+                                        가중합 뒤 활성화, 선형 출력,
+                                        Softmax 축을 확인했습니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-d">
+                                    <dt>[D] NumPy</dt>
+                                    <dd>
+                                        <a href="https://numpy.org/doc/stable/reference/generated/numpy.matmul.html"
+                                            target="_blank" rel="noopener noreferrer">matmul</a>과
+                                        <a href="https://numpy.org/doc/stable/user/basics.broadcasting.html"
+                                            target="_blank" rel="noopener noreferrer">Broadcasting</a>.
+                                        행렬곱 차원과 행별 Bias·Label 확장을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-e">
+                                    <dt>[E] 학습·평가 API</dt>
+                                    <dd>
+                                        <a href="https://keras.io/guides/training_with_built_in_methods/"
+                                            target="_blank" rel="noopener noreferrer">Keras 학습·평가·예측 가이드</a>.
+                                        일반적인 Batch·Epoch와
+                                        fit·evaluate·predict의 역할을 구분합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-f">
+                                    <dt>[F] Loss API</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/losses/probabilistic_losses/" target="_blank"
+                                            rel="noopener noreferrer">Keras 확률 손실 함수</a>.
+                                        Label 형식과 확률·Logits 입력을 구분합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-g">
+                                    <dt>[G] 실행 모드</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/regularization_layers/dropout/"
+                                            target="_blank" rel="noopener noreferrer">Dropout</a>과
+                                        <a href="https://keras.io/api/layers/normalization_layers/batch_normalization/"
+                                            target="_blank" rel="noopener noreferrer">Batch Normalization</a>.
+                                        Step 1·2의 모드·상태 보완 설명을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-h">
+                                    <dt>[H] 자동 미분</dt>
+                                    <dd>
+                                        <a href="https://www.tensorflow.org/guide/autodiff" target="_blank"
+                                            rel="noopener noreferrer">TensorFlow 자동 미분 가이드</a>.
+                                        순방향 연산 기록과 Gradient 계산의
+                                        다음 단원 연결에 사용합니다.
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <p class="fp-source">
+                                공식 문서 확인일: 2026-09-07.
+                                설치 버전에 따라 오류·출력 형식은 달라질 수 있습니다.
+                            </p>
+
+                            <div class="fp-callout fp-supplement">
+                                <h3>
+                                    보완 내용은 원본 결과로 표시하지 않습니다
+                                </h3>
+
+                                <p>
+                                    3 → 2 → 1 고정 Parameter,
+                                    두 Sample의 0.38·0.20,
+                                    Sigmoid(0.38),
+                                    가상 Logits [2,1,0],
+                                    MSE·Cross Entropy 숫자,
+                                    오류 사례·공정 비유·프로젝트 연결은
+                                    Step 1·2에서 추가한 보완 내용입니다.
+                                </p>
+
+                                <p>
+                                    교안의 예제 선택을 모든 모델의 절대 규칙으로
+                                    확장하지 않고,
+                                    모드 예외와 수치 구현의 보완 설명을
+                                    별도로 표시했습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 24. 다음 단원 -->
+                        <section id="next" class="lesson-card fp-card" aria-labelledby="next-title">
+                            <p class="fp-kicker">
+                                24 · NEXT: BACKPROPAGATION
+                            </p>
+
+                            <h2 id="next-title">
+                                이제 Loss가 각 Parameter에 미친 영향을 계산합니다
+                            </h2>
+
+                            <p>
+                                이번에는 값을 계산했습니다.
+                                다음 질문은
+                                <strong>
+                                    “W₁·b₁·W₂·b₂를 각각 어떻게 바꿔야
+                                    Loss가 줄어드는가?”
+                                </strong>입니다.
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <ol class="fp-flow">
+                                <li>
+                                    <b>순전파</b>
+                                    <span>
+                                        Prediction과 필요한 Loss 계산
+                                    </span>
+                                </li>
+                                <li>
+                                    <b>역전파</b>
+                                    <span>Parameter별 Gradient 계산</span>
+                                </li>
+                                <li>
+                                    <b>Optimizer Update</b>
+                                    <span>Gradient로 Parameter 수정</span>
+                                </li>
+                                <li>
+                                    <b>다음 순전파</b>
+                                    <span>바뀐 Parameter로 다시 계산</span>
+                                </li>
+                            </ol>
+
+                            <div class="fp-callout">
+                                <h3>중간값은 다음 계산에도 연결됩니다</h3>
+                                <p>
+                                    예를 들어 <code>h=σ(z)</code>이면
+                                    <code>dh/dz=h(1-h)</code>입니다.
+                                    순전파에서 구한 h가 미분식에 등장합니다.
+                                    자동 미분 도구도 순방향 연산을 기록하고
+                                    Gradient 계산에 사용합니다.
+                                    <a href="#ref-h">[H]</a>
+                                </p>
+                            </div>
+
+                            <p class="fp-takeaway">
+                                순전파는 “어떤 값이 계산되었는가?”,
+                                역전파는 “그 계산이 Loss에 어떤 영향을 주었는가?”를
+                                묻습니다.
+                            </p>
+
+                            <a class="fp-next-link" href="./18_back_propagation.html">
+                                18. 역전파로 이동
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        </section>
+                    </main>
+
+                    <!-- ASIDE: 암기 · 헷갈리는 개념 · 다음 연결 -->
+                    <aside class="side-note fp-aside" aria-label="순전파 복습 노트">
+                        <section class="note-card fp-note">
+                            <p class="fp-kicker">MEMORY</p>
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ol class="fp-memory">
+                                <li>
+                                    순전파는 현재 Parameter로 계산합니다.
+                                </li>
+                                <li>
+                                    <code>Z=XW+b</code>,
+                                    <code>H=f(Z)</code>입니다.
+                                </li>
+                                <li>
+                                    Hidden 출력은 다음 Layer의 입력입니다.
+                                </li>
+                                <li>예측값과 실제값을 구분합니다.</li>
+                                <li>확률과 Class 선택은 다릅니다.</li>
+                                <li>
+                                    Loss 계산만으로 Update되지는 않습니다.
+                                </li>
+                                <li>Batch와 Epoch는 다른 단위입니다.</li>
+                                <li>중간값·Shape·실행 모드를 확인합니다.</li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card fp-note">
+                            <p class="fp-kicker">TRACE</p>
+                            <h2>첫 Sample의 이동</h2>
+
+                            <p class="fp-mini-formula">
+                                [1,2,3]<br>
+                                ↓ 가중합<br>
+                                [0.7,-0.4]<br>
+                                ↓ ReLU<br>
+                                [0.7,0]<br>
+                                ↓ 출력 계산<br>
+                                0.38
+                            </p>
+
+                            <p>
+                                설명용 고정값의 선형 출력입니다.
+                                확률이나 학습 성능이 아닙니다.
+                            </p>
+
+                            <a href="#hand">손계산으로 이동</a>
+                        </section>
+
+                        <section class="note-card fp-note">
+                            <p class="fp-kicker">CONFUSION</p>
+                            <h2>헷갈리는 짝</h2>
+
+                            <dl class="fp-pairs">
+                                <dt>Z / H</dt>
+                                <dd>활성화 전 / 활성화 후</dd>
+
+                                <dt>Ŷ / Y</dt>
+                                <dd>예측값 / 실제값</dd>
+
+                                <dt>W / Learning Rate</dt>
+                                <dd>학습 Parameter / 학습 설정</dd>
+
+                                <dt>* / @</dt>
+                                <dd>원소별 곱 / 행렬곱</dd>
+
+                                <dt>Probability / Class</dt>
+                                <dd>연속 출력 / 선택한 Label</dd>
+
+                                <dt>Forward / Update</dt>
+                                <dd>모델 사용 / 모델 수정</dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card fp-note">
+                            <p class="fp-kicker">SOURCE NOTE</p>
+                            <h2>교안과 보완 구분</h2>
+
+                            <p>
+                                교안의 순전파 설명은
+                                예측과 손실 계산을 연결합니다.
+                            </p>
+
+                            <p>
+                                47번 원본은 Sigmoid → Sigmoid,
+                                본문의 고정 예제는 ReLU → Linear입니다.
+                            </p>
+
+                            <p>
+                                Gradient Scalar화 검토 메모를
+                                원본과 함께 유지합니다.
+                            </p>
+
+                            <a href="#sources">참고 자료 확인</a>
+                        </section>
+
+                        <section class="note-card fp-note">
+                            <p class="fp-kicker">SELF CHECK</p>
+                            <h2>이 Layer를 설명하기</h2>
+
+                            <p>
+                                “무엇을 입력받고, 어떤 W·b로 계산하며,
+                                어떤 Activation을 거쳐,
+                                어떤 Shape과 의미의 값을 반환하는가?”
+                            </p>
+                        </section>
+
+                        <section class="note-card fp-note">
+                            <p class="fp-kicker">NEXT</p>
+                            <h2>18. 역전파</h2>
+
+                            <p>
+                                이미 계산한 Loss에 대한
+                                각 Parameter의 Gradient를 구합니다.
+                            </p>
+
+                            <a href="./18_back_propagation.html">
+                                역전파로 이동 →
+                            </a>
+                        </section>
+                    </aside>
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <nav class="lesson-pagination fp-pagination" aria-label="AI 단원 이동">
+                    <a href="./16_neural_network.html">
+                        <small>PREVIOUS</small>
+                        <span>← 16. 인공신경망</span>
+                    </a>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI</span>
-                    
-                    <span>17</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a href="./00_ai_index.html">
+                        <small>COURSE</small>
+                        <span>AI 목차</span>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-ai-17">
-                    <h2 id="goals-ai-17">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="concept" class="lesson-card concept-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>핵심 개념</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="background" class="lesson-card background-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>왜 등장했는가?</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="visual" class="lesson-card visual-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>그림처럼 이해</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="principle" class="lesson-card principle-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>수식 또는 원리 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>동작 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="comparison" class="lesson-card comparison-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>비슷한 개념 비교</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="limitation" class="lesson-card limitation-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>한계와 보완</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>코드 또는 예제</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 착각</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지 읽는 법</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="17. 순전파 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                    <a href="./18_back_propagation.html">
+                        <small>NEXT</small>
+                        <span>18. 역전파 →</span>
+                    </a>
+                </nav>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI 단원 이동">
-                <a class="lesson-prev" href="./16_neural_network.html">
-                    <span>이전 단원</span>
-                    <strong>16. 인공신경망</strong>
-                </a>
-
-                <a class="lesson-course-index" href="./00_ai_index.html">
-                    <span>과목 목차</span>
-                    <strong>AI 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./18_back_propagation.html">
-                    <span>다음 단원</span>
-                    <strong>18. 역전파</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+    </body>
+
 </html>
