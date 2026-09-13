@@ -1,236 +1,2976 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="22. 딥러닝 성능 개선 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>22. 딥러닝 성능 개선 | AI | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/22_deep_learning_performance.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page ai-course-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="ai"
-      data-lesson="22"
-      data-step="0"
-      data-status="skeleton">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description" content="22. 딥러닝 성능 개선. 과적합·검증·규제·BN·Dropout·조기 종료·체크포인트를 교안 결과와 손계산으로 연결합니다.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>
+            22. 딥러닝 성능 개선 | AI | AI &amp; Machine Learning
+        </title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 01</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI · 22</p>
-                        <h1>22. 딥러닝 성능 개선</h1>
+        <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
+
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
+
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/22_deep_learning_performance.css">
+
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page ai-course-page ai-lesson-page ai-performance-page"
+        data-nav-category="ai-machine-learning" data-nav-item="course-ai" data-course="ai" data-lesson="22">
+        <a class="skip-link dp-skip" href="#lesson-main">
+            본문 바로가기
+        </a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+
+            <div class="page-content">
+
+                <!-- HEADER: 제목 · 핵심 요약 · 학습 목표 -->
+                <header class="lesson-hero ai-ml-hero dp-hero">
+
+                    <p class="dp-eyebrow">
+                        AI &amp; MACHINE LEARNING · AI · LESSON 22
+                    </p>
+
+                    <h1>
+                        22. 딥러닝 성능 개선
+                        <span>
+                            실행되는 모델에서<br>
+                            새 데이터에도 유효한 모델로
+                        </span>
+                    </h1>
+
+                    <p class="dp-lead">
+                        기법의 이름보다
+                        <strong>
+                            무엇을 바꾸고, 무엇을 관찰하고, 어떤 모델을 평가하는가
+                        </strong>를 이해합니다.
+                        학습의 마지막 상태와 검증 기준으로 선택한 상태를 구분합니다.
+                    </p>
+
+                    <div class="dp-tags" aria-label="핵심 키워드">
+                        <span>Overfitting · Validation</span>
+                        <span>Regularization</span>
+                        <span>Batch Normalization · Dropout</span>
+                        <span>EarlyStopping · ModelCheckpoint</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <section class="learning-goals dp-goals" aria-labelledby="goals-title">
+                        <h2 id="goals-title">학습 목표</h2>
+
+                        <ol>
+                            <li>
+                                과적합·과소적합과 최적화·일반화의 차이를 설명합니다.
+                            </li>
+                            <li>
+                                초기화·규제·BN·LN·Dropout이
+                                계산을 어떻게 바꾸는지 읽습니다.
+                            </li>
+                            <li>
+                                EarlyStopping·Checkpoint·복원·평가를
+                                별도 단계로 구분합니다.
+                            </li>
+                            <li>
+                                교안의 저장 결과와 보완 손계산·코드를
+                                구분해 해석합니다.
+                            </li>
+                        </ol>
+                    </section>
+                </header>
+
+                <div class="content-layout dp-content">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <nav class="chapter-map dp-toc" aria-label="22단원 목차">
+                            <h2>학습 순서</h2>
+
+                            <ol>
+                                <li><a href="#overview">핵심 목표와 모델 상태</a></li>
+                                <li><a href="#generalization">최적화와 일반화</a></li>
+                                <li><a href="#diagnosis">상태 관찰과 기준 모델</a></li>
+                                <li><a href="#validation">Train·Validation·Test</a></li>
+                                <li><a href="#roles">개선 방법의 역할</a></li>
+                                <li><a href="#initialization">가중치 초기화</a></li>
+                                <li><a href="#regularization">Regularization 수식</a></li>
+                                <li><a href="#penalty">패널티 손계산과 Loss 비교</a></li>
+                                <li><a href="#batch-norm">BN의 통계와 수식</a></li>
+                                <li><a href="#bn-state">BN의 상태와 손계산</a></li>
+                                <li><a href="#layer-norm">BN과 LN 비교</a></li>
+                                <li><a href="#dropout">Dropout의 계산</a></li>
+                                <li><a href="#modes">학습과 추론 모드</a></li>
+                                <li><a href="#callback">Callback의 역할</a></li>
+                                <li><a href="#early-stopping">EarlyStopping 설정</a></li>
+                                <li><a href="#checkpoint">ModelCheckpoint와 복원</a></li>
+                                <li><a href="#execution">실행 흐름과 상태 구분</a></li>
+                                <li><a href="#original">63번 원본 코드</a></li>
+                                <li><a href="#patience">실제 종료 기록</a></li>
+                                <li><a href="#restore-result">로드 전후 테스트 결과</a></li>
+                                <li><a href="#comparison">66번의 개선 모델 비교</a></li>
+                                <li><a href="#numpy">독립 NumPy 검증</a></li>
+                                <li><a href="#keras">Keras 보완 연결 예제</a></li>
+                                <li><a href="#source-review">교안 표현·코드 점검</a></li>
+                                <li><a href="#mistakes">자주 하는 실수</a></li>
+                                <li><a href="#errors">오류 메시지 읽기</a></li>
+                                <li><a href="#practice">실무·재현·기록</a></li>
+                                <li><a href="#tools">TensorBoard와 데이터 증강</a></li>
+                                <li><a href="#interview">면접 포인트</a></li>
+                                <li><a href="#sources">자료와 보완 범위</a></li>
+                                <li><a href="#next">23단원 연결</a></li>
+                            </ol>
+                        </nav>
+
+                        <!-- 01. 핵심 목표 -->
+                        <section id="overview" class="lesson-card dp-card" aria-labelledby="overview-title">
+                            <p class="dp-kicker">01 · 핵심 목표와 모델 상태</p>
+
+                            <h2 id="overview-title">
+                                많이 추가하는 것보다,
+                                무엇을 고치고 어떤 모델을 쓸지 판단합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A의 과적합·검증·종료 설명을
+                                Step 1·2의 흐름으로 연결
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <p>
+                                이번 단원은
+                                <strong>
+                                    관찰 → 진단 → 변경 → 검증 → 선택 → 복원 → 평가
+                                </strong>의 과정입니다.
+                                모델이 정상 실행되었다는 사실과
+                                새 데이터에서도 유용하다는 사실은 다릅니다.
+                            </p>
+
+                            <div class="dp-state-grid">
+                                <article class="dp-box">
+                                    <h3>마지막으로 학습한 모델</h3>
+                                    <p>
+                                        학습이 끝난 순간의 Parameter를 가진 모델입니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>검증 기준으로 선택한 모델</h3>
+                                    <p>
+                                        모니터링한 검증 지표에 따라
+                                        선택한 시점의 모델입니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>실제로 평가한 모델</h3>
+                                    <p>
+                                        evaluate에 전달한 객체입니다.
+                                        저장 파일을 실제로 적용했는지 확인합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p class="dp-takeaway">
+                                학습 종료 ≠ 최선 상태 저장 ≠ 저장 상태 복원 ≠ 그 상태의 평가.
+                                서로 다른 작업입니다.
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="이 페이지에서 자료를 읽는 기준" tabindex="0">
+                                <table>
+                                    <caption>이 페이지에서 자료를 읽는 기준</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">자료</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">AI 교안</th>
+                                            <td>등장 이유·용어·대표 배치·한계의 설명</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">통합교안</th>
+                                            <td>62·63·66번의 코드와 저장된 결과</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">보완 이해</th>
+                                            <td>수식 해석·손계산·코드 연결·오류와 실무 점검</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">공식 API 확인</th>
+                                            <td>
+                                                현재 동작과 설정을 교안의 표현과 구분 ·
+                                                2026-09-13 확인
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 02. 최적화와 일반화 -->
+                        <section id="generalization" class="lesson-card dp-card" aria-labelledby="generalization-title">
+                            <p class="dp-kicker">02 · 최적화와 일반화</p>
+
+                            <h2 id="generalization-title">
+                                학습 Loss 감소와 새 데이터의 성능은 별개의 질문입니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 47쪽 + 과적합·과소적합 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-c">[C]</a>
+                            </p>
+
+                            <div class="dp-grid">
+                                <article class="dp-box">
+                                    <h3>최적화</h3>
+                                    <p>정의한 학습 목적함수를 줄이고 있는가?</p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>일반화</h3>
+                                    <p>
+                                        학습한 관계가 아직 보지 못한 데이터에서도 유효한가?
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                교안은 과적합을 학습 데이터에 지나치게 적합되어
+                                새로운 데이터의 성능이 떨어지는 경우로 설명합니다.
+                                <strong>과소적합</strong>은 학습 데이터의 관계도
+                                충분히 표현하거나 학습하지 못하는 상황으로 나누어 봅니다.
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="설명용 가상 수치" tabindex="0">
+                                <table>
+                                    <caption>
+                                        설명용 가상 수치 · 교안의 실행 결과가 아닙니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">모델</th>
+                                            <th scope="col">학습 정확도</th>
+                                            <th scope="col">검증 정확도</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">A</th>
+                                            <td>99%</td>
+                                            <td>76%</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">B</th>
+                                            <td>94%</td>
+                                            <td>90%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                학습 정확도가 높은 A를 무조건 선택할 수는 없습니다.
+                                실제 목적과 검증 기준을 확인해야 합니다.
+                                교안은 모델 복잡도와 큰 Parameter 절대값을
+                                과적합의 주요 점검 관점으로 제시합니다.
+                            </p>
+
+                            <p>
+                                다만 Parameter가 많다는 이유만으로 과적합을 확정하지 않습니다.
+                                모델 크기·데이터의 양과 다양성·학습 방법·규제·검증 결과를
+                                함께 봅니다.
+                            </p>
+                        </section>
+
+                        <!-- 03. 진단 -->
+                        <section id="diagnosis" class="lesson-card dp-card" aria-labelledby="diagnosis-title">
+                            <p class="dp-kicker">03 · 상태 관찰과 기준 모델</p>
+
+                            <h2 id="diagnosis-title">
+                                한 번의 지표 변화로 원인을 확정하지 않습니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안의 검증 관찰을 실험 절차로 확장한 보완 정리
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-c">[C]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="진단을 시작하는 질문" tabindex="0">
+                                <table>
+                                    <caption>
+                                        진단을 시작하는 질문 · 자동 판정표가 아닙니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">관찰</th>
+                                            <th scope="col">가능한 방향</th>
+                                            <th scope="col">먼저 확인</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">학습·검증 성능 모두 낮음</th>
+                                            <td>충분히 관계를 학습하지 못했을 가능성</td>
+                                            <td>입력·Label·모델·학습률·학습 진행</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">학습만 좋아지고 검증은 악화</th>
+                                            <td>과적합 가능성</td>
+                                            <td>구조·규제·데이터·종료 시점</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Loss가 크게 흔들림</th>
+                                            <td>표본 변동·학습 불안정 가능성</td>
+                                            <td>Batch·데이터 규모·Learning Rate</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">검증 개선이 멈춤</th>
+                                            <td>지속 학습의 이득이 줄어듦</td>
+                                            <td>종료 조건과 개선 정체의 원인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">중간에는 좋았지만 마지막은 나쁨</th>
+                                            <td>좋은 시점을 지나쳤을 가능성</td>
+                                            <td>Checkpoint와 복원 객체</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>기준 모델</b>
+                                    <span>출발점의 결과 기록</span>
+                                </li>
+                                <li>
+                                    <b>변경 가설</b>
+                                    <span>무엇이 문제인지 설명</span>
+                                </li>
+                                <li>
+                                    <b>한정된 변경</b>
+                                    <span>무엇을 바꿨는지 기록</span>
+                                </li>
+                                <li>
+                                    <b>재검증</b>
+                                    <span>같은 기준으로 효과 확인</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                학습조차 충분하지 않은 모델에
+                                규제와 Dropout을 무조건 강화하지 않습니다.
+                                여러 요소를 동시에 바꿀 수는 있지만,
+                                그 결과를 특정 기법 하나의 효과로 단정하기 어렵습니다.
+                            </p>
+                        </section>
+
+                        <!-- 04. Validation -->
+                        <section id="validation" class="lesson-card dp-card" aria-labelledby="validation-title">
+                            <p class="dp-kicker">04 · Train·Validation·Test</p>
+
+                            <h2 id="validation-title">
+                                선택에 쓰는 데이터와 최종 평가 데이터를 분리합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A의 검증 개념 /
+                                전처리와 실제 분리 규칙 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-d">[D]</a>
+                            </p>
+
+                            <div class="dp-grid">
+                                <article class="dp-box">
+                                    <h3>Train</h3>
+                                    <p>Gradient와 Parameter Update에 사용합니다.</p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>Validation</h3>
+                                    <p>상태·구조·설정·선택 Epoch를 검토합니다.</p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>Test</h3>
+                                    <p>선택을 마친 모델을 별도 데이터에서 평가합니다.</p>
+                                </article>
+                            </div>
+
+                            <p>
+                                평균·표준편차 등을 데이터에서 추정하는 전처리는
+                                Train에서 기준을 구하고 Validation과 Test에는 같은 기준을 적용합니다.
+                                전체 데이터로 전처리를 먼저 학습하면
+                                평가 정보가 학습에 들어갈 수 있습니다.
+                            </p>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>validation_split과 shuffle은 다른 일입니다</h3>
+                                <p>
+                                    NumPy 배열의 validation_split은
+                                    셔플 전에 뒤쪽 일부를 검증용으로 분리합니다.
+                                    shuffle=True라고 검증 Sample이
+                                    매 Epoch 새로 선택되는 것은 아닙니다.
+                                    정렬 순서·Class 구성·같은 원본에서 나온
+                                    유사 Sample의 분리를 확인합니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                검증 단계는 일반적으로 검증 Label로 학습용 Gradient Update를
+                                하지 않습니다.
+                                하지만 검증 결과로 설정을 반복 선택하므로
+                                Validation 최선도 모든 새 데이터의 최고 성능을 보장하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 05. 역할 -->
+                        <section id="roles" class="lesson-card dp-card" aria-labelledby="roles-title">
+                            <p class="dp-kicker">05 · 개선 방법의 역할</p>
+
+                            <h2 id="roles-title">
+                                초기화·규제·정규화·저장·관찰을 한 종류로 부르지 않습니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A의 순서를 역할별로 구조화
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="각 방법이 바꾸는 대상" tabindex="0">
+                                <table>
+                                    <caption>각 방법이 바꾸는 대상</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">방법</th>
+                                            <th scope="col">담당하는 것</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">초기화</th>
+                                            <td>학습 시작값의 분포와 스케일</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Regularization</th>
+                                            <td>학습 목적에 추가되는 패널티</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Batch Normalization</th>
+                                            <td>Batch 통계를 이용한 중간값 변환</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Layer Normalization</th>
+                                            <td>Sample 내부의 지정 축을 이용한 변환</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Dropout</th>
+                                            <td>학습 중 일부 활성값의 임시 제외</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">EarlyStopping</th>
+                                            <td>언제 학습을 끝낼지 판단</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">ModelCheckpoint</th>
+                                            <td>모델 또는 가중치의 저장</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">TensorBoard</th>
+                                            <td>학습 과정의 관찰·시각화</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">데이터 증강</th>
+                                            <td>학습 데이터의 의미를 유지하는 변형</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>한국어 표현이 비슷한 “정규화”도 구분합니다</h3>
+
+                            <p>
+                                Regularization은 학습 목적에 제약을 더하는 규제화입니다.
+                                입력 표준화는 전처리이고,
+                                BN·LN은 Layer 값의 통계적 변환입니다.
+                                <code>Loss에 L2를 추가</code>하는 일과
+                                <code>입력 평균을 빼기</code>,
+                                <code>BatchNormalization Layer 추가</code>는 다릅니다.
+                            </p>
+                        </section>
+
+                        <!-- 06. 초기화 -->
+                        <section id="initialization" class="lesson-card dp-card" aria-labelledby="initialization-title">
+                            <p class="dp-kicker">06 · 가중치 초기화</p>
+
+                            <h2 id="initialization-title">
+                                학습 시작의 스케일을 입력·출력 크기와 연결합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 47~48쪽의 Xavier·He 설명 /
+                                Dense 기본값 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-e">[E]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="교안의 기본 분산 척도" tabindex="0">
+                                <table>
+                                    <caption>교안의 기본 분산 척도</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">방법</th>
+                                            <th scope="col">대표 연결</th>
+                                            <th scope="col">분산 척도</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Xavier·Glorot</th>
+                                            <td>Sigmoid·tanh 계열</td>
+                                            <td>2 / (n_in + n_out)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">He</th>
+                                            <td>ReLU 계열</td>
+                                            <td>2 / n_in</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="dp-equation">
+                                <p>
+                                    <code>
+                                    Xavier 균등분포:
+                                    U(−sqrt(6/(n_in+n_out)), +sqrt(6/(n_in+n_out)))
+                                </code>
+                                </p>
+                                <p>
+                                    <code>
+                                    He 균등분포:
+                                    U(−sqrt(6/n_in), +sqrt(6/n_in))
+                                </code>
+                                </p>
+                            </div>
+
+                            <p>
+                                n_in은 입력 노드 수, n_out은 출력 노드 수입니다.
+                                교안은 평균 0의 정규분포 방식과 위 균등분포 방식을 소개합니다.
+                                숫자 암기보다
+                                <strong>입력·출력 크기에 맞는 초기값 스케일</strong>을 이해합니다.
+                            </p>
+
+                            <p>
+                                이는 초기 신호 전달을 돕는 방향이지
+                                과적합이나 모든 기울기 문제의 해결 보장이 아닙니다.
+                                교안의 “50층 이상” 예도
+                                모든 모델의 절대 경계로 사용하지 않습니다.
+                            </p>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>현재 API와 교안의 일반 설명을 나눕니다</h3>
+                                <p>
+                                    공식 Dense의 기본 kernel_initializer는
+                                    glorot_uniform입니다.
+                                    glorot_normal·he_normal은 별도 설정입니다.
+                                    교안의 분포 설명과 Library의 구체적인 초기화 이름을 구분합니다.
+                                    초기화와 BN은 대체가 아니라
+                                    역할이 다른 보완 방법으로 읽습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 07. Regularization -->
+                        <section id="regularization" class="lesson-card dp-card" aria-labelledby="regularization-title">
+                            <p class="dp-kicker">07 · Regularization 수식</p>
+
+                            <h2 id="regularization-title">
+                                Data Loss와 패널티를 함께 최소화합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 48~49쪽 /
+                                적용 대상은 공식 API 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-f">[F]</a>
+                            </p>
+
+                            <div class="dp-equation">
+                                <p><code>L_total = L_data + λ R(W)</code></p>
+                                <p><code>L1: R(W)=Σ_j |w_j|</code></p>
+                                <p><code>L2: R(W)=Σ_j w_j²</code></p>
+                            </div>
+
+                            <p>
+                                L_data는 예측과 실제값의 차이,
+                                R(W)는 패널티, λ는 규제 강도인 Hyperparameter입니다.
+                                규제는 학습 후 Weight를 임의로 잘라내는 것이 아니라
+                                <strong>학습이 최소화하는 목적</strong>을 바꿉니다.
+                            </p>
+
+                            <div class="dp-equation">
+                                <p>
+                                    <code>
+                                    보완 미분 · L2:
+                                    ∂L_total/∂w_j = ∂L_data/∂w_j + 2λw_j
+                                </code>
+                                </p>
+                            </div>
+
+                            <div class="dp-table" role="region" aria-label="Keras 규제의 적용 대상" tabindex="0">
+                                <table>
+                                    <caption>Keras 규제의 적용 대상</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">설정</th>
+                                            <th scope="col">적용 대상</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">kernel_regularizer</th>
+                                            <td>Weight</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">bias_regularizer</th>
+                                            <td>Bias</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">activity_regularizer</th>
+                                            <td>Layer 출력</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                kernel_regularizer만 지정했다고
+                                Bias까지 같은 규제를 받는 것은 아닙니다.
+                                위 식은 λΣw² 형태를 미분한 것이며
+                                Optimizer는 합쳐진 Gradient를 사용합니다.
+                            </p>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>L1의 “노드 제거 효과”를 구분합니다</h3>
+                                <p>
+                                    교안은 Weight가 0이 되면 입력 노드를 제거하는 효과로 설명합니다.
+                                    연결 하나의 기여가 0인 것과
+                                    그 노드의 전체 경로가 제거되는 것은 다릅니다.
+                                    L1이 특정 상황에서 희소성을 유도한다는 설명을
+                                    모든 값의 정확한 0 보장으로 읽지 않습니다.
+                                    Layer Shape이나 summary의 선언된 Parameter 수도
+                                    자동으로 줄어들지 않습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 08. Loss 비교 -->
+                        <section id="penalty" class="lesson-card dp-card" aria-labelledby="penalty-title">
+                            <p class="dp-kicker">08 · 패널티 손계산과 Loss 비교</p>
+
+                            <h2 id="penalty-title">
+                                숫자가 커진 이유가 오차인지 패널티인지 확인합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                Step 1·2의 보완 손계산 · 실제 학습 결과가 아닙니다
+                            </p>
+
+                            <div class="dp-equation">
+                                <p><code>W=[1,−2,0.5], λ=0.1</code></p>
+                                <p><code>L1 penalty=0.1×(1+2+0.5)=0.35</code></p>
+                                <p><code>L2 penalty=0.1×(1+4+0.25)=0.525</code></p>
+                            </div>
+
+                            <div class="dp-table" role="region" aria-label="Data Loss를 0.2로 가정한 계산" tabindex="0">
+                                <table>
+                                    <caption>Data Loss를 0.2로 가정한 계산</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구성</th>
+                                            <th scope="col">전체 Loss</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">규제 없음</th>
+                                            <td>0.2</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">L1 추가</th>
+                                            <td>0.55</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">L2 추가</th>
+                                            <td>0.725</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                고정 Weight에 대한 계산입니다.
+                                패널티를 더했으므로 전체 Loss가 커진 것이며,
+                                이 사실만으로 예측이 나빠졌다고 결론 내리지 않습니다.
+                            </p>
+
+                            <div class="dp-callout">
+                                <h3>
+                                    규제가 다른 모델의 val_loss를 그대로 비교하지 않습니다
+                                </h3>
+                                <p>
+                                    Keras의 규제 패널티는 모델 Loss에 포함됩니다.
+                                    이름이 같은 val_loss라도 포함 항이 다를 수 있습니다.
+                                    규제항 포함 여부와 공통 Accuracy 또는 데이터 손실 등
+                                    문제에 맞는 지표를 함께 봅니다.
+                                    Accuracy 하나만으로 모든 문제의 목적이 결정되는 것도 아닙니다.
+                                    <a href="#ref-f">[F]</a>
+                                    <a href="#ref-c">[C]</a>
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 09. BN 수식 -->
+                        <section id="batch-norm" class="lesson-card dp-card" aria-labelledby="batch-norm-title">
+                            <p class="dp-kicker">09 · BN의 통계와 수식</p>
+
+                            <h2 id="batch-norm-title">
+                                같은 Feature의 여러 Sample을 모아서 계산합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 49~51쪽 /
+                                분모 표기와 공식 기본 동작을 분리
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-g">[G]</a>
+                            </p>
+
+                            <p>
+                                Dense 출력 Z가 (B,F)이면 같은 열의 Sample 값을 모읍니다.
+                                교안은 Batch별 중간값 분포 변화에 대응해
+                                학습을 안정화하는 방법으로 설명합니다.
+                            </p>
+
+                            <div class="dp-grid">
+                                <article class="dp-box">
+                                    <h3>Feature 1의 통계</h3>
+                                    <p>Sample들의 z11·z21·z31을 모아 계산</p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>Feature 2의 통계</h3>
+                                    <p>Sample들의 z12·z22·z32를 모아 계산</p>
+                                </article>
+                            </div>
+
+                            <div class="dp-callout dp-warning">
+                                <h3>교안 수식은 σ에 ε를 더합니다</h3>
+                                <p>
+                                    50쪽은 표준편차 σ_j를 구한 뒤
+                                    <code>(z_ij−μ_j)/(σ_j+ε)</code>로 적고 있습니다.
+                                    아래 공식 API 형태의
+                                    <code>sqrt(v_j+ε)</code>와 완전히 같은 계산은 아닙니다.
+                                    원문 표기를 숨겨서 바꾸지 않고 두 식을 나눕니다.
+                                </p>
+                            </div>
+
+                            <div class="dp-equation">
+                                <p><code>공식 API 보완 · μ_j=(1/B)Σ_i z_ij</code></p>
+                                <p><code>v_j=(1/B)Σ_i(z_ij−μ_j)²</code></p>
+                                <p><code>z_hat_ij=(z_ij−μ_j)/sqrt(v_j+ε)</code></p>
+                                <p><code>a_ij=γ_j z_hat_ij+β_j</code></p>
+                            </div>
+
+                            <p>
+                                γ는 스케일, β는 이동을 조정합니다.
+                                교안은 Sigmoid의 입력 범위와 연결해 설명하지만,
+                                보완해서는 모델에 필요한 스케일과 위치를 학습할 자유도로 읽습니다.
+                                Sigmoid에서만 쓰이는 장치는 아닙니다.
+                            </p>
+
+                            <p>
+                                <strong>
+                                    평균·분산 변환은 분포 전체의 동일화나
+                                    Gaussian 분포 생성과 다릅니다.
+                                </strong>
+                                서로 다른 값 두 종류만 있는 데이터도
+                                이 변환 후 여전히 두 종류입니다.
+                                γ·β를 적용한 최종 출력의 평균과 스케일도
+                                정규화 직후 값과 다를 수 있습니다.
+                            </p>
+                        </section>
+
+                        <!-- 10. BN 상태 -->
+                        <section id="bn-state" class="lesson-card dp-card" aria-labelledby="bn-state-title">
+                            <p class="dp-kicker">10 · BN의 상태와 손계산</p>
+
+                            <h2 id="bn-state-title">
+                                학습 가능한 값과 이동 통계를 같은 것으로 부르지 않습니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안의 네 값 설명을 구분한 공식 API 보완 /
+                                손계산은 가정값
+                                <a href="#ref-g">[G]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="일반적인 BN의 상태" tabindex="0">
+                                <table>
+                                    <caption>
+                                        일반적인 BN · center=True, scale=True,
+                                        Layer가 학습 가능한 상태
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">값</th>
+                                            <th scope="col">처리 방식</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">현재 Batch 평균·분산</th>
+                                            <td>이번 입력에서 계산</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">γ·β</th>
+                                            <td>Gradient로 학습</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                moving_mean·moving_variance
+                                            </th>
+                                            <td>Batch 통계로 갱신하는 비학습 상태</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Feature 64개의 기본 BN은 γ·β 128개와 이동 통계 128개로
+                                총 256개를 저장합니다.
+                                256개 모두가 Gradient로 학습되는 것은 아닙니다.
+                                교안의 주석과 실제 상태의 역할을 분리합니다.
+                            </p>
+
+                            <div class="dp-equation">
+                                <p><code>학습: 현재 Batch 통계 사용 + 이동 통계 갱신</code></p>
+                                <p><code>추론: 저장된 이동 통계 사용</code></p>
+                                <p>
+                                    <code>
+                                    moving_mean ←
+                                    ρ×moving_mean + (1−ρ)×batch_mean
+                                </code>
+                                </p>
+                            </div>
+
+                            <p>
+                                여기서 momentum은 이동평균 계수입니다.
+                                앞 Optimizer 단원의 Momentum과 같은 계산이 아닙니다.
+                                Layer 동결이나 실행 모드를 바꾼 경우에는
+                                기본 동작 조건을 다시 확인합니다.
+                            </p>
+
+                            <h3>설명용 Batch Z=[2,4,6]</h3>
+
+                            <div class="dp-equation">
+                                <p><code>μ=4, v=8/3, ε=1e−5</code></p>
+                                <p><code>정규화: [−1.224743, 0, 1.224743]</code></p>
+                                <p>
+                                    <code>
+                                    γ=2, β=1 적용: [−1.449485, 1, 3.449485]
+                                </code>
+                                </p>
+                            </div>
+
+                            <p>
+                                아래 NumPy 코드로 대조한 보완 계산입니다.
+                                ε는 손계산용 값이지 API 기본값이라고 제시한 값이 아닙니다.
+                                현재 Batch 계산만 검증하며
+                                BN의 이동 통계 학습 전체를 재현하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 11. LN -->
+                        <section id="layer-norm" class="lesson-card dp-card" aria-labelledby="layer-norm-title">
+                            <p class="dp-kicker">11 · BN과 LN 비교</p>
+
+                            <h2 id="layer-norm-title">
+                                통계를 계산하는 축을 먼저 구분합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 51~52쪽 /
+                                LN의 axis는 공식 API 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-h">[H]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="2차원 입력에서 BN과 LN 비교" tabindex="0">
+                                <table>
+                                    <caption>2차원 입력에서의 기본 비교</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">기준</th>
+                                            <th scope="col">BN</th>
+                                            <th scope="col">LN</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">통계의 단위</th>
+                                            <td>같은 Feature의 여러 Sample</td>
+                                            <td>한 Sample 내부의 지정 Feature 축</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">직관</th>
+                                            <td>열별로 여러 Sample을 모음</td>
+                                            <td>행 안의 지정 값들을 모음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">다른 Sample의 영향</th>
+                                            <td>현재 Batch 통계에 반영</td>
+                                            <td>Sample 내부 통계 기준</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">교안의 대표 연결</th>
+                                            <td>Dense·CNN</td>
+                                            <td>RNN·Transformer</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                교안은 LN도 정규화 후 스케일과 이동을 적용한다고 설명합니다.
+                                실제 LN은 지정한 axis를 기준으로 계산하므로
+                                모든 축을 무조건 한꺼번에 정규화한다고 외우지 않습니다.
+                            </p>
+
+                            <p>
+                                교안의 속도 문장은
+                                모든 상황에서 LN이 BN보다 빠르다는 순위로 확대하지 않습니다.
+                                이번에는
+                                <strong>계산할 통계의 단위가 다르다</strong>는 점에 집중합니다.
+                            </p>
+                        </section>
+
+                        <!-- 12. Dropout -->
+                        <section id="dropout" class="lesson-card dp-card" aria-labelledby="dropout-title">
+                            <p class="dp-kicker">12 · Dropout의 계산</p>
+
+                            <h2 id="dropout-title">
+                                일부 활성값을 임시로 제외하고
+                                남은 값의 스케일을 조정합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 52쪽의 의존 완화 설명 /
+                                확률·스케일 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-i">[I]</a>
+                            </p>
+
+                            <p>
+                                교안은 일부 연결을 사용하지 않아
+                                특정 노드나 조합에 과도하게 의존하는 것을 완화한다고 설명합니다.
+                                학습 중 무작위로 다른 부분을 사용하는 효과를 설명하지만,
+                                여기서 별도 여러 모델을 학습해 합치는 절차를 추가하는 것은 아닙니다.
+                            </p>
+
+                            <div class="dp-equation">
+                                <p><code>0≤p&lt;1, m_j ~ Bernoulli(1−p)</code></p>
+                                <p><code>학습: h_tilde_j = m_j h_j / (1−p)</code></p>
+                                <p><code>E[h_tilde_j | h_j] = h_j</code></p>
+                            </div>
+
+                            <p>
+                                마지막 줄은 기대값의 관계입니다.
+                                매번 전체 합이 정확히 같거나,
+                                Dropout(0.5)가 작은 입력마다 정확히 절반을 지우도록
+                                강제하는 것은 아닙니다.
+                            </p>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>활성값 제외와 Weight 영구 삭제는 다릅니다</h3>
+                                <p>
+                                    기본 Dropout 자체에는 학습 Weight가 없고
+                                    앞 Dense의 선언된 Parameter 수도 유지됩니다.
+                                    원문의 “학습되는 가중치 수를 줄인다”는 설명과
+                                    구조 삭제를 구분합니다.
+                                    Dropout을 끄는 기준은 training 모드이며
+                                    trainable=False 자체가 마스크를 끄는 방법은 아닙니다.
+                                </p>
+                            </div>
+
+                            <div class="dp-equation">
+                                <p>
+                                    <code>
+                                    설명용 H=[2,4,6,8], p=0.5,
+                                    고정 M=[1,0,1,0]
+                                </code>
+                                </p>
+                                <p><code>이번 학습 계산: [4,0,12,0]</code></p>
+                                <p><code>일반적인 추론: [2,4,6,8]</code></p>
+                            </div>
+
+                            <p>
+                                마스크는 손계산을 위해 고정한 값입니다.
+                                실제 무작위 실행에서 동일한 마스크가 나온다는 뜻이 아닙니다.
+                            </p>
+                        </section>
+
+                        <!-- 13. 모드 -->
+                        <section id="modes" class="lesson-card dp-card" aria-labelledby="modes-title">
+                            <p class="dp-kicker">13 · 학습과 추론 모드</p>
+
+                            <h2 id="modes-title">
+                                같은 모델이어도 Dropout·BN의 실행 방식이 달라집니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안의 학습 전용 Dropout과 공식 BN 동작 연결
+                                <a href="#ref-g">[G]</a>
+                                <a href="#ref-i">[I]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="이번 기본 학습 흐름의 비교" tabindex="0">
+                                <table>
+                                    <caption>이번 기본 학습 흐름의 비교</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">요소</th>
+                                            <th scope="col">학습</th>
+                                            <th scope="col">일반적인 검증·추론</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Dense</th>
+                                            <td>현재 Weight로 계산</td>
+                                            <td>현재 Weight로 계산</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Dropout</th>
+                                            <td>마스크와 스케일 조정</td>
+                                            <td>마스크 적용 안 함</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">BN</th>
+                                            <td>현재 Batch 통계·이동 통계 갱신</td>
+                                            <td>저장된 이동 통계</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Optimizer</th>
+                                            <td>학습 Update</td>
+                                            <td>학습 Update 안 함</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Callback</th>
+                                            <td>학습 이벤트에서 저장·종료 판단</td>
+                                            <td>일반 예측 호출과 별도</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Train과 Validation Loss를 비교할 때
+                                데이터, Parameter 시점, 실행 모드, Loss 구성을 확인합니다.
+                                학습 중에는 Parameter가 계속 바뀌고 Dropout도 적용될 수 있습니다.
+                                검증 Loss가 학습 Loss보다 낮다는 이유만으로
+                                오류라고 단정하지 않습니다.
+                                <a href="#ref-d">[D]</a>
+                            </p>
+                        </section>
+
+                        <!-- 14. Callback -->
+                        <section id="callback" class="lesson-card dp-card" aria-labelledby="callback-title">
+                            <p class="dp-kicker">14 · Callback의 역할</p>
+
+                            <h2 id="callback-title">
+                                Layer 계산 바깥에서 학습 이벤트에 반응합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 53쪽의 Callback 설명
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <p>
+                                Callback은 학습 중 특정 이벤트에서 상태를 관찰하거나
+                                동작을 수행하는 기능입니다.
+                                교안은 <code>tf.keras.callbacks</code>와
+                                fit의 callbacks 리스트로 연결합니다.
+                            </p>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>Epoch 종료</b>
+                                    <span>학습·검증 지표 기록</span>
+                                </li>
+                                <li>
+                                    <b>Callback 실행</b>
+                                    <span>logs의 실제 지표 확인</span>
+                                </li>
+                                <li>
+                                    <b>저장 판단</b>
+                                    <span>ModelCheckpoint</span>
+                                </li>
+                                <li>
+                                    <b>종료 판단</b>
+                                    <span>EarlyStopping</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                이 흐름의 저장·종료는 같은 역할이 아닙니다.
+                                TensorBoard는 로그를 관찰하도록 돕습니다.
+                                코드의 Callback 순서와 각 monitor를 확인하고,
+                                모두 자동으로 같은 선택을 한다고 가정하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 15. EarlyStopping -->
+                        <section id="early-stopping" class="lesson-card dp-card" aria-labelledby="early-stopping-title">
+                            <p class="dp-kicker">15 · EarlyStopping 설정</p>
+
+                            <h2 id="early-stopping-title">
+                                개선이 없는 상태가 지속되면 학습을 종료합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안의 조기 종료 + 공식 API의 실제 판단 구분
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-j">[J]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="EarlyStopping 기본 설정" tabindex="0">
+                                <table>
+                                    <caption>
+                                        2026-09-13 확인 · 이번 설명은 기본 모니터링 조건
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">설정</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">monitor</th>
+                                            <td>관찰할 기록 이름</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">mode</th>
+                                            <td>작은 값이 좋으면 min, 큰 값이면 max</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">patience</th>
+                                            <td>개선 없이 기다릴 Epoch 수</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">min_delta</th>
+                                            <td>개선으로 인정할 변화 기준</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">restore_best_weights</th>
+                                            <td>
+                                                선택 시점의 모델 가중치 메모리 복원 여부 ·
+                                                기본 False
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                val_loss는 보통 min, val_accuracy는 max로 읽습니다.
+                                이번 예제는 min_delta=0입니다.
+                                현재까지의 최선 0.10 뒤에 0.15, 0.13이 나와도,
+                                직전보다 낮아졌다는 이유만으로 최선 기록을 갱신하지 않습니다.
+                            </p>
+
+                            <div class="dp-callout dp-warning">
+                                <h3>종료와 원인 진단은 다릅니다</h3>
+                                <p>
+                                    교안은 과적합 제어로 연결하지만
+                                    실제 Callback은 지정 지표의 개선을 봅니다.
+                                    학습률 문제·과소적합·검증 변동 등으로도 개선이 멈출 수 있습니다.
+                                    EarlyStopping 작동 자체가 과적합의 원인 증명은 아닙니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                예정 Epoch는 최대 학습 범위입니다.
+                                데이터와 조건에 따라 그 전에 끝날 수 있으며,
+                                patience 값 자체도 모든 실험의 정답은 아닙니다.
+                            </p>
+                        </section>
+
+                        <!-- 16. Checkpoint -->
+                        <section id="checkpoint" class="lesson-card dp-card" aria-labelledby="checkpoint-title">
+                            <p class="dp-kicker">16 · ModelCheckpoint와 복원</p>
+
+                            <h2 id="checkpoint-title">
+                                저장·종료·복원·평가를 별개의 작업으로 연결합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A의 저장·로드 설명 /
+                                현재 파일 형식 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-k">[K]</a>
+                            </p>
+
+                            <div class="dp-equation">
+                                <p>
+                                    <code>
+                                    선택 예:
+                                    monitor="val_loss", mode="min",
+                                    save_best_only=True
+                                </code>
+                                </p>
+                            </div>
+
+                            <p>
+                                현재 ModelCheckpoint의 save_best_only 기본값은 False입니다.
+                                Callback을 만들었다는 사실만으로
+                                최선 모델만 저장되는 것은 아닙니다.
+                                지표·방향·저장 주기를 명시합니다.
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="서로 다른 저장 종료 복원 역할" tabindex="0">
+                                <table>
+                                    <caption>서로 다른 역할</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">작업</th>
+                                            <th scope="col">담당·의미</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">언제 끝낼까?</th>
+                                            <td>EarlyStopping</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">무엇을 남길까?</th>
+                                            <td>ModelCheckpoint</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">메모리에 무엇을 적용할까?</th>
+                                            <td>가중치 복원 또는 저장 모델 로드</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">어느 객체를 평가할까?</th>
+                                            <td>복원한 모델을 evaluate에 사용</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                restore_best_weights=True는 메모리의 가중치 복원입니다.
+                                파일 저장이나 해당 시점의 모든 학습·Callback 상태 재현과
+                                같다고 생각하지 않습니다.
+                            </p>
+
+                            <div class="dp-callout">
+                                <h3>이번 보완 코드의 경로</h3>
+                                <p>
+                                    전체 모델을 <code>best.keras</code>로 저장한 뒤
+                                    <code>tf.keras.models.load_model()</code>로
+                                    새 객체를 읽습니다.
+                                    .keras는 Keras 형식이며
+                                    TensorFlow SavedModel과 동일한 형식은 아닙니다.
+                                    <a href="#ref-l">[L]</a>
+                                </p>
+                            </div>
+
+                            <p>
+                                가중치 중심 저장의 예는 <code>best.weights.h5</code>입니다.
+                                저장된 모델·Optimizer 상태의 범위는
+                                버전과 컴파일 등 조건에 따라 확인합니다.
+                                이름에 weights가 있다고 모든 버전에서
+                                저장 내용이 완전히 같다고 단정하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 17. 실행 흐름 -->
+                        <section id="execution" class="lesson-card dp-card" aria-labelledby="execution-title">
+                            <p class="dp-kicker">17 · 실행 흐름과 상태 구분</p>
+
+                            <h2 id="execution-title">
+                                모델 안의 개선 방법과 Epoch 종료 후 판단을 연결합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                Step 1·2의 보완 흐름도 ·
+                                대표 배치이며 유일한 설계는 아님
+                            </p>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>Dense</b>
+                                    <span>초기화·Weight 규제</span>
+                                </li>
+                                <li>
+                                    <b>BN → Activation</b>
+                                    <span>중간값 변환과 비선형성</span>
+                                </li>
+                                <li>
+                                    <b>Dropout</b>
+                                    <span>학습 중 일부 값 제외</span>
+                                </li>
+                                <li>
+                                    <b>Prediction</b>
+                                    <span>실제값과 비교</span>
+                                </li>
+                            </ol>
+
+                            <div class="dp-equation">
+                                <p>
+                                    <code>
+                                    Data Loss + Penalty →
+                                    Gradient → Optimizer Update
+                                </code>
+                                </p>
+                            </div>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>Validation</b>
+                                    <span>현재 모델을 점검</span>
+                                </li>
+                                <li>
+                                    <b>Checkpoint</b>
+                                    <span>선택 상태 저장</span>
+                                </li>
+                                <li>
+                                    <b>EarlyStopping</b>
+                                    <span>계속 또는 종료</span>
+                                </li>
+                                <li>
+                                    <b>복원·평가</b>
+                                    <span>선택 파일을 명시적으로 사용</span>
+                                </li>
+                            </ol>
+
+                            <div class="dp-table" role="region" aria-label="값과 상태의 역할 구분" tabindex="0">
+                                <table>
+                                    <caption>
+                                        같이 바뀐다고 같은 종류의 상태는 아닙니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">예</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">학습 Parameter</th>
+                                            <td>Dense W·b, BN γ·β</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">비학습 모델 상태</th>
+                                            <td>BN 이동 평균·분산</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Hyperparameter</th>
+                                            <td>규제 강도·Dropout 비율·학습률</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">종료·선택 설정</th>
+                                            <td>monitor·mode·patience·min_delta</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Callback 진행 상태</th>
+                                            <td>최선값·미개선 횟수</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">History</th>
+                                            <td>Epoch별 학습·검증 기록</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                가상환경의 Python·패키지 버전을 확인하고,
+                                실험을 새로 시작할 때 모델과 Callback을
+                                어떤 상태에서 만드는지 기록합니다.
+                                아래 NumPy 코드는 독립 실행용이고,
+                                TensorFlow 예제는 앞에서 모델이나 데이터를 준비하는
+                                조건을 따로 표시합니다.
+                            </p>
+                        </section>
+
+                        <!-- 18. 원본 코드 -->
+                        <section id="original" class="lesson-card dp-card" aria-labelledby="original-title">
+                            <p class="dp-kicker">18 · 63번 원본 코드</p>
+
+                            <h2 id="original-title">
+                                Epoch 1000은 최대 범위이며 저장과 종료를 함께 설정합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                통합교안 B 63번 243쪽 실행문 발췌 · 줄바꿈 정리
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <p>
+                                TensorFlow import, MNIST 데이터와 모델 준비는 앞 Cell에 있습니다.
+                                아래는 독립 실행용 전체 프로그램이 아닙니다.
+                                원본 설정을 유지하며 보완 설정을 원문에 숨겨 넣지 않았습니다.
+                            </p>
+
+                            <pre class="dp-code" tabindex="0" aria-label="교안 63번 Callback 실행문 발췌"><code data-example="original">import os
+
+if not os.path.exists("./mnist_checkpoint"):
+    os.mkdir("./mnist_checkpoint")
+
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    filepath="./mnist_checkpoint/mnist_checkpoint2.keras",
+    save_best_only=True,
+    verbose=1
+)
+
+earlystopping = tf.keras.callbacks.EarlyStopping(
+    monitor="val_loss",
+    patience=3,
+    verbose=1
+)
+
+model.fit(
+    X_train,
+    y_train,
+    epochs=1000,
+    validation_split=0.2,
+    callbacks=[checkpoint, earlystopping]
+)</code></pre>
+
+                            <p>
+                                원본은 restore_best_weights=True를 지정하지 않았습니다.
+                                이후 저장 상태를 로드하는 Cell과 연결해 읽습니다.
+                                62번은 Checkpoint 저장·복원,
+                                63번은 EarlyStopping,
+                                66번은 개선 구성 비교로 서로 다른 실습입니다.
+                            </p>
+                        </section>
+
+                        <!-- 19. 종료 기록 -->
+                        <section id="patience" class="lesson-card dp-card" aria-labelledby="patience-title">
+                            <p class="dp-kicker">19 · 실제 종료 기록</p>
+
+                            <h2 id="patience-title">
+                                최선 Epoch 4와 종료 Epoch 7은 다릅니다
+                            </h2>
+
+                            <p class="dp-source">
+                                통합교안 B 63번 244쪽 저장 로그 ·
+                                미개선 횟수는 설정과 로그를 연결한 계산
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="EarlyStopping 실제 종료 기록" tabindex="0">
+                                <table>
+                                    <caption>
+                                        개선 시점은 저장 메시지의 정밀도,
+                                        나머지는 진행 표시값
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Epoch</th>
+                                            <th scope="col">val_loss</th>
+                                            <th scope="col">최선값 대비</th>
+                                            <th scope="col">연속 미개선</th>
+                                            <th scope="col">동작</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">1</th>
+                                            <td>0.15155</td>
+                                            <td>첫 기준</td>
+                                            <td>0</td>
+                                            <td>저장</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">2</th>
+                                            <td>0.11803</td>
+                                            <td>개선</td>
+                                            <td>0</td>
+                                            <td>저장</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">3</th>
+                                            <td>0.10303</td>
+                                            <td>개선</td>
+                                            <td>0</td>
+                                            <td>저장</td>
+                                        </tr>
+                                        <tr class="dp-best">
+                                            <th scope="row">4</th>
+                                            <td>0.09620</td>
+                                            <td>최선 갱신</td>
+                                            <td>0</td>
+                                            <td>선택 모델 저장</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">5</th>
+                                            <td>0.1026</td>
+                                            <td>개선 없음</td>
+                                            <td>1</td>
+                                            <td>계속</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">6</th>
+                                            <td>0.1015</td>
+                                            <td>개선 없음</td>
+                                            <td>2</td>
+                                            <td>계속</td>
+                                        </tr>
+                                        <tr class="dp-stop">
+                                            <th scope="row">7</th>
+                                            <td>0.1156</td>
+                                            <td>개선 없음</td>
+                                            <td>3</td>
+                                            <td>학습 종료</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Epoch 6은 0.1026에서 0.1015로 내려갔지만
+                                최선 0.09620보다 좋지 않습니다.
+                                그래서 이번 기본 설정에서는 기다림이 초기화되지 않고
+                                7번째 Epoch에서 끝납니다.
+                            </p>
+
+                            <div class="dp-state-grid">
+                                <article class="dp-box">
+                                    <h3>메모리의 마지막 학습 상태</h3>
+                                    <p>Epoch 7</p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>검증 기준으로 남긴 파일</h3>
+                                    <p>Epoch 4</p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>평가할 대상</h3>
+                                    <p>복원 후 실제 전달한 모델</p>
+                                </article>
+                            </div>
+
+                            <p>
+                                이는 교안에 저장된 한 번의 실행입니다.
+                                지금 새로 학습한 결과나 동일 숫자의 재현 보장으로
+                                표시하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 20. 테스트 결과 -->
+                        <section id="restore-result" class="lesson-card dp-card" aria-labelledby="restore-result-title">
+                            <p class="dp-kicker">20 · 로드 전후 테스트 결과</p>
+
+                            <h2 id="restore-result-title">
+                                검증 기준의 최선이 Test의 최고를 보장하지 않습니다
+                            </h2>
+
+                            <p class="dp-source">
+                                통합교안 B 63번 244쪽의 저장 반환값
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="원본의 load_weights 전후 평가" tabindex="0">
+                                <table>
+                                    <caption>
+                                        원본의 같은 model에 대한 load_weights 전후 평가
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">상태</th>
+                                            <th scope="col">테스트 Loss</th>
+                                            <th scope="col">테스트 Accuracy</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">로드 전: 마지막 학습 상태</th>
+                                            <td>약 0.091574</td>
+                                            <td>약 97.41%</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Checkpoint 로드 후</th>
+                                            <td>약 0.091683</td>
+                                            <td>약 97.37%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                원본은
+                                <code>
+                                model.load_weights("./mnist_checkpoint/mnist_checkpoint2.keras")
+                            </code>로 저장 상태를 적용한 뒤 평가합니다.
+                                이번 실행에서는 로드 후 테스트 정확도가 아주 조금 낮았습니다.
+                                “Checkpoint를 읽었으니 테스트도 반드시 좋아졌다”로
+                                바꾸지 않습니다.
+                            </p>
+
+                            <div class="dp-callout dp-warning">
+                                <h3>이 결과를 본 뒤 Test로 모델을 계속 고르지 않습니다</h3>
+                                <p>
+                                    Validation의 선택 기준과 최종 Test를 구분합니다.
+                                    여러 테스트 결과 중 높은 것을 반복해 채택하면
+                                    Test가 다시 선택 기준이 됩니다.
+                                    보완 코드의 load_model 경로는 별도 예제이며
+                                    원본 호출을 바꿔 적은 것이 아닙니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 21. 66번 비교 -->
+                        <section id="comparison" class="lesson-card dp-card" aria-labelledby="comparison-title">
+                            <p class="dp-kicker">21 · 66번의 개선 모델 비교</p>
+
+                            <h2 id="comparison-title">
+                                기법 추가 자체는 성능 향상을 보장하지 않습니다
+                            </h2>
+
+                            <p class="dp-source">
+                                통합교안 B 66번의 코드·266쪽 저장 결과
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <p>
+                                원본은 Epoch 10, Batch Size 128,
+                                L1 강도 0.01, Dropout 비율 0.2 등의 설정에서 비교합니다.
+                                아래는 저장된 테스트 정확도이며 새 실행 결과가 아닙니다.
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="66번 개선 구성의 테스트 정확도" tabindex="0">
+                                <table>
+                                    <caption>
+                                        실험 조건에 한정된 관찰값 ·
+                                        알고리즘의 보편적 순위가 아닙니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">원본의 모델 구분</th>
+                                            <th scope="col">테스트 정확도</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Xavier 초기화 모델</th>
+                                            <td>약 96.90%</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">He 초기화 모델</th>
+                                            <td>약 97.30%</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">He + L1</th>
+                                            <td>약 85.45%</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">He + L1 + BN</th>
+                                            <td>약 92.74%</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">He + L1 + BN + Dropout</th>
+                                            <td>약 92.43%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                원본은 단순한 데이터·얕은 모델에
+                                규제 등을 추가한 것과 결과를 연결합니다.
+                                그 해석을 보존하되 단일 실행이 모든 원인을 증명한 것은 아닙니다.
+                                L1은 항상 나쁘다거나 Dropout을 쓰면 안 된다고
+                                일반화하지 않습니다.
+                            </p>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>마지막 구성에는 입력 쪽 BN도 추가됩니다</h3>
+                                <p>
+                                    마지막 모델은 Flatten 뒤 BN이 추가되고,
+                                    은닉층 활성화 후 Dropout을 사용합니다.
+                                    바로 앞 모델과의 차이가 Dropout 하나뿐이지 않습니다.
+                                    초기화·규제 강도·학습 기간·정규화 위치 등을 함께 바꾼 결과를
+                                    한 기법의 독립적 인과 효과로 단정하지 않습니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                서로 다른 규제항이 포함된 Loss를
+                                직접적인 예측 성능 순위로 사용하지 않습니다.
+                                공통 Metric과 목적함수 구성을 함께 확인합니다.
+                            </p>
+                        </section>
+
+                        <!-- 22. NumPy 검증 -->
+                        <section id="numpy" class="lesson-card dp-card" aria-labelledby="numpy-title">
+                            <p class="dp-kicker">22 · 독립 NumPy 검증</p>
+
+                            <h2 id="numpy-title">
+                                세 손계산을 고정 입력으로 대조합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                Step 1·2의 보완 코드 · NumPy만 필요 ·
+                                TensorFlow 학습과 별개
+                            </p>
+
+                            <pre class="dp-code" tabindex="0" aria-label="Regularization BN Dropout 손계산 검증 코드"><code data-example="numeric">import numpy as np
+
+np.set_printoptions(precision=6, suppress=True)
+
+# 고정 Weight의 패널티입니다. 학습 실험이 아닙니다.
+W = np.array([1.0, -2.0, 0.5])
+lam = 0.1
+l1 = lam * np.abs(W).sum()
+l2 = lam * np.square(W).sum()
+
+# BN의 현재 Batch만 계산합니다. epsilon은 예제용입니다.
+Z = np.array([2.0, 4.0, 6.0])
+epsilon = 1e-5
+normalized = (Z - Z.mean()) / np.sqrt(Z.var(ddof=0) + epsilon)
+bn_output = 2.0 * normalized + 1.0
+
+# 손계산을 위한 고정 마스크입니다.
+H = np.array([2.0, 4.0, 6.0, 8.0])
+mask = np.array([1.0, 0.0, 1.0, 0.0])
+rate = 0.5
+dropout_train = H * mask / (1.0 - rate)
+
+print(f"L1 penalty: {l1:.3f}")
+print(f"L2 penalty: {l2:.3f}")
+print("BN normalized:", normalized)
+print("BN scaled:", bn_output)
+print("Dropout training:", dropout_train)
+print("Dropout inference:", H)
+
+assert np.isclose(l1, 0.35)
+assert np.isclose(l2, 0.525)
+assert np.allclose(normalized.mean(), 0.0)
+assert np.allclose(bn_output, [-1.449485, 1.0, 3.449485], atol=1e-6)
+assert np.allclose(dropout_train, [4.0, 0.0, 12.0, 0.0])</code></pre>
+
+                            <h3>위 코드를 실행해 확인한 결과</h3>
+
+                            <pre class="dp-output" tabindex="0" aria-label="NumPy 수식 검증 실제 출력"><code>L1 penalty: 0.350
+L2 penalty: 0.525
+BN normalized: [-1.224743  0.        1.224743]
+BN scaled: [-1.449485  1.        3.449485]
+Dropout training: [ 4.  0. 12.  0.]
+Dropout inference: [2. 4. 6. 8.]</code></pre>
+
+                            <p>
+                                고정값의 계산이 맞는지 검증한 것입니다.
+                                이 결과는 BN의 이동 상태 전체 학습이나
+                                실제 무작위 Dropout, 분류 정확도를 검증하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 23. Keras 보완 예제 -->
+                        <section id="keras" class="lesson-card dp-card" aria-labelledby="keras-title">
+                            <p class="dp-kicker">23 · Keras 보완 연결 예제</p>
+
+                            <h2 id="keras-title">
+                                같은 검증 기준으로 저장하고,
+                                그 파일을 읽어 평가합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                Step 1·2의 별도 연결 코드 ·
+                                원본 63·66번 코드가 아님
+                                <a href="#ref-j">[J]</a>
+                                <a href="#ref-k">[K]</a>
+                            </p>
+
+                            <p>
+                                준비된 데이터 뒤에 이어서 사용하는 코드입니다.
+                                X_train·X_val·X_test는 각각 (Sample 수,4),
+                                y는 정수 0·1·2입니다.
+                                <strong>
+                                    모든 기법을 동시에 넣는 것이 정답이 아니라
+                                    적용 위치를 보여주는 예제
+                                </strong>입니다.
+                            </p>
+
+                            <pre class="dp-code" tabindex="0" aria-label="사전 분리한 데이터의 Keras 개선 흐름"><code data-example="keras">from pathlib import Path
+from uuid import uuid4
+import tensorflow as tf
+
+# 사전 준비: X_*는 (Sample 수, 4), y_*는 정수 Label 0·1·2입니다.
+# Train/Validation/Test 분리와 필요한 전처리는 앞에서 완료합니다.
+model = tf.keras.Sequential([
+    tf.keras.Input(shape=(4,)),
+    tf.keras.layers.Dense(
+        64,
+        kernel_initializer="he_normal",
+        kernel_regularizer=tf.keras.regularizers.L2(1e-4),
+    ),
+    tf.keras.layers.BatchNormalization(),
+    tf.keras.layers.Activation("relu"),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(3, activation="softmax"),
+])
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"],
+)
+
+# 이전 실행 파일과 혼동하지 않도록 실행별 폴더를 사용합니다.
+run_dir = Path("artifacts") / f"lesson22_{uuid4().hex}"
+run_dir.mkdir(parents=True, exist_ok=False)
+best_path = run_dir / "best.keras"
+
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    filepath=str(best_path),
+    monitor="val_loss",
+    mode="min",
+    save_best_only=True,
+    save_weights_only=False,
+    save_freq="epoch",
+)
+
+early_stopping = tf.keras.callbacks.EarlyStopping(
+    monitor="val_loss",
+    mode="min",
+    min_delta=0.0,
+    patience=3,
+    restore_best_weights=False,
+)
+
+history = model.fit(
+    X_train,
+    y_train,
+    validation_data=(X_val, y_val),
+    epochs=100,
+    batch_size=32,
+    callbacks=[checkpoint, early_stopping],
+    verbose=2,
+)
+
+if not best_path.is_file():
+    raise FileNotFoundError(
+        "체크포인트 경로와 val_loss 기록을 확인하세요."
+    )
+
+best_model = tf.keras.models.load_model(str(best_path))
+
+report = best_model.evaluate(
+    X_test,
+    y_test,
+    return_dict=True,
+    verbose=0
+)
+
+print(report)</code></pre>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>마지막 model</b>
+                                    <span>학습 종료 시점</span>
+                                </li>
+                                <li>
+                                    <b>best.keras</b>
+                                    <span>검증 기준으로 저장</span>
+                                </li>
+                                <li>
+                                    <b>load_model</b>
+                                    <span>best_model로 복원</span>
+                                </li>
+                                <li>
+                                    <b>evaluate</b>
+                                    <span>복원 객체를 실제 평가</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                두 Callback의 monitor와 mode,
+                                min_delta=0 조건을 맞췄습니다.
+                                원본의 MNIST가 아니라 앞 단원의 수치 Feature 분류를 본뜬
+                                별도 모델입니다.
+                                반복 실행마다 같은 결과를 보장하는 설정도 아닙니다.
+                            </p>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>실행 확인 범위</h3>
+                                <p>
+                                    이번 작성 환경에는 TensorFlow가 설치되어 있지 않아
+                                    원본 학습과 위 보완 학습을 새로 실행하지 않았습니다.
+                                    문법과 API 연결을 확인했습니다.
+                                    신경망의 결과 수치는 교안 저장값이고,
+                                    새로 실행해 확인한 수치는 앞의 NumPy 계산입니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 24. 원문 표현 점검 -->
+                        <section id="source-review" class="lesson-card dp-card" aria-labelledby="source-review-title">
+                            <p class="dp-kicker">24 · 교안 표현·코드 점검</p>
+
+                            <h2 id="source-review-title">
+                                원문의 범위와 보완 사항을 따로 남깁니다
+                            </h2>
+
+                            <p class="dp-source">
+                                AI 교안 A·통합교안 B에서 확인한 차이
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-b">[B]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="원문 표현과 보완 범위" tabindex="0">
+                                <table>
+                                    <caption>
+                                        원문을 조용히 수정하거나 모든 경우로 일반화하지 않습니다
+                                    </caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">교안의 설명·표기</th>
+                                            <th scope="col">보완해서 구분할 것</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                초기화로 기울기 소실이 발생하지 않음
+                                            </th>
+                                            <td>
+                                                초기 안정화에 도움이 되는 것과
+                                                모든 문제의 해결 보장은 다름
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                깊은 네트워크의 예로 50층 이상 제시
+                                            </th>
+                                            <td>
+                                                모든 모델에서 적용하는
+                                                절대 임계값으로 사용하지 않음
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                BN으로 분포를 동일하게 만듦
+                                            </th>
+                                            <td>
+                                                평균·분산 변환과
+                                                분포 전체의 동일화·Gaussian화를 구분
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                BN 평균·분산·γ·β를 모두 학습 값으로 설명
+                                            </th>
+                                            <td>γ·β와 이동 통계의 갱신 방식을 구분</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">BN 분모 σ+ε</th>
+                                            <td>공식 기본식 sqrt(v+ε)와 다름</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                출력층 BN을 일반적으로 피하는 설명
+                                            </th>
+                                            <td>
+                                                66번 출력 Dense 뒤·Softmax 앞 BN은
+                                                실제 별도 실험 구성
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Dropout으로 학습 가중치 수를 줄임
+                                            </th>
+                                            <td>활성값 임시 제외와 구조의 영구 삭제는 다름</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                L1의 Weight 0은 노드 제거 효과
+                                            </th>
+                                            <td>연결 하나와 노드 전체 경로를 구분</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Dropout을 활성화 이전에 둔다는 66번 마크다운
+                                            </th>
+                                            <td>실제 코드는 활성화 이후에 배치</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">adm=Adam(lr) 생성</th>
+                                            <td>
+                                                compile에는 optimizer="adam" 문자열을 전달하므로
+                                                adm이 연결된 것이 아님
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">max(logs["accuracy"])</th>
+                                            <td>단일 Epoch 숫자와 과거 최선 기록은 다름</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">load_weight()</th>
+                                            <td>실제 가중치 로드 메서드는 load_weights()</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                .keras를 SavedModel로 설명하는 주석
+                                            </th>
+                                            <td>Keras 형식과 TensorFlow SavedModel은 구분</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                정해진 검증 기준을 사용하도록 원문 의도를 이해하되,
+                                실제 적용에서는 API와 저장된 실행문을 확인합니다.
+                                위 보완 코드의 load_model을
+                                원본이 그대로 사용했던 호출로 제시하지 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 25. 자주 하는 실수 -->
+                        <section id="mistakes" class="lesson-card dp-card" aria-labelledby="mistakes-title">
+                            <p class="dp-kicker">25 · 자주 하는 실수</p>
+
+                            <h2 id="mistakes-title">
+                                기법의 적용과 개선이 확인된 결과를 혼동하지 않습니다
+                            </h2>
+
+                            <p class="dp-source">Step 1·2의 핵심 오해 복습</p>
+
+                            <div class="dp-table" role="region" aria-label="개념 모드 선택 기준의 혼동" tabindex="0">
+                                <table>
+                                    <caption>개념·모드·선택 기준의 혼동</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">착각</th>
+                                            <th scope="col">올바른 해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                학습 정확도가 최고면 가장 좋은 모델
+                                            </th>
+                                            <td>새 데이터와 실제 목적의 성능을 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                검증 Loss 한 번 상승이면 과적합 확정
+                                            </th>
+                                            <td>추세와 다른 원인을 함께 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                개선 기법을 많이 넣으면 반드시 향상
+                                            </th>
+                                            <td>기준 모델과 같은 조건에서 검증</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                초기화가 좋으면 과적합도 해결
+                                            </th>
+                                            <td>시작값 안정성과 일반화를 구분</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                L1으로 연결 하나가 0이면 노드 삭제
+                                            </th>
+                                            <td>전체 경로와 구조를 따로 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Dropout은 Weight 영구 삭제</th>
+                                            <td>학습 중 활성값 임시 제외</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Dropout 0.5는 항상 정확히 절반 제거
+                                            </th>
+                                            <td>기본 무작위 제외 확률</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">BN은 정규분포를 생성</th>
+                                            <td>통계적 스케일 변환과 분포 모양은 별개</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                BN 네 값은 전부 Gradient로 학습
+                                            </th>
+                                            <td>γ·β와 이동 통계는 다름</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">EarlyStopping은 과적합 판정기</th>
+                                            <td>지정 지표의 개선 정체를 판단</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                학습 종료 후 최선 모델이 자동 적용
+                                            </th>
+                                            <td>복원 설정과 평가 객체를 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                검증 최선이면 Test도 반드시 최고
+                                            </th>
+                                            <td>63번의 저장 결과에서도 그렇지 않음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                규제 강도가 다른 Loss를 그대로 비교
+                                            </th>
+                                            <td>목적함수의 포함 항과 공통 지표를 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">
+                                                Test로 계속 설정을 골라도 최종 평가
+                                            </th>
+                                            <td>Test를 선택에 반복 사용하지 않음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 26. 오류 -->
+                        <section id="errors" class="lesson-card dp-card" aria-labelledby="errors-title">
+                            <p class="dp-kicker">26 · 오류 메시지 읽기</p>
+
+                            <h2 id="errors-title">
+                                처음 문제가 생긴 기록·경로·모드를 확인합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                재실습용 보완 사례 · 원본 오류 로그가 아니며
+                                버전별 문구가 달라질 수 있음
+                            </p>
+
+                            <div class="dp-grid">
+                                <article class="dp-box">
+                                    <h3>01. val_loss가 없음</h3>
+                                    <p>
+                                        검증이 설정되고 실행되었는지,
+                                        monitor가 실제 기록 이름인지 확인합니다.
+                                        history.history.keys()로 실제 항목을 봅니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>02. val_acc와 val_accuracy</h3>
+                                    <p>
+                                        교안마다 acc 또는 accuracy를 사용합니다.
+                                        기억으로 추측하지 말고
+                                        컴파일 설정·History·Callback 이름을 맞춥니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>03. 저장 파일이 없거나 다른 실행 파일</h3>
+                                    <p>
+                                        경로·저장 조건·기록 이름·실행 폴더를 확인합니다.
+                                        파일 존재만으로 이번 실행의 최선 파일임이
+                                        증명되지는 않습니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>04. 확장자 오류</h3>
+                                    <p>
+                                        전체 모델 예는 best.keras,
+                                        save_weights_only=True의 예는 best.weights.h5입니다.
+                                        실제 API 규칙과 맞춥니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>05. float object is not iterable</h3>
+                                    <p>
+                                        max(logs["accuracy"])는 숫자 하나를
+                                        최댓값 목록처럼 다루는 문제입니다.
+                                        과거 최선값을 별도로 관리하거나
+                                        ModelCheckpoint를 사용합니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>06. Dropout을 동결했는데 마스크가 적용됨</h3>
+                                    <p>
+                                        Dropout의 trainable=False와 training=False를
+                                        같은 제어로 보지 않습니다.
+                                        실제 호출 모드를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>07. BN 추가 후 평가가 이상함</h3>
+                                    <p>
+                                        현재 Batch 또는 이동 통계 중 무엇을 사용하는지,
+                                        동결·학습 모드·입력 분포·Batch 크기를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>08. 너무 빨리 종료되거나 저장 Epoch가 다름</h3>
+                                    <p>
+                                        patience·min_delta·검증 변동을 봅니다.
+                                        EarlyStopping과 Checkpoint가 서로 다른 지표를 보거나
+                                        개선 기준이 다를 수 있습니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                위 파일·모드·기록 규칙은 공식 문서로 확인합니다.
+                                <a href="#ref-g">[G]</a>
+                                <a href="#ref-i">[I]</a>
+                                <a href="#ref-j">[J]</a>
+                                <a href="#ref-k">[K]</a>
+                            </p>
+
+                            <h3>원본 사용자 정의 Callback 문제를 보완 재현</h3>
+
+                            <pre class="dp-code" tabindex="0"
+                                aria-label="의도적인 오류 재현 코드"><code data-example="intentional_error">max(0.9)</code></pre>
+
+                            <pre class="dp-output" tabindex="0"
+                                aria-label="위 표현을 실행해 확인한 오류"><code>TypeError: 'float' object is not iterable</code></pre>
+
+                            <p>
+                                이 블록은 정상 학습 코드가 아니라 오류 설명입니다.
+                                현재 Epoch의 숫자 하나에 max를 쓰는 것은
+                                과거 최고값을 구하는 일이 아닙니다.
+                            </p>
+
+                            <div class="dp-callout">
+                                <h3>
+                                    동일 monitor라도 모든 선택이 항상 같다고
+                                    가정하지 않습니다
+                                </h3>
+                                <p>
+                                    EarlyStopping의 min_delta와
+                                    ModelCheckpoint의 최선값 비교는 다른 설정입니다.
+                                    지표가 val_loss와 val_accuracy로 서로 다르면
+                                    선택 기준 자체가 달라집니다.
+                                    이번 보완 예제는 같은 지표·방향과
+                                    min_delta=0으로 단순화했습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 27. 실무 -->
+                        <section id="practice" class="lesson-card dp-card" aria-labelledby="practice-title">
+                            <p class="dp-kicker">27 · 실무·재현·기록</p>
+
+                            <h2 id="practice-title">
+                                선택 조건과 평가한 객체를 추적할 수 있게 남깁니다
+                            </h2>
+
+                            <p class="dp-source">
+                                Step 1·2의 실험 설계 보완 /
+                                저장 범위 확인
+                                <a href="#ref-l">[L]</a>
+                            </p>
+
+                            <div class="dp-table" role="region" aria-label="같은 기준의 비교를 위한 기록" tabindex="0">
+                                <table>
+                                    <caption>같은 기준의 비교를 위한 기록</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">남길 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">기준 모델</th>
+                                            <td>출발점의 구조와 결과</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">변경 사항</th>
+                                            <td>초기화·λ·BN 위치·Dropout rate 등</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">데이터 분리</th>
+                                            <td>Train·Validation·Test 구성과 전처리 기준</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">학습 조건</th>
+                                            <td>Optimizer·Learning Rate·Batch·Epoch</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">선택 기준</th>
+                                            <td>monitor·mode·patience·min_delta</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">선택 결과</th>
+                                            <td>선택 Epoch·지표값·Checkpoint 경로</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">평가 대상</th>
+                                            <td>마지막 모델인지 복원 객체인지</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">평가 결과</th>
+                                            <td>공통 Metric과 규제항 포함 여부</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                같은 모델을 계속 재학습하는 실험과
+                                새 초기 상태에서 시작하는 실험은 다릅니다.
+                                변경점 여러 개가 있으면 한 가지 기법의 효과로 단정하지 않고
+                                그 구성을 함께 기록합니다.
+                            </p>
+
+                            <div class="dp-grid">
+                                <article class="dp-box">
+                                    <h3>평가·추론 복원</h3>
+                                    <p>
+                                        구조·Parameter·BN 상태·입력 전처리·출력 의미 확인
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>학습 재개</h3>
+                                    <p>
+                                        위 정보에 Optimizer와 학습 단계 등 상태도 확인
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>실험 재현</h3>
+                                    <p>
+                                        데이터 순서·난수·Callback 상태·환경까지 관리
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                전체 .keras 파일은 모델과 컴파일된 Optimizer 상태 등을
+                                저장하는 데 사용할 수 있습니다.
+                                그 파일 하나가 모든 주변 실험 상태와
+                                비트 단위 재현을 보장하지는 않습니다.
+                            </p>
+                        </section>
+
+                        <!-- 28. TensorBoard·증강 -->
+                        <section id="tools" class="lesson-card dp-card" aria-labelledby="tools-title">
+                            <p class="dp-kicker">28 · TensorBoard와 데이터 증강</p>
+
+                            <h2 id="tools-title">
+                                관찰 도구와 데이터의 다양성도 개선 과정에 연결됩니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A 54쪽 /
+                                사용 범위와 분리 원칙은 보완
+                                <a href="#ref-a">[A]</a>
+                                <a href="#ref-d">[D]</a>
+                            </p>
+
+                            <div class="dp-grid">
+                                <article class="dp-box">
+                                    <h3>TensorBoard</h3>
+                                    <p>
+                                        Loss·Accuracy·학습률·모델 구조·Weight 분포 등을
+                                        로그로 관찰합니다.
+                                        자체가 모델 정확도를 자동으로 올리는 장치는 아닙니다.
+                                    </p>
+                                </article>
+
+                                <article class="dp-box">
+                                    <h3>데이터 증강</h3>
+                                    <p>
+                                        학습 데이터의 의미를 유지하는 변형으로
+                                        다양성을 확보합니다.
+                                        모델 내부의 수정만이 개선 방법은 아닙니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>기록</b>
+                                    <span>학습 지표·분포 로그</span>
+                                </li>
+                                <li>
+                                    <b>관찰</b>
+                                    <span>문제 후보를 찾음</span>
+                                </li>
+                                <li>
+                                    <b>가설</b>
+                                    <span>무엇을 바꿀지 결정</span>
+                                </li>
+                                <li>
+                                    <b>확인</b>
+                                    <span>같은 검증 기준으로 재평가</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                증강은 변형 후 Label이 같은지,
+                                실제 사용에서 가능한 변형인지,
+                                같은 원본의 유사 데이터가 Train과 Validation에 섞이지 않는지
+                                확인합니다.
+                                많이 변형한다는 사실만으로 좋은 증강이 되지는 않습니다.
+                            </p>
+
+                            <p>
+                                이번에는 새로운 증강 코드를 대량 추가하지 않고,
+                                학습 데이터의 다양성과 관찰 기록이
+                                다음 CNN의 판단에도 필요하다는 점을 연결합니다.
+                            </p>
+                        </section>
+
+                        <!-- 29. 면접 -->
+                        <section id="interview" class="lesson-card dp-card" aria-labelledby="interview-title">
+                            <p class="dp-kicker">29 · 면접 포인트</p>
+
+                            <h2 id="interview-title">
+                                무엇을 바꾸고 무엇을 보장하지 않는지 설명합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                앞의 교안·보완 수식·저장 결과를 복습하는 문답
+                            </p>
+
+                            <p>
+                                먼저 답을 말한 뒤 펼쳐서 비교하세요.
+                                기법 이름보다 계산·선택·평가의 역할을 연결합니다.
+                            </p>
+
+                            <div class="dp-faq">
+                                <details>
+                                    <summary>
+                                        Q1. 최적화와 일반화는 어떻게 다른가요?
+                                    </summary>
+                                    <p>
+                                        학습 목적함수를 줄이는 문제와
+                                        새 데이터에서 그 관계가 유효한지의 문제입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q2. 학습 정확도가 가장 높으면 좋은 모델인가요?
+                                    </summary>
+                                    <p>
+                                        그 사실만으로 고르지 않습니다.
+                                        검증·테스트와 실제 사용 목적의 기준을 봅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q3. Validation과 Test는 어떻게 다른가요?
+                                    </summary>
+                                    <p>
+                                        Validation은 모델·설정·시점 선택에,
+                                        Test는 선택 후의 최종 평가에 사용하도록 분리합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q4. Regularization은 무엇을 바꾸나요?
+                                    </summary>
+                                    <p>
+                                        Data Loss에 패널티를 더해
+                                        Parameter의 성질도 함께 고려하는 학습 목적을 만듭니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q5. L1의 Weight 하나가 0이면 노드가 없어지나요?
+                                    </summary>
+                                    <p>
+                                        연결 하나의 기여와 노드 전체 경로를 구분합니다.
+                                        선언된 Layer Shape이 자동으로 줄지 않습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q6. 좋은 초기화와 BN은 대체 관계인가요?
+                                    </summary>
+                                    <p>
+                                        시작값의 안정화와 학습 중 중간값 조절이라는
+                                        서로 다른 역할입니다.
+                                        BN이 있다고 초기값을 아무렇게나 정해도 된다는 뜻은 아닙니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q7. BN과 LN은 어디에서 통계를 구하나요?
+                                    </summary>
+                                    <p>
+                                        기본 2차원 비교에서 같은 Feature의 여러 Sample과,
+                                        한 Sample 내부의 지정 Feature 축을 구분합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q8. BN의 평균·분산·γ·β는 모두 Gradient로 학습하나요?
+                                    </summary>
+                                    <p>
+                                        γ·β와 이동 통계의 갱신 방식은 다릅니다.
+                                        현재 Batch 통계도 별도로 계산합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q9. Dropout은 Parameter 수를 줄이나요?
+                                    </summary>
+                                    <p>
+                                        일반적인 Dropout은 활성값을 임시 제외합니다.
+                                        Weight의 영구 삭제가 아닙니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q10. Dropout 0.5는 항상 정확히 절반을 지우나요?
+                                    </summary>
+                                    <p>
+                                        기본적으로 확률적 마스크입니다.
+                                        기대값 보존도 매 실행의 정확한 합 보존과 다릅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q11. EarlyStopping과 ModelCheckpoint는 어떻게 다른가요?
+                                    </summary>
+                                    <p>
+                                        종료 판단과 파일 저장입니다.
+                                        실제 모델 복원·평가도 따로 확인합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q12. patience는 직전 Epoch보다 나빠진 횟수인가요?
+                                    </summary>
+                                    <p>
+                                        이번 기본 설정은 현재까지의 최선과 비교합니다.
+                                        직전보다 조금 좋아져도
+                                        최선보다 나쁘면 미개선일 수 있습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q13. EarlyStopping이 작동하면 과적합인가요?
+                                    </summary>
+                                    <p>
+                                        지표의 개선 정체를 판단한 것이므로
+                                        원인은 따로 진단합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q14. Checkpoint를 읽으면 Test도 반드시 좋아지나요?
+                                    </summary>
+                                    <p>
+                                        아닙니다. 63번 저장 결과에서도
+                                        로드 후 테스트 정확도가 아주 조금 낮았습니다.
+                                        검증 기준과 Test 최고는 다릅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q15. 66번 결과로 L1·Dropout이 나쁘다고 말할 수 있나요?
+                                    </summary>
+                                    <p>
+                                        특정 구성과 설정의 결과입니다.
+                                        마지막 모델은 입력 BN도 추가되어
+                                        단일 효과를 분리하지 못합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q16. 규제가 다른 모델의 Loss 비교는 왜 조심하나요?
+                                    </summary>
+                                    <p>
+                                        목적함수에 포함된 패널티가 다를 수 있습니다.
+                                        공통 예측 지표와 데이터 손실도 함께 확인합니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+
+                        <!-- 30. 자료 범위 -->
+                        <section id="sources" class="lesson-card dp-card" aria-labelledby="sources-title">
+                            <p class="dp-kicker">30 · 자료와 보완 범위</p>
+
+                            <h2 id="sources-title">
+                                교안 원문·저장된 결과·계산 검증·공식 API를 분리합니다
+                            </h2>
+
+                            <p class="dp-source">
+                                공식 문서 확인일: 2026-09-13 ·
+                                설치 버전과 실제 설정을 대조합니다
+                            </p>
+
+                            <dl class="dp-definitions">
+                                <div id="ref-a">
+                                    <dt>[A] AI 교안</dt>
+                                    <dd>
+                                        <cite>28_AI교안v2(1).pdf</cite> ·
+                                        사용자가 지칭한 AI교안v2 첨부본.
+                                        47~54쪽: 성능 개선의 정의, 초기화, 규제,
+                                        BN·LN·Dropout, EarlyStopping,
+                                        Callback, TensorBoard·증강.
+                                        50쪽 수식·53쪽 Callback 표기는
+                                        원문과 보완을 구분했습니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-b">
+                                    <dt>[B] 통합교안</dt>
+                                    <dd>
+                                        <cite>
+                                            AI_MachineLearning_통합교안_36-100.pdf
+                                        </cite>.
+                                        62번은 저장·복원,
+                                        63번 242~244쪽은 조기 종료,
+                                        66번은 개선 모델 비교입니다.
+                                        63번 244쪽 로그·평가와
+                                        66번 260~263쪽 구성·266쪽 평가를 직접 대조했습니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-c">
+                                    <dt>[C] 과적합</dt>
+                                    <dd>
+                                        <a href="https://www.tensorflow.org/tutorials/keras/overfit_and_underfit"
+                                            target="_blank" rel="noopener noreferrer">TensorFlow 과적합·과소적합</a>.
+                                        일반화와 규제항을 구분한 지표 관찰의 보완 자료입니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-d">
+                                    <dt>[D] 검증·누수</dt>
+                                    <dd>
+                                        <a href="https://keras.io/guides/training_with_built_in_methods/"
+                                            target="_blank" rel="noopener noreferrer">Keras 학습·검증 가이드</a> ·
+                                        <a href="https://scikit-learn.org/stable/common_pitfalls.html" target="_blank"
+                                            rel="noopener noreferrer">scikit-learn 데이터 누수 점검</a>.
+                                        배열의 검증 분리와 전처리 기준을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-e">
+                                    <dt>[E] 초기화</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/core_layers/dense/" target="_blank"
+                                            rel="noopener noreferrer">Keras Dense</a>.
+                                        교안의 일반 초기화 설명과
+                                        실제 kernel_initializer 설정을 구분합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-f">
+                                    <dt>[F] Regularizer</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/regularizers/" target="_blank"
+                                            rel="noopener noreferrer">Keras 규제 문서</a>.
+                                        패널티 수식, 적용 대상,
+                                        전체 Loss 포함을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-g">
+                                    <dt>[G] BN</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/normalization_layers/batch_normalization/"
+                                            target="_blank" rel="noopener noreferrer">BatchNormalization</a>.
+                                        분모·학습 상태·이동 통계·모드의 차이를 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-h">
+                                    <dt>[H] LN</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/normalization_layers/layer_normalization/"
+                                            target="_blank" rel="noopener noreferrer">LayerNormalization</a>.
+                                        Sample 내부의 지정 축 기준을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-i">
+                                    <dt>[I] Dropout</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/layers/regularization_layers/dropout/"
+                                            target="_blank" rel="noopener noreferrer">Dropout</a>.
+                                        마스크·스케일·training과 trainable의 구분을
+                                        확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-j">
+                                    <dt>[J] 조기 종료</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/callbacks/early_stopping/" target="_blank"
+                                            rel="noopener noreferrer">EarlyStopping</a>.
+                                        지표·방향·patience·min_delta·
+                                        가중치 복원 설정을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-k">
+                                    <dt>[K] Checkpoint</dt>
+                                    <dd>
+                                        <a href="https://keras.io/api/callbacks/model_checkpoint/" target="_blank"
+                                            rel="noopener noreferrer">ModelCheckpoint</a>.
+                                        최선값·경로·저장 주기·파일 형식의 설정을 확인합니다.
+                                    </dd>
+                                </div>
+
+                                <div id="ref-l">
+                                    <dt>[L] 저장·복원</dt>
+                                    <dd>
+                                        <a href="https://keras.io/guides/serialization_and_saving/" target="_blank"
+                                            rel="noopener noreferrer">Keras 저장 가이드</a>.
+                                        전체 .keras 복원과 실제 평가 객체를 연결합니다.
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div class="dp-callout dp-supplement">
+                                <h3>실행 결과를 섞지 않습니다</h3>
+                                <p>
+                                    신경망 학습 결과는 교안의 저장값입니다.
+                                    이번 환경에서는 TensorFlow 학습을 재실행하지 않았습니다.
+                                    새로 실행한 검증은 고정 입력의 NumPy 계산과
+                                    의도적인 max(0.9) 오류 재현입니다.
+                                    흐름도·손계산·가정 예제·실험 기록 제안은
+                                    Step 1·2의 보완 내용입니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 31. 다음 단원 -->
+                        <section id="next" class="lesson-card dp-card" aria-labelledby="next-title">
+                            <p class="dp-kicker">31 · 23단원 연결</p>
+
+                            <h2 id="next-title">
+                                CNN에서도 관찰·선택·복원의 원칙은 이어집니다
+                            </h2>
+
+                            <p class="dp-source">
+                                교안 A는 성능 개선·증강 다음 CNN으로 이어집니다
+                                <a href="#ref-a">[A]</a>
+                            </p>
+
+                            <ol class="dp-flow">
+                                <li>
+                                    <b>이미지</b>
+                                    <span>공간적 관계를 가진 입력</span>
+                                </li>
+                                <li>
+                                    <b>Convolution</b>
+                                    <span>필터를 이용한 계산</span>
+                                </li>
+                                <li>
+                                    <b>Feature Map</b>
+                                    <span>추출한 중간 표현</span>
+                                </li>
+                                <li>
+                                    <b>Activation</b>
+                                    <span>다음 Layer로 연결</span>
+                                </li>
+                            </ol>
+
+                            <div class="dp-table" role="region" aria-label="다음 단원에서도 필요한 질문" tabindex="0">
+                                <table>
+                                    <caption>다음 단원에서도 필요한 질문</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">이번 개념</th>
+                                            <th scope="col">CNN에서 이어지는 질문</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Overfitting</th>
+                                            <td>학습 사진에만 맞춰진 것은 아닌가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Validation</th>
+                                            <td>새로운 사진에서 확인했는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Initialization</th>
+                                            <td>합성곱 Weight의 시작값은 어떻게 정하는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Regularization</th>
+                                            <td>어떤 패널티를 더하는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">BN·Dropout</th>
+                                            <td>중간 표현과 의존성을 어떻게 다루는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">EarlyStopping</th>
+                                            <td>언제 멈출 것인가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">ModelCheckpoint</th>
+                                            <td>어느 상태를 보관하고 사용할 것인가?</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="dp-takeaway">
+                                기준 모델 관찰 → 필요한 변경 →
+                                같은 검증 기준으로 선택 → 선택 모델 복원 → 별도 평가.
+                                모델 구조가 CNN으로 바뀌어도 이 흐름은 계속 필요합니다.
+                            </p>
+
+                            <a class="dp-next-link" href="./23_cnn_basics.html">
+                                23. CNN 기초로 이동
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        </section>
+                    </main>
+
+                    <!-- ASIDE: 암기 · 혼동 · 다음 단원 -->
+                    <aside class="side-note dp-aside" aria-label="딥러닝 성능 개선 복습 노트">
+                        <section class="note-card dp-note">
+                            <p class="dp-kicker">MEMORY</p>
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ol class="dp-memory">
+                                <li>과적합은 새로운 데이터의 성능 문제입니다.</li>
+                                <li>규제는 목적함수, BN·LN은 값의 통계를 다룹니다.</li>
+                                <li>Dropout은 활성값을 임시 제외합니다.</li>
+                                <li>EarlyStopping은 종료, Checkpoint는 저장입니다.</li>
+                                <li>선택 파일을 복원한 객체로 평가해야 합니다.</li>
+                                <li>기법 추가와 성능 향상 확인은 다른 일입니다.</li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card dp-note">
+                            <p class="dp-kicker">CONFUSION</p>
+                            <h2>헷갈리는 개념</h2>
+
+                            <dl class="dp-pairs">
+                                <dt>Train / Validation / Test</dt>
+                                <dd>Update / 선택 / 최종 평가</dd>
+
+                                <dt>Regularization / Normalization</dt>
+                                <dd>학습 목적 규제 / 통계적 값 변환</dd>
+
+                                <dt>γ·β / 이동 통계</dt>
+                                <dd>학습 Parameter / 비학습 상태 갱신</dd>
+
+                                <dt>종료 / 저장 / 복원</dt>
+                                <dd>서로 다른 작업</dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card dp-note">
+                            <p class="dp-kicker">SOURCE NOTE</p>
+                            <h2>교안의 실제 결과</h2>
+
+                            <p>
+                                63번은 검증 최선 <b>Epoch 4</b>,
+                                학습 종료 <b>Epoch 7</b>입니다.
+                            </p>
+
+                            <p>
+                                저장 상태 로드 후 Test가 반드시 좋아진 것은 아닙니다.
+                            </p>
+
+                            <p>
+                                66번의 마지막 구성은
+                                Dropout뿐 아니라 입력 BN도 바뀝니다.
+                            </p>
+
+                            <a href="#comparison">원본 결과 다시 보기 →</a>
+                        </section>
+
+                        <section class="note-card dp-note">
+                            <p class="dp-kicker">SELF CHECK</p>
+                            <h2>개선 전에 세 질문</h2>
+
+                            <p>
+                                무엇이 문제인가?<br>
+                                이번 변경은 무엇을 바꾸는가?<br>
+                                같은 기준으로 어떤 모델을 평가했는가?
+                            </p>
+                        </section>
+
+                        <section class="note-card dp-note">
+                            <p class="dp-kicker">NEXT</p>
+                            <h2>23. CNN 기초</h2>
+
+                            <p>
+                                이미지·필터·Feature Map으로 구조를 확장해도
+                                일반화와 모델 선택의 기준은 유지합니다.
+                            </p>
+
+                            <a href="./23_cnn_basics.html">다음 단원으로 →</a>
+                        </section>
+                    </aside>
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <nav class="lesson-pagination dp-pagination" aria-label="AI 단원 이동">
+                    <a href="./21_tensorflow_keras.html">
+                        <small>PREVIOUS</small>
+                        <span>← 21. TensorFlow와 Keras</span>
+                    </a>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI</span>
-                    
-                    <span>22</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a href="./00_ai_index.html">
+                        <small>COURSE</small>
+                        <span>AI 목차</span>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-ai-22">
-                    <h2 id="goals-ai-22">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="concept" class="lesson-card concept-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>핵심 개념</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="background" class="lesson-card background-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>왜 등장했는가?</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="visual" class="lesson-card visual-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>그림처럼 이해</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="principle" class="lesson-card principle-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>수식 또는 원리 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>동작 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="comparison" class="lesson-card comparison-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>비슷한 개념 비교</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="limitation" class="lesson-card limitation-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>한계와 보완</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>코드 또는 예제</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 착각</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지 읽는 법</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="22. 딥러닝 성능 개선 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                    <a href="./23_cnn_basics.html">
+                        <small>NEXT</small>
+                        <span>23. CNN 기초 →</span>
+                    </a>
+                </nav>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI 단원 이동">
-                <a class="lesson-prev" href="./21_tensorflow_keras.html">
-                    <span>이전 단원</span>
-                    <strong>21. TensorFlow와 Keras</strong>
-                </a>
-
-                <a class="lesson-course-index" href="./00_ai_index.html">
-                    <span>과목 목차</span>
-                    <strong>AI 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./23_cnn_basics.html">
-                    <span>다음 단원</span>
-                    <strong>23. CNN 기초</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+    </body>
+
 </html>
