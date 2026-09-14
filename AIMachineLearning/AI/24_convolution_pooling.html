@@ -1,236 +1,2123 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="24. Convolution과 Pooling Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>24. Convolution과 Pooling | AI | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/24_convolution_pooling.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page ai-course-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="ai"
-      data-lesson="24"
-      data-step="0"
-      data-status="skeleton">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="24. Convolution과 Pooling. Convolution, Padding, Stride, Max Pooling, Average Pooling, Global Average Pooling의 동작과 출력 Shape을 학습합니다.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>24. Convolution과 Pooling | AI | AI &amp; Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 01</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/24_convolution_pooling.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI · 24</p>
-                        <h1>24. Convolution과 Pooling</h1>
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page ai-course-page ai-lesson-page ai-convolution-pooling-page"
+        data-nav-category="ai-machine-learning" data-nav-item="course-ai" data-course="ai" data-lesson="24">
+        <a class="skip-link cp-skip-link" href="#lesson-main">
+            본문 바로가기
+        </a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+
+            <div class="page-content">
+
+                <!--
+                HEADER
+                - 단원 제목
+                - 핵심 요약
+                - 학습 목표
+            -->
+                <header class="lesson-hero ai-ml-hero cp-hero">
+                    <p class="cp-eyebrow">
+                        AI &amp; MACHINE LEARNING · AI · LESSON 24
+                    </p>
+
+                    <h1>
+                        24. Convolution과 Pooling
+                        <span>
+                            특징을 계산하고,<br>
+                            공간 크기와 정보량을 조절하다
+                        </span>
+                    </h1>
+
+                    <p class="cp-lead">
+                        Convolution은 작은 Patch에서 특징을 계산합니다.
+                        <strong>Padding</strong>은 가장자리 계산 범위를,
+                        <strong>Stride</strong>는 이동 간격을,
+                        <strong>Pooling</strong>은 Feature Map을 요약하는 방식을 결정합니다.
+                    </p>
+
+                    <div class="cp-keywords" aria-label="핵심 키워드">
+                        <span>Convolution</span>
+                        <span>Padding · Valid · Same</span>
+                        <span>Stride</span>
+                        <span>Max Pooling</span>
+                        <span>Average Pooling</span>
+                        <span>Global Average Pooling</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <section class="learning-goals cp-goals" aria-labelledby="cp-goals-title">
+                        <h2 id="cp-goals-title">학습 목표</h2>
+
+                        <ol>
+                            <li>
+                                Convolution 한 위치의 계산과 Feature Map 생성 과정을 설명합니다.
+                            </li>
+                            <li>
+                                Padding과 Stride가 출력 Height·Width에 미치는 영향을 계산합니다.
+                            </li>
+                            <li>
+                                Max Pooling·Average Pooling·Global Average Pooling의 차이를 구분합니다.
+                            </li>
+                            <li>
+                                Convolution과 Pooling의 Parameter·Channel·출력 Shape 변화를 해석합니다.
+                            </li>
+                            <li>
+                                교안의 주석과 실제 활성 Layer·model.summary()를 같은 구조에서 대조합니다.
+                            </li>
+                        </ol>
+                    </section>
+                </header>
+
+                <div class="content-layout cp-content">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <nav class="chapter-map cp-toc" aria-label="24단원 목차">
+                            <h2>학습 순서</h2>
+
+                            <ol>
+                                <li><a href="#overview">이번 단원의 핵심</a></li>
+                                <li><a href="#why">왜 배우는가</a></li>
+                                <li><a href="#convolution">Convolution 계산</a></li>
+                                <li><a href="#padding">Padding</a></li>
+                                <li><a href="#valid-same">Valid와 Same</a></li>
+                                <li><a href="#stride">Stride</a></li>
+                                <li><a href="#conv-shape">Conv 출력 Shape</a></li>
+                                <li><a href="#pooling">Pooling의 목적</a></li>
+                                <li><a href="#pool-shape">Pooling 출력 Shape</a></li>
+                                <li><a href="#max-pooling">Max Pooling</a></li>
+                                <li><a href="#average-pooling">Average Pooling</a></li>
+                                <li><a href="#global-average">Global Average Pooling</a></li>
+                                <li><a href="#comparison">핵심 개념 비교</a></li>
+                                <li><a href="#flow">전체 동작 흐름</a></li>
+                                <li><a href="#environment">실습 준비와 확인 순서</a></li>
+                                <li><a href="#mnist">MNIST 입력 준비</a></li>
+                                <li><a href="#keras-max">Max Pooling 코드</a></li>
+                                <li><a href="#keras-variants">코드 변형 비교</a></li>
+                                <li><a href="#expected-summary">예상 Summary</a></li>
+                                <li><a href="#numpy">NumPy 손계산</a></li>
+                                <li><a href="#source-review">교안 코드 대조</a></li>
+                                <li><a href="#mistakes">자주 하는 실수</a></li>
+                                <li><a href="#errors">오류 메시지 읽기</a></li>
+                                <li><a href="#practice">실무 연결</a></li>
+                                <li><a href="#interview">면접 포인트</a></li>
+                                <li><a href="#sources">자료와 보완 범위</a></li>
+                                <li><a href="#next">다음 단원 연결</a></li>
+                            </ol>
+                        </nav>
+
+                        <!-- 01. 핵심 개념 -->
+                        <section id="overview" class="lesson-card cp-card" aria-labelledby="overview-title">
+                            <p class="cp-kicker">01 · CORE IDEA</p>
+
+                            <h2 id="overview-title">
+                                Convolution은 특징을 찾고, Pooling은 공간 정보를 요약합니다
+                            </h2>
+
+                            <p class="cp-source">
+                                AI 교안의 Padding·Stride·Pooling 흐름을 Step 1·2 구조로 재구성
+                            </p>
+
+                            <div class="cp-core-flow" aria-label="Convolution과 Pooling 핵심 흐름">
+                                <span>입력 Feature Map</span>
+                                <b aria-hidden="true">→</b>
+                                <span>Padding</span>
+                                <b aria-hidden="true">→</b>
+                                <span>Convolution</span>
+                                <b aria-hidden="true">→</b>
+                                <span>Activation</span>
+                                <b aria-hidden="true">→</b>
+                                <span>Pooling</span>
+                            </div>
+
+                            <div class="cp-grid">
+                                <article class="cp-box">
+                                    <h3>Convolution</h3>
+                                    <p>
+                                        Patch와 Filter를 곱하고 더하여 위치별 Feature를 계산합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Padding</h3>
+                                    <p>
+                                        가장자리 계산 범위와 출력 공간 크기를 조절합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Stride</h3>
+                                    <p>
+                                        Filter 또는 Pooling Window의 이동 간격을 결정합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Pooling</h3>
+                                    <p>
+                                        지역 값을 Max 또는 Average로 요약하여 Down Sampling합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p class="cp-takeaway">
+                                Padding과 Stride는 같은 Filter 구조의 Parameter 수를 바꾸지 않고
+                                출력 공간과 적용 위치를 바꿉니다.
+                                일반적인 Max·Average Pooling은 학습 Weight 없이 Height·Width를 줄이고
+                                Channel 수를 유지합니다.
+                            </p>
+                        </section>
+
+                        <!-- 02. 등장 이유 -->
+                        <section id="why" class="lesson-card cp-card" aria-labelledby="why-title">
+                            <p class="cp-kicker">02 · WHY?</p>
+
+                            <h2 id="why-title">
+                                특징을 찾는 것만큼 계산량과 위치 정보의 균형도 중요합니다
+                            </h2>
+
+                            <p>
+                                26×26×32 Feature Map은 이미지 한 장당 21,632개의 Activation을 가집니다.
+                                다음 Layer가 이 값을 모두 처리하면 계산량과 메모리 사용량이 커집니다.
+                            </p>
+
+                            <div class="cp-equation">
+                                <p><code>26 × 26 × 32 = 21,632 activations</code></p>
+                            </div>
+
+                            <ol class="cp-flow">
+                                <li>
+                                    <b>Convolution</b>
+                                    <span>지역 특징을 계산</span>
+                                </li>
+                                <li>
+                                    <b>Padding</b>
+                                    <span>가장자리 참여와 출력 크기 조절</span>
+                                </li>
+                                <li>
+                                    <b>Stride</b>
+                                    <span>적용 위치와 해상도 조절</span>
+                                </li>
+                                <li>
+                                    <b>Pooling</b>
+                                    <span>지역 값을 대표값으로 요약</span>
+                                </li>
+                            </ol>
+
+                            <div class="cp-balance">
+                                <div>
+                                    <small>유지하고 싶은 것</small>
+                                    <strong>유용한 특징·위치 정보</strong>
+                                </div>
+                                <i aria-hidden="true">↔</i>
+                                <div>
+                                    <small>줄이고 싶은 것</small>
+                                    <strong>연산량·메모리·중복 정보</strong>
+                                </div>
+                            </div>
+
+                            <p>
+                                Down Sampling은 효율을 높일 수 있지만 한 번 줄어든 세밀한 공간 정보는
+                                자동으로 복원되지 않습니다. 분류·탐지·분할 등 문제의 목적에 맞춰
+                                축소 속도를 결정해야 합니다.
+                            </p>
+                        </section>
+
+                        <!-- 03. Convolution -->
+                        <section id="convolution" class="lesson-card cp-card" aria-labelledby="convolution-title">
+                            <p class="cp-kicker">03 · CONVOLUTION</p>
+
+                            <h2 id="convolution-title">
+                                입력 Patch와 Filter를 곱하고 모든 Channel 결과를 합산합니다
+                            </h2>
+
+                            <div class="cp-equation cp-equation-large">
+                                <code>Z[i,j,f] =
+Σu Σv Σc
+X[i·S_h+u, j·S_w+v, c]
+K[u,v,c,f] + b[f]</code>
+                            </div>
+
+                            <div class="cp-table" role="region" aria-label="Convolution 수식 기호" tabindex="0">
+                                <table>
+                                    <caption>보완 수식의 기호</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">기호</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">i, j</th>
+                                            <td>출력 Feature Map의 위치</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">f</th>
+                                            <td>Filter 번호·출력 Channel</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">u, v</th>
+                                            <td>Kernel 내부의 공간 위치</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">c</th>
+                                            <td>입력 Channel</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">S_h, S_w</th>
+                                            <td>세로·가로 Stride</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">b[f]</th>
+                                            <td>Filter별 Bias</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <ol class="cp-flow">
+                                <li>
+                                    <b>Patch 선택</b>
+                                    <span>Kernel과 같은 공간 영역</span>
+                                </li>
+                                <li>
+                                    <b>곱셈</b>
+                                    <span>공간과 입력 Channel 전체</span>
+                                </li>
+                                <li>
+                                    <b>합산 + Bias</b>
+                                    <span>출력 Scalar 하나</span>
+                                </li>
+                                <li>
+                                    <b>이동</b>
+                                    <span>같은 Filter를 다음 위치에 적용</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                Filter는 공간 위치를 옮길 때 같은 Weight를 공유하지만,
+                                학습 Step에서는 역전파와 Optimizer에 의해 업데이트됩니다.
+                            </p>
+                        </section>
+
+                        <!-- 04. Padding -->
+                        <section id="padding" class="lesson-card cp-card" aria-labelledby="padding-title">
+                            <p class="cp-kicker">04 · PADDING</p>
+
+                            <h2 id="padding-title">
+                                입력 주변에 값을 추가하여 가장자리 계산 범위를 확장합니다
+                            </h2>
+
+                            <div class="cp-padding-demo">
+                                <div>
+                                    <h3>원본 3×3</h3>
+                                    <pre><code>1 2 3
+4 5 6
+7 8 9</code></pre>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <h3>Zero Padding 1</h3>
+                                    <pre><code>0 0 0 0 0
+0 1 2 3 0
+0 4 5 6 0
+0 7 8 9 0
+0 0 0 0 0</code></pre>
+                                </div>
+                            </div>
+
+                            <div class="cp-grid">
+                                <article class="cp-box">
+                                    <h3>가장자리 참여</h3>
+                                    <p>
+                                        중앙보다 적게 사용되는 모서리·가장자리 Pixel의 계산 기회를 늘립니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>출력 크기 조절</h3>
+                                    <p>
+                                        Kernel 적용 후 줄어드는 Height·Width를 조절합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>끝부분 손실 완화</h3>
+                                    <p>
+                                        Stride와 Kernel 때문에 계산에서 빠질 수 있는 끝부분을 다룹니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="cp-callout cp-warning">
+                                <h3>Padding은 실제 관측 정보를 새로 만드는 작업이 아닙니다</h3>
+                                <p>
+                                    추가한 0은 이미지에서 관측한 Pixel이 아니라 계산 범위를 만들기 위한 인공 값입니다.
+                                    Padding을 크게 넣는다고 원본 정보가 증가하는 것은 아닙니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 05. Valid / Same -->
+                        <section id="valid-same" class="lesson-card cp-card" aria-labelledby="valid-same-title">
+                            <p class="cp-kicker">05 · VALID VS SAME</p>
+
+                            <h2 id="valid-same-title">
+                                Padding 사용 여부와 출력 공간 규칙을 구분합니다
+                            </h2>
+
+                            <div class="cp-table" role="region" aria-label="Valid와 Same 비교" tabindex="0">
+                                <table>
+                                    <caption>대표적인 Stride 1 비교</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">valid</th>
+                                            <th scope="col">same</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Padding</th>
+                                            <td>추가하지 않음</td>
+                                            <td>출력 규칙에 맞게 추가</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">5×5, K=3, S=1</th>
+                                            <td>3×3</td>
+                                            <td>5×5</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">가장자리 참여</th>
+                                            <td>상대적으로 적음</td>
+                                            <td>참여 기회 증가</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Conv Parameter</th>
+                                            <td>같은 Filter 구조이면 동일</td>
+                                            <td>같은 Filter 구조이면 동일</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="cp-equation">
+                                <p><code>5×5 input · 3×3 kernel · stride 1</code></p>
+                                <p><code>valid: (5−3)/1+1 = 3</code></p>
+                                <p><code>padding 1: (5+2−3)/1+1 = 5</code></p>
+                            </div>
+
+                            <p>
+                                <code>same</code>을 “어떤 Stride에서도 입력과 출력이 무조건 완전히 같다”로
+                                외우지 않습니다. Stride가 1보다 크면 사용하는 Framework의 실제 출력 Shape을 확인합니다.
+                            </p>
+                        </section>
+
+                        <!-- 06. Stride -->
+                        <section id="stride" class="lesson-card cp-card" aria-labelledby="stride-title">
+                            <p class="cp-kicker">06 · STRIDE</p>
+
+                            <h2 id="stride-title">
+                                Filter가 한 번에 이동하는 공간 간격을 결정합니다
+                            </h2>
+
+                            <div class="cp-stride-demo">
+                                <div>
+                                    <small>Stride 1</small>
+                                    <strong>0 → 1 → 2 → 3</strong>
+                                    <span>적용 위치가 많고 출력 공간이 큼</span>
+                                </div>
+
+                                <div>
+                                    <small>Stride 2</small>
+                                    <strong>0 → 2 → 4</strong>
+                                    <span>적용 위치가 줄고 출력 공간이 작음</span>
+                                </div>
+                            </div>
+
+                            <div class="cp-table" role="region" aria-label="Stride 영향" tabindex="0">
+                                <table>
+                                    <caption>Stride가 커질 때의 변화</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">변화</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Filter 적용 위치</th>
+                                            <td>감소</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">출력 Height·Width</th>
+                                            <td>감소</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">연산 횟수</th>
+                                            <td>감소 가능</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">세밀한 위치 정보</th>
+                                            <td>손실 가능성 증가</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Conv Parameter 수</th>
+                                            <td>같은 Filter 구조이면 변화 없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="cp-takeaway">
+                                Stride는 Parameter 개수를 줄이는 설정이 아니라,
+                                같은 Filter를 적용할 위치와 출력 해상도를 조절하는 Hyperparameter입니다.
+                            </p>
+                        </section>
+
+                        <!-- 07. Conv Shape -->
+                        <section id="conv-shape" class="lesson-card cp-card" aria-labelledby="conv-shape-title">
+                            <p class="cp-kicker">07 · CONV OUTPUT SHAPE</p>
+
+                            <h2 id="conv-shape-title">
+                                입력·Padding·Kernel·Stride를 공식에 넣어 계산합니다
+                            </h2>
+
+                            <p>
+                                Dilation이 1인 기본 Convolution의 보완 공식입니다.
+                            </p>
+
+                            <div class="cp-equation cp-equation-large">
+                                <code>H_out = floor((H_in + 2P_h − K_h) / S_h) + 1
+W_out = floor((W_in + 2P_w − K_w) / S_w) + 1
+C_out = Filter 수</code>
+                            </div>
+
+                            <div class="cp-shape-cases">
+                                <article>
+                                    <small>CASE A</small>
+                                    <h3>Valid · Stride 1</h3>
+                                    <p><code>(5−3)/1+1 = 3</code></p>
+                                    <strong>5×5 → 3×3</strong>
+                                </article>
+
+                                <article>
+                                    <small>CASE B</small>
+                                    <h3>Padding 1 · Stride 1</h3>
+                                    <p><code>(5+2−3)/1+1 = 5</code></p>
+                                    <strong>5×5 → 5×5</strong>
+                                </article>
+
+                                <article>
+                                    <small>CASE C</small>
+                                    <h3>Valid · Stride 2</h3>
+                                    <p><code>floor((5−3)/2)+1 = 2</code></p>
+                                    <strong>5×5 → 2×2</strong>
+                                </article>
+                            </div>
+
+                            <p>
+                                Height·Width는 공간 설정으로 결정되고,
+                                출력 Channel은 Filter 수로 결정됩니다.
+                            </p>
+                        </section>
+
+                        <!-- 08. Pooling -->
+                        <section id="pooling" class="lesson-card cp-card" aria-labelledby="pooling-title">
+                            <p class="cp-kicker">08 · POOLING</p>
+
+                            <h2 id="pooling-title">
+                                지역의 여러 값을 하나의 대표값으로 요약합니다
+                            </h2>
+
+                            <div class="cp-pooling-summary">
+                                <div>
+                                    <small>입력</small>
+                                    <strong>H × W × C</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>Pooling Window</small>
+                                    <strong>Max 또는 Average</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>출력</small>
+                                    <strong>작아진 H × W · 같은 C</strong>
+                                </div>
+                            </div>
+
+                            <div class="cp-grid">
+                                <article class="cp-box">
+                                    <h3>Down Sampling</h3>
+                                    <p>
+                                        공간 해상도와 Activation 수를 줄입니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>고정 요약 규칙</h3>
+                                    <p>
+                                        일반적인 Max·Average Pooling에는 학습 Weight가 없습니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Channel 유지</h3>
+                                    <p>
+                                        각 Channel 안에서 독립적으로 공간 정보를 요약합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="cp-callout cp-supplement">
+                                <h3>Parameter가 0이라는 뜻</h3>
+                                <p>
+                                    학습되는 Weight와 Bias가 없다는 뜻입니다.
+                                    Max 비교나 평균 계산까지 사라진다는 뜻은 아닙니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 09. Pool Shape -->
+                        <section id="pool-shape" class="lesson-card cp-card" aria-labelledby="pool-shape-title">
+                            <p class="cp-kicker">09 · POOL OUTPUT SHAPE</p>
+
+                            <h2 id="pool-shape-title">
+                                Pool Size와 Pooling Stride로 공간 크기를 계산합니다
+                            </h2>
+
+                            <div class="cp-equation">
+                                <p>
+                                    <code>
+                                    H_pool =
+                                    floor((H_in + 2P_h − F_h) / S_h) + 1
+                                </code>
+                                </p>
+                                <p>
+                                    <code>
+                                    W_pool =
+                                    floor((W_in + 2P_w − F_w) / S_w) + 1
+                                </code>
+                                </p>
+                                <p><code>C_out = C_in</code></p>
+                            </div>
+
+                            <div class="cp-shape-line">
+                                <span>26×26×32</span>
+                                <b aria-hidden="true">→</b>
+                                <span>2×2 Pool · Stride 2</span>
+                                <b aria-hidden="true">→</b>
+                                <strong>13×13×32</strong>
+                            </div>
+
+                            <p>
+                                대표적으로 Pool Size 2×2와 Stride 2를 함께 사용하면
+                                Window가 겹치지 않습니다.
+                                하지만 두 설정이 반드시 항상 같아야 하는 것은 아닙니다.
+                            </p>
+                        </section>
+
+                        <!-- 10. Max Pooling -->
+                        <section id="max-pooling" class="lesson-card cp-card" aria-labelledby="max-pooling-title">
+                            <p class="cp-kicker">10 · MAX POOLING</p>
+
+                            <h2 id="max-pooling-title">
+                                지역에서 가장 강한 Activation을 대표값으로 남깁니다
+                            </h2>
+
+                            <div class="cp-pool-hand">
+                                <div>
+                                    <h3>입력 Feature Map</h3>
+                                    <pre><code>1 3 2 4
+5 6 1 2
+7 2 8 3
+0 1 4 9</code></pre>
+                                </div>
+
+                                <div>
+                                    <h3>2×2 Max Pool · S=2</h3>
+                                    <pre><code>6 4
+7 9</code></pre>
+                                </div>
+                            </div>
+
+                            <div class="cp-window-grid">
+                                <article>
+                                    <code>[1 3; 5 6]</code>
+                                    <strong>max = 6</strong>
+                                </article>
+                                <article>
+                                    <code>[2 4; 1 2]</code>
+                                    <strong>max = 4</strong>
+                                </article>
+                                <article>
+                                    <code>[7 2; 0 1]</code>
+                                    <strong>max = 7</strong>
+                                </article>
+                                <article>
+                                    <code>[8 3; 4 9]</code>
+                                    <strong>max = 9</strong>
+                                </article>
+                            </div>
+
+                            <p>
+                                중간 Feature Map에서는 값이 원본 색이 아니라 Filter 반응입니다.
+                                따라서 Max Pooling은 단순히 “가장 밝은 색”이 아니라
+                                <strong>해당 Feature의 가장 강한 지역 반응</strong>을 남긴다고 해석합니다.
+                            </p>
+                        </section>
+
+                        <!-- 11. Average Pooling -->
+                        <section id="average-pooling" class="lesson-card cp-card"
+                            aria-labelledby="average-pooling-title">
+                            <p class="cp-kicker">11 · AVERAGE POOLING</p>
+
+                            <h2 id="average-pooling-title">
+                                지역 전체의 평균적인 반응을 대표값으로 남깁니다
+                            </h2>
+
+                            <div class="cp-pool-hand">
+                                <div>
+                                    <h3>같은 입력 Feature Map</h3>
+                                    <pre><code>1 3 2 4
+5 6 1 2
+7 2 8 3
+0 1 4 9</code></pre>
+                                </div>
+
+                                <div>
+                                    <h3>2×2 Average Pool · S=2</h3>
+                                    <pre><code>3.75 2.25
+2.50 6.00</code></pre>
+                                </div>
+                            </div>
+
+                            <div class="cp-window-grid">
+                                <article>
+                                    <code>(1+3+5+6)/4</code>
+                                    <strong>3.75</strong>
+                                </article>
+                                <article>
+                                    <code>(2+4+1+2)/4</code>
+                                    <strong>2.25</strong>
+                                </article>
+                                <article>
+                                    <code>(7+2+0+1)/4</code>
+                                    <strong>2.50</strong>
+                                </article>
+                                <article>
+                                    <code>(8+3+4+9)/4</code>
+                                    <strong>6.00</strong>
+                                </article>
+                            </div>
+
+                            <p>
+                                Max Pooling과 출력 Shape은 같을 수 있지만 값의 의미는 다릅니다.
+                                Max는 가장 강한 반응을, Average는 Window 전체의 평균 반응을 유지합니다.
+                            </p>
+                        </section>
+
+                        <!-- 12. GAP -->
+                        <section id="global-average" class="lesson-card cp-card" aria-labelledby="global-average-title">
+                            <p class="cp-kicker">12 · GLOBAL AVERAGE POOLING</p>
+
+                            <h2 id="global-average-title">
+                                각 Channel의 전체 공간을 값 하나로 요약합니다
+                            </h2>
+
+                            <div class="cp-gap-flow">
+                                <div>
+                                    <small>입력</small>
+                                    <strong>7×7×512</strong>
+                                    <span>Feature Map 512개</span>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>Channel별 전체 평균</small>
+                                    <strong>1×1×512</strong>
+                                    <span>또는 길이 512 Vector</span>
+                                </div>
+                            </div>
+
+                            <div class="cp-table" role="region" aria-label="Average Pooling과 Global Average Pooling 비교"
+                                tabindex="0">
+                                <table>
+                                    <caption>지역 평균과 전체 공간 평균</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">AveragePooling2D</th>
+                                            <th scope="col">GlobalAveragePooling2D</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">평균 범위</th>
+                                            <td>작은 지역 Window</td>
+                                            <td>Channel 전체 공간</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">공간 출력</th>
+                                            <td>단계적으로 감소</td>
+                                            <td>Channel당 값 하나</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">대표 위치</th>
+                                            <td>중간 Feature Map</td>
+                                            <td>분류 Layer 직전</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">학습 Weight</th>
+                                            <td>없음</td>
+                                            <td>없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="cp-callout">
+                                <h3>Flatten과의 차이</h3>
+                                <p>
+                                    7×7×512를 Flatten하면 25,088개 값을 유지합니다.
+                                    Global Average Pooling은 각 Channel의 평균만 남겨 512개 값으로 줄입니다.
+                                    다음 Dense Layer의 Parameter를 크게 줄일 수 있지만 과적합 방지를 보장하지는 않습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 13. 비교 -->
+                        <section id="comparison" class="lesson-card cp-card" aria-labelledby="comparison-title">
+                            <p class="cp-kicker">13 · CONCEPT COMPARISON</p>
+
+                            <h2 id="comparison-title">
+                                비슷해 보이는 Down Sampling 방법의 역할을 분리합니다
+                            </h2>
+
+                            <div class="cp-table" role="region" aria-label="Convolution과 Pooling 핵심 비교" tabindex="0">
+                                <table>
+                                    <caption>Convolution·Stride·Pooling 비교</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">Convolution</th>
+                                            <th scope="col">Strided Conv</th>
+                                            <th scope="col">Pooling</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">목적</th>
+                                            <td>특징 추출</td>
+                                            <td>특징 추출 + 공간 축소</td>
+                                            <td>지역 정보 요약</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">학습 Weight</th>
+                                            <td>있음</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">지역 계산</th>
+                                            <td>곱셈·합산</td>
+                                            <td>곱셈·합산</td>
+                                            <td>Max·Average</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Channel 변경</th>
+                                            <td>Filter 수로 가능</td>
+                                            <td>Filter 수로 가능</td>
+                                            <td>일반적으로 유지</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="cp-table" role="region" aria-label="Max와 Average Pooling 비교" tabindex="0">
+                                <table>
+                                    <caption>Max Pooling과 Average Pooling</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">Max</th>
+                                            <th scope="col">Average</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">대표값</th>
+                                            <td>최댓값</td>
+                                            <td>평균값</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">강조</th>
+                                            <td>가장 강한 반응</td>
+                                            <td>지역 전체 반응</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">큰 값 하나의 영향</th>
+                                            <td>큼</td>
+                                            <td>주변 값과 평균됨</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">학습 Weight</th>
+                                            <td>없음</td>
+                                            <td>없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 14. 전체 흐름 -->
+                        <section id="flow" class="lesson-card cp-card" aria-labelledby="flow-title">
+                            <p class="cp-kicker">14 · OPERATION FLOW</p>
+
+                            <h2 id="flow-title">
+                                Shape이 Layer를 통과하며 어떻게 바뀌는지 추적합니다
+                            </h2>
+
+                            <div class="cp-model-flow">
+                                <article>
+                                    <small>Input</small>
+                                    <strong>28×28×1</strong>
+                                    <span>MNIST 한 장</span>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>Conv2D</small>
+                                    <strong>26×26×32</strong>
+                                    <span>K=3 · valid · S=1</span>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>ReLU</small>
+                                    <strong>26×26×32</strong>
+                                    <span>Shape 유지</span>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>Max Pool</small>
+                                    <strong>13×13×32</strong>
+                                    <span>2×2 · S=2</span>
+                                </article>
+                            </div>
+
+                            <div class="cp-table" role="region" aria-label="Layer별 역할" tabindex="0">
+                                <table>
+                                    <caption>Layer별 변화</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Layer</th>
+                                            <th scope="col">Shape 변화</th>
+                                            <th scope="col">학습 Parameter</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Conv2D</th>
+                                            <td>공간·Channel 변경 가능</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">ReLU</th>
+                                            <td>Shape 유지</td>
+                                            <td>없음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pooling</th>
+                                            <td>공간 감소·Channel 유지</td>
+                                            <td>없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 15. 실습 준비 -->
+                        <section id="environment" class="lesson-card cp-card" aria-labelledby="environment-title">
+                            <p class="cp-kicker">15 · EXECUTION CHECKLIST</p>
+
+                            <h2 id="environment-title">
+                                코드 작성 전에 Shape과 Hyperparameter를 먼저 적습니다
+                            </h2>
+
+                            <ol class="cp-process">
+                                <li>
+                                    <span>01</span>
+                                    <div>
+                                        <h3>입력 확인</h3>
+                                        <p>Batch·Height·Width·Channel, dtype, 값 범위를 확인합니다.</p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>02</span>
+                                    <div>
+                                        <h3>Conv 설정</h3>
+                                        <p>Filter 수·Kernel·Padding·Stride를 기록합니다.</p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>03</span>
+                                    <div>
+                                        <h3>Conv 예상 계산</h3>
+                                        <p>출력 Shape과 Parameter 수를 먼저 구합니다.</p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>04</span>
+                                    <div>
+                                        <h3>Pooling 설정</h3>
+                                        <p>방식·Pool Size·Stride·Padding을 기록합니다.</p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>05</span>
+                                    <div>
+                                        <h3>Pooling 예상 계산</h3>
+                                        <p>공간 크기와 Channel 유지 여부를 계산합니다.</p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>06</span>
+                                    <div>
+                                        <h3>Summary 대조</h3>
+                                        <p>현재 활성화된 실제 Layer와 예상값을 비교합니다.</p>
+                                    </div>
+                                </li>
+                            </ol>
+
+                            <div class="cp-table" role="region" aria-label="실습 전 설정표" tabindex="0">
+                                <table>
+                                    <caption>MNIST 기본 예제 설정표</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">설정</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Input Shape</th>
+                                            <td>(28,28,1)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Filter</th>
+                                            <td>32</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Kernel</th>
+                                            <td>(3,3)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Conv Padding</th>
+                                            <td>valid</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Conv Stride</th>
+                                            <td>(1,1)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pool 방식</th>
+                                            <td>Max</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pool Size</th>
+                                            <td>(2,2)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pool Stride</th>
+                                            <td>(2,2)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">예상 Conv 출력</th>
+                                            <td>(26,26,32)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">예상 Pool 출력</th>
+                                            <td>(13,13,32)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 16. MNIST -->
+                        <section id="mnist" class="lesson-card cp-card" aria-labelledby="mnist-title">
+                            <p class="cp-kicker">16 · MNIST INPUT</p>
+
+                            <h2 id="mnist-title">
+                                Channel 축과 Pixel Scale을 CNN 입력에 맞춥니다
+                            </h2>
+
+                            <pre class="cp-code" tabindex="0" aria-label="MNIST 전처리 코드"><code>import numpy as np
+import tensorflow as tf
+
+(X_train, y_train), (X_test, y_test) = (
+    tf.keras.datasets.mnist.load_data()
+)
+
+print("원본:", X_train.shape)
+# (60000, 28, 28)
+
+X_train = X_train[..., np.newaxis]
+X_test = X_test[..., np.newaxis]
+
+X_train = X_train.astype(np.float32) / 255.0
+X_test = X_test.astype(np.float32) / 255.0
+
+print("CNN 입력:", X_train.shape)
+# (60000, 28, 28, 1)</code></pre>
+
+                            <div class="cp-equation">
+                                <p><code>(B,28,28) → (B,28,28,1)</code></p>
+                                <p><code>uint8 0~255 → float32 0~1</code></p>
+                            </div>
+
+                            <p>
+                                Train·Validation·Test에 같은 색상·Channel·Scale 변환을 적용해야 합니다.
+                                Shape 숫자만 같고 전처리 의미가 다르면 같은 모델 입력이라고 볼 수 없습니다.
+                            </p>
+                        </section>
+
+                        <!-- 17. Keras Max -->
+                        <section id="keras-max" class="lesson-card cp-card" aria-labelledby="keras-max-title">
+                            <p class="cp-kicker">17 · KERAS MAX POOLING</p>
+
+                            <h2 id="keras-max-title">
+                                Normal Convolution과 Max Pooling의 기본 블록을 만듭니다
+                            </h2>
+
+                            <pre class="cp-code" tabindex="0" aria-label="Conv2D와 MaxPooling2D 코드"><code>import tensorflow as tf
+
+max_pool_model = tf.keras.Sequential([
+    tf.keras.Input(shape=(28, 28, 1)),
+
+    tf.keras.layers.Conv2D(
+        filters=32,
+        kernel_size=(3, 3),
+        strides=(1, 1),
+        padding="valid",
+        activation="relu",
+        kernel_initializer="he_normal",
+        use_bias=True,
+    ),
+
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2),
+        strides=(2, 2),
+        padding="valid",
+    ),
+])
+
+max_pool_model.summary()</code></pre>
+
+                            <div class="cp-shape-line">
+                                <span>(None,28,28,1)</span>
+                                <b aria-hidden="true">→</b>
+                                <span>(None,26,26,32)</span>
+                                <b aria-hidden="true">→</b>
+                                <strong>(None,13,13,32)</strong>
+                            </div>
+
+                            <p>
+                                Conv2D Parameter는 320개이고 MaxPooling2D Parameter는 0개입니다.
+                            </p>
+                        </section>
+
+                        <!-- 18. Keras variants -->
+                        <section id="keras-variants" class="lesson-card cp-card" aria-labelledby="keras-variants-title">
+                            <p class="cp-kicker">18 · KERAS VARIANTS</p>
+
+                            <h2 id="keras-variants-title">
+                                Pooling 방식과 Down Sampling 방법을 코드에서 비교합니다
+                            </h2>
+
+                            <h3>Average Pooling</h3>
+
+                            <pre class="cp-code" tabindex="0" aria-label="AveragePooling2D 코드"><code>average_pool_model = tf.keras.Sequential([
+    tf.keras.Input(shape=(28, 28, 1)),
+
+    tf.keras.layers.Conv2D(
+        filters=32,
+        kernel_size=(3, 3),
+        padding="valid",
+        activation="relu",
+    ),
+
+    tf.keras.layers.AveragePooling2D(
+        pool_size=(2, 2),
+        strides=(2, 2),
+        padding="valid",
+    ),
+])</code></pre>
+
+                            <h3>Same Padding + Max Pooling</h3>
+
+                            <pre class="cp-code" tabindex="0" aria-label="Same Padding 코드"><code>same_model = tf.keras.Sequential([
+    tf.keras.Input(shape=(28, 28, 1)),
+
+    tf.keras.layers.Conv2D(
+        filters=32,
+        kernel_size=(3, 3),
+        strides=(1, 1),
+        padding="same",
+        activation="relu",
+    ),
+
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2),
+        strides=(2, 2),
+    ),
+])
+
+# 28×28×1 → 28×28×32 → 14×14×32</code></pre>
+
+                            <h3>Strided Convolution</h3>
+
+                            <pre class="cp-code" tabindex="0" aria-label="Stride 2 Conv2D 코드"><code>strided_model = tf.keras.Sequential([
+    tf.keras.Input(shape=(28, 28, 1)),
+
+    tf.keras.layers.Conv2D(
+        filters=32,
+        kernel_size=(3, 3),
+        strides=(2, 2),
+        padding="valid",
+        activation="relu",
+    ),
+])
+
+# floor((28−3)/2)+1 = 13
+# 출력: (None,13,13,32)
+# Parameter: 320</code></pre>
+
+                            <h3>Global Average Pooling</h3>
+
+                            <pre class="cp-code" tabindex="0" aria-label="GlobalAveragePooling2D 코드"><code>gap_model = tf.keras.Sequential([
+    tf.keras.Input(shape=(28, 28, 1)),
+
+    tf.keras.layers.Conv2D(
+        32,
+        (3, 3),
+        padding="same",
+        activation="relu",
+    ),
+
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2)
+    ),
+
+    tf.keras.layers.Conv2D(
+        64,
+        (3, 3),
+        padding="same",
+        activation="relu",
+    ),
+
+    tf.keras.layers.GlobalAveragePooling2D(),
+
+    tf.keras.layers.Dense(
+        10,
+        activation="softmax",
+    ),
+])
+
+# 28×28×1 → 28×28×32 → 14×14×32
+# → 14×14×64 → 64 → 10</code></pre>
+                        </section>
+
+                        <!-- 19. Summary -->
+                        <section id="expected-summary" class="lesson-card cp-card"
+                            aria-labelledby="expected-summary-title">
+                            <p class="cp-kicker">19 · EXPECTED SUMMARY</p>
+
+                            <h2 id="expected-summary-title">
+                                실행 전에 Shape과 Parameter를 예상하고 대조합니다
+                            </h2>
+
+                            <div class="cp-table" role="region" aria-label="기본 모델 예상 Summary" tabindex="0">
+                                <table>
+                                    <caption>Valid Conv + Max Pool 기본 예제</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Layer</th>
+                                            <th scope="col">Output Shape</th>
+                                            <th scope="col">Parameter</th>
+                                            <th scope="col">계산</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Input</th>
+                                            <td>(None,28,28,1)</td>
+                                            <td>0</td>
+                                            <td>이미지 한 장 Shape</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Conv2D</th>
+                                            <td>(None,26,26,32)</td>
+                                            <td>320</td>
+                                            <td>(3×3×1+1)×32</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">MaxPooling2D</th>
+                                            <td>(None,13,13,32)</td>
+                                            <td>0</td>
+                                            <td>(26−2)/2+1=13</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Pooling은 Channel 32를 유지하고 Height·Width만 줄입니다.
+                                <code>Param # = 0</code>은 학습 Weight가 없다는 의미입니다.
+                            </p>
+                        </section>
+
+                        <!-- 20. NumPy -->
+                        <section id="numpy" class="lesson-card cp-card" aria-labelledby="numpy-title">
+                            <p class="cp-kicker">20 · NUMPY CHECK</p>
+
+                            <h2 id="numpy-title">
+                                Max와 Average Pooling을 직접 계산하여 결과를 확인합니다
+                            </h2>
+
+                            <pre class="cp-code" tabindex="0" aria-label="NumPy Pooling 구현"><code>import numpy as np
+
+
+def pool2d(
+    feature_map: np.ndarray,
+    pool_size: int = 2,
+    stride: int = 2,
+    mode: str = "max",
+) -> np.ndarray:
+    if feature_map.ndim != 2:
+        raise ValueError(
+            "feature_map은 2차원 배열이어야 합니다."
+        )
+
+    if type(pool_size) is not int or pool_size &lt; 1:
+        raise ValueError(
+            "pool_size는 1 이상의 정수여야 합니다."
+        )
+
+    if type(stride) is not int or stride &lt; 1:
+        raise ValueError(
+            "stride는 1 이상의 정수여야 합니다."
+        )
+
+    if mode not in {"max", "average"}:
+        raise ValueError(
+            "mode는 'max' 또는 'average'여야 합니다."
+        )
+
+    input_h, input_w = feature_map.shape
+
+    output_h = (
+        input_h - pool_size
+    ) // stride + 1
+
+    output_w = (
+        input_w - pool_size
+    ) // stride + 1
+
+    if output_h &lt; 1 or output_w &lt; 1:
+        raise ValueError(
+            "Pool Window가 입력 공간보다 큽니다."
+        )
+
+    output = np.empty(
+        (output_h, output_w),
+        dtype=np.float64,
+    )
+
+    for out_y in range(output_h):
+        for out_x in range(output_w):
+            start_y = out_y * stride
+            start_x = out_x * stride
+
+            window = feature_map[
+                start_y:start_y + pool_size,
+                start_x:start_x + pool_size
+            ]
+
+            if mode == "max":
+                output[out_y, out_x] = np.max(window)
+            else:
+                output[out_y, out_x] = np.mean(window)
+
+    return output
+
+
+feature_map = np.array([
+    [1, 3, 2, 4],
+    [5, 6, 1, 2],
+    [7, 2, 8, 3],
+    [0, 1, 4, 9],
+], dtype=np.float64)
+
+print(pool2d(feature_map, mode="max"))
+print(pool2d(feature_map, mode="average"))</code></pre>
+
+                            <h3>기대 결과</h3>
+
+                            <pre class="cp-output" tabindex="0" aria-label="Pooling 예상 출력"><code>[[6. 4.]
+ [7. 9.]]
+
+[[3.75 2.25]
+ [2.50 6.00]]</code></pre>
+
+                            <p>
+                                이 코드는 지역 요약 규칙을 확인하는 독립 보완 예제이며,
+                                CNN 전체를 학습하는 코드는 아닙니다.
+                            </p>
+                        </section>
+
+                        <!-- 21. 교안 대조 -->
+                        <section id="source-review" class="lesson-card cp-card" aria-labelledby="source-review-title">
+                            <p class="cp-kicker">21 · TEXTBOOK REVIEW</p>
+
+                            <h2 id="source-review-title">
+                                같은 구조의 주석·수식·Summary끼리 비교합니다
+                            </h2>
+
+                            <p class="cp-source">
+                                통합교안 67번은 Normal·Depthwise·Separable 중 선택 실행하는 Notebook입니다
+                            </p>
+
+                            <div class="cp-callout cp-warning">
+                                <h3>저장 Summary의 활성 구조를 먼저 확인합니다</h3>
+                                <p>
+                                    통합교안의 저장 Summary에는
+                                    DepthwiseConv2D → 1×1 Conv2D →
+                                    MaxPooling2D 구조가 활성화되어 있습니다.
+                                    Normal Conv 주석의 26×26×32·320 Parameter와
+                                    같은 실행 결과로 섞지 않습니다.
+                                </p>
+                            </div>
+
+                            <div class="cp-table" role="region" aria-label="통합교안 저장 Summary 핵심" tabindex="0">
+                                <table>
+                                    <caption>저장된 활성 모델에서 확인되는 Pooling 역할</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Layer</th>
+                                            <th scope="col">Output Shape</th>
+                                            <th scope="col">Parameter</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">DepthwiseConv2D</th>
+                                            <td>(None,26,26,1)</td>
+                                            <td>10</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">1×1 Conv2D</th>
+                                            <td>(None,26,26,16)</td>
+                                            <td>32</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">MaxPooling2D</th>
+                                            <td>(None,13,13,16)</td>
+                                            <td>0</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <ol class="cp-flow">
+                                <li>
+                                    <b>실제 활성 Layer</b>
+                                    <span>주석 처리 여부 확인</span>
+                                </li>
+                                <li>
+                                    <b>현재 입력 Shape</b>
+                                    <span>같은 조건인지 확인</span>
+                                </li>
+                                <li>
+                                    <b>직접 계산</b>
+                                    <span>출력 Shape·Parameter 계산</span>
+                                </li>
+                                <li>
+                                    <b>Summary 대조</b>
+                                    <span>동일 구조의 값끼리 비교</span>
+                                </li>
+                            </ol>
+
+                            <p>
+                                Notebook 비교 실험마다 Kernel을 재시작하거나 모델 객체를 새로 만들어
+                                이전 Layer가 남지 않도록 관리합니다.
+                            </p>
+                        </section>
+
+                        <!-- 22. 실수 -->
+                        <section id="mistakes" class="lesson-card cp-card" aria-labelledby="mistakes-title">
+                            <p class="cp-kicker">22 · COMMON MISTAKES</p>
+
+                            <h2 id="mistakes-title">
+                                공간 크기·Parameter·Channel 변화를 서로 바꾸어 읽지 않습니다
+                            </h2>
+
+                            <div class="cp-table" role="region" aria-label="Convolution과 Pooling 자주 하는 실수" tabindex="0">
+                                <table>
+                                    <caption>자주 하는 착각과 올바른 해석</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">착각</th>
+                                            <th scope="col">올바른 해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Padding을 추가하면 Conv Parameter 증가</th>
+                                            <td>Filter 구조가 같으면 Parameter는 동일합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Stride 2면 Parameter가 절반</th>
+                                            <td>적용 위치와 출력 공간이 줄어듭니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">valid는 입력과 출력 크기를 유지</th>
+                                            <td>추가 Padding을 사용하지 않습니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">same이면 어떤 Stride에서도 완전히 동일</th>
+                                            <td>Stride가 크면 실제 Framework 출력 규칙을 확인합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Padding은 실제 정보를 추가</th>
+                                            <td>계산을 위한 인공 값을 추가합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pooling에 학습 Filter가 있음</th>
+                                            <td>일반적인 Max·Average Pooling은 학습 Weight가 없습니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pooling Parameter 0이면 계산도 0</th>
+                                            <td>Max 비교나 평균 계산은 수행합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pooling은 Channel 수를 줄임</th>
+                                            <td>일반적으로 Height·Width만 줄이고 Channel은 유지합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Max Pooling은 가장 밝은 색 선택</th>
+                                            <td>중간 Feature Map에서는 가장 강한 Activation을 선택합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pool Size와 Stride는 항상 같아야 함</th>
+                                            <td>대표적으로 같게 쓰지만 별도 설정입니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">GAP와 Flatten은 같은 결과</th>
+                                            <td>GAP는 Channel별 평균만 남깁니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pooling을 많이 할수록 항상 좋음</th>
+                                            <td>작은 객체와 세밀한 위치 정보가 소실될 수 있습니다.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 23. 오류 -->
+                        <section id="errors" class="lesson-card cp-card" aria-labelledby="errors-title">
+                            <p class="cp-kicker">23 · ERROR READING</p>
+
+                            <h2 id="errors-title">
+                                현재 Feature Map 크기부터 역으로 확인합니다
+                            </h2>
+
+                            <p class="cp-source">
+                                아래는 재실습용 보완 점검이며
+                                실제 오류 문구는 Library 버전에 따라 달라질 수 있습니다.
+                            </p>
+
+                            <div class="cp-grid">
+                                <article class="cp-box">
+                                    <h3>Negative dimension size</h3>
+                                    <p>
+                                        현재 공간 크기보다 Kernel 또는 Pool Window가 큰지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Pooling Window가 너무 큼</h3>
+                                    <p>
+                                        앞 Layer에서 Down Sampling을 지나치게 반복했는지 봅니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Summary Shape 불일치</h3>
+                                    <p>
+                                        Padding·Stride 기본값과 현재 활성 Layer를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>입력 Rank 오류</h3>
+                                    <p>
+                                        Conv2D가 기대하는 B×H×W×C 구조인지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Channel 순서 오류</h3>
+                                    <p>
+                                        BHWC와 BCHW·RGB와 BGR을 구분합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Pixel Scale 문제</h3>
+                                    <p>
+                                        dtype·최솟값·최댓값과 모든 데이터 분할의 전처리를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>ResourceExhaustedError</h3>
+                                    <p>
+                                        Batch·해상도·Filter 수·중간 Activation 크기를 봅니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>Average 값이 예상과 다름</h3>
+                                    <p>
+                                        Pool Size·Stride·Padding·겹치는 Window 여부를 확인합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <ol class="cp-flow">
+                                <li>
+                                    <b>입력</b>
+                                    <span>Shape·dtype·값 범위</span>
+                                </li>
+                                <li>
+                                    <b>Conv</b>
+                                    <span>Kernel·Padding·Stride</span>
+                                </li>
+                                <li>
+                                    <b>Pool</b>
+                                    <span>방식·Window·Stride</span>
+                                </li>
+                                <li>
+                                    <b>검증</b>
+                                    <span>예상 계산·summary·학습 결과</span>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <!-- 24. 실무 -->
+                        <section id="practice" class="lesson-card cp-card" aria-labelledby="practice-title">
+                            <p class="cp-kicker">24 · PRACTICAL CONNECTION</p>
+
+                            <h2 id="practice-title">
+                                문제에 따라 계산 효율과 위치 정보의 균형을 다르게 잡습니다
+                            </h2>
+
+                            <div class="cp-grid">
+                                <article class="cp-box">
+                                    <h3>이미지 분류</h3>
+                                    <p>
+                                        점진적 Down Sampling으로 복합 특징을 압축해 분류기에 전달합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>객체 탐지</h3>
+                                    <p>
+                                        작은 객체가 사라지지 않도록 공간 축소 속도와 다중 해상도를 고려합니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>이미지 분할</h3>
+                                    <p>
+                                        Pixel 위치가 중요하므로 지나친 Pooling이 경계 정밀도를 낮출 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article class="cp-box">
+                                    <h3>모바일·실시간</h3>
+                                    <p>
+                                        Stride와 Pooling으로 연산량을 줄이되
+                                        정확도·지연 시간·메모리를 함께 측정합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <h3>실험 기록 항목</h3>
+
+                            <div class="cp-table" role="region" aria-label="Convolution과 Pooling 실험 기록" tabindex="0">
+                                <table>
+                                    <caption>같은 조건에서 비교하기 위한 기록</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">기록 예</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Input Shape</th>
+                                            <td>(128,128,3)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Conv 설정</th>
+                                            <td>Filter 32 · K=3 · same · S=1</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Pooling 설정</th>
+                                            <td>Max · 2×2 · S=2</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">출력 Shape</th>
+                                            <td>128×128×32 → 64×64×32</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">평가</th>
+                                            <td>Validation Loss·Metric</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">실행 비용</th>
+                                            <td>시간·Peak Memory·응답 지연</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                “Pooling을 넣었다”가 아니라 어떤 방식·Window·Stride를 사용했고
+                                그 결과 공간 정보와 성능이 어떻게 변했는지 함께 기록합니다.
+                            </p>
+                        </section>
+
+                        <!-- 25. 면접 -->
+                        <section id="interview" class="lesson-card cp-card" aria-labelledby="interview-title">
+                            <p class="cp-kicker">25 · INTERVIEW POINTS</p>
+
+                            <h2 id="interview-title">
+                                무엇을 줄이고 무엇을 유지하는지 설명합니다
+                            </h2>
+
+                            <div class="cp-faq">
+                                <details>
+                                    <summary>Q1. Convolution은 무엇인가요?</summary>
+                                    <p>
+                                        입력 Patch와 Filter를 곱하고 모든 공간·입력 Channel 결과를 합한 뒤
+                                        Bias를 더해 위치별 특징을 계산하는 연산입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q2. Padding은 왜 사용하나요?</summary>
+                                    <p>
+                                        가장자리 정보의 계산 참여와 출력 공간 크기,
+                                        끝부분 손실을 조절하기 위해 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q3. Valid와 Same의 차이는 무엇인가요?</summary>
+                                    <p>
+                                        Valid는 추가 Padding을 사용하지 않고,
+                                        Same은 Framework 규칙에 따라 Padding을 추가합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q4. Stride가 커지면 무엇이 달라지나요?</summary>
+                                    <p>
+                                        적용 위치와 출력 공간, 연산 횟수가 줄어들며
+                                        세밀한 위치 정보가 손실될 수 있습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q5. Stride나 Padding이 Conv Parameter 수를 바꾸나요?</summary>
+                                    <p>
+                                        같은 Kernel·입력 Channel·Filter 수라면 Parameter 수는 변하지 않습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q6. Pooling은 왜 사용하나요?</summary>
+                                    <p>
+                                        지역 값을 대표값으로 요약하여
+                                        Height·Width와 Activation 수를 줄이기 위해 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q7. Pooling에도 학습 Parameter가 있나요?</summary>
+                                    <p>
+                                        일반적인 Max·Average Pooling에는 학습 Weight와 Bias가 없습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q8. Pooling은 Channel 수를 줄이나요?</summary>
+                                    <p>
+                                        일반적인 2D Pooling은 각 Channel을 독립 처리하므로
+                                        Channel 수를 유지합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q9. Max와 Average Pooling의 차이는 무엇인가요?</summary>
+                                    <p>
+                                        Max는 가장 강한 반응을,
+                                        Average는 지역 전체의 평균 반응을 남깁니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q10. Pool Size와 Stride는 같아야 하나요?</summary>
+                                    <p>
+                                        반드시 같아야 하는 것은 아니지만
+                                        2×2 Window와 Stride 2가 대표적으로 사용됩니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q11. Strided Conv와 Pooling의 차이는 무엇인가요?</summary>
+                                    <p>
+                                        Strided Conv는 학습 가능한 Filter로,
+                                        Pooling은 고정된 Max·Average 규칙으로 Down Sampling합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q12. Global Average Pooling은 무엇인가요?</summary>
+                                    <p>
+                                        각 Channel의 전체 Height·Width를 평균내어
+                                        Channel마다 값 하나만 남기는 방식입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q13. Flatten과 GAP의 차이는 무엇인가요?</summary>
+                                    <p>
+                                        Flatten은 모든 공간 값을 유지하고,
+                                        GAP는 Channel별 평균만 유지합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q14. 26×26×32에 2×2 Max Pool, S=2를 적용하면?
+                                    </summary>
+                                    <p>
+                                        출력은 13×13×32이며 Pooling Parameter 수는 0입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q15. Pooling을 많이 쓰면 왜 문제가 될 수 있나요?</summary>
+                                    <p>
+                                        공간 해상도가 너무 빨리 줄어
+                                        작은 객체와 세밀한 경계 정보가 사라질 수 있습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q16. 교안 주석과 Summary가 다르면 어떻게 하나요?</summary>
+                                    <p>
+                                        현재 활성화된 실제 Layer와 입력 Shape에서
+                                        Shape·Parameter를 다시 계산하여 같은 구조끼리 비교합니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+
+                        <!-- 26. 자료 -->
+                        <section id="sources" class="lesson-card cp-card" aria-labelledby="sources-title">
+                            <p class="cp-kicker">26 · SOURCES &amp; SCOPE</p>
+
+                            <h2 id="sources-title">
+                                교안 원문·통합교안 실습·보완 계산을 구분합니다
+                            </h2>
+
+                            <dl class="cp-definitions">
+                                <div>
+                                    <dt>자료 A · AI 교안</dt>
+                                    <dd>
+                                        <cite>28_AI교안v2(1).pdf</cite>의 CNN 절.
+                                        Padding, Stride, 출력 크기,
+                                        Max·Average·Global Average Pooling의 설명을 사용했습니다.
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>자료 B · 통합교안</dt>
+                                    <dd>
+                                        <cite>
+                                            AI_MachineLearning_통합교안_36-100.pdf
+                                        </cite>
+                                        67번.
+                                        MNIST 입력 준비, Convolution 비교 코드,
+                                        MaxPooling2D, 저장 Summary와 검토 메모를 사용했습니다.
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>보완 내용</dt>
+                                    <dd>
+                                        Padding 포함 출력 공식, Pooling 출력 공식,
+                                        Max·Average 손계산, Strided Conv 비교,
+                                        GAP 코드, 오류 점검과 실무 기록 항목입니다.
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div class="cp-callout cp-supplement">
+                                <h3>교안 표현을 적용하는 범위</h3>
+                                <p>
+                                    Stride가 커질 때 줄어드는 것은 기본적으로
+                                    Filter 적용 위치와 출력 공간입니다.
+                                    같은 Filter 구조의 학습 Parameter 수와 구분했습니다.
+                                </p>
+                                <p>
+                                    Max Pooling의 “강한 색”은 원본 Pixel에서는
+                                    색 강도와 연결될 수 있지만,
+                                    중간 Feature Map에서는 해당 Filter에 대한
+                                    강한 Activation으로 해석했습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 27. 다음 단원 -->
+                        <section id="next" class="lesson-card cp-card" aria-labelledby="next-title">
+                            <p class="cp-kicker">27 · NEXT CONNECTION</p>
+
+                            <h2 id="next-title">
+                                25. 대표 CNN 구조:
+                                같은 블록을 어떻게 깊고 효율적으로 쌓을까?
+                            </h2>
+
+                            <p>
+                                Convolution과 Pooling의 기본 계산을 이해하면,
+                                다음에는 CNN 구조들이 특징 추출 블록을
+                                어떻게 배치하고 개선했는지 살펴볼 수 있습니다.
+                            </p>
+
+                            <div class="cp-table" role="region" aria-label="다음 단원 대표 구조" tabindex="0">
+                                <table>
+                                    <caption>대표 CNN 구조로 이어지는 질문</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구조</th>
+                                            <th scope="col">연결 질문</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">LeNet</th>
+                                            <td>초기 CNN은 Conv와 Pooling을 어떻게 배치했는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">AlexNet·VGG</th>
+                                            <td>더 깊은 Layer와 작은 Kernel은 무엇을 바꾸는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">GoogLeNet</th>
+                                            <td>여러 Kernel 경로와 1×1 Conv를 왜 사용하는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">ResNet</th>
+                                            <td>Skip Connection은 깊은 학습을 어떻게 돕는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">MobileNet</th>
+                                            <td>Depthwise Separable Conv는 연산량을 어떻게 줄이는가?</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="cp-core-flow">
+                                <span>Conv</span>
+                                <b aria-hidden="true">→</b>
+                                <span>Activation</span>
+                                <b aria-hidden="true">→</b>
+                                <span>Pooling</span>
+                                <b aria-hidden="true">→</b>
+                                <span>깊은 CNN Architecture</span>
+                            </div>
+
+                            <p class="cp-takeaway">
+                                이번 단원에서 Shape과 정보 손실의 의미를 이해해야
+                                대표 CNN 모델들이 왜 특정 Padding·Stride·Pooling 구조를
+                                선택했는지 설명할 수 있습니다.
+                            </p>
+
+                            <a class="cp-next-link" href="./25_cnn_architectures.html">
+                                25. 대표 CNN 구조로 이동
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        </section>
+                    </main>
+
+                    <!--
+                    ASIDE
+                    - 오늘의 암기 포인트
+                    - 헷갈리기 쉬운 개념
+                    - 다음 단원 연결
+                -->
+                    <aside class="side-note cp-aside" aria-label="Convolution과 Pooling 복습 노트">
+                        <section class="note-card cp-note">
+                            <p class="cp-kicker">MEMORY</p>
+
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ol class="cp-memory">
+                                <li>Convolution은 Patch와 Filter를 곱하고 더합니다.</li>
+                                <li>Padding은 가장자리와 출력 공간을 조절합니다.</li>
+                                <li>Stride는 이동 간격이며 Parameter 수와 다릅니다.</li>
+                                <li>Max는 강한 반응, Average는 평균 반응을 남깁니다.</li>
+                                <li>Pooling은 공간을 줄이고 Channel은 보통 유지합니다.</li>
+                                <li>일반적인 Max·Average Pooling의 Parameter는 0입니다.</li>
+                                <li>GAP는 Channel별 전체 공간 평균을 남깁니다.</li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card cp-note">
+                            <p class="cp-kicker">CONFUSION</p>
+
+                            <h2>헷갈리는 짝</h2>
+
+                            <dl class="cp-pairs">
+                                <dt>Kernel Size / Stride</dt>
+                                <dd>보는 영역 / 이동 간격</dd>
+
+                                <dt>Valid / Same</dt>
+                                <dd>Padding 없음 / 출력 규칙에 맞는 Padding</dd>
+
+                                <dt>Max / Average</dt>
+                                <dd>최대 반응 / 평균 반응</dd>
+
+                                <dt>Strided Conv / Pooling</dt>
+                                <dd>학습 가능한 축소 / 고정 규칙 축소</dd>
+
+                                <dt>Flatten / GAP</dt>
+                                <dd>모든 공간값 유지 / Channel별 평균</dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card cp-note">
+                            <p class="cp-kicker">FORMULA</p>
+
+                            <h2>두 출력 공식</h2>
+
+                            <p>
+                                <code>
+                                Conv: floor((N+2P−K)/S)+1
+                            </code>
+                            </p>
+
+                            <p>
+                                <code>
+                                Pool: floor((N+2P−F)/S)+1
+                            </code>
+                            </p>
+                        </section>
+
+                        <section class="note-card cp-note">
+                            <p class="cp-kicker">SHAPE CHECK</p>
+
+                            <h2>기본 예제</h2>
+
+                            <p><code>28×28×1</code></p>
+                            <p><code>→ Conv valid 3×3, S=1</code></p>
+                            <p><code>→ 26×26×32</code></p>
+                            <p><code>→ Pool 2×2, S=2</code></p>
+                            <p><code>→ 13×13×32</code></p>
+                        </section>
+
+                        <section class="note-card cp-note">
+                            <p class="cp-kicker">NEXT</p>
+
+                            <h2>25. 대표 CNN 구조</h2>
+
+                            <p>
+                                LeNet·AlexNet·VGG·GoogLeNet·ResNet·MobileNet이
+                                Conv와 Pooling을 어떻게 발전시켰는지 연결합니다.
+                            </p>
+
+                            <a href="./25_cnn_architectures.html">
+                                다음 단원으로 →
+                            </a>
+                        </section>
+                    </aside>
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <nav class="lesson-pagination cp-pagination" aria-label="AI 단원 이동">
+                    <a href="./23_cnn_basics.html">
+                        <small>PREVIOUS</small>
+                        <span>← 23. CNN 기초</span>
+                    </a>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI</span>
-                    
-                    <span>24</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a href="./00_ai_index.html">
+                        <small>COURSE</small>
+                        <span>AI 목차</span>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-ai-24">
-                    <h2 id="goals-ai-24">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="concept" class="lesson-card concept-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>핵심 개념</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="background" class="lesson-card background-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>왜 등장했는가?</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="visual" class="lesson-card visual-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>그림처럼 이해</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="principle" class="lesson-card principle-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>수식 또는 원리 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>동작 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="comparison" class="lesson-card comparison-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>비슷한 개념 비교</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="limitation" class="lesson-card limitation-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>한계와 보완</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>코드 또는 예제</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 착각</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지 읽는 법</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="24. Convolution과 Pooling 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                    <a href="./25_cnn_architectures.html">
+                        <small>NEXT</small>
+                        <span>25. 대표 CNN 구조 →</span>
+                    </a>
+                </nav>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI 단원 이동">
-                <a class="lesson-prev" href="./23_cnn_basics.html">
-                    <span>이전 단원</span>
-                    <strong>23. CNN 기초</strong>
-                </a>
-
-                <a class="lesson-course-index" href="./00_ai_index.html">
-                    <span>과목 목차</span>
-                    <strong>AI 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./25_cnn_architecture_transfer_learning.html">
-                    <span>다음 단원</span>
-                    <strong>25. 대표 CNN 구조와 전이학습</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+    </body>
+
 </html>
