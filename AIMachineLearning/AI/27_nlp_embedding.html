@@ -1,236 +1,3464 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="27. 자연어 처리와 Embedding Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>27. 자연어 처리와 Embedding | AI | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/27_nlp_embedding.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page ai-course-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="ai"
-      data-lesson="27"
-      data-step="0"
-      data-status="skeleton">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="27. 자연어 처리. NLP, Token, Vocabulary, OOV, Padding, Embedding, Word2Vec, CBOW, Skip-gram의 개념과 실행 흐름을 학습합니다.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>27. 자연어 처리 | AI | AI &amp; Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 01</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/27_nlp_embedding.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI · 27</p>
-                        <h1>27. 자연어 처리와 Embedding</h1>
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page ai-course-page ai-lesson-page ai-nlp-basics-page"
+        data-nav-category="ai-machine-learning" data-nav-item="course-ai" data-course="ai" data-lesson="27">
+        <a class="skip-link nlp-skip-link" href="#lesson-main">
+            본문 바로가기
+        </a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+
+            <div class="page-content">
+
+                <!--
+                HEADER
+                - 단원 제목
+                - 핵심 요약
+                - 학습 목표
+            -->
+                <header class="lesson-hero ai-ml-hero nlp-hero">
+
+                    <p class="nlp-eyebrow">
+                        AI &amp; MACHINE LEARNING · AI · LESSON 27
+                    </p>
+
+                    <h1>
+                        27. 자연어 처리
+                        <span>
+                            문장을 Token으로 나누고,<br>
+                            의미를 가진 Vector로 바꾸다
+                        </span>
+                    </h1>
+
+                    <p class="nlp-lead">
+                        컴퓨터는 문자열의 의미를 그대로 계산하지 못합니다.
+                        자연어 처리는 문장을 <strong>Token</strong>으로 나누고,
+                        <strong>Vocabulary</strong>를 통해 정수 ID로 변환한 뒤,
+                        <strong>Embedding</strong>으로 학습 가능한 Dense Vector를 만듭니다.
+                        Word2Vec는 중심 단어와 주변 단어의 관계를 예측하며
+                        단어의 문맥 정보를 Vector에 반영합니다.
+                    </p>
+
+                    <div class="nlp-keywords" aria-label="핵심 키워드">
+                        <span>NLP · Corpus</span>
+                        <span>Tokenization</span>
+                        <span>Vocabulary · OOV</span>
+                        <span>Padding · Truncation</span>
+                        <span>Embedding</span>
+                        <span>Word2Vec</span>
+                        <span>CBOW · Skip-gram</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <section class="learning-goals nlp-goals" aria-labelledby="nlp-goals-title">
+                        <h2 id="nlp-goals-title">학습 목표</h2>
+
+                        <ol>
+                            <li>
+                                자연어 문장이 Token·정수 Sequence·Embedding Tensor로
+                                변환되는 전체 흐름을 설명합니다.
+                            </li>
+
+                            <li>
+                                Corpus·Vocabulary·Token ID·OOV·Padding의 역할을
+                                구분합니다.
+                            </li>
+
+                            <li>
+                                BOW·TF-IDF·One-Hot·Embedding의 차이와 한계를
+                                비교합니다.
+                            </li>
+
+                            <li>
+                                Embedding Matrix의 Shape·Parameter·Lookup 연산을
+                                계산합니다.
+                            </li>
+
+                            <li>
+                                CBOW와 Skip-gram의 입력·정답 방향과
+                                Word2Vec 학습 원리를 설명합니다.
+                            </li>
+                        </ol>
+                    </section>
+                </header>
+
+                <div class="content-layout nlp-content">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <!-- 단원 목차 -->
+                        <nav class="chapter-map nlp-toc" aria-label="27단원 목차">
+                            <h2>학습 순서</h2>
+
+                            <ol>
+                                <li><a href="#overview">이번 단원의 핵심</a></li>
+                                <li><a href="#why">왜 자연어 처리가 필요한가</a></li>
+                                <li><a href="#glossary">핵심 용어</a></li>
+                                <li><a href="#preprocessing">전처리 전체 흐름</a></li>
+                                <li><a href="#tokenization">Tokenization</a></li>
+                                <li><a href="#korean-tokenization">한국어 Tokenization</a></li>
+                                <li><a href="#vocabulary">Corpus와 Vocabulary</a></li>
+                                <li><a href="#oov-padding">OOV·Padding·Truncation</a></li>
+                                <li><a href="#representation">텍스트 표현의 발전</a></li>
+                                <li><a href="#bow-tfidf">BOW·DTM·TF-IDF</a></li>
+                                <li><a href="#sparse-dense">Sparse와 Dense</a></li>
+                                <li><a href="#embedding-matrix">Embedding Matrix</a></li>
+                                <li><a href="#embedding-shape">Shape와 Parameter</a></li>
+                                <li><a href="#embedding-training">Embedding 학습 흐름</a></li>
+                                <li><a href="#word2vec">Word2Vec</a></li>
+                                <li><a href="#word2vec-formula">Word2Vec 수식</a></li>
+                                <li><a href="#window">Sliding Window</a></li>
+                                <li><a href="#cbow">CBOW</a></li>
+                                <li><a href="#skipgram">Skip-gram</a></li>
+                                <li><a href="#cbow-skipgram">CBOW와 Skip-gram 비교</a></li>
+                                <li><a href="#embedding-comparison">Embedding 방법 비교</a></li>
+                                <li><a href="#environment">개발 환경·실행 순서</a></li>
+                                <li><a href="#keras-code">Keras 전처리·Embedding 코드</a></li>
+                                <li><a href="#expected-output">예상 출력 해석</a></li>
+                                <li><a href="#pair-code">CBOW·Skip-gram Pair 코드</a></li>
+                                <li><a href="#cosine-code">Cosine Similarity 코드</a></li>
+                                <li><a href="#source-review">교안 표현 점검</a></li>
+                                <li><a href="#mistakes">자주 하는 실수</a></li>
+                                <li><a href="#errors">오류 메시지 읽기</a></li>
+                                <li><a href="#practice">실무 연결</a></li>
+                                <li><a href="#interview">면접 포인트</a></li>
+                                <li><a href="#sources">자료와 보완 범위</a></li>
+                                <li><a href="#next">다음 단원 연결</a></li>
+                            </ol>
+                        </nav>
+
+                        <!-- 01. 핵심 개념 -->
+                        <section id="overview" class="lesson-card nlp-card" aria-labelledby="overview-title">
+                            <p class="nlp-kicker">01 · CORE IDEA</p>
+
+                            <h2 id="overview-title">
+                                자연어 처리는 문자열을 학습 가능한 숫자 Tensor로 바꾸는 과정입니다
+                            </h2>
+
+                            <p class="nlp-source">
+                                교안 기준 흐름:
+                                텍스트 정제 → 토큰화 → 불용어 처리 →
+                                정수 인코딩 → 워드 임베딩
+                            </p>
+
+                            <div class="nlp-core-flow" aria-label="자연어 처리 핵심 흐름">
+                                <span>문장</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Token</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Token ID</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Embedding Vector</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Sequence Model</span>
+                            </div>
+
+                            <div class="nlp-grid">
+                                <article class="nlp-box">
+                                    <h3>Tokenization</h3>
+
+                                    <p>
+                                        문장을 모델이 처리할
+                                        단어·형태소·Subword 단위로 나눕니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Vocabulary</h3>
+
+                                    <p>
+                                        Token과 정수 ID의 대응표를 만듭니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Embedding</h3>
+
+                                    <p>
+                                        정수 ID를 저차원의 학습 가능한
+                                        실수 Vector로 변환합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Word2Vec</h3>
+
+                                    <p>
+                                        중심 단어와 주변 단어의 예측 관계로
+                                        의미 Vector를 학습합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p class="nlp-takeaway">
+                                <strong>
+                                    Tokenizer는 문자열을 ID Sequence로 바꾸고,
+                                    Embedding Layer는 ID를 Dense Vector Sequence로 바꿉니다.
+                                </strong>
+                            </p>
+                        </section>
+
+                        <!-- 02. 등장 이유 -->
+                        <section id="why" class="lesson-card nlp-card" aria-labelledby="why-title">
+                            <p class="nlp-kicker">02 · WHY NLP?</p>
+
+                            <h2 id="why-title">
+                                컴퓨터는 Token의 정수 ID만으로
+                                단어의 의미와 문맥을 알 수 없습니다
+                            </h2>
+
+                            <div class="nlp-before-after">
+                                <article>
+                                    <small>HUMAN LANGUAGE</small>
+                                    <strong>오늘은 날씨가 좋습니다.</strong>
+
+                                    <p>
+                                        사람은 단어의 의미와 문장 전체의 관계를
+                                        함께 이해합니다.
+                                    </p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>COMPUTER INPUT</small>
+                                    <strong>[3, 8, 2]</strong>
+
+                                    <p>
+                                        컴퓨터는 숫자를 계산하지만
+                                        ID 자체에는 의미 관계가 없습니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="nlp-id-warning">
+                                <div>
+                                    <small>TOKEN ID</small>
+                                    <strong>좋다 → 3</strong>
+                                    <span>단순한 식별 번호</span>
+                                </div>
+
+                                <div>
+                                    <small>TOKEN ID</small>
+                                    <strong>나쁘다 → 4</strong>
+                                    <span>3보다 의미가 크다는 뜻이 아님</span>
+                                </div>
+                            </div>
+
+                            <div class="nlp-callout nlp-warning">
+                                <h3>정수 ID는 의미 좌표가 아닙니다</h3>
+
+                                <p>
+                                    ID의 크기와 거리에는
+                                    단어의 유사성·감정·문법 관계가 없습니다.
+                                    그래서 정수 ID를 Embedding Vector로 변환해야 합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 03. 핵심 용어 -->
+                        <section id="glossary" class="lesson-card nlp-card" aria-labelledby="glossary-title">
+                            <p class="nlp-kicker">03 · GLOSSARY</p>
+
+                            <h2 id="glossary-title">
+                                자연어 처리의 입력·사전·Sequence·Vector 용어를 구분합니다
+                            </h2>
+
+                            <div class="nlp-table" role="region" aria-label="자연어 처리 핵심 용어" tabindex="0">
+                                <table>
+                                    <caption>핵심 용어와 역할</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">용어</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">NLP</th>
+                                            <td>
+                                                사람의 언어를 컴퓨터가
+                                                분석·검색·분류·생성하게 만드는 분야
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Corpus</th>
+                                            <td>
+                                                학습과 분석에 사용하는 문장·문서 집합
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Token</th>
+                                            <td>
+                                                텍스트를 나눈 최소 처리 단위
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Vocabulary</th>
+                                            <td>
+                                                Token과 정수 ID의 대응표
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Sequence</th>
+                                            <td>
+                                                Token 또는 Token ID가
+                                                순서대로 나열된 데이터
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">OOV</th>
+                                            <td>
+                                                현재 Vocabulary에 등록되지 않은 Token
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Padding</th>
+                                            <td>
+                                                Sequence 길이를 맞추기 위해
+                                                추가하는 예약 값
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Embedding</th>
+                                            <td>
+                                                Token ID를 저차원 Dense Vector로
+                                                변환하는 과정
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Window</th>
+                                            <td>
+                                                Word2Vec에서 중심 단어 주변을
+                                                참고하는 범위
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Context Word</th>
+                                            <td>
+                                                중심 단어 주변에 위치한 학습 대상 단어
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 04. 전처리 전체 흐름 -->
+                        <section id="preprocessing" class="lesson-card nlp-card" aria-labelledby="preprocessing-title">
+                            <p class="nlp-kicker">04 · PREPROCESSING FLOW</p>
+
+                            <h2 id="preprocessing-title">
+                                원문을 정리하고, Token으로 나누고,
+                                같은 길이의 숫자 Sequence로 만듭니다
+                            </h2>
+
+                            <ol class="nlp-process">
+                                <li>
+                                    <span>01</span>
+
+                                    <div>
+                                        <h3>Cleaning</h3>
+
+                                        <p>
+                                            공백·HTML·URL·반복 문자·특수문자를
+                                            문제 목적에 맞게 정리합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>02</span>
+
+                                    <div>
+                                        <h3>Tokenization</h3>
+
+                                        <p>
+                                            문장을 단어·형태소·문자·Subword로 분리합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>03</span>
+
+                                    <div>
+                                        <h3>Stopword·POS</h3>
+
+                                        <p>
+                                            불용어 처리 여부와 품사 정보를
+                                            Task에 맞게 결정합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>04</span>
+
+                                    <div>
+                                        <h3>Vocabulary</h3>
+
+                                        <p>
+                                            Training Corpus의 Token에
+                                            정수 ID를 부여합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>05</span>
+
+                                    <div>
+                                        <h3>Integer Encoding</h3>
+
+                                        <p>
+                                            각 문장을 Token ID Sequence로 변환합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>06</span>
+
+                                    <div>
+                                        <h3>Padding·Truncation</h3>
+
+                                        <p>
+                                            Sequence 길이를 maxlen에 맞춥니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>07</span>
+
+                                    <div>
+                                        <h3>Embedding</h3>
+
+                                        <p>
+                                            Token ID를 학습 가능한
+                                            Dense Vector로 Lookup합니다.
+                                        </p>
+                                    </div>
+                                </li>
+                            </ol>
+
+                            <div class="nlp-callout">
+                                <h3>Cleaning은 많이 할수록 좋은 작업이 아닙니다</h3>
+
+                                <p>
+                                    감성 분석의 느낌표,
+                                    상품 번호의 숫자와 하이픈,
+                                    부정 표현처럼 현재 Task에서 중요한 문자는
+                                    보존해야 합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 05. Tokenization -->
+                        <section id="tokenization" class="lesson-card nlp-card" aria-labelledby="tokenization-title">
+                            <p class="nlp-kicker">05 · TOKENIZATION</p>
+
+                            <h2 id="tokenization-title">
+                                같은 문장도 어떤 단위를 선택하느냐에 따라
+                                다른 Sequence가 됩니다
+                            </h2>
+
+                            <p class="nlp-sentence">
+                                <strong>원문:</strong>
+                                나는 인공지능학습을 시작한다.
+                            </p>
+
+                            <div class="nlp-token-methods">
+                                <article>
+                                    <small>WORD</small>
+                                    <strong>공백 단위</strong>
+
+                                    <div class="nlp-token-list">
+                                        <span>나는</span>
+                                        <span>인공지능학습을</span>
+                                        <span>시작한다</span>
+                                    </div>
+                                </article>
+
+                                <article>
+                                    <small>MORPHEME</small>
+                                    <strong>형태소 단위</strong>
+
+                                    <div class="nlp-token-list">
+                                        <span>나</span>
+                                        <span>는</span>
+                                        <span>인공지능</span>
+                                        <span>학습</span>
+                                        <span>을</span>
+                                        <span>시작</span>
+                                        <span>한다</span>
+                                    </div>
+                                </article>
+
+                                <article>
+                                    <small>CHARACTER</small>
+                                    <strong>문자 단위</strong>
+
+                                    <div class="nlp-token-list">
+                                        <span>인</span>
+                                        <span>공</span>
+                                        <span>지</span>
+                                        <span>능</span>
+                                        <span>학</span>
+                                        <span>습</span>
+                                    </div>
+                                </article>
+
+                                <article>
+                                    <small>SUBWORD</small>
+                                    <strong>부분 단어 단위</strong>
+
+                                    <div class="nlp-token-list">
+                                        <span>인공지능</span>
+                                        <span>학습</span>
+                                        <span>을</span>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="Tokenization 방법 비교" tabindex="0">
+                                <table>
+                                    <caption>Token 단위 선택의 Trade-off</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">방식</th>
+                                            <th scope="col">장점</th>
+                                            <th scope="col">한계</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">단어</th>
+                                            <td>직관적이고 Sequence가 짧음</td>
+                                            <td>OOV와 Vocabulary 증가 가능</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">형태소</th>
+                                            <td>어근·조사·어미를 구분</td>
+                                            <td>형태소 분석기와 언어별 처리 필요</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">문자</th>
+                                            <td>OOV가 매우 적음</td>
+                                            <td>Sequence가 길고 의미 단위가 작음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Subword</th>
+                                            <td>Vocabulary Size와 OOV의 균형</td>
+                                            <td>Tokenizer 학습과 해석이 필요</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 06. 한국어 Tokenization -->
+                        <section id="korean-tokenization" class="lesson-card nlp-card"
+                            aria-labelledby="korean-tokenization-title">
+                            <p class="nlp-kicker">06 · KOREAN TOKENIZATION</p>
+
+                            <h2 id="korean-tokenization-title">
+                                한국어는 조사와 어미가 결합되므로
+                                공백만으로 의미 단위를 나누기 어렵습니다
+                            </h2>
+
+                            <div class="nlp-korean-grid">
+                                <article>
+                                    <small>SURFACE FORM</small>
+                                    <strong>학교에서</strong>
+                                    <p>공백 Tokenizer에서는 하나의 Token</p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>MORPHEME</small>
+                                    <strong>학교 + 에서</strong>
+                                    <p>명사와 조사로 분리 가능</p>
+                                </article>
+                            </div>
+
+                            <div class="nlp-korean-grid">
+                                <article>
+                                    <small>SURFACE FORM</small>
+                                    <strong>먹었습니다</strong>
+                                    <p>활용된 하나의 표면형</p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>MORPHEME</small>
+                                    <strong>먹 + 었 + 습니다</strong>
+                                    <p>어간·시제·종결 표현으로 분석 가능</p>
+                                </article>
+                            </div>
+
+                            <div class="nlp-callout nlp-warning">
+                                <h3>Stopword도 Task에 따라 달라집니다</h3>
+
+                                <p>
+                                    “좋지 않다”에서 <code>않다</code>를 제거하면
+                                    의미가 반대로 바뀔 수 있습니다.
+                                    감성 분석·번역·생성에서는
+                                    조사·어미·부정어가 중요한 Feature가 될 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 07. Vocabulary -->
+                        <section id="vocabulary" class="lesson-card nlp-card" aria-labelledby="vocabulary-title">
+                            <p class="nlp-kicker">07 · CORPUS &amp; VOCABULARY</p>
+
+                            <h2 id="vocabulary-title">
+                                Corpus에서 Token 빈도를 계산하고
+                                Token과 ID의 사전을 만듭니다
+                            </h2>
+
+                            <div class="nlp-corpus-flow">
+                                <div>
+                                    <small>CORPUS</small>
+                                    <strong>문장·문서 집합</strong>
+                                    <span>언어 사용 패턴의 학습 자료</span>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>COUNT</small>
+                                    <strong>Token 빈도</strong>
+                                    <span>Vocabulary 포함 여부 결정</span>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>VOCABULARY</small>
+                                    <strong>Token ↔ ID</strong>
+                                    <span>모델 입력 주소 체계</span>
+                                </div>
+                            </div>
+
+                            <div class="nlp-vocab-board">
+                                <div>
+                                    <code>&lt;PAD&gt;</code>
+                                    <strong>0</strong>
+                                </div>
+
+                                <div>
+                                    <code>&lt;OOV&gt;</code>
+                                    <strong>1</strong>
+                                </div>
+
+                                <div>
+                                    <code>철수는</code>
+                                    <strong>2</strong>
+                                </div>
+
+                                <div>
+                                    <code>너무</code>
+                                    <strong>3</strong>
+                                </div>
+
+                                <div>
+                                    <code>합니다</code>
+                                    <strong>4</strong>
+                                </div>
+
+                                <div>
+                                    <code>태권도를</code>
+                                    <strong>5</strong>
+                                </div>
+
+                                <div>
+                                    <code>좋아해</code>
+                                    <strong>6</strong>
+                                </div>
+                            </div>
+
+                            <div class="nlp-callout nlp-supplement">
+                                <h3>
+                                    Vocabulary는 Training Corpus를 기준으로 구축합니다
+                                </h3>
+
+                                <p>
+                                    Validation·Test의 Token까지 보고 Vocabulary를 만들면
+                                    Test 분포가 전처리에 반영될 수 있습니다.
+                                    Training Corpus로 사전을 만든 뒤
+                                    미등록 Token은 OOV로 처리하는 방향이 안전합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 08. OOV·Padding -->
+                        <section id="oov-padding" class="lesson-card nlp-card" aria-labelledby="oov-padding-title">
+                            <p class="nlp-kicker">
+                                08 · OOV · PADDING · TRUNCATION
+                            </p>
+
+                            <h2 id="oov-padding-title">
+                                미등록 Token을 보존하고 길이가 다른 Sequence를
+                                같은 Shape으로 맞춥니다
+                            </h2>
+
+                            <div class="nlp-oov-flow">
+                                <div>
+                                    <small>새 문장</small>
+                                    <strong>철수는 독서도 좋아 합니다.</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>독서도는 미등록</small>
+                                    <strong>&lt;OOV&gt; → 1</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>Integer Sequence</small>
+                                    <strong>[2, 1, 8, 4]</strong>
+                                </div>
+                            </div>
+
+                            <div class="nlp-padding-demo">
+                                <article>
+                                    <small>원래 Sequence</small>
+                                    <code>[2, 7, 3, 8, 4]</code>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>post Padding · maxlen=8</small>
+                                    <code>[2, 7, 3, 8, 4, 0, 0, 0]</code>
+                                </article>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="Padding과 Truncation 비교" tabindex="0">
+                                <table>
+                                    <caption>Sequence 길이 처리</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">설정</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                padding="pre"
+                                            </th>
+                                            <td>앞쪽에 Padding 값 추가</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                padding="post"
+                                            </th>
+                                            <td>뒤쪽에 Padding 값 추가</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                truncating="pre"
+                                            </th>
+                                            <td>긴 Sequence의 앞부분 제거</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                truncating="post"
+                                            </th>
+                                            <td>긴 Sequence의 뒷부분 제거</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 09. 표현 발전 -->
+                        <section id="representation" class="lesson-card nlp-card"
+                            aria-labelledby="representation-title">
+                            <p class="nlp-kicker">09 · TEXT REPRESENTATION</p>
+
+                            <h2 id="representation-title">
+                                단순 ID와 빈도 표현에서
+                                의미를 학습하는 Dense Vector로 발전합니다
+                            </h2>
+
+                            <div class="nlp-representation-roadmap">
+                                <article>
+                                    <small>ID</small>
+                                    <strong>Integer Encoding</strong>
+                                    <p>Token을 식별하지만 의미 관계는 없음</p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>SPARSE</small>
+                                    <strong>One-Hot · BOW · DTM</strong>
+                                    <p>Vocabulary Size 차원의 희소 표현</p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>WEIGHTED</small>
+                                    <strong>TF-IDF</strong>
+                                    <p>문서에서 Token의 상대적 중요도 표현</p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>DENSE</small>
+                                    <strong>Embedding</strong>
+                                    <p>저차원 실수 Vector에 의미 Feature 학습</p>
+                                </article>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="텍스트 표현 방법 비교" tabindex="0">
+                                <table>
+                                    <caption>대표 텍스트 수치 표현</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">방식</th>
+                                            <th scope="col">기준</th>
+                                            <th scope="col">순서</th>
+                                            <th scope="col">의미 관계</th>
+                                            <th scope="col">차원</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Integer ID</th>
+                                            <td>Token 식별 번호</td>
+                                            <td>Sequence로 유지</td>
+                                            <td>없음</td>
+                                            <td>Token당 1</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">One-Hot</th>
+                                            <td>독립 Token Vector</td>
+                                            <td>배열 순서로 유지</td>
+                                            <td>없음</td>
+                                            <td>Vocabulary Size</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">BOW·DTM</th>
+                                            <td>Token 빈도</td>
+                                            <td>일반적으로 무시</td>
+                                            <td>매우 제한적</td>
+                                            <td>Vocabulary Size</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">TF-IDF</th>
+                                            <td>상대적 Token 중요도</td>
+                                            <td>일반적으로 무시</td>
+                                            <td>제한적</td>
+                                            <td>Vocabulary Size</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Embedding</th>
+                                            <td>학습된 Dense Feature</td>
+                                            <td>Sequence로 유지</td>
+                                            <td>학습 가능</td>
+                                            <td>지정한 Dimension</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 10. BOW·TF-IDF -->
+                        <section id="bow-tfidf" class="lesson-card nlp-card" aria-labelledby="bow-tfidf-title">
+                            <p class="nlp-kicker">10 · BOW · DTM · TF-IDF</p>
+
+                            <h2 id="bow-tfidf-title">
+                                빈도만 세는 방식에서 문서 전체를 고려한
+                                상대적 중요도로 확장합니다
+                            </h2>
+
+                            <div class="nlp-bow-example">
+                                <div>
+                                    <small>문서 1</small>
+                                    <strong>오늘은 날씨가 좋습니다.</strong>
+                                </div>
+
+                                <div>
+                                    <small>문서 2</small>
+                                    <strong>오늘은 하늘이 맑습니다.</strong>
+                                </div>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="DTM 예제" tabindex="0">
+                                <table>
+                                    <caption>간단한 Document-Term Matrix</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">문서</th>
+                                            <th scope="col">오늘</th>
+                                            <th scope="col">날씨</th>
+                                            <th scope="col">하늘</th>
+                                            <th scope="col">좋습니다</th>
+                                            <th scope="col">맑습니다</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">문서 1</th>
+                                            <td>1</td>
+                                            <td>1</td>
+                                            <td>0</td>
+                                            <td>1</td>
+                                            <td>0</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">문서 2</th>
+                                            <td>1</td>
+                                            <td>0</td>
+                                            <td>1</td>
+                                            <td>0</td>
+                                            <td>1</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="nlp-equation">
+                                <p>
+                                    <code>
+                                    TF-IDF(t, d) = TF(t, d) × IDF(t)
+                                </code>
+                                </p>
+
+                                <p>
+                                    <code>
+                                    IDF(t) = log(N / (1 + DF(t)))
+                                </code>
+                                </p>
+                            </div>
+
+                            <div class="nlp-callout nlp-supplement">
+                                <h3>
+                                    TF-IDF Library마다 Smoothing 수식이 달라질 수 있습니다
+                                </h3>
+
+                                <p>
+                                    위 수식은 교안의 개념식입니다.
+                                    실제 Library에서는 0으로 나누는 문제와
+                                    음수 값을 피하기 위해 분자·분모에 1을 더하는 등
+                                    세부 구현이 달라질 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 11. Sparse vs Dense -->
+                        <section id="sparse-dense" class="lesson-card nlp-card" aria-labelledby="sparse-dense-title">
+                            <p class="nlp-kicker">11 · SPARSE VS DENSE</p>
+
+                            <h2 id="sparse-dense-title">
+                                One-Hot은 Token을 구별하고
+                                Embedding은 학습된 의미 Feature를 표현합니다
+                            </h2>
+
+                            <div class="nlp-vector-compare">
+                                <article>
+                                    <small>ONE-HOT</small>
+
+                                    <h3>고양이</h3>
+                                    <code>[0, 0, 1, 0, 0, 0]</code>
+
+                                    <h3>강아지</h3>
+                                    <code>[0, 0, 0, 1, 0, 0]</code>
+
+                                    <p>
+                                        서로 독립적인 Sparse Vector
+                                    </p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>EMBEDDING</small>
+
+                                    <h3>고양이</h3>
+                                    <code>[0.73, -0.18, 0.42]</code>
+
+                                    <h3>강아지</h3>
+                                    <code>[0.69, -0.13, 0.48]</code>
+
+                                    <p>
+                                        학습을 통해 유사한 방향에 놓일 수 있음
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="Sparse와 Dense 비교" tabindex="0">
+                                <table>
+                                    <caption>
+                                        Sparse Representation과 Dense Representation
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">Sparse</th>
+                                            <th scope="col">Dense</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">대표 방식</th>
+                                            <td>One-Hot·BOW·DTM</td>
+                                            <td>Embedding</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">차원</th>
+                                            <td>Vocabulary Size에 비례</td>
+                                            <td>설정한 Dimension</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">값</th>
+                                            <td>대부분 0</td>
+                                            <td>여러 실수</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">의미 유사성</th>
+                                            <td>직접 표현하지 못함</td>
+                                            <td>학습을 통해 반영 가능</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="nlp-callout nlp-warning">
+                                <h3>One-Hot Vector 자체에는 순서가 없습니다</h3>
+
+                                <p>
+                                    순서는 One-Hot Vector 안의 값이 아니라
+                                    문장 안에서 Vector가 배치된 Sequence 위치에 존재합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 12. Embedding Matrix -->
+                        <section id="embedding-matrix" class="lesson-card nlp-card"
+                            aria-labelledby="embedding-matrix-title">
+                            <p class="nlp-kicker">12 · EMBEDDING MATRIX</p>
+
+                            <h2 id="embedding-matrix-title">
+                                Vocabulary의 각 Token은
+                                Embedding Matrix의 한 행과 연결됩니다
+                            </h2>
+
+                            <div class="nlp-equation nlp-equation-large">
+                                <code>E ∈ R^(V × D)</code>
+                            </div>
+
+                            <div class="nlp-matrix-wrap" aria-label="Embedding Matrix 예시">
+                                <div class="nlp-matrix-header">
+                                    <span>Token</span>
+                                    <span>d1</span>
+                                    <span>d2</span>
+                                    <span>d3</span>
+                                    <span>d4</span>
+                                </div>
+
+                                <div class="nlp-matrix-row">
+                                    <strong>&lt;PAD&gt;</strong>
+                                    <span>0.00</span>
+                                    <span>0.00</span>
+                                    <span>0.00</span>
+                                    <span>0.00</span>
+                                </div>
+
+                                <div class="nlp-matrix-row">
+                                    <strong>&lt;OOV&gt;</strong>
+                                    <span>0.20</span>
+                                    <span>-0.10</span>
+                                    <span>0.30</span>
+                                    <span>0.10</span>
+                                </div>
+
+                                <div class="nlp-matrix-row">
+                                    <strong>철수는</strong>
+                                    <span>0.40</span>
+                                    <span>0.70</span>
+                                    <span>-0.20</span>
+                                    <span>0.30</span>
+                                </div>
+
+                                <div class="nlp-matrix-row nlp-matrix-highlight">
+                                    <strong>태권도를</strong>
+                                    <span>0.80</span>
+                                    <span>-0.30</span>
+                                    <span>0.40</span>
+                                    <span>0.50</span>
+                                </div>
+                            </div>
+
+                            <div class="nlp-lookup-flow">
+                                <span>Token ID = 5</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Embedding Matrix Row 5</span>
+                                <b aria-hidden="true">→</b>
+
+                                <strong>
+                                    [0.80, -0.30, 0.40, 0.50]
+                                </strong>
+                            </div>
+
+                            <div class="nlp-equation">
+                                <p><code>e₅ = E[5]</code></p>
+                                <p><code>One-Hot x₅ × E = E[5]</code></p>
+                            </div>
+                        </section>
+
+                        <!-- 13. Shape와 Parameter -->
+                        <section id="embedding-shape" class="lesson-card nlp-card"
+                            aria-labelledby="embedding-shape-title">
+                            <p class="nlp-kicker">13 · SHAPE &amp; PARAMETER</p>
+
+                            <h2 id="embedding-shape-title">
+                                Embedding Parameter는
+                                Vocabulary Size와 Dimension으로 결정됩니다
+                            </h2>
+
+                            <div class="nlp-shape-flow">
+                                <div>
+                                    <small>INPUT</small>
+                                    <strong>(B, T)</strong>
+                                    <span>Token ID Sequence</span>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>EMBEDDING</small>
+                                    <strong>V × D</strong>
+                                    <span>학습 가능한 Weight Table</span>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>OUTPUT</small>
+                                    <strong>(B, T, D)</strong>
+                                    <span>Token별 Dense Vector</span>
+                                </div>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="Embedding Shape 예" tabindex="0">
+                                <table>
+                                    <caption>
+                                        교안 예제의 Shape와 Parameter
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">값</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Batch Size</th>
+                                            <td>4</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Sequence Length</th>
+                                            <td>8</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Vocabulary Size</th>
+                                            <td>17</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Embedding Dimension</th>
+                                            <td>10</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Input Shape</th>
+                                            <td>(4, 8)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Output Shape</th>
+                                            <td>(4, 8, 10)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Parameter</th>
+                                            <td>17 × 10 = 170</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="nlp-equation">
+                                <p>
+                                    <code>
+                                    Embedding Parameters = V × D
+                                </code>
+                                </p>
+
+                                <p>
+                                    <code>17 × 10 = 170</code>
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 14. Embedding 학습 -->
+                        <section id="embedding-training" class="lesson-card nlp-card"
+                            aria-labelledby="embedding-training-title">
+                            <p class="nlp-kicker">14 · EMBEDDING TRAINING</p>
+
+                            <h2 id="embedding-training-title">
+                                초기 Random Vector는
+                                Task Loss를 줄이는 방향으로 업데이트됩니다
+                            </h2>
+
+                            <div class="nlp-training-flow">
+                                <span>Random Embedding</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Model Prediction</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Loss</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Gradient</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Embedding Update</span>
+                            </div>
+
+                            <div class="nlp-grid">
+                                <article class="nlp-box">
+                                    <h3>학습 전</h3>
+
+                                    <p>
+                                        Embedding Vector는 의미를 충분히 반영하지 않는
+                                        작은 Random 값일 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>학습 중</h3>
+
+                                    <p>
+                                        분류·예측 Loss의 Gradient가
+                                        Embedding Matrix까지 전달됩니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>학습 후</h3>
+
+                                    <p>
+                                        현재 Task에서 유용한 Token Feature가
+                                        Vector에 반영됩니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="nlp-callout">
+                                <h3>
+                                    Embedding Dimension이 클수록
+                                    항상 좋은 것은 아닙니다
+                                </h3>
+
+                                <p>
+                                    Dimension이 커지면 표현력은 증가할 수 있지만
+                                    Parameter·Memory·학습 시간·과적합 위험도 증가합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 15. Word2Vec -->
+                        <section id="word2vec" class="lesson-card nlp-card" aria-labelledby="word2vec-title">
+                            <p class="nlp-kicker">15 · WORD2VEC</p>
+
+                            <h2 id="word2vec-title">
+                                비슷한 문맥에 등장하는 단어가
+                                비슷한 Vector를 갖도록 학습합니다
+                            </h2>
+
+                            <div class="nlp-context-examples">
+                                <p>
+                                    나는 <strong>사과</strong>를 먹었다.
+                                </p>
+
+                                <p>
+                                    나는 <strong>바나나</strong>를 먹었다.
+                                </p>
+
+                                <p>
+                                    나는 <strong>빵</strong>을 먹었다.
+                                </p>
+                            </div>
+
+                            <div class="nlp-context-flow">
+                                <span>나는</span>
+                                <span class="nlp-blank">___</span>
+                                <span>를 먹었다</span>
+
+                                <b aria-hidden="true">→</b>
+
+                                <strong>비슷한 Local Context</strong>
+                            </div>
+
+                            <div class="nlp-grid">
+                                <article class="nlp-box">
+                                    <h3>입력층</h3>
+                                    <p>
+                                        중심 또는 주변 Token의 One-Hot Vector
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Projection Layer</h3>
+                                    <p>
+                                        Embedding Matrix에서 선택된 Dense Vector
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>출력층</h3>
+                                    <p>
+                                        Vocabulary 전체에 대한 예측 확률
+                                    </p>
+                                </article>
+                            </div>
+                        </section>
+
+                        <!-- 16. Word2Vec 수식 -->
+                        <section id="word2vec-formula" class="lesson-card nlp-card"
+                            aria-labelledby="word2vec-formula-title">
+                            <p class="nlp-kicker">16 · WORD2VEC FORMULA</p>
+
+                            <h2 id="word2vec-formula-title">
+                                입력 One-Hot에서 Embedding을 선택하고
+                                Vocabulary 확률을 계산합니다
+                            </h2>
+
+                            <div class="nlp-equation">
+                                <p><code>h = xW</code></p>
+                                <p><code>z = hW′ + b</code></p>
+                                <p><code>ŷ = softmax(z)</code></p>
+                                <p><code>L = −Σ yᵢ log(ŷᵢ)</code></p>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="Word2Vec 수식 기호" tabindex="0">
+                                <table>
+                                    <caption>
+                                        Word2Vec 기본 수식의 기호
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">기호</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">x</th>
+                                            <td>입력 Token의 One-Hot Vector</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">W</th>
+                                            <td>V × D Embedding Matrix</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">h</th>
+                                            <td>
+                                                선택된 D차원 Embedding Vector
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">W′</th>
+                                            <td>D × V 출력 Weight Matrix</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">ŷ</th>
+                                            <td>
+                                                Vocabulary 전체의 예측 확률
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">y</th>
+                                            <td>
+                                                정답 Token의 One-Hot Vector
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Loss를 줄이도록 W를 업데이트하면
+                                W의 각 행이 Corpus의 문맥 관계를 반영한
+                                Token Vector가 됩니다.
+                            </p>
+                        </section>
+
+                        <!-- 17. Sliding Window -->
+                        <section id="window" class="lesson-card nlp-card" aria-labelledby="window-title">
+                            <p class="nlp-kicker">17 · SLIDING WINDOW</p>
+
+                            <h2 id="window-title">
+                                중심 단어 앞뒤의 일정 범위를 Context로 사용합니다
+                            </h2>
+
+                            <div class="nlp-window-sentence">
+                                <span>AI</span>
+                                <span>is</span>
+                                <span class="nlp-center-token">an</span>
+                                <span>easy</span>
+                                <span>study</span>
+                            </div>
+
+                            <p class="nlp-window-caption">
+                                Window Size = 1 · Center = an · Context = is, easy
+                            </p>
+
+                            <div class="nlp-table" role="region" aria-label="Sliding Window 예" tabindex="0">
+                                <table>
+                                    <caption>
+                                        Window Size 1의 중심·주변 단어
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Center</th>
+                                            <th scope="col">Context</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">AI</th>
+                                            <td>is</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">is</th>
+                                            <td>AI, an</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">an</th>
+                                            <td>is, easy</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">easy</th>
+                                            <td>an, study</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">study</th>
+                                            <td>easy</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="nlp-callout nlp-supplement">
+                                <h3>Window가 클수록 항상 좋은 것은 아닙니다</h3>
+
+                                <p>
+                                    작은 Window는 가까운 문법·Local Context에 민감하고,
+                                    큰 Window는 넓은 주제·의미 관계를 반영할 수 있지만
+                                    관련성이 낮은 Token까지 포함할 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 18. CBOW -->
+                        <section id="cbow" class="lesson-card nlp-card" aria-labelledby="cbow-title">
+                            <p class="nlp-kicker">18 · CBOW</p>
+
+                            <h2 id="cbow-title">
+                                주변 단어들의 Embedding을 모아
+                                중심 단어를 예측합니다
+                            </h2>
+
+                            <div class="nlp-word2vec-direction">
+                                <div>
+                                    <small>CONTEXT</small>
+                                    <strong>나는 · 공부한다</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>PREDICT</small>
+                                    <strong>인공지능을</strong>
+                                </div>
+                            </div>
+
+                            <div class="nlp-equation">
+                                <p>
+                                    <code>
+                                    h = (1 / |C|) Σ E[c]
+                                </code>
+                                </p>
+
+                                <p>
+                                    <code>
+                                    P(wₜ | C) = softmax(hW′ + b)
+                                </code>
+                                </p>
+                            </div>
+
+                            <ol class="nlp-flow">
+                                <li>
+                                    <b>Context IDs</b>
+                                    <span>주변 Token의 정수 ID</span>
+                                </li>
+
+                                <li>
+                                    <b>Lookup</b>
+                                    <span>각 Context Embedding 선택</span>
+                                </li>
+
+                                <li>
+                                    <b>Average</b>
+                                    <span>주변 Vector를 평균·결합</span>
+                                </li>
+
+                                <li>
+                                    <b>Predict</b>
+                                    <span>중심 Token 확률 계산</span>
+                                </li>
+                            </ol>
+
+                            <p class="nlp-memory-line">
+                                <strong>CBOW 기억 문장:</strong>
+                                주변을 보고 가운데를 맞힌다.
+                            </p>
+                        </section>
+
+                        <!-- 19. Skip-gram -->
+                        <section id="skipgram" class="lesson-card nlp-card" aria-labelledby="skipgram-title">
+                            <p class="nlp-kicker">19 · SKIP-GRAM</p>
+
+                            <h2 id="skipgram-title">
+                                중심 단어 하나로 여러 주변 단어를 예측합니다
+                            </h2>
+
+                            <div class="nlp-word2vec-direction">
+                                <div>
+                                    <small>CENTER</small>
+                                    <strong>인공지능을</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>PREDICT</small>
+                                    <strong>나는 · 공부한다</strong>
+                                </div>
+                            </div>
+
+                            <div class="nlp-equation">
+                                <p><code>h = E[wₜ]</code></p>
+
+                                <p>
+                                    <code>
+                                    P(w_c | wₜ) = softmax(hW′ + b)
+                                </code>
+                                </p>
+
+                                <p>
+                                    <code>
+                                    L = −Σ log P(w_c | wₜ)
+                                </code>
+                                </p>
+                            </div>
+
+                            <ol class="nlp-flow">
+                                <li>
+                                    <b>Center ID</b>
+                                    <span>중심 Token의 정수 ID</span>
+                                </li>
+
+                                <li>
+                                    <b>Lookup</b>
+                                    <span>중심 Embedding 선택</span>
+                                </li>
+
+                                <li>
+                                    <b>Predict</b>
+                                    <span>Vocabulary Probability</span>
+                                </li>
+
+                                <li>
+                                    <b>Loss</b>
+                                    <span>각 Context Token의 Loss 합산</span>
+                                </li>
+                            </ol>
+
+                            <p class="nlp-memory-line">
+                                <strong>Skip-gram 기억 문장:</strong>
+                                가운데를 보고 주변을 맞힌다.
+                            </p>
+                        </section>
+
+                        <!-- 20. CBOW vs Skip-gram -->
+                        <section id="cbow-skipgram" class="lesson-card nlp-card" aria-labelledby="cbow-skipgram-title">
+                            <p class="nlp-kicker">20 · CBOW VS SKIP-GRAM</p>
+
+                            <h2 id="cbow-skipgram-title">
+                                입력과 정답의 방향이 서로 반대입니다
+                            </h2>
+
+                            <div class="nlp-table" role="region" aria-label="CBOW와 Skip-gram 비교" tabindex="0">
+                                <table>
+                                    <caption>Word2Vec 학습 방식 비교</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">CBOW</th>
+                                            <th scope="col">Skip-gram</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">입력</th>
+                                            <td>주변 단어들</td>
+                                            <td>중심 단어</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">정답</th>
+                                            <td>중심 단어</td>
+                                            <td>주변 단어들</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">기억 방향</th>
+                                            <td>Context → Center</td>
+                                            <td>Center → Context</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Context 처리</th>
+                                            <td>결합·평균</td>
+                                            <td>각 Context 개별 예측</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">학습 속도 방향</th>
+                                            <td>상대적으로 빠른 방향</td>
+                                            <td>상대적으로 느릴 수 있음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">희귀 단어</th>
+                                            <td>상대적으로 불리</td>
+                                            <td>상대적으로 유리</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 21. Embedding 비교 -->
+                        <section id="embedding-comparison" class="lesson-card nlp-card"
+                            aria-labelledby="embedding-comparison-title">
+                            <p class="nlp-kicker">21 · EMBEDDING METHODS</p>
+
+                            <h2 id="embedding-comparison-title">
+                                현재 Task용 Embedding과
+                                사전 학습 단어 Vector를 구분합니다
+                            </h2>
+
+                            <div class="nlp-table" role="region" aria-label="Embedding 방법 비교" tabindex="0">
+                                <table>
+                                    <caption>
+                                        Keras Embedding·Word2Vec·FastText·GloVe
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">방법</th>
+                                            <th scope="col">학습 기준</th>
+                                            <th scope="col">특징</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                Keras Embedding
+                                            </th>
+
+                                            <td>
+                                                현재 Model의 최종 Task Loss
+                                            </td>
+
+                                            <td>
+                                                감성 분석·분류 등
+                                                현재 문제에 맞는 Vector
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Word2Vec</th>
+                                            <td>Local Context 예측</td>
+                                            <td>
+                                                CBOW·Skip-gram으로
+                                                단어 관계 학습
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">FastText</th>
+                                            <td>
+                                                단어와 Character N-gram
+                                            </td>
+                                            <td>
+                                                Subword를 활용해
+                                                OOV에 상대적으로 유리
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">GloVe</th>
+                                            <td>
+                                                Corpus 전체 동시 등장 통계
+                                            </td>
+                                            <td>
+                                                Global Co-occurrence 관계 활용
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="nlp-callout nlp-warning">
+                                <h3>
+                                    전통적인 Word2Vec는 Token마다
+                                    하나의 고정 Vector를 가집니다
+                                </h3>
+
+                                <p>
+                                    “은행”처럼 문맥에 따라 뜻이 달라지는 다의어를
+                                    문장마다 다른 Vector로 표현하기 어렵습니다.
+                                    이 한계가 RNN·Attention·Transformer의
+                                    문맥 표현으로 이어집니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 22. 환경·실행 흐름 -->
+                        <section id="environment" class="lesson-card nlp-card" aria-labelledby="environment-title">
+                            <p class="nlp-kicker">22 · EXECUTION FLOW</p>
+
+                            <h2 id="environment-title">
+                                Corpus에서 Vocabulary를 만들고
+                                동일한 전처리 설정으로 모든 데이터 분할을 변환합니다
+                            </h2>
+
+                            <div class="nlp-environment-grid">
+                                <article>
+                                    <small>LANGUAGE</small>
+                                    <strong>Python</strong>
+                                    <span>전처리·Tensor 변환</span>
+                                </article>
+
+                                <article>
+                                    <small>LIBRARY</small>
+                                    <strong>TensorFlow · Keras</strong>
+                                    <span>Tokenizer·Padding·Embedding</span>
+                                </article>
+
+                                <article>
+                                    <small>OPTIONAL</small>
+                                    <strong>Gensim</strong>
+                                    <span>Word2Vec·FastText 실습</span>
+                                </article>
+
+                                <article>
+                                    <small>OUTPUT</small>
+                                    <strong>(B, T, D)</strong>
+                                    <span>Sequence Model 입력 Tensor</span>
+                                </article>
+                            </div>
+
+                            <ol class="nlp-process">
+                                <li>
+                                    <span>01</span>
+
+                                    <div>
+                                        <h3>Dataset 분리</h3>
+                                        <p>
+                                            Train·Validation·Test를 먼저 분리합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>02</span>
+
+                                    <div>
+                                        <h3>Tokenizer Fit</h3>
+                                        <p>
+                                            Training Corpus로 Vocabulary를 학습합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>03</span>
+
+                                    <div>
+                                        <h3>Sequence 변환</h3>
+                                        <p>
+                                            모든 분할을 같은 Tokenizer로
+                                            Integer Encoding합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>04</span>
+
+                                    <div>
+                                        <h3>Padding</h3>
+                                        <p>
+                                            동일한 maxlen·padding·truncating 설정을 적용합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>05</span>
+
+                                    <div>
+                                        <h3>Embedding</h3>
+                                        <p>
+                                            vocab_size와 embedding_dim을 정해
+                                            Dense Tensor로 변환합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>06</span>
+
+                                    <div>
+                                        <h3>설정 저장</h3>
+                                        <p>
+                                            Tokenizer·Vocabulary·maxlen·OOV 정책을
+                                            모델과 함께 보관합니다.
+                                        </p>
+                                    </div>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <!-- 23. Keras Code -->
+                        <section id="keras-code" class="lesson-card nlp-card" aria-labelledby="keras-code-title">
+                            <p class="nlp-kicker">23 · KERAS EXAMPLE</p>
+
+                            <h2 id="keras-code-title">
+                                Tokenizer·OOV·Padding·Embedding을
+                                하나의 흐름으로 실행합니다
+                            </h2>
+
+                            <pre class="nlp-code" tabindex="0" aria-label="Keras 자연어 전처리와 Embedding 코드"><code>import numpy as np
+
+from tensorflow.keras.preprocessing.text import (
+    Tokenizer,
+)
+
+from tensorflow.keras.preprocessing.sequence import (
+    pad_sequences,
+)
+
+from tensorflow.keras.models import (
+    Sequential,
+)
+
+from tensorflow.keras.layers import (
+    Input,
+    Embedding,
+)
+
+
+sentences = [
+    "철수는 유튜브를 너무 좋아 합니다.",
+    "철수는 태권도를 좋아해 하지만 너무 가기 싫어 합니다.",
+    "태권도는 한국의 국기 종목이다.",
+    "태권도를 좋아해 주세요.",
+]
+
+
+# 1. OOV Token을 포함한 Tokenizer 생성
+tokenizer = Tokenizer(
+    oov_token="&lt;OOV&gt;",
+)
+
+
+# 2. Training Corpus를 기준으로 Vocabulary 생성
+tokenizer.fit_on_texts(
+    sentences
+)
+
+
+# 3. 문장을 Integer Sequence로 변환
+sequences = tokenizer.texts_to_sequences(
+    sentences
+)
+
+
+# 4. 가장 긴 문장 길이 계산
+maxlen = max(
+    len(sequence)
+    for sequence in sequences
+)
+
+
+# 5. 뒤쪽에 0을 추가해 길이 통일
+padded_sequences = pad_sequences(
+    sequences,
+    maxlen=maxlen,
+    padding="post",
+    truncating="post",
+)
+
+
+# 6. Padding Index 0을 포함한 Vocabulary Size
+vocab_size = (
+    len(tokenizer.word_index)
+    + 1
+)
+
+
+# 7. Embedding Dimension
+embedding_dim = 10
+
+
+# 8. Embedding Layer 구성
+model = Sequential([
+    Input(
+        shape=(maxlen,)
+    ),
+
+    Embedding(
+        input_dim=vocab_size,
+        output_dim=embedding_dim,
+    ),
+])
+
+
+# 9. Integer Sequence를 Embedding Tensor로 변환
+embedded_sequences = model(
+    np.array(
+        padded_sequences
+    )
+)
+
+
+print("Vocabulary")
+print(
+    tokenizer.word_index
+)
+
+print("\nInteger Sequences")
+print(
+    sequences
+)
+
+print("\nPadded Sequences")
+print(
+    padded_sequences
+)
+
+print("\nVocabulary Size")
+print(
+    vocab_size
+)
+
+print("\nEmbedding Shape")
+print(
+    embedded_sequences.shape
+)
+
+model.summary()</code></pre>
+
+                            <div class="nlp-callout nlp-supplement">
+                                <h3>교안 실습 API 기준</h3>
+
+                                <p>
+                                    위 코드는 교안에서 사용하는
+                                    <code>tensorflow.keras.preprocessing</code>
+                                    API를 기준으로 작성했습니다.
+                                    설치된 TensorFlow·Keras Version에 따라
+                                    경고나 권장 API가 달라질 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 24. Expected Output -->
+                        <section id="expected-output" class="lesson-card nlp-card"
+                            aria-labelledby="expected-output-title">
+                            <p class="nlp-kicker">24 · EXPECTED OUTPUT</p>
+
+                            <h2 id="expected-output-title">
+                                출력값의 숫자보다
+                                각 숫자가 맡은 역할을 해석합니다
+                            </h2>
+
+                            <h3>Vocabulary 예</h3>
+
+                            <pre class="nlp-output" tabindex="0" aria-label="Vocabulary 예상 출력"><code>{
+  "&lt;OOV&gt;": 1,
+  "철수는": 2,
+  "너무": 3,
+  "합니다": 4,
+  "태권도를": 5,
+  "좋아해": 6
+}</code></pre>
+
+                            <h3>Padding 결과 예</h3>
+
+                            <pre class="nlp-output" tabindex="0" aria-label="Padding 예상 출력"><code>[
+  [ 2,  7,  3,  8,  4,  0,  0,  0],
+  [ 2,  5,  6,  9,  3, 10, 11,  4],
+  [12, 13, 14, 15,  0,  0,  0,  0],
+  [ 5,  6, 16,  0,  0,  0,  0,  0]
+]</code></pre>
+
+                            <div class="nlp-shape-summary">
+                                <span>Input: (4, 8)</span>
+                                <b aria-hidden="true">→</b>
+
+                                <strong>
+                                    Embedding Output: (4, 8, 10)
+                                </strong>
+                            </div>
+
+                            <div class="nlp-table" role="region" aria-label="출력값 해석" tabindex="0">
+                                <table>
+                                    <caption>출력의 의미</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">값</th>
+                                            <th scope="col">해석</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">4</th>
+                                            <td>Batch에 포함된 문장 수</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">8</th>
+                                            <td>Padding 후 Sequence Length</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">10</th>
+                                            <td>
+                                                Token 하나의 Embedding Dimension
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">170</th>
+                                            <td>
+                                                Vocabulary 17 × Dimension 10
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 25. Pair Code -->
+                        <section id="pair-code" class="lesson-card nlp-card" aria-labelledby="pair-code-title">
+                            <p class="nlp-kicker">
+                                25 · CBOW · SKIP-GRAM PAIRS
+                            </p>
+
+                            <h2 id="pair-code-title">
+                                Sliding Window가 실제 학습 입력·정답 Pair를
+                                어떻게 만드는지 확인합니다
+                            </h2>
+
+                            <pre class="nlp-code" tabindex="0" aria-label="CBOW와 Skip-gram Pair 생성 코드"><code>from typing import Sequence
+
+
+def make_cbow_examples(
+    tokens: Sequence[str],
+    window_size: int = 1,
+) -&gt; list[
+    tuple[
+        list[str],
+        str,
+    ]
+]:
+    if window_size &lt; 1:
+        raise ValueError(
+            "window_size는 1 이상이어야 합니다."
+        )
+
+    examples = []
+
+    for center_index, center_word in enumerate(tokens):
+        start = max(
+            0,
+            center_index - window_size,
+        )
+
+        end = min(
+            len(tokens),
+            center_index + window_size + 1,
+        )
+
+        context_words = [
+            tokens[index]
+            for index in range(start, end)
+            if index != center_index
+        ]
+
+        examples.append(
+            (
+                context_words,
+                center_word,
+            )
+        )
+
+    return examples
+
+
+def make_skipgram_examples(
+    tokens: Sequence[str],
+    window_size: int = 1,
+) -&gt; list[
+    tuple[
+        str,
+        str,
+    ]
+]:
+    if window_size &lt; 1:
+        raise ValueError(
+            "window_size는 1 이상이어야 합니다."
+        )
+
+    examples = []
+
+    for center_index, center_word in enumerate(tokens):
+        start = max(
+            0,
+            center_index - window_size,
+        )
+
+        end = min(
+            len(tokens),
+            center_index + window_size + 1,
+        )
+
+        for context_index in range(start, end):
+            if context_index == center_index:
+                continue
+
+            examples.append(
+                (
+                    center_word,
+                    tokens[context_index],
+                )
+            )
+
+    return examples
+
+
+sentence = [
+    "나는",
+    "인공지능을",
+    "공부한다",
+]
+
+
+print("CBOW")
+print(
+    make_cbow_examples(
+        sentence,
+        window_size=1,
+    )
+)
+
+
+print("\nSkip-gram")
+print(
+    make_skipgram_examples(
+        sentence,
+        window_size=1,
+    )
+)</code></pre>
+
+                            <div class="nlp-callout">
+                                <h3>
+                                    이 코드는 Pair 생성 원리를 보여줍니다
+                                </h3>
+
+                                <p>
+                                    Embedding Weight를 실제로 학습하는
+                                    전체 Word2Vec 구현은 아니며,
+                                    CBOW와 Skip-gram의 입력·정답 방향을
+                                    확인하는 예제입니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 26. Cosine Code -->
+                        <section id="cosine-code" class="lesson-card nlp-card" aria-labelledby="cosine-code-title">
+                            <p class="nlp-kicker">26 · COSINE SIMILARITY</p>
+
+                            <h2 id="cosine-code-title">
+                                Embedding Vector의 방향 유사성을 계산합니다
+                            </h2>
+
+                            <div class="nlp-equation nlp-equation-large">
+                                <code>
+                                cos(u, v) = (u · v) / (||u|| ||v||)
+                            </code>
+                            </div>
+
+                            <pre class="nlp-code" tabindex="0" aria-label="Cosine Similarity 계산 코드"><code>import numpy as np
+
+
+def cosine_similarity(
+    vector_a: np.ndarray,
+    vector_b: np.ndarray,
+) -&gt; float:
+    vector_a = np.asarray(
+        vector_a,
+        dtype=np.float64,
+    )
+
+    vector_b = np.asarray(
+        vector_b,
+        dtype=np.float64,
+    )
+
+    if vector_a.shape != vector_b.shape:
+        raise ValueError(
+            "두 Vector의 Shape이 같아야 합니다."
+        )
+
+    denominator = (
+        np.linalg.norm(vector_a)
+        * np.linalg.norm(vector_b)
+    )
+
+    if denominator == 0:
+        return 0.0
+
+    return float(
+        np.dot(
+            vector_a,
+            vector_b,
+        )
+        / denominator
+    )
+
+
+cat = np.array([
+    0.8,
+    0.2,
+    0.7,
+])
+
+dog = np.array([
+    0.7,
+    0.3,
+    0.8,
+])
+
+car = np.array([
+    -0.4,
+    0.9,
+    -0.2,
+])
+
+
+print(
+    cosine_similarity(
+        cat,
+        dog,
+    )
+)
+
+print(
+    cosine_similarity(
+        cat,
+        car,
+    )
+)</code></pre>
+
+                            <div class="nlp-callout nlp-warning">
+                                <h3>
+                                    높은 유사도가 반드시 동의어를 의미하지는 않습니다
+                                </h3>
+
+                                <p>
+                                    “좋다”와 “나쁘다”처럼 반대 의미의 단어도
+                                    유사한 문장 구조에 자주 등장하면
+                                    문맥 Vector가 가까워질 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 27. Source Review -->
+                        <section id="source-review" class="lesson-card nlp-card" aria-labelledby="source-review-title">
+                            <p class="nlp-kicker">27 · TEXTBOOK REVIEW</p>
+
+                            <h2 id="source-review-title">
+                                교안의 표현과 보완 설명의 적용 범위를 구분합니다
+                            </h2>
+
+                            <div class="nlp-table" role="region" aria-label="교안 표현 점검" tabindex="0">
+                                <table>
+                                    <caption>
+                                        교안 원문과 보완해서 읽을 범위
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">교안 표현·상황</th>
+                                            <th scope="col">보완해서 읽기</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                One-Hot이 단어 순서를 고려
+                                            </th>
+
+                                            <td>
+                                                개별 Vector가 아니라
+                                                Sequence에 배열된 위치가 순서를 보존
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Stopword 제거
+                                            </th>
+
+                                            <td>
+                                                모든 Task의 필수 단계가 아니며
+                                                부정어·조사 보존이 필요할 수 있음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                TF-IDF 수식
+                                            </th>
+
+                                            <td>
+                                                교안의 개념식이며
+                                                Library별 Smoothing 구현은 다를 수 있음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Word2Vec 유사도
+                                            </th>
+
+                                            <td>
+                                                동의어가 아니라
+                                                비슷한 Context 사용 패턴을 반영할 수 있음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Keras Tokenizer API
+                                            </th>
+
+                                            <td>
+                                                교안 실습 기준이며
+                                                설치 Version에 따라 권장 API가 달라질 수 있음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Embedding 의미
+                                            </th>
+
+                                            <td>
+                                                초기 Random Vector가 학습된 뒤
+                                                Task·Corpus 관계를 반영
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 28. Mistakes -->
+                        <section id="mistakes" class="lesson-card nlp-card" aria-labelledby="mistakes-title">
+                            <p class="nlp-kicker">28 · COMMON MISTAKES</p>
+
+                            <h2 id="mistakes-title">
+                                Token·ID·Padding·Embedding·Word2Vec의 역할을
+                                서로 바꾸어 읽지 않습니다
+                            </h2>
+
+                            <div class="nlp-table" role="region" aria-label="자연어 처리 자주 하는 실수" tabindex="0">
+                                <table>
+                                    <caption>
+                                        자주 하는 착각과 올바른 해석
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">착각</th>
+                                            <th scope="col">올바른 해석</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                Token은 항상 완전한 단어
+                                            </th>
+
+                                            <td>
+                                                형태소·문자·Subword도 Token입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                한국어는 공백으로만 나누면 됨
+                                            </th>
+
+                                            <td>
+                                                조사·어미·활용형을
+                                                고려해야 할 수 있습니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Vocabulary는 Corpus 전체 문장
+                                            </th>
+
+                                            <td>
+                                                Token과 ID의 대응표입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                ID가 가까우면 의미도 가까움
+                                            </th>
+
+                                            <td>
+                                                ID는 Embedding Row의 주소일 뿐입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                OOV와 Padding은 같음
+                                            </th>
+
+                                            <td>
+                                                OOV는 미등록 Token,
+                                                Padding은 길이 보정 값입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                One-Hot은 의미를 표현
+                                            </th>
+
+                                            <td>
+                                                Token을 구분하지만
+                                                의미 유사성은 표현하지 못합니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Embedding은 처음부터 의미가 있음
+                                            </th>
+
+                                            <td>
+                                                초기에는 Random 값일 수 있으며
+                                                학습이 필요합니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Dimension이 클수록 항상 좋음
+                                            </th>
+
+                                            <td>
+                                                Parameter·Memory·Data Size·과적합을
+                                                함께 봅니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                CBOW와 Skip-gram은 같음
+                                            </th>
+
+                                            <td>
+                                                입력과 정답의 방향이 반대입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Word2Vec는 문장 전체 의미를 학습
+                                            </th>
+
+                                            <td>
+                                                주로 Local Context Window의
+                                                단어 관계를 학습합니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                높은 Cosine Similarity는 동의어
+                                            </th>
+
+                                            <td>
+                                                비슷한 문맥에 등장한 Token일 수 있습니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Stopword는 항상 제거
+                                            </th>
+
+                                            <td>
+                                                Task에 중요한 부정어·조사·어미일 수 있습니다.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 29. Errors -->
+                        <section id="errors" class="lesson-card nlp-card" aria-labelledby="errors-title">
+                            <p class="nlp-kicker">29 · ERROR READING</p>
+
+                            <h2 id="errors-title">
+                                Interpreter·Vocabulary 범위·Sequence Shape·
+                                전처리 설정을 순서대로 확인합니다
+                            </h2>
+
+                            <p class="nlp-source">
+                                아래는 재실습용 보완 점검이며
+                                오류 문구는 Library Version에 따라 달라질 수 있습니다.
+                            </p>
+
+                            <div class="nlp-grid">
+                                <article class="nlp-box">
+                                    <h3>ModuleNotFoundError</h3>
+
+                                    <p>
+                                        TensorFlow·Gensim이
+                                        현재 Python·Notebook Kernel에 설치되었는지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Embedding Index 오류</h3>
+
+                                    <p>
+                                        가장 큰 Token ID가
+                                        Embedding input_dim보다 작은지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>길이가 다른 Sequence</h3>
+
+                                    <p>
+                                        pad_sequences()로
+                                        동일한 2차원 Tensor Shape을 만듭니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>RNN ndim 오류</h3>
+
+                                    <p>
+                                        RNN 입력이
+                                        (Batch, Time Steps, Features)의
+                                        3차원인지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Model Input 길이 불일치</h3>
+
+                                    <p>
+                                        학습과 추론에서 같은
+                                        maxlen·padding·truncating을 사용합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>새 Token이 사라짐</h3>
+
+                                    <p>
+                                        Tokenizer에 oov_token을
+                                        지정했는지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Embedding Memory 부족</h3>
+
+                                    <p>
+                                        Vocabulary Size·Embedding Dimension·dtype을
+                                        점검합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>Label Shape 불일치</h3>
+
+                                    <p>
+                                        모델 출력 Unit·Label Encoding·Loss 조합을
+                                        확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>한글 Tokenization 예상 불일치</h3>
+
+                                    <p>
+                                        filters·lower·split·형태소 처리와
+                                        실제 word_index를 출력합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <ol class="nlp-flow">
+                                <li>
+                                    <b>환경</b>
+                                    <span>Interpreter·Package·Kernel</span>
+                                </li>
+
+                                <li>
+                                    <b>Vocabulary</b>
+                                    <span>OOV·PAD·최대 ID</span>
+                                </li>
+
+                                <li>
+                                    <b>Sequence</b>
+                                    <span>maxlen·Padding·Shape</span>
+                                </li>
+
+                                <li>
+                                    <b>Embedding</b>
+                                    <span>input_dim·output_dim·Parameter</span>
+                                </li>
+
+                                <li>
+                                    <b>Model</b>
+                                    <span>출력·Label·Loss</span>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <!-- 30. Practice -->
+                        <section id="practice" class="lesson-card nlp-card" aria-labelledby="practice-title">
+                            <p class="nlp-kicker">30 · PRACTICAL CONNECTION</p>
+
+                            <h2 id="practice-title">
+                                Token과 Embedding은 리뷰 분석·검색·RAG·추천·
+                                대화 분석의 기반이 됩니다
+                            </h2>
+
+                            <div class="nlp-grid">
+                                <article class="nlp-box">
+                                    <h3>CafeInsight 리뷰 분석</h3>
+
+                                    <p>
+                                        고객 리뷰를 Tokenize하고
+                                        감성·메뉴 Keyword·불만 Topic을 분석합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>HERMES 대화 분석</h3>
+
+                                    <p>
+                                        화자·시간 순서를 보존한 Transcript를
+                                        질문·동의·반박·요청으로 분석합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>RAG 문서 검색</h3>
+
+                                    <p>
+                                        문단·Chunk를 Dense Vector로 표현하고
+                                        Query와의 유사도를 계산합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>관광 의도 분석</h3>
+
+                                    <p>
+                                        지역·대상·활동·실내외 조건을
+                                        Token과 개체 정보로 추출합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>추천 시스템</h3>
+
+                                    <p>
+                                        상품이나 행동 Sequence를 Token처럼 보고
+                                        함께 등장하는 관계를 학습합니다.
+                                    </p>
+                                </article>
+
+                                <article class="nlp-box">
+                                    <h3>개인정보 처리</h3>
+
+                                    <p>
+                                        이름·전화번호·주소·사건 정보의
+                                        탐지·Masking·접근 권한 정책이 필요합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <h3>실무 전처리 정책에 기록할 항목</h3>
+
+                            <div class="nlp-table" role="region" aria-label="실무 NLP 전처리 정책" tabindex="0">
+                                <table>
+                                    <caption>
+                                        재현 가능한 NLP Pipeline 설정
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">기록 내용</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Tokenizer</th>
+                                            <td>
+                                                종류·Version·Token 단위
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Vocabulary</th>
+                                            <td>
+                                                Version·Size·최소 빈도
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Special Tokens</th>
+                                            <td>
+                                                PAD·OOV·시작·종료 Token
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Sequence</th>
+                                            <td>
+                                                maxlen·padding·truncating
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Cleaning</th>
+                                            <td>
+                                                HTML·URL·Emoji·숫자·공백 정책
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Embedding</th>
+                                            <td>
+                                                Dimension·학습 여부·사전 학습 Weight
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 31. Interview -->
+                        <section id="interview" class="lesson-card nlp-card" aria-labelledby="interview-title">
+                            <p class="nlp-kicker">31 · INTERVIEW POINTS</p>
+
+                            <h2 id="interview-title">
+                                문자열이 Tensor로 바뀌는 과정과
+                                CBOW·Skip-gram의 방향을 설명합니다
+                            </h2>
+
+                            <div class="nlp-faq">
+
+                                <details>
+                                    <summary>
+                                        Q1. NLP란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        사람의 언어를 컴퓨터가
+                                        분석·검색·분류·생성할 수 있도록
+                                        처리하는 분야입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q2. Corpus란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Vocabulary와 언어 사용 패턴을 학습하기 위해
+                                        사용하는 문장·문서 집합입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q3. Token과 Tokenization은 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Token은 텍스트를 나눈 처리 단위이고,
+                                        Tokenization은 문장을 Token Sequence로
+                                        분리하는 과정입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q4. 한국어 Tokenization이 복잡한 이유는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        조사·어미·활용형이 어근과 결합되어
+                                        공백만으로 의미 단위를 충분히 구분하기 어렵기 때문입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q5. Vocabulary란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Token과 고유한 정수 ID를 연결한 사전입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q6. Integer Encoding의 한계는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Token을 구분할 수 있지만
+                                        정수의 크기와 거리에는 의미 관계가 없습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q7. OOV와 Padding의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        OOV는 Vocabulary에 없는 실제 Token을 대신하고,
+                                        Padding은 Sequence 길이를 맞추기 위한 예약 값입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q8. One-Hot Encoding의 한계는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Vocabulary Size만큼 차원이 커지고
+                                        대부분 값이 0이며
+                                        Token 간 의미 유사성을 표현하지 못합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q9. TF-IDF란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        현재 문서에서 자주 등장하면서
+                                        전체 문서에서는 드문 Token에
+                                        높은 중요도를 주는 표현입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q10. Embedding이란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Token ID를 학습 가능한
+                                        저차원 Dense Vector로 변환하는 과정입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q11. Embedding Layer의 Parameter 수는 어떻게 계산하나요?
+                                    </summary>
+
+                                    <p>
+                                        Vocabulary Size × Embedding Dimension으로 계산합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q12. Embedding 출력 Shape은 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        일반적으로
+                                        (Batch, Time Steps, Embedding Dimension)입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q13. Lookup 연산이란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Token ID에 해당하는
+                                        Embedding Matrix의 행 Vector를 선택하는 연산입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q14. Keras Embedding과 Word2Vec의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Keras Embedding은 현재 Model Task Loss로 학습되고,
+                                        Word2Vec는 주변 단어 예측을 통해 학습됩니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q15. Word2Vec의 핵심 가정은 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        비슷한 문맥에 자주 등장하는 단어는
+                                        비슷한 의미를 가질 가능성이 높다는 것입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q16. CBOW란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        주변 단어들을 입력으로 받아
+                                        중심 단어를 예측하는 방식입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q17. Skip-gram이란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        중심 단어를 입력으로 받아
+                                        주변 단어들을 예측하는 방식입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q18. CBOW와 Skip-gram의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        CBOW는 Context → Center이고,
+                                        Skip-gram은 Center → Context입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q19. Window Size란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        중심 단어 앞뒤에서
+                                        Context로 사용할 Token 범위입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q20. Cosine Similarity가 높으면 항상 동의어인가요?
+                                    </summary>
+
+                                    <p>
+                                        아닙니다.
+                                        비슷한 문맥에 등장하는 반의어도
+                                        높은 유사도를 가질 수 있습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q21. Word2Vec의 한계는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Token마다 하나의 고정 Vector를 사용하고
+                                        문장 전체의 긴 문맥을 직접 모델링하기 어렵습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q22. FastText가 OOV에 상대적으로 유리한 이유는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        단어 전체뿐 아니라
+                                        Character N-gram과 Subword 정보를
+                                        활용할 수 있기 때문입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q23. Stopword는 항상 제거해야 하나요?
+                                    </summary>
+
+                                    <p>
+                                        아닙니다.
+                                        부정어·조사·어미처럼 Task에 중요한 정보가
+                                        될 수 있습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q24. Vocabulary는 어느 데이터로 만들어야 하나요?
+                                    </summary>
+
+                                    <p>
+                                        일반적으로 Training Corpus를 기준으로 만들고,
+                                        Validation·Test의 미등록 Token은 OOV로 처리합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q25. Embedding이 다음 RNN 단원에 왜 필요한가요?
+                                    </summary>
+
+                                    <p>
+                                        RNN은 각 Time Step에서 Token의 Dense Vector를
+                                        입력받기 때문에 Integer Sequence를
+                                        (B, T, D) Tensor로 바꾸는 Embedding이 필요합니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+
+                        <!-- 32. Sources -->
+                        <section id="sources" class="lesson-card nlp-card" aria-labelledby="sources-title">
+                            <p class="nlp-kicker">
+                                32 · SOURCES &amp; SCOPE
+                            </p>
+
+                            <h2 id="sources-title">
+                                AI 이론 교안·통합교안 실습·보완 수식을 구분합니다
+                            </h2>
+
+                            <dl class="nlp-definitions">
+                                <div>
+                                    <dt>자료 A · AI 교안</dt>
+
+                                    <dd>
+                                        <cite>28_AI교안v2(1).pdf</cite>의
+                                        자연어 전처리·Token·형태소·Stopword·
+                                        BOW·DTM·TF-IDF·Integer·One-Hot·
+                                        Embedding·Word2Vec·CBOW·Skip-gram 절을 사용했습니다.
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>자료 B · 통합교안</dt>
+
+                                    <dd>
+                                        <cite>
+                                            AI_MachineLearning_통합교안_36-100.pdf
+                                        </cite>의
+                                        NLP 전처리·Tokenizer·OOV·Padding·
+                                        Embedding 출력 Shape 실습을 사용했습니다.
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>보완 내용</dt>
+
+                                    <dd>
+                                        Token ID 해석,
+                                        Embedding Matrix 수식,
+                                        CBOW·Skip-gram Pair 생성,
+                                        Cosine Similarity,
+                                        Data Leakage와 실무 전처리 정책입니다.
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div class="nlp-callout nlp-supplement">
+                                <h3>교안에 없는 내용을 구분합니다</h3>
+
+                                <p>
+                                    Training Corpus 기준 Vocabulary 정책,
+                                    개인정보 Masking,
+                                    RAG·추천 시스템 연결,
+                                    Pair 생성 Python 코드는
+                                    교안 개념을 실제 프로젝트 흐름으로 연결한
+                                    보완 내용입니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 33. Next -->
+                        <section id="next" class="lesson-card nlp-card" aria-labelledby="next-title">
+                            <p class="nlp-kicker">33 · NEXT CONNECTION</p>
+
+                            <h2 id="next-title">
+                                28. RNN과 LSTM:
+                                Embedding Sequence에 시간 순서와 기억을 추가하다
+                            </h2>
+
+                            <p>
+                                이번 단원에서 문장을
+                                <code>
+                                (Batch, Time Steps, Embedding Dimension)
+                            </code>
+                                Tensor로 만들었습니다.
+                                다음 단원에서는 RNN이 이 Vector를
+                                Time Step 순서대로 읽고
+                                이전 정보를 Hidden State에 전달하는 원리를 학습합니다.
+                            </p>
+
+                            <div class="nlp-rnn-flow">
+                                <article>
+                                    <small>TIME 1</small>
+                                    <strong>Token 1 Vector</strong>
+                                    <span>→ Hidden State 1</span>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>TIME 2</small>
+                                    <strong>Token 2 Vector + h₁</strong>
+                                    <span>→ Hidden State 2</span>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>TIME 3</small>
+                                    <strong>Token 3 Vector + h₂</strong>
+                                    <span>→ Hidden State 3</span>
+                                </article>
+                            </div>
+
+                            <div class="nlp-next-flow">
+                                <span>Word2Vec</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>RNN</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>LSTM·GRU</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Attention</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Transformer</span>
+                            </div>
+
+                            <p class="nlp-takeaway">
+                                Embedding은 Token 하나의 Vector를 만들고,
+                                RNN은 그 Vector들이 등장한 순서와
+                                이전 문맥을 학습합니다.
+                            </p>
+
+                            <a class="nlp-next-link" href="./28_rnn_transformer.html">
+                                28. RNN과 LSTM으로 이동
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        </section>
+                    </main>
+
+                    <!--
+                    ASIDE
+                    - 오늘의 암기 포인트
+                    - 헷갈리기 쉬운 개념
+                    - 다음 단원 연결
+                -->
+                    <aside class="side-note nlp-aside" aria-label="자연어 처리 복습 노트">
+                        <section class="note-card nlp-note">
+                            <p class="nlp-kicker">MEMORY</p>
+
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ol class="nlp-memory">
+                                <li>
+                                    Tokenization은 문장을 처리 단위로 나눕니다.
+                                </li>
+
+                                <li>
+                                    Vocabulary는 Token과 ID의 대응표입니다.
+                                </li>
+
+                                <li>
+                                    OOV는 미등록 Token이고
+                                    Padding은 길이 맞춤 값입니다.
+                                </li>
+
+                                <li>
+                                    Integer ID 자체에는 의미 관계가 없습니다.
+                                </li>
+
+                                <li>
+                                    Embedding은 ID를 Dense Vector로 Lookup합니다.
+                                </li>
+
+                                <li>
+                                    Parameter는
+                                    Vocabulary Size × Dimension입니다.
+                                </li>
+
+                                <li>
+                                    CBOW는 주변 → 중심,
+                                    Skip-gram은 중심 → 주변입니다.
+                                </li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card nlp-note">
+                            <p class="nlp-kicker">CONFUSION</p>
+
+                            <h2>헷갈리는 짝</h2>
+
+                            <dl class="nlp-pairs">
+                                <dt>Token / Vocabulary</dt>
+                                <dd>
+                                    하나의 단위 / Token-ID 전체 사전
+                                </dd>
+
+                                <dt>OOV / Padding</dt>
+                                <dd>
+                                    미등록 Token / 길이 보정 값
+                                </dd>
+
+                                <dt>Integer ID / Embedding</dt>
+                                <dd>
+                                    행 주소 / 의미 Feature Vector
+                                </dd>
+
+                                <dt>One-Hot / Embedding</dt>
+                                <dd>
+                                    Sparse 고차원 / Dense 저차원
+                                </dd>
+
+                                <dt>CBOW / Skip-gram</dt>
+                                <dd>
+                                    Context→Center / Center→Context
+                                </dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card nlp-note">
+                            <p class="nlp-kicker">FORMULA</p>
+
+                            <h2>핵심 Shape·수식</h2>
+
+                            <p><code>E ∈ R^(V×D)</code></p>
+                            <p><code>Parameter = V×D</code></p>
+                            <p><code>Output = (B,T,D)</code></p>
+                            <p><code>CBOW: C → wₜ</code></p>
+                            <p><code>Skip-gram: wₜ → C</code></p>
+                        </section>
+
+                        <section class="note-card nlp-note">
+                            <p class="nlp-kicker">SHAPE</p>
+
+                            <h2>교안 예제</h2>
+
+                            <p><code>Input: (4,8)</code></p>
+                            <p><code>Embedding: V=17, D=10</code></p>
+                            <p><code>Output: (4,8,10)</code></p>
+                            <p><code>Parameter: 170</code></p>
+                        </section>
+
+                        <section class="note-card nlp-note">
+                            <p class="nlp-kicker">NEXT</p>
+
+                            <h2>28. RNN과 LSTM</h2>
+
+                            <p>
+                                Embedding Vector를 Time Step 순서대로 처리하고
+                                Hidden State에 이전 정보를 전달합니다.
+                            </p>
+
+                            <a href="./28_rnn_transformer.html">
+                                다음 단원으로 →
+                            </a>
+                        </section>
+                    </aside>
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <nav class="lesson-pagination nlp-pagination" aria-label="AI 단원 이동">
+                    <a href="./26_object_detection_yolo.html">
+                        <small>PREVIOUS</small>
+                        <span>← 26. 객체 탐지</span>
+                    </a>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI</span>
-                    
-                    <span>27</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a href="./00_ai_index.html">
+                        <small>COURSE</small>
+                        <span>AI 목차</span>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-ai-27">
-                    <h2 id="goals-ai-27">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="concept" class="lesson-card concept-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>핵심 개념</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="background" class="lesson-card background-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>왜 등장했는가?</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="visual" class="lesson-card visual-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>그림처럼 이해</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="principle" class="lesson-card principle-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>수식 또는 원리 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>동작 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="comparison" class="lesson-card comparison-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>비슷한 개념 비교</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="limitation" class="lesson-card limitation-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>한계와 보완</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>코드 또는 예제</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 착각</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지 읽는 법</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="27. 자연어 처리와 Embedding 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                    <a href="./28_rnn_transformer.html">
+                        <small>NEXT</small>
+                        <span>28. RNN과 LSTM →</span>
+                    </a>
+                </nav>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI 단원 이동">
-                <a class="lesson-prev" href="./26_object_detection_yolo.html">
-                    <span>이전 단원</span>
-                    <strong>26. 객체 탐지와 YOLO</strong>
-                </a>
-
-                <a class="lesson-course-index" href="./00_ai_index.html">
-                    <span>과목 목차</span>
-                    <strong>AI 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./28_rnn_transformer.html">
-                    <span>다음 단원</span>
-                    <strong>28. RNN에서 Transformer까지</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+    </body>
+
 </html>

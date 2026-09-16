@@ -1,236 +1,2861 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="26. 객체 탐지와 YOLO Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>26. 객체 탐지와 YOLO | AI | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/ai-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/AI/26_object_detection_yolo.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page ai-course-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="ai"
-      data-lesson="26"
-      data-step="0"
-      data-status="skeleton">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description" content="26. 객체 탐지. Classification과 Detection, Bounding Box, IoU, NMS, YOLO를 학습합니다.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>26. 객체 탐지 | AI | AI &amp; Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 01</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/AI/26_object_detection_yolo.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI · 26</p>
-                        <h1>26. 객체 탐지와 YOLO</h1>
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page ai-course-page ai-lesson-page ai-object-detection-page"
+        data-nav-category="ai-machine-learning" data-nav-item="course-ai" data-course="ai" data-lesson="26">
+        <a class="skip-link det-skip-link" href="#lesson-main">
+            본문 바로가기
+        </a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+
+            <div class="page-content">
+
+                <!--
+        HEADER
+        - 단원 제목
+        - 핵심 요약
+        - 학습 목표
+      -->
+                <header class="lesson-hero ai-ml-hero det-hero">
+
+                    <p class="det-eyebrow">
+                        AI &amp; MACHINE LEARNING · AI · LESSON 26
+                    </p>
+
+                    <h1>
+                        26. 객체 탐지
+                        <span>
+                            무엇이 있는가를 넘어,<br>
+                            어디에 몇 개 있는가를 판단하다
+                        </span>
+                    </h1>
+
+                    <p class="det-lead">
+                        객체 탐지는 이미지 안의 각 객체에 대해
+                        <strong>어디에 있는가</strong>를 Bounding Box 회귀로 예측하고,
+                        <strong>무엇인가</strong>를 Class 분류로 예측합니다.
+                        IoU는 Box의 겹침을 측정하고 NMS는 중복 Box를 제거합니다.
+                    </p>
+
+                    <div class="det-keywords" aria-label="핵심 키워드">
+                        <span>Classification · Detection</span>
+                        <span>Bounding Box</span>
+                        <span>XYXY · XYWH</span>
+                        <span>IoU</span>
+                        <span>NMS</span>
+                        <span>One-Stage · Two-Stage</span>
+                        <span>YOLO</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <section class="learning-goals det-goals" aria-labelledby="det-goals-title">
+                        <h2 id="det-goals-title">학습 목표</h2>
+
+                        <ol>
+                            <li>
+                                Classification·Localization·Detection·Segmentation의
+                                출력 차이를 설명합니다.
+                            </li>
+                            <li>
+                                Bounding Box의 XYXY·XYWH·정규화 좌표를
+                                변환하고 해석합니다.
+                            </li>
+                            <li>
+                                IoU를 직접 계산하고
+                                학습·평가·NMS에서의 역할을 구분합니다.
+                            </li>
+                            <li>
+                                Confidence Threshold와 NMS IoU Threshold의
+                                영향을 설명합니다.
+                            </li>
+                            <li>
+                                YOLO의 학습·추론·Results 객체 흐름을
+                                교안 코드와 연결합니다.
+                            </li>
+                        </ol>
+                    </section>
+                </header>
+
+                <div class="content-layout det-content">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <!-- 단원 목차 -->
+                        <nav class="chapter-map det-toc" aria-label="26단원 목차">
+                            <h2>학습 순서</h2>
+
+                            <ol>
+                                <li><a href="#overview">이번 단원의 핵심</a></li>
+                                <li><a href="#why">왜 객체 탐지가 필요한가</a></li>
+                                <li><a href="#task-comparison">Vision Task 비교</a></li>
+                                <li><a href="#bbox">Bounding Box 좌표</a></li>
+                                <li><a href="#ground-truth">GT·ROI·Anchor</a></li>
+                                <li><a href="#iou">IoU</a></li>
+                                <li><a href="#nms">NMS</a></li>
+                                <li><a href="#thresholds">Threshold 비교</a></li>
+                                <li><a href="#detector-types">One-Stage와 Two-Stage</a></li>
+                                <li><a href="#multiscale">Multi-Scale Feature</a></li>
+                                <li><a href="#yolo">YOLO 핵심 흐름</a></li>
+                                <li><a href="#yolov1">YOLOv1 출력 수식</a></li>
+                                <li><a href="#anchor-free">Anchor-Based와 Anchor-Free</a></li>
+                                <li><a href="#training">YOLO 학습·Loss</a></li>
+                                <li><a href="#inference">YOLO 추론 흐름</a></li>
+                                <li><a href="#environment">개발 환경·실행 순서</a></li>
+                                <li><a href="#yolo-code">Ultralytics 추론 코드</a></li>
+                                <li><a href="#results-code">Results 객체 읽기</a></li>
+                                <li><a href="#iou-code">IoU 코드</a></li>
+                                <li><a href="#nms-code">NMS 코드</a></li>
+                                <li><a href="#metrics">평가 지표</a></li>
+                                <li><a href="#source-review">교안 표현 점검</a></li>
+                                <li><a href="#mistakes">자주 하는 실수</a></li>
+                                <li><a href="#errors">오류 메시지 읽기</a></li>
+                                <li><a href="#practice">실무 연결</a></li>
+                                <li><a href="#interview">면접 포인트</a></li>
+                                <li><a href="#sources">자료와 보완 범위</a></li>
+                                <li><a href="#next">다음 단원 연결</a></li>
+                            </ol>
+                        </nav>
+
+                        <!-- 01. 핵심 개념 -->
+                        <section id="overview" class="lesson-card det-card" aria-labelledby="overview-title">
+                            <p class="det-kicker">01 · CORE IDEA</p>
+
+                            <h2 id="overview-title">
+                                객체 탐지는 위치 회귀와 Class 분류를 함께 수행합니다
+                            </h2>
+
+                            <p class="det-source">
+                                교안 기준: Localization은 회귀, Classification은 분류
+                            </p>
+
+                            <div class="det-core-flow" aria-label="객체 탐지 핵심 흐름">
+                                <span>입력 이미지</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>CNN Backbone</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Box·Score·Class 후보</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Confidence Filtering</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>NMS</span>
+                            </div>
+
+                            <div class="det-grid">
+                                <article class="det-box">
+                                    <h3>Localization</h3>
+                                    <p>
+                                        객체의 위치와 크기를 연속 좌표로 예측합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Classification</h3>
+                                    <p>
+                                        person·car·dog처럼 객체 종류를 예측합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Confidence</h3>
+                                    <p>
+                                        현재 탐지를 얼마나 신뢰하는지 나타냅니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Post-processing</h3>
+                                    <p>
+                                        낮은 점수와 중복 Box를 제거합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p class="det-takeaway">
+                                최종 탐지 결과의 기본 단위는
+                                <strong>
+                                    Bounding Box + Class + Confidence
+                                </strong>입니다.
+                            </p>
+                        </section>
+
+                        <!-- 02. 등장 이유 -->
+                        <section id="why" class="lesson-card det-card" aria-labelledby="why-title">
+                            <p class="det-kicker">02 · WHY DETECTION?</p>
+
+                            <h2 id="why-title">
+                                이미지 전체 Class만으로는 객체의 위치와 개수를 알 수 없습니다
+                            </h2>
+
+                            <div class="det-before-after">
+                                <article>
+                                    <small>CLASSIFICATION</small>
+                                    <strong>car: 0.95</strong>
+
+                                    <p>
+                                        이미지 전체가 자동차와 관련된다는 사실만 출력합니다.
+                                    </p>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>DETECTION</small>
+                                    <strong>car × 2 · person × 1</strong>
+
+                                    <p>
+                                        객체 Instance마다 Box와 Class를 분리합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-question-grid">
+                                <span>무엇인가?</span>
+                                <span>어디에 있는가?</span>
+                                <span>몇 개인가?</span>
+                                <span>얼마나 확실한가?</span>
+                            </div>
+
+                            <p>
+                                객체가 하나만 있어도 위치까지 예측하면
+                                Detection 또는 Localization 문제입니다.
+                                핵심은 객체 수보다 출력 단위가
+                                이미지 전체인지 객체 Instance인지에 있습니다.
+                            </p>
+                        </section>
+
+                        <!-- 03. Vision Task 비교 -->
+                        <section id="task-comparison" class="lesson-card det-card"
+                            aria-labelledby="task-comparison-title">
+                            <p class="det-kicker">03 · VISION TASKS</p>
+
+                            <h2 id="task-comparison-title">
+                                Classification에서 Detection·Segmentation으로
+                                출력 정보가 확장됩니다
+                            </h2>
+
+                            <div class="det-table" role="region" aria-label="Computer Vision Task 비교" tabindex="0">
+                                <table>
+                                    <caption>Computer Vision Task별 출력</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">문제</th>
+                                            <th scope="col">예측 대상</th>
+                                            <th scope="col">대표 출력</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Classification</th>
+                                            <td>이미지 전체</td>
+                                            <td>Class Probability</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Localization</th>
+                                            <td>주요 객체의 위치·종류</td>
+                                            <td>Box + Class</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Object Detection</th>
+                                            <td>여러 객체 Instance</td>
+                                            <td>여러 Box + Class + Confidence</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Instance Segmentation</th>
+                                            <td>객체별 정확한 윤곽</td>
+                                            <td>Box + Class + Mask</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Pose Estimation</th>
+                                            <td>객체의 주요 지점</td>
+                                            <td>Keypoint 좌표</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="det-task-flow">
+                                <span>Class</span>
+                                <b aria-hidden="true">+</b>
+
+                                <span>Box</span>
+                                <b aria-hidden="true">+</b>
+
+                                <span>Mask 또는 Keypoint</span>
+                            </div>
+                        </section>
+
+                        <!-- 04. Bounding Box -->
+                        <section id="bbox" class="lesson-card det-card" aria-labelledby="bbox-title">
+                            <p class="det-kicker">04 · BOUNDING BOX</p>
+
+                            <h2 id="bbox-title">
+                                같은 Box도 XYXY·XYWH·정규화 좌표로 다르게 표현됩니다
+                            </h2>
+
+                            <div class="det-coordinate-compare">
+
+                                <article>
+                                    <small>XYXY</small>
+
+                                    <h3>[xmin, ymin, xmax, ymax]</h3>
+
+                                    <div class="coord-figure xyxy-figure" aria-hidden="true">
+                                        <span class="corner top-left">
+                                            (xmin, ymin)
+                                        </span>
+
+                                        <span class="corner bottom-right">
+                                            (xmax, ymax)
+                                        </span>
+
+                                        <span class="object-label">
+                                            Object
+                                        </span>
+                                    </div>
+
+                                    <p>
+                                        왼쪽 위와 오른쪽 아래 모서리를 사용합니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>XYWH</small>
+
+                                    <h3>[cx, cy, width, height]</h3>
+
+                                    <div class="coord-figure xywh-figure" aria-hidden="true">
+                                        <span class="center-point"></span>
+
+                                        <span class="center-label">
+                                            (cx, cy)
+                                        </span>
+
+                                        <span class="object-label">
+                                            Object
+                                        </span>
+                                    </div>
+
+                                    <p>
+                                        중심 좌표와 Box의 너비·높이를 사용합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-equation">
+                                <p>
+                                    <code>width = xmax − xmin</code>
+                                </p>
+
+                                <p>
+                                    <code>height = ymax − ymin</code>
+                                </p>
+
+                                <p>
+                                    <code>area = width × height</code>
+                                </p>
+                            </div>
+
+                            <div class="det-table" role="region" aria-label="Bounding Box 좌표 변환 공식" tabindex="0">
+                                <table>
+                                    <caption>Bounding Box 좌표 변환</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">변환</th>
+                                            <th scope="col">수식</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">XYWH → xmin</th>
+                                            <td>cx − width / 2</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">XYWH → ymin</th>
+                                            <td>cy − height / 2</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">XYWH → xmax</th>
+                                            <td>cx + width / 2</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">XYWH → ymax</th>
+                                            <td>cy + height / 2</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">XYXY → cx</th>
+                                            <td>(xmin + xmax) / 2</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">XYXY → cy</th>
+                                            <td>(ymin + ymax) / 2</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="det-callout det-warning">
+                                <h3>좌표 기준을 함께 기록합니다</h3>
+
+                                <p>
+                                    Pixel 좌표인지 정규화 좌표인지,
+                                    원본 이미지 기준인지 Resize·Letterbox된 입력 기준인지
+                                    확인해야 합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 05. GT·ROI·Anchor -->
+                        <section id="ground-truth" class="lesson-card det-card" aria-labelledby="ground-truth-title">
+                            <p class="det-kicker">05 · GT · ROI · ANCHOR</p>
+
+                            <h2 id="ground-truth-title">
+                                정답 Box와 예측 기준 Box의 역할을 분리합니다
+                            </h2>
+
+                            <div class="det-term-cards">
+                                <article>
+                                    <small>GROUND TRUTH</small>
+                                    <strong>GT Box</strong>
+
+                                    <p>
+                                        사람이 Annotation한 실제 정답 위치와 Class입니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>REGION</small>
+                                    <strong>ROI</strong>
+
+                                    <p>
+                                        객체가 있을 가능성이 있다고 보는 관심 영역입니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>REFERENCE</small>
+                                    <strong>Anchor Box</strong>
+
+                                    <p>
+                                        일부 모델이 Box Offset을 예측할 때 사용하는
+                                        기준 상자입니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>PREDICTION</small>
+                                    <strong>Predicted Box</strong>
+
+                                    <p>
+                                        모델이 현재 Weight로 계산한 Box 후보입니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-core-flow">
+                                <span>Anchor 후보</span>
+                                <b aria-hidden="true">↔ IoU</b>
+
+                                <span>GT Box</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Positive·Negative 매칭</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Offset 학습</span>
+                            </div>
+
+                            <p>
+                                Anchor Box는 학습 데이터가 아닙니다.
+                                학습 데이터는 원본 이미지와 GT Box·Class Label이며,
+                                Anchor는 일부 모델에서 예측 기준으로 사용됩니다.
+                            </p>
+                        </section>
+
+                        <!-- 06. IoU -->
+                        <section id="iou" class="lesson-card det-card" aria-labelledby="iou-title">
+                            <p class="det-kicker">06 · IoU</p>
+
+                            <h2 id="iou-title">
+                                두 Box의 교집합을 합집합으로 나누어 겹침 정도를 계산합니다
+                            </h2>
+
+                            <div class="det-equation det-equation-large">
+                                <code>
+                IoU = Intersection Area / Union Area
+              </code>
+                            </div>
+
+                            <div class="det-iou-visual" aria-label="IoU 개념 그림">
+                                <div class="iou-box box-a">
+                                    Box A
+                                </div>
+
+                                <div class="iou-box box-b">
+                                    Box B
+                                </div>
+
+                                <div class="iou-intersection">
+                                    Intersection
+                                </div>
+                            </div>
+
+                            <div class="det-hand-calc">
+                                <article>
+                                    <small>BOX A</small>
+                                    <strong>[0, 0, 4, 4]</strong>
+                                    <span>Area = 16</span>
+                                </article>
+
+                                <article>
+                                    <small>BOX B</small>
+                                    <strong>[2, 2, 6, 6]</strong>
+                                    <span>Area = 16</span>
+                                </article>
+
+                                <article>
+                                    <small>INTERSECTION</small>
+                                    <strong>2 × 2</strong>
+                                    <span>Area = 4</span>
+                                </article>
+
+                                <article>
+                                    <small>UNION</small>
+                                    <strong>16 + 16 − 4</strong>
+                                    <span>Area = 28</span>
+                                </article>
+                            </div>
+
+                            <div class="det-equation">
+                                <p>
+                                    <code>IoU = 4 / 28 ≈ 0.143</code>
+                                </p>
+                            </div>
+
+                            <div class="det-table" role="region" aria-label="IoU의 사용 목적" tabindex="0">
+                                <table>
+                                    <caption>같은 IoU 수식의 서로 다른 역할</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">단계</th>
+                                            <th scope="col">비교 대상</th>
+                                            <th scope="col">목적</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">학습</th>
+                                            <td>Anchor와 GT Box</td>
+                                            <td>Positive·Negative 매칭</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">평가</th>
+                                            <td>Prediction과 GT Box</td>
+                                            <td>정답 탐지 여부 판단</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">NMS</th>
+                                            <td>Prediction과 Prediction</td>
+                                            <td>중복 Box 제거</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 07. NMS -->
+                        <section id="nms" class="lesson-card det-card" aria-labelledby="nms-title">
+                            <p class="det-kicker">
+                                07 · NON-MAXIMUM SUPPRESSION
+                            </p>
+
+                            <h2 id="nms-title">
+                                가장 높은 점수의 Box를 남기고 중복 예측을 억제합니다
+                            </h2>
+
+                            <ol class="det-process">
+                                <li>
+                                    <span>01</span>
+
+                                    <div>
+                                        <h3>낮은 Confidence 제거</h3>
+                                        <p>
+                                            결과 후보로 인정할 최소 점수보다
+                                            낮은 Box를 버립니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>02</span>
+
+                                    <div>
+                                        <h3>점수 정렬</h3>
+                                        <p>
+                                            남은 Box를 Confidence 내림차순으로 정렬합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>03</span>
+
+                                    <div>
+                                        <h3>최고 Box 선택</h3>
+                                        <p>
+                                            가장 높은 점수의 Box를 최종 결과에 저장합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>04</span>
+
+                                    <div>
+                                        <h3>IoU 계산</h3>
+                                        <p>
+                                            선택 Box와 나머지 후보의 겹침을 계산합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>05</span>
+
+                                    <div>
+                                        <h3>중복 제거</h3>
+                                        <p>
+                                            IoU Threshold 이상인 후보를 억제합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>06</span>
+
+                                    <div>
+                                        <h3>반복</h3>
+                                        <p>
+                                            처리할 후보가 없을 때까지 반복합니다.
+                                        </p>
+                                    </div>
+                                </li>
+                            </ol>
+
+                            <div class="det-table" role="region" aria-label="NMS 손계산 예" tabindex="0">
+                                <table>
+                                    <caption>NMS IoU Threshold = 0.5</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Box</th>
+                                            <th scope="col">Confidence</th>
+                                            <th scope="col">A와 IoU</th>
+                                            <th scope="col">결과</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">A</th>
+                                            <td>0.94</td>
+                                            <td>1.00</td>
+                                            <td>선택</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">B</th>
+                                            <td>0.88</td>
+                                            <td>0.79</td>
+                                            <td>중복 제거</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">C</th>
+                                            <td>0.76</td>
+                                            <td>0.12</td>
+                                            <td>유지</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 08. Threshold -->
+                        <section id="thresholds" class="lesson-card det-card" aria-labelledby="thresholds-title">
+                            <p class="det-kicker">08 · THRESHOLDS</p>
+
+                            <h2 id="thresholds-title">
+                                Confidence와 IoU 임계값은 서로 다른 질문에 답합니다
+                            </h2>
+
+                            <div class="det-threshold-grid">
+                                <article>
+                                    <small>CONFIDENCE THRESHOLD</small>
+
+                                    <h3>탐지 후보로 남길 것인가?</h3>
+
+                                    <p>
+                                        높이면 강한 탐지만 남고
+                                        실제 객체를 놓칠 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>NMS IoU THRESHOLD</small>
+
+                                    <h3>두 예측 Box를 중복으로 볼 것인가?</h3>
+
+                                    <p>
+                                        낮추면 겹친 Box를 더 적극적으로 제거합니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>EVALUATION IoU</small>
+
+                                    <h3>예측을 정답으로 인정할 것인가?</h3>
+
+                                    <p>
+                                        Prediction과 GT Box의 위치 일치 기준입니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-tradeoff">
+                                <div>
+                                    <strong>Confidence ↑</strong>
+                                    <span>
+                                        오탐 감소 가능 · 미탐 증가 가능
+                                    </span>
+                                </div>
+
+                                <i aria-hidden="true">↔</i>
+
+                                <div>
+                                    <strong>Confidence ↓</strong>
+                                    <span>
+                                        Recall 증가 가능 · 오탐 증가 가능
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 09. Detector 유형 -->
+                        <section id="detector-types" class="lesson-card det-card"
+                            aria-labelledby="detector-types-title">
+                            <p class="det-kicker">
+                                09 · ONE-STAGE VS TWO-STAGE
+                            </p>
+
+                            <h2 id="detector-types-title">
+                                후보 영역 생성과 최종 판단을 분리하는지 비교합니다
+                            </h2>
+
+                            <div class="det-stage-compare">
+                                <article>
+                                    <small>ONE-STAGE</small>
+                                    <h3>YOLO · SSD</h3>
+
+                                    <div class="stage-flow">
+                                        <span>Image</span>
+                                        <b aria-hidden="true">→</b>
+
+                                        <span>Feature</span>
+                                        <b aria-hidden="true">→</b>
+
+                                        <span>Box + Class</span>
+                                    </div>
+
+                                    <p>
+                                        위치와 Class를 하나의 탐지 흐름에서 직접 예측합니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>TWO-STAGE</small>
+                                    <h3>R-CNN Family</h3>
+
+                                    <div class="stage-flow">
+                                        <span>Image</span>
+                                        <b aria-hidden="true">→</b>
+
+                                        <span>Region Proposal</span>
+                                        <b aria-hidden="true">→</b>
+
+                                        <span>Box + Class</span>
+                                    </div>
+
+                                    <p>
+                                        후보 영역을 만든 뒤 각 후보를 정밀하게 판단합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-callout det-supplement">
+                                <h3>교안 표현의 적용 범위</h3>
+
+                                <p>
+                                    교안은 Two-Stage의 속도 부담을 강조합니다.
+                                    핵심은 One-Stage가 일반적으로 속도에 유리하고
+                                    Two-Stage는 Region Proposal 단계를 분리한다는 점이며,
+                                    실제 사용 가능성은 모델·Hardware·Latency 요구에 따라 달라집니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 10. Multi Scale -->
+                        <section id="multiscale" class="lesson-card det-card" aria-labelledby="multiscale-title">
+                            <p class="det-kicker">
+                                10 · MULTI-SCALE FEATURE MAP
+                            </p>
+
+                            <h2 id="multiscale-title">
+                                Feature Map 크기에 따라 잘 표현되는 객체 크기가 달라집니다
+                            </h2>
+
+                            <div class="det-scale-cards">
+                                <article class="scale-large">
+                                    <small>52×52</small>
+                                    <strong>작은 객체</strong>
+
+                                    <p>
+                                        Cell이 많아 위치를 세밀하게 구분합니다.
+                                    </p>
+                                </article>
+
+                                <article class="scale-medium">
+                                    <small>26×26</small>
+                                    <strong>중간 객체</strong>
+
+                                    <p>
+                                        공간 해상도와 Receptive Field의 중간 단계입니다.
+                                    </p>
+                                </article>
+
+                                <article class="scale-small">
+                                    <small>13×13</small>
+                                    <strong>큰 객체</strong>
+
+                                    <p>
+                                        한 Cell이 원본의 넓은 범위를 참고합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-callout">
+                                <h3>작은 객체가 어려운 이유</h3>
+
+                                <p>
+                                    Stride와 Down Sampling이 누적되면
+                                    작은 객체의 Feature가 약해지거나 사라질 수 있습니다.
+                                    그래서 큰 Feature Map의 세밀한 위치 정보가 필요합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 11. YOLO -->
+                        <section id="yolo" class="lesson-card det-card" aria-labelledby="yolo-title">
+                            <p class="det-kicker">11 · YOLO</p>
+
+                            <h2 id="yolo-title">
+                                한 번의 Forward Pass에서
+                                Box·객체 여부·Class를 예측합니다
+                            </h2>
+
+                            <p class="det-source">
+                                YOLO: You Only Look Once
+                            </p>
+
+                            <div class="det-yolo-pipeline">
+                                <div>
+                                    <small>INPUT</small>
+                                    <strong>Image</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>FEATURE</small>
+                                    <strong>Backbone</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>PREDICTION</small>
+                                    <strong>Detection Head</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>FILTER</small>
+                                    <strong>Confidence + NMS</strong>
+                                </div>
+
+                                <b aria-hidden="true">→</b>
+
+                                <div>
+                                    <small>OUTPUT</small>
+                                    <strong>Box + Class</strong>
+                                </div>
+                            </div>
+
+                            <div class="det-grid">
+                                <article class="det-box">
+                                    <h3>Backbone</h3>
+                                    <p>
+                                        이미지에서 Feature Map을 추출합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Detection Head</h3>
+                                    <p>
+                                        Box 좌표·Score·Class를 출력합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>One-Stage</h3>
+                                    <p>
+                                        후보 생성과 판단을 하나의 흐름에 통합합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Post-processing</h3>
+                                    <p>
+                                        낮은 Score와 중복 Box를 제거합니다.
+                                    </p>
+                                </article>
+                            </div>
+                        </section>
+
+                        <!-- 12. YOLOv1 -->
+                        <section id="yolov1" class="lesson-card det-card" aria-labelledby="yolov1-title">
+                            <p class="det-kicker">12 · YOLOv1 OUTPUT</p>
+
+                            <h2 id="yolov1-title">
+                                교안의 Grid 출력 수식을 변수별로 분해합니다
+                            </h2>
+
+                            <div class="det-equation det-equation-large">
+                                <code>S × S × (5B + K)</code>
+                            </div>
+
+                            <div class="det-table" role="region" aria-label="YOLOv1 수식 기호" tabindex="0">
+                                <table>
+                                    <caption>YOLOv1 출력 Tensor의 구성</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">기호</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">S × S</th>
+                                            <td>입력 이미지를 나눈 Grid Cell 수</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">B</th>
+                                            <td>Cell 하나가 예측하는 Box 수</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">5</th>
+                                            <td>x·y·w·h·confidence</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">K</th>
+                                            <td>Class 수</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="det-yolov1-example">
+                                <span>S = 7</span>
+                                <span>B = 2</span>
+                                <span>K = 20</span>
+
+                                <b aria-hidden="true">→</b>
+
+                                <strong>
+                                    7 × 7 × 30 = 1,470
+                                </strong>
+                            </div>
+
+                            <div class="det-callout det-warning">
+                                <h3>
+                                    YOLOv1 수식을 최신 Ultralytics 출력에
+                                    그대로 적용하지 않습니다
+                                </h3>
+
+                                <p>
+                                    후속 Anchor 기반 YOLO와 Anchor-Free YOLO,
+                                    통합교안의 YOLO11 실습은
+                                    세부 Head와 출력 구조가 다릅니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 13. Anchor-Based와 Anchor-Free -->
+                        <section id="anchor-free" class="lesson-card det-card" aria-labelledby="anchor-free-title">
+                            <p class="det-kicker">
+                                13 · ANCHOR-BASED VS ANCHOR-FREE
+                            </p>
+
+                            <h2 id="anchor-free-title">
+                                사전 정의 Box를 기준으로 삼는지 구분합니다
+                            </h2>
+
+                            <div class="det-anchor-compare">
+                                <article>
+                                    <small>ANCHOR-BASED</small>
+                                    <h3>기준 Box + Offset</h3>
+
+                                    <ol>
+                                        <li>여러 크기·비율의 Anchor 준비</li>
+                                        <li>GT Box와 IoU Matching</li>
+                                        <li>Positive Anchor 결정</li>
+                                        <li>Anchor에서 GT까지 Offset 학습</li>
+                                    </ol>
+                                </article>
+
+                                <article>
+                                    <small>ANCHOR-FREE</small>
+                                    <h3>위치·경계를 직접 예측</h3>
+
+                                    <ol>
+                                        <li>객체 중심 또는 위치 후보 결정</li>
+                                        <li>경계까지 거리·Box 크기 회귀</li>
+                                        <li>사전 Anchor Template 불필요</li>
+                                        <li>모델별 Label Assignment 적용</li>
+                                    </ol>
+                                </article>
+                            </div>
+
+                            <p>
+                                교안은 YOLOv8을 Anchor-Free 방향으로 설명합니다.
+                                이번 단원에서는 모든 세부 구현을 같다고 보지 않고,
+                                기준 Anchor 사용 여부라는 설계 차이로 이해합니다.
+                            </p>
+                        </section>
+
+                        <!-- 14. Training -->
+                        <section id="training" class="lesson-card det-card" aria-labelledby="training-title">
+                            <p class="det-kicker">14 · YOLO TRAINING</p>
+
+                            <h2 id="training-title">
+                                이미지·정답 Box·Class를 이용해
+                                위치·객체·Class 오차를 줄입니다
+                            </h2>
+
+                            <ol class="det-process">
+                                <li>
+                                    <span>01</span>
+
+                                    <div>
+                                        <h3>Annotation</h3>
+                                        <p>
+                                            객체마다 GT Box와 Class Label을 만듭니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>02</span>
+
+                                    <div>
+                                        <h3>Feature Extraction</h3>
+                                        <p>
+                                            CNN Backbone이 여러 Scale의 Feature를 만듭니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>03</span>
+
+                                    <div>
+                                        <h3>Detection Prediction</h3>
+                                        <p>
+                                            Box·Score·Class를 예측합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>04</span>
+
+                                    <div>
+                                        <h3>Ground Truth Assignment</h3>
+                                        <p>
+                                            예측 위치와 정답 객체를 모델 규칙에 따라 연결합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>05</span>
+
+                                    <div>
+                                        <h3>Loss</h3>
+                                        <p>
+                                            위치·객체 존재·Class 오차를 계산합니다.
+                                        </p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <span>06</span>
+
+                                    <div>
+                                        <h3>Weight Update</h3>
+                                        <p>
+                                            역전파와 Optimizer로 Backbone과 Head를 수정합니다.
+                                        </p>
+                                    </div>
+                                </li>
+                            </ol>
+
+                            <div class="det-core-flow">
+                                <span>Image</span>
+                                <b aria-hidden="true">+</b>
+
+                                <span>GT Box</span>
+                                <b aria-hidden="true">+</b>
+
+                                <span>Class Label</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Supervised Detection Training</span>
+                            </div>
+
+                            <div class="det-equation det-equation-large">
+                                <code>
+                L = L_box + L_objectness + L_class
+              </code>
+                            </div>
+
+                            <div class="det-loss-grid">
+                                <article>
+                                    <small>LOCATION</small>
+                                    <strong>Box Loss</strong>
+
+                                    <p>
+                                        GT와 예측 Box의 위치·크기 오차
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>EXISTENCE</small>
+                                    <strong>Objectness Loss</strong>
+
+                                    <p>
+                                        객체 영역과 배경을 구분하는 오차
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>IDENTITY</small>
+                                    <strong>Class Loss</strong>
+
+                                    <p>
+                                        person·car·dog 등 Class 오차
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-callout det-supplement">
+                                <h3>버전별 Loss 구현은 다를 수 있습니다</h3>
+
+                                <p>
+                                    교안의 세 Loss는 역할을 이해하기 위한 구조이며,
+                                    실제 YOLO 세대에서는 Box·Score·Class 계산 방식이
+                                    달라질 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 15. Inference -->
+                        <section id="inference" class="lesson-card det-card" aria-labelledby="inference-title">
+                            <p class="det-kicker">15 · YOLO INFERENCE</p>
+
+                            <h2 id="inference-title">
+                                새 이미지에서는 후보 생성과 후처리를 거쳐
+                                최종 Box를 만듭니다
+                            </h2>
+
+                            <div class="det-inference-flow">
+                                <article>
+                                    <small>01</small>
+                                    <strong>Resize·Preprocess</strong>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>02</small>
+                                    <strong>Feature Maps</strong>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>03</small>
+                                    <strong>Raw Detections</strong>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>04</small>
+                                    <strong>Confidence Filter</strong>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>05</small>
+                                    <strong>NMS</strong>
+                                </article>
+
+                                <b aria-hidden="true">→</b>
+
+                                <article>
+                                    <small>06</small>
+                                    <strong>Final Results</strong>
+                                </article>
+                            </div>
+
+                            <p>
+                                학습에는 GT Box와 Loss가 필요하지만,
+                                추론에서는 GT가 없으며
+                                모델의 후보 Box를 Threshold와 NMS로 정리합니다.
+                            </p>
+                        </section>
+
+                        <!-- 16. Environment -->
+                        <section id="environment" class="lesson-card det-card" aria-labelledby="environment-title">
+                            <p class="det-kicker">16 · DEVELOPMENT FLOW</p>
+
+                            <h2 id="environment-title">
+                                통합교안의 Ultralytics 모델 로드에서
+                                Results 해석까지 진행합니다
+                            </h2>
+
+                            <div class="det-environment-grid">
+                                <article>
+                                    <small>LIBRARY</small>
+                                    <strong>ultralytics</strong>
+                                    <span>YOLO 모델·Predict API</span>
+                                </article>
+
+                                <article>
+                                    <small>WEIGHT</small>
+                                    <strong>yolo11m.pt</strong>
+                                    <span>교안의 COCO 사전 학습 예</span>
+                                </article>
+
+                                <article>
+                                    <small>INPUT</small>
+                                    <strong>office.jpg · highway.jpg</strong>
+                                    <span>교안 이미지 추론 예</span>
+                                </article>
+
+                                <article>
+                                    <small>OUTPUT</small>
+                                    <strong>Results · Boxes</strong>
+                                    <span>Class·Confidence·좌표</span>
+                                </article>
+                            </div>
+
+                            <pre class="det-command" tabindex="0"
+                                aria-label="Ultralytics 설치 명령"><code>pip install ultralytics</code></pre>
+
+                            <ol class="det-flow">
+                                <li>
+                                    <b>모델 로드</b>
+                                    <span>YOLO("yolo11m.pt")</span>
+                                </li>
+
+                                <li>
+                                    <b>경로 검증</b>
+                                    <span>입력 이미지 존재 확인</span>
+                                </li>
+
+                                <li>
+                                    <b>추론</b>
+                                    <span>conf·iou·imgsz 설정</span>
+                                </li>
+
+                                <li>
+                                    <b>결과 해석</b>
+                                    <span>boxes.cls·conf·xyxy</span>
+                                </li>
+
+                                <li>
+                                    <b>저장</b>
+                                    <span>save_dir·결과 이미지</span>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <!-- 17. YOLO Code -->
+                        <section id="yolo-code" class="lesson-card det-card" aria-labelledby="yolo-code-title">
+                            <p class="det-kicker">17 · ULTRALYTICS YOLO</p>
+
+                            <h2 id="yolo-code-title">
+                                교안의 사전 학습 이미지 탐지 흐름을 안전하게 정리합니다
+                            </h2>
+
+                            <pre class="det-code" tabindex="0" aria-label="Ultralytics YOLO 이미지 탐지 코드"><code>from pathlib import Path
+
+from ultralytics import YOLO
+
+
+IMAGE_PATHS = [
+    Path(&quot;datasets/yolo/office.jpg&quot;),
+    Path(&quot;datasets/yolo/highway.jpg&quot;),
+]
+
+
+def validate_paths(paths: list[Path]) -&gt; None:
+    missing = [
+        str(path)
+        for path in paths
+        if not path.is_file()
+    ]
+
+    if missing:
+        raise FileNotFoundError(
+            &quot;다음 이미지 파일을 찾을 수 없습니다:\n&quot;
+            + &quot;\n&quot;.join(missing)
+        )
+
+
+def main() -&gt; None:
+    validate_paths(IMAGE_PATHS)
+
+    model = YOLO(
+        &quot;yolo11m.pt&quot;
+    )
+
+    results = model.predict(
+        source=[
+            str(path)
+            for path in IMAGE_PATHS
+        ],
+        imgsz=640,
+        conf=0.5,
+        iou=0.5,
+        max_det=300,
+        save=True,
+        line_width=1,
+        verbose=True,
+    )
+
+    for image_path, result in zip(
+        IMAGE_PATHS,
+        results,
+    ):
+        print(
+            f&quot;\n이미지: {image_path}&quot;
+        )
+
+        boxes = result.boxes
+
+        if boxes is None or len(boxes) == 0:
+            print(
+                &quot;탐지된 객체가 없습니다.&quot;
+            )
+
+            continue
+
+        for index, box in enumerate(
+            boxes,
+            start=1,
+        ):
+            class_id = int(
+                box.cls[0]
+                .cpu()
+                .item()
+            )
+
+            class_name = result.names[
+                class_id
+            ]
+
+            confidence = float(
+                box.conf[0]
+                .cpu()
+                .item()
+            )
+
+            xmin, ymin, xmax, ymax = (
+                box.xyxy[0]
+                .cpu()
+                .tolist()
+            )
+
+            print(
+                {
+                    &quot;index&quot;: index,
+                    &quot;class_id&quot;: class_id,
+                    &quot;class_name&quot;: class_name,
+                    &quot;confidence&quot;: round(
+                        confidence,
+                        4,
+                    ),
+                    &quot;xyxy&quot;: [
+                        round(xmin, 2),
+                        round(ymin, 2),
+                        round(xmax, 2),
+                        round(ymax, 2),
+                    ],
+                }
+            )
+
+        print(
+            &quot;결과 저장 경로:&quot;,
+            result.save_dir,
+        )
+
+
+if __name__ == &quot;__main__&quot;:
+    main()</code></pre>
+
+                            <div class="det-table" role="region" aria-label="YOLO Predict 인수" tabindex="0">
+                                <table>
+                                    <caption>교안의 주요 Predict 인수</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">인수</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">source</th>
+                                            <td>입력 이미지·폴더·영상</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">conf</th>
+                                            <td>최소 Confidence Threshold</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">iou</th>
+                                            <td>NMS IoU Threshold</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">imgsz</th>
+                                            <td>모델 추론 입력 크기</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">max_det</th>
+                                            <td>이미지당 최대 Detection 수</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">save</th>
+                                            <td>주석이 포함된 결과 저장</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 18. Results -->
+                        <section id="results-code" class="lesson-card det-card" aria-labelledby="results-code-title">
+                            <p class="det-kicker">18 · RESULTS OBJECT</p>
+
+                            <h2 id="results-code-title">
+                                Detection 결과는 주로 Results의 boxes에서 읽습니다
+                            </h2>
+
+                            <div class="det-table" role="region" aria-label="Ultralytics Results 속성" tabindex="0">
+                                <table>
+                                    <caption>Ultralytics Results의 주요 속성</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">속성</th>
+                                            <th scope="col">Task·내용</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">result.boxes</th>
+                                            <td>
+                                                Object Detection Box·Class·Confidence
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">result.masks</th>
+                                            <td>
+                                                Instance Segmentation Mask
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">result.keypoints</th>
+                                            <td>
+                                                Pose Keypoint
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">result.probs</th>
+                                            <td>
+                                                Image Classification Probability
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">result.names</th>
+                                            <td>
+                                                Class ID와 이름 Mapping
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">result.save_dir</th>
+                                            <td>
+                                                저장된 결과 Directory
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <pre class="det-code" tabindex="0" aria-label="Results 객체 출력 코드"><code>for result in results:
+    boxes = result.boxes
+
+    if boxes is None:
+        continue
+
+    print(&quot;Class IDs:&quot;)
+    print(boxes.cls)
+
+    print(&quot;Confidence:&quot;)
+    print(boxes.conf)
+
+    print(&quot;XYWH:&quot;)
+    print(boxes.xywh)
+
+    print(&quot;XYXY:&quot;)
+    print(boxes.xyxy)
+
+    print(&quot;Class Map:&quot;)
+    print(result.names)</code></pre>
+
+                            <div class="det-callout">
+                                <h3>GPU Tensor를 Python 값으로 바꾸기</h3>
+
+                                <p>
+                                    GPU에서 실행된 Tensor를 List·NumPy로 변환할 때는
+                                    <code>.cpu()</code>로 CPU Memory에 옮긴 뒤 사용합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 19. IoU Code -->
+                        <section id="iou-code" class="lesson-card det-card" aria-labelledby="iou-code-title">
+                            <p class="det-kicker">19 · IoU CODE</p>
+
+                            <h2 id="iou-code-title">
+                                XYXY Box 두 개의 교집합과 합집합을 직접 계산합니다
+                            </h2>
+
+                            <pre class="det-code" tabindex="0" aria-label="IoU 직접 구현 코드"><code>from typing import Sequence
+
+
+def calculate_iou(
+    box_a: Sequence[float],
+    box_b: Sequence[float],
+) -&gt; float:
+    &quot;&quot;&quot;
+    두 XYXY Bounding Box의 IoU를 계산합니다.
+    &quot;&quot;&quot;
+
+    if len(box_a) != 4 or len(box_b) != 4:
+        raise ValueError(
+            &quot;Bounding Box는 값 4개여야 합니다.&quot;
+        )
+
+    ax1, ay1, ax2, ay2 = map(
+        float,
+        box_a,
+    )
+
+    bx1, by1, bx2, by2 = map(
+        float,
+        box_b,
+    )
+
+    if ax2 &lt; ax1 or ay2 &lt; ay1:
+        raise ValueError(
+            &quot;box_a의 최대 좌표가 잘못되었습니다.&quot;
+        )
+
+    if bx2 &lt; bx1 or by2 &lt; by1:
+        raise ValueError(
+            &quot;box_b의 최대 좌표가 잘못되었습니다.&quot;
+        )
+
+    intersection_x1 = max(
+        ax1,
+        bx1,
+    )
+
+    intersection_y1 = max(
+        ay1,
+        by1,
+    )
+
+    intersection_x2 = min(
+        ax2,
+        bx2,
+    )
+
+    intersection_y2 = min(
+        ay2,
+        by2,
+    )
+
+    intersection_width = max(
+        0.0,
+        intersection_x2 - intersection_x1,
+    )
+
+    intersection_height = max(
+        0.0,
+        intersection_y2 - intersection_y1,
+    )
+
+    intersection_area = (
+        intersection_width
+        * intersection_height
+    )
+
+    area_a = (
+        max(0.0, ax2 - ax1)
+        * max(0.0, ay2 - ay1)
+    )
+
+    area_b = (
+        max(0.0, bx2 - bx1)
+        * max(0.0, by2 - by1)
+    )
+
+    union_area = (
+        area_a
+        + area_b
+        - intersection_area
+    )
+
+    if union_area &lt;= 0:
+        return 0.0
+
+    return (
+        intersection_area
+        / union_area
+    )
+
+
+print(
+    f&quot;IoU: {
+        calculate_iou(
+            [0, 0, 4, 4],
+            [2, 2, 6, 6],
+        )
+        :.3f
+    }&quot;
+)
+
+# IoU: 0.143</code></pre>
+                        </section>
+
+                        <!-- 20. NMS Code -->
+                        <section id="nms-code" class="lesson-card det-card" aria-labelledby="nms-code-title">
+                            <p class="det-kicker">20 · NMS CODE</p>
+
+                            <h2 id="nms-code-title">
+                                같은 Class 안에서 높은 점수 Box부터 중복을 제거합니다
+                            </h2>
+
+                            <pre class="det-code" tabindex="0" aria-label="기본 Greedy NMS 코드"><code>from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Detection:
+    box: tuple[
+        float,
+        float,
+        float,
+        float,
+    ]
+
+    confidence: float
+    class_id: int
+
+
+def non_maximum_suppression(
+    detections: list[Detection],
+    iou_threshold: float = 0.5,
+) -&gt; list[Detection]:
+    if not 0.0 &lt;= iou_threshold &lt;= 1.0:
+        raise ValueError(
+            &quot;iou_threshold는 0과 1 사이여야 합니다.&quot;
+        )
+
+    grouped: dict[
+        int,
+        list[Detection],
+    ] = {}
+
+    for detection in detections:
+        grouped.setdefault(
+            detection.class_id,
+            [],
+        ).append(detection)
+
+    selected: list[Detection] = []
+
+    for class_detections in grouped.values():
+        remaining = sorted(
+            class_detections,
+            key=lambda item: item.confidence,
+            reverse=True,
+        )
+
+        while remaining:
+            best = remaining.pop(0)
+
+            selected.append(
+                best
+            )
+
+            remaining = [
+                candidate
+                for candidate in remaining
+                if calculate_iou(
+                    best.box,
+                    candidate.box,
+                ) &lt; iou_threshold
+            ]
+
+    return sorted(
+        selected,
+        key=lambda item: item.confidence,
+        reverse=True,
+    )</code></pre>
+
+                            <p>
+                                이 코드는 NMS 원리를 이해하기 위한 예제입니다.
+                                실제 Ultralytics 추론에서는
+                                Library 내부의 최적화된 후처리를 사용합니다.
+                            </p>
+                        </section>
+
+                        <!-- 21. Metrics -->
+                        <section id="metrics" class="lesson-card det-card" aria-labelledby="metrics-title">
+                            <p class="det-kicker">21 · DETECTION METRICS</p>
+
+                            <h2 id="metrics-title">
+                                오탐·미탐·위치 정밀도를 함께 평가합니다
+                            </h2>
+
+                            <div class="det-metric-grid">
+                                <article>
+                                    <small>PRECISION</small>
+                                    <strong>TP / (TP + FP)</strong>
+
+                                    <p>
+                                        탐지했다고 한 결과 중 실제로 맞은 비율
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>RECALL</small>
+                                    <strong>TP / (TP + FN)</strong>
+
+                                    <p>
+                                        실제 객체 중 모델이 찾아낸 비율
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>mAP50</small>
+                                    <strong>IoU 0.50</strong>
+
+                                    <p>
+                                        IoU 0.5 기준 Class별 AP 평균
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <small>mAP50-95</small>
+                                    <strong>IoU 0.50~0.95</strong>
+
+                                    <p>
+                                        여러 IoU 기준을 평균한 더 엄격한 평가
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="det-callout">
+                                <h3>모델 비교 조건을 맞춥니다</h3>
+
+                                <p>
+                                    Dataset·입력 크기·Confidence·NMS IoU·평가 규칙을
+                                    동일하게 맞춘 뒤 성능을 비교합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 22. Source Review -->
+                        <section id="source-review" class="lesson-card det-card" aria-labelledby="source-review-title">
+                            <p class="det-kicker">22 · TEXTBOOK REVIEW</p>
+
+                            <h2 id="source-review-title">
+                                교안의 세대별 YOLO 설명과 통합교안 실습을 구분합니다
+                            </h2>
+
+                            <div class="det-table" role="region" aria-label="교안 표현 점검" tabindex="0">
+                                <table>
+                                    <caption>교안 원문과 적용 범위</caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">교안 표현·상황</th>
+                                            <th scope="col">보완해서 읽기</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                객체 하나는 Classification,
+                                                여러 개는 Detection
+                                            </th>
+
+                                            <td>
+                                                본질은 이미지 전체 출력과
+                                                객체 Instance별 출력의 차이
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Two-Stage는 실시간 분야에서 사용하지 않음
+                                            </th>
+
+                                            <td>
+                                                일반적으로 속도 부담이 크다는 방향으로 이해
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                YOLOv1의 B개 Box를 Anchor로 표현
+                                            </th>
+
+                                            <td>
+                                                후속 Anchor Template 방식과
+                                                완전히 같다고 보지 않음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                각 Box에 K개 Class가 포함된다는 문장
+                                            </th>
+
+                                            <td>
+                                                제시 공식 5B+K에서는
+                                                K Class Vector가 Cell당 한 묶음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                YOLO Loss에 MSE·BCE·CCE 사용
+                                            </th>
+
+                                            <td>
+                                                Loss 역할을 설명한 구조이며
+                                                버전별 구현은 다를 수 있음
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                이론은 YOLOv1·v3·v8,
+                                                실습은 YOLO11
+                                            </th>
+
+                                            <td>
+                                                세대별 출력·Anchor·Head 구조를
+                                                하나로 합치지 않음
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                이 페이지는 교안의 용어와 흐름을 유지하면서
+                                세대별로 다른 YOLO 구조를 같은 공식으로
+                                오해하지 않도록 적용 범위를 표시합니다.
+                            </p>
+                        </section>
+
+                        <!-- 23. Mistakes -->
+                        <section id="mistakes" class="lesson-card det-card" aria-labelledby="mistakes-title">
+                            <p class="det-kicker">23 · COMMON MISTAKES</p>
+
+                            <h2 id="mistakes-title">
+                                Box 좌표·Score·IoU·YOLO 세대를
+                                서로 바꾸어 읽지 않습니다
+                            </h2>
+
+                            <div class="det-table" role="region" aria-label="객체 탐지 자주 하는 실수" tabindex="0">
+                                <table>
+                                    <caption>
+                                        자주 하는 착각과 올바른 해석
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">착각</th>
+                                            <th scope="col">올바른 해석</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">
+                                                객체 하나면 무조건 Classification
+                                            </th>
+
+                                            <td>
+                                                위치까지 예측하면 Detection·Localization입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                XYWH의 x·y는 항상 왼쪽 위
+                                            </th>
+
+                                            <td>
+                                                YOLO에서는 보통 중심 좌표입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                XYXY의 마지막 값은 width·height
+                                            </th>
+
+                                            <td>
+                                                오른쪽 아래 x·y 좌표입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                IoU는 Confidence
+                                            </th>
+
+                                            <td>
+                                                두 Box의 기하학적 겹침입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                IoU가 높으면 Class도 정답
+                                            </th>
+
+                                            <td>
+                                                Class 정확성은 별도로 확인합니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                NMS는 학습 Layer
+                                            </th>
+
+                                            <td>
+                                                일반적으로 추론 후처리입니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                NMS IoU를 낮추면 Box가 많이 남음
+                                            </th>
+
+                                            <td>
+                                                더 적극적으로 중복 Box를 제거합니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                모든 YOLO가 5B+K 구조
+                                            </th>
+
+                                            <td>
+                                                YOLOv1 이해용 공식이며
+                                                세대별 구조가 다릅니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                모든 YOLO는 Anchor-Based
+                                            </th>
+
+                                            <td>
+                                                Anchor-Free 계열도 있습니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                작은 객체는 작은 Feature Map에서 탐지
+                                            </th>
+
+                                            <td>
+                                                일반적으로 큰 Feature Map이
+                                                세밀한 위치에 유리합니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                result.probs에 탐지 Class 저장
+                                            </th>
+
+                                            <td>
+                                                Detection 결과는 주로
+                                                result.boxes에 있습니다.
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">
+                                                Confidence가 높으면 반드시 정답
+                                            </th>
+
+                                            <td>
+                                                높은 점수의 오탐도 가능하므로
+                                                검증이 필요합니다.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- 24. Errors -->
+                        <section id="errors" class="lesson-card det-card" aria-labelledby="errors-title">
+                            <p class="det-kicker">24 · ERROR READING</p>
+
+                            <h2 id="errors-title">
+                                설치·경로·Threshold·Class Map·Device를
+                                순서대로 확인합니다
+                            </h2>
+
+                            <p class="det-source">
+                                아래는 재실습용 보완 점검이며,
+                                오류 문구는 Library 버전에 따라 달라질 수 있습니다.
+                            </p>
+
+                            <div class="det-grid">
+                                <article class="det-box">
+                                    <h3>ModuleNotFoundError</h3>
+
+                                    <p>
+                                        ultralytics가 현재 Python·Notebook Kernel에
+                                        설치되었는지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Weight 다운로드 오류</h3>
+
+                                    <p>
+                                        Internet·Proxy·Cache 권한·모델 이름을 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>FileNotFoundError</h3>
+
+                                    <p>
+                                        현재 작업 Directory와
+                                        이미지의 절대 경로를 출력합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>탐지 결과 0개</h3>
+
+                                    <p>
+                                        conf가 너무 높거나
+                                        Class·크기·Domain이 맞지 않는지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>result.probs is None</h3>
+
+                                    <p>
+                                        Detection에서는 정상일 수 있으며
+                                        result.boxes를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Tensor → NumPy 오류</h3>
+
+                                    <p>
+                                        GPU Tensor를 .cpu()로 이동한 뒤 변환합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Class 이름 불일치</h3>
+
+                                    <p>
+                                        result.names와
+                                        Custom Dataset의 names 순서를 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Box가 지나치게 많음</h3>
+
+                                    <p>
+                                        conf·NMS iou·Class Filtering·Domain 차이를 점검합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>실제 객체가 NMS로 사라짐</h3>
+
+                                    <p>
+                                        밀집 객체에서
+                                        NMS IoU가 너무 낮지 않은지 확인합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>CUDA out of memory</h3>
+
+                                    <p>
+                                        더 작은 모델·낮은 imgsz·적은 입력 수·
+                                        CPU 실행을 검토합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <ol class="det-flow">
+                                <li>
+                                    <b>환경</b>
+                                    <span>Python·Library·Device</span>
+                                </li>
+
+                                <li>
+                                    <b>파일</b>
+                                    <span>Weight·이미지 경로</span>
+                                </li>
+
+                                <li>
+                                    <b>설정</b>
+                                    <span>conf·iou·imgsz</span>
+                                </li>
+
+                                <li>
+                                    <b>결과</b>
+                                    <span>boxes·names·좌표</span>
+                                </li>
+
+                                <li>
+                                    <b>품질</b>
+                                    <span>오탐·미탐·Latency</span>
+                                </li>
+                            </ol>
+                        </section>
+
+                        <!-- 25. Practice -->
+                        <section id="practice" class="lesson-card det-card" aria-labelledby="practice-title">
+                            <p class="det-kicker">25 · PRACTICAL CONNECTION</p>
+
+                            <h2 id="practice-title">
+                                탐지 결과는 다음 분류·추적·자동화 단계의 입력이 됩니다
+                            </h2>
+
+                            <div class="det-grid">
+                                <article class="det-box">
+                                    <h3>주차 관제</h3>
+
+                                    <p>
+                                        차량·번호판 후보를 탐지하고
+                                        입출차·점유 분석으로 연결합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>차량 방향 분류</h3>
+
+                                    <p>
+                                        차량을 Detection한 뒤 Crop을
+                                        전면·후면·측면 Classifier에 전달합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>제조 검사</h3>
+
+                                    <p>
+                                        제품·스크래치·파손·누락 위치를
+                                        Box 또는 Mask로 찾습니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>안전·보안</h3>
+
+                                    <p>
+                                        사람·차량·보호구·위험 물체를 탐지하고
+                                        시간 규칙과 결합합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>문서·OCR</h3>
+
+                                    <p>
+                                        표·문단·서명·문자 영역을 탐지한 뒤
+                                        인식 모델에 전달합니다.
+                                    </p>
+                                </article>
+
+                                <article class="det-box">
+                                    <h3>Mobile·Edge</h3>
+
+                                    <p>
+                                        작은 YOLO 모델과 낮은 입력 크기로
+                                        Latency·Memory를 조절합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <h3>결과 저장 Schema 예</h3>
+
+                            <pre class="det-code" tabindex="0" aria-label="객체 탐지 결과 JSON 예"><code>{
+  &quot;image_id&quot;: &quot;office_001&quot;,
+  &quot;width&quot;: 1280,
+  &quot;height&quot;: 720,
+  &quot;detections&quot;: [
+    {
+      &quot;class_id&quot;: 0,
+      &quot;class_name&quot;: &quot;person&quot;,
+      &quot;confidence&quot;: 0.93,
+      &quot;bbox_xyxy&quot;: [
+        102.4,
+        38.1,
+        241.8,
+        412.6
+      ]
+    }
+  ],
+  &quot;model_name&quot;: &quot;yolo11m.pt&quot;,
+  &quot;confidence_threshold&quot;: 0.5,
+  &quot;nms_iou_threshold&quot;: 0.5
+}</code></pre>
+
+                            <div class="det-callout">
+                                <h3>설정도 결과의 일부입니다</h3>
+
+                                <p>
+                                    모델 Weight 버전·입력 해상도·Confidence·
+                                    NMS IoU·Device·처리 시간을 함께 기록해야
+                                    결과를 재현할 수 있습니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 26. Interview -->
+                        <section id="interview" class="lesson-card det-card" aria-labelledby="interview-title">
+                            <p class="det-kicker">26 · INTERVIEW POINTS</p>
+
+                            <h2 id="interview-title">
+                                Box의 의미와 학습·추론·후처리의 차이를 설명합니다
+                            </h2>
+
+                            <div class="det-faq">
+
+                                <details>
+                                    <summary>
+                                        Q1. Classification과 Detection의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Classification은 이미지 전체 Class를,
+                                        Detection은 객체 Instance마다
+                                        Box·Class·Confidence를 예측합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q2. 객체 탐지가 회귀와 분류를 함께 사용하는 이유는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Box 좌표는 연속값이므로 회귀이고,
+                                        객체 종류는 범주 선택이므로 분류입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q3. XYXY와 XYWH의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        XYXY는 두 모서리 좌표를,
+                                        XYWH는 중심 좌표와 Box 크기를 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q4. Ground Truth Box란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        사람이 Annotation한 객체의 정답 위치와 Class입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q5. Anchor Box란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        일부 탐지 모델이 Box Offset을 예측하기 위한
+                                        사전 정의 기준 상자입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q6. IoU란 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        두 Box의 교집합 면적을
+                                        합집합 면적으로 나눈 겹침 비율입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q7. IoU는 어디에 사용하나요?
+                                    </summary>
+
+                                    <p>
+                                        GT Matching·정답 평가·NMS 중복 판정 등에 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q8. NMS는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        높은 점수의 Box를 남기고
+                                        IoU가 높은 중복 Box를 제거하는 후처리입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q9. Confidence와 NMS IoU Threshold의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Confidence는 후보 자체를 제거하고,
+                                        NMS IoU는 후보 Box끼리 중복인지 판단합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q10. One-Stage와 Two-Stage의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        One-Stage는 Box와 Class를 직접 예측하고,
+                                        Two-Stage는 Region Proposal 뒤에
+                                        각 후보를 판단합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q11. YOLO의 핵심 아이디어는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        하나의 Forward Pass에서
+                                        객체 위치·Score·Class를 함께 예측하는 것입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q12. YOLOv1 출력 공식은 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        <code>S × S × (5B + K)</code>입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q13. 모든 YOLO 버전이 같은 공식을 사용하나요?
+                                    </summary>
+
+                                    <p>
+                                        아닙니다.
+                                        Anchor 기반·Anchor-Free·Multi-Scale 등
+                                        세대별 Head와 출력 구조가 달라졌습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q14. Objectness와 Class Probability의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Objectness는 객체 존재 여부를,
+                                        Class Probability는 객체 종류를 나타냅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q15. Multi-Scale Feature가 필요한 이유는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        큰 Feature Map은 작은 객체의 세밀한 위치에,
+                                        작은 Feature Map은 큰 객체의 넓은 특징에
+                                        유리하기 때문입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q16. Anchor-Based와 Anchor-Free의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        Anchor-Based는 기준 Box의 Offset을 예측하고,
+                                        Anchor-Free는 위치와 경계를 직접 예측합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q17. 객체 탐지 Loss는 어떻게 구성되나요?
+                                    </summary>
+
+                                    <p>
+                                        개념적으로 Box·Objectness 또는
+                                        Detection Score·Class Loss로 구성됩니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q18. mAP50과 mAP50-95의 차이는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        mAP50은 IoU 0.5 기준이고,
+                                        mAP50-95는 0.5~0.95의 여러 위치 기준을 평균합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q19. Ultralytics Detection 결과는 어디에서 읽나요?
+                                    </summary>
+
+                                    <p>
+                                        주로 <code>result.boxes</code>의
+                                        cls·conf·xyxy·xywh를 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q20. result.probs가 None인 이유는 무엇인가요?
+                                    </summary>
+
+                                    <p>
+                                        probs는 주로 이미지 Classification에 사용되고,
+                                        Detection 결과는 boxes에 저장되기 때문입니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+
+                        <!-- 27. Sources -->
+                        <section id="sources" class="lesson-card det-card" aria-labelledby="sources-title">
+                            <p class="det-kicker">27 · SOURCES &amp; SCOPE</p>
+
+                            <h2 id="sources-title">
+                                이론 교안·통합교안 실습·보완 설명을 구분합니다
+                            </h2>
+
+                            <dl class="det-definitions">
+                                <div>
+                                    <dt>자료 A · AI 교안</dt>
+
+                                    <dd>
+                                        <cite>28_AI교안v2(1).pdf</cite>의
+                                        Object Detection·SSD·IoU·NMS·YOLO·
+                                        Anchor-Free·R-CNN 절을 사용했습니다.
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>자료 B · 통합교안</dt>
+
+                                    <dd>
+                                        <cite>
+                                            AI_MachineLearning_통합교안_36-100.pdf
+                                        </cite>의
+                                        76번 YOLO 이미지 객체 탐지 Notebook에서
+                                        yolo11m.pt·predict 인수·Results·Boxes 흐름을 사용했습니다.
+                                    </dd>
+                                </div>
+
+                                <div>
+                                    <dt>보완 내용</dt>
+
+                                    <dd>
+                                        좌표 변환·IoU·NMS Python 예제,
+                                        Threshold Trade-off,
+                                        평가 지표와 실무 저장 Schema입니다.
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div class="det-callout det-supplement">
+                                <h3>교안 범위를 벗어나는 부분</h3>
+
+                                <p>
+                                    Class-aware Greedy NMS 코드,
+                                    실무 JSON Schema,
+                                    Confidence와 Precision·Recall 관계 설명은
+                                    교안 개념을 구현 흐름으로 연결한 보완 내용입니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- 28. Next -->
+                        <section id="next" class="lesson-card det-card" aria-labelledby="next-title">
+                            <p class="det-kicker">28 · NEXT CONNECTION</p>
+
+                            <h2 id="next-title">
+                                27. 자연어 처리 기초:
+                                이미지의 Pixel에서 문장의 Token으로
+                            </h2>
+
+                            <p>
+                                AI 교안의 큰 흐름은 CNN 기반 이미지 처리 이후
+                                자연어 처리의 Token·Vocabulary·Embedding으로 이동합니다.
+                            </p>
+
+                            <div class="det-next-flow">
+                                <span>Image Pixel</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Feature Map</span>
+                                <b aria-hidden="true">↔</b>
+
+                                <span>Text Token</span>
+                                <b aria-hidden="true">→</b>
+
+                                <span>Embedding Vector</span>
+                            </div>
+
+                            <div class="det-table" role="region" aria-label="이미지와 텍스트 표현 비교" tabindex="0">
+                                <table>
+                                    <caption>
+                                        다음 단원으로 이어지는 표현의 변화
+                                    </caption>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">이미지</th>
+                                            <th scope="col">텍스트</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Pixel·Channel</th>
+                                            <td>Token·Vocabulary</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Feature Map</th>
+                                            <td>Embedding Vector</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">공간 위치 관계</th>
+                                            <td>단어 순서·문맥 관계</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">CNN Backbone</th>
+                                            <td>RNN·Transformer Encoder</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="det-takeaway">
+                                객체 탐지까지는 이미지 안의 공간적 대상을 다루었습니다.
+                                다음부터는 문장을 숫자로 바꾸고
+                                단어의 순서와 문맥을 학습합니다.
+                            </p>
+
+                            <a class="det-next-link" href="./27_nlp_embedding.html">
+                                27. 자연어 처리 기초로 이동
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        </section>
+                    </main>
+
+                    <!--
+          ASIDE
+          - 오늘의 암기 포인트
+          - 헷갈리기 쉬운 개념
+          - 다음 단원 연결
+        -->
+                    <aside class="side-note det-aside" aria-label="객체 탐지 복습 노트">
+
+                        <section class="note-card det-note">
+                            <p class="det-kicker">MEMORY</p>
+
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ol class="det-memory">
+                                <li>
+                                    Detection은 객체마다
+                                    Box·Class·Confidence를 출력합니다.
+                                </li>
+                                <li>
+                                    Localization은 연속 좌표를 예측하는 회귀입니다.
+                                </li>
+                                <li>
+                                    IoU는 교집합을 합집합으로 나눈 값입니다.
+                                </li>
+                                <li>
+                                    NMS는 높은 점수 Box를 남기고 중복을 제거합니다.
+                                </li>
+                                <li>
+                                    Confidence와 NMS IoU Threshold의 역할은 다릅니다.
+                                </li>
+                                <li>
+                                    큰 Feature Map은 작은 객체 위치에 유리합니다.
+                                </li>
+                                <li>
+                                    YOLO 세대별 출력·Anchor 구조는 다를 수 있습니다.
+                                </li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card det-note">
+                            <p class="det-kicker">CONFUSION</p>
+
+                            <h2>헷갈리는 짝</h2>
+
+                            <dl class="det-pairs">
+                                <dt>XYXY / XYWH</dt>
+                                <dd>두 모서리 / 중심과 크기</dd>
+
+                                <dt>IoU / Confidence</dt>
+                                <dd>Box 겹침 / 모델 신뢰 점수</dd>
+
+                                <dt>Anchor / GT Box</dt>
+                                <dd>예측 기준 / 실제 정답</dd>
+
+                                <dt>Objectness / Class</dt>
+                                <dd>객체 존재 / 객체 종류</dd>
+
+                                <dt>Confidence / NMS IoU</dt>
+                                <dd>후보 제거 / 중복 제거</dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card det-note">
+                            <p class="det-kicker">FORMULA</p>
+
+                            <h2>세 핵심 수식</h2>
+
+                            <p>
+                                <code>
+                IoU = Intersection / Union
+              </code>
+                            </p>
+
+                            <p>
+                                <code>
+                YOLOv1 = S×S×(5B+K)
+              </code>
+                            </p>
+
+                            <p>
+                                <code>
+                L = L_box + L_obj + L_cls
+              </code>
+                            </p>
+                        </section>
+
+                        <section class="note-card det-note">
+                            <p class="det-kicker">RESULTS</p>
+
+                            <h2>Ultralytics 결과 읽기</h2>
+
+                            <p>
+                                <code>boxes.cls</code>
+                                · Class ID
+                            </p>
+
+                            <p>
+                                <code>boxes.conf</code>
+                                · Confidence
+                            </p>
+
+                            <p>
+                                <code>boxes.xyxy</code>
+                                · 두 모서리 좌표
+                            </p>
+
+                            <p>
+                                <code>boxes.xywh</code>
+                                · 중심·크기
+                            </p>
+                        </section>
+
+                        <section class="note-card det-note">
+                            <p class="det-kicker">NEXT</p>
+
+                            <h2>27. 자연어 처리 기초</h2>
+
+                            <p>
+                                Token·Vocabulary·Embedding으로
+                                문장을 숫자 Vector로 표현합니다.
+                            </p>
+
+                            <a href="./27_nlp_embedding.html">
+                                다음 단원으로 →
+                            </a>
+                        </section>
+                    </aside>
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <nav class="lesson-pagination det-pagination" aria-label="AI 단원 이동">
+                    <a href="./25_cnn_architecture_transfer_learning.html">
+                        <small>PREVIOUS</small>
+                        <span>← 25. 대표 CNN 구조</span>
+                    </a>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI</span>
-                    
-                    <span>26</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a href="./00_ai_index.html">
+                        <small>COURSE</small>
+                        <span>AI 목차</span>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-ai-26">
-                    <h2 id="goals-ai-26">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="concept" class="lesson-card concept-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>핵심 개념</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="background" class="lesson-card background-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>왜 등장했는가?</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="visual" class="lesson-card visual-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>그림처럼 이해</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="principle" class="lesson-card principle-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>수식 또는 원리 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>동작 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="comparison" class="lesson-card comparison-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>비슷한 개념 비교</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="limitation" class="lesson-card limitation-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>한계와 보완</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>코드 또는 예제</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 착각</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지 읽는 법</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="26. 객체 탐지와 YOLO 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                    <a href="./27_nlp_embedding.html">
+                        <small>NEXT</small>
+                        <span>27. 자연어 처리 기초 →</span>
+                    </a>
+                </nav>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI 단원 이동">
-                <a class="lesson-prev" href="./25_cnn_architecture_transfer_learning.html">
-                    <span>이전 단원</span>
-                    <strong>25. 대표 CNN 구조와 전이학습</strong>
-                </a>
-
-                <a class="lesson-course-index" href="./00_ai_index.html">
-                    <span>과목 목차</span>
-                    <strong>AI 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./27_nlp_embedding.html">
-                    <span>다음 단원</span>
-                    <strong>27. 자연어 처리와 Embedding</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+    </body>
+
 </html>
