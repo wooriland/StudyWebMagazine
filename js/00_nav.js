@@ -286,6 +286,7 @@
         },
         {
             title: 'AI & Machine Learning',
+            id: 'nav-ai-machine-learning',
             className: 'nav-group-ai-ml',
             category: 'ai-machine-learning',
             folder: 'AIMachineLearning',
@@ -327,9 +328,9 @@
                 },
                 {
                     label: 'AI Machine Learning',
+                    id: 'nav-machine-learning',
                     folder: 'AIMachineLearning',
                     children: [
-                        { label: '00. AI Machine Learning Course Index', path: 'AIMachineLearning/MachineLearning/00_machine_learning_index.html', folder: 'AIMachineLearning', navItem: 'course-machine-learning', match: 'page' },
                         {
                             label: 'PART 1. 회귀와 분류의 수학적 기초',
                             folder: 'AIMachineLearning',
@@ -573,6 +574,70 @@
     ];
 
     renderNavigation();
+    bindNavigationShortcuts();
+
+    // Deleted index pages now lead to the existing, expandable course menus.
+    function bindNavigationShortcuts() {
+        const menuIds = ['nav-ai-machine-learning', 'nav-machine-learning'];
+
+        function openMenu(hash) {
+            const id = hash.slice(1);
+            if (!menuIds.includes(id)) {
+                return;
+            }
+
+            const menu = document.getElementById(id);
+            if (!menu || !sideNav.contains(menu)) {
+                return;
+            }
+
+            let ancestor = menu;
+            while (ancestor && ancestor !== sideNav) {
+                if (ancestor.tagName === 'DETAILS') {
+                    ancestor.open = true;
+                }
+                ancestor = ancestor.parentElement;
+            }
+
+            const summary = menu.querySelector(':scope > summary');
+            if (summary) {
+                summary.focus({ preventScroll: true });
+                summary.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+            }
+        }
+
+        document.addEventListener('click', function (event) {
+            if (event.defaultPrevented || event.button !== 0 || event.ctrlKey ||
+                event.metaKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            const link = event.target.closest('a');
+            const hash = link && link.getAttribute('href');
+            if (!hash || !menuIds.some(function (id) { return hash === '#' + id; })) {
+                return;
+            }
+
+            event.preventDefault();
+            if (window.location.hash !== hash) {
+                window.history.pushState(null, '', hash);
+            }
+            openMenu(hash);
+        });
+
+        window.addEventListener('hashchange', function () {
+            openMenu(window.location.hash);
+        });
+        openMenu(window.location.hash);
+        // Initial native fragment navigation can run after this deferred script.
+        if (document.readyState !== 'complete') {
+            window.addEventListener('load', function () {
+                window.requestAnimationFrame(function () {
+                    openMenu(window.location.hash);
+                });
+            }, { once: true });
+        }
+    }
 
     function renderNavigation() {
         sideNav.innerHTML = '';
@@ -586,6 +651,9 @@
             const groupIsActive = group.items.some(isCurrentCategory) || isCurrentTopGroup(group);
             const details = document.createElement('details');
             details.className = 'nav-group ' + group.className;
+            if (group.id) {
+                details.id = group.id;
+            }
             details.open = groupIsActive;
 
             const summary = document.createElement('summary');
@@ -621,6 +689,9 @@
             const childGroupIsActive = isCurrentCategory(item);
             const details = document.createElement('details');
             details.className = 'nav-sub-group';
+            if (item.id) {
+                details.id = item.id;
+            }
             const categoryClassName = getCategoryClassName(item.folder);
 
             if (categoryClassName) {
