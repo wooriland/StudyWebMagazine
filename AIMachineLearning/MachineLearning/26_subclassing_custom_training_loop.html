@@ -1,266 +1,2938 @@
 <!DOCTYPE html>
-<html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 26. Subclassing Custom Training Loop Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 26. Subclassing Custom Training Loop | AI Machine Learning | AI &amp; Machine Learning</title>
+<html lang="ko">
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/26_subclassing_custom_training_loop.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="26"
-      data-step="0"
-      data-status="skeleton" data-part="part-3-keras-training">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="ML 26 Subclassing Custom Loop: 원문 코드, MNIST Shape, GradientTape, Batch Loss 해석, 평가와 추론 보완.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>ML 26. Subclassing Custom Loop | AI Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 3. Keras 모델 작성과 학습 제어 · ML 26</p>
-                        <h1>ML 26. Subclassing Custom Training Loop</h1>
+        <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
+
+        <link rel="stylesheet"
+            href="../../css/AIMachineLearning/MachineLearning/26_subclassing_custom_training_loop.css">
+    </head>
+
+    <body class="theme-ai-machine-learning study-page machine-learning-page subclassing-custom-loop-page">
+
+        <a class="skip-link" href="#lessonMain">본문으로 건너뛰기</a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 공통 메뉴">
+            </nav>
+
+            <div class="page-content">
+
+                <!-- ==================================================
+     HEADER: 단원 제목 · 핵심 요약 · 학습 목표
+=================================================== -->
+                <header class="lesson-hero" id="top">
+
+                    <div class="badges">
+                        <span>AI Machine Learning</span>
+                        <span>PART 3. Keras 모델 구현</span>
+                        <span>ML 26 · Step 3</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
-                </div>
+                    <p class="eyebrow">Model Subclassing + Custom Training Loop</p>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                    <h1>Subclassing Custom Loop</h1>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 3. Keras 모델 작성과 학습 제어</span>
-                    <span>ML 26</span>
-                    <span>Skeleton</span>
-                </div>
+                    <p class="hero-summary">
+                        모델 클래스는 <strong>무엇을 계산할지</strong>,
+                        학습 루프는 <strong>어떤 순서로 학습할지</strong> 정의한다.
+                    </p>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-26">
-                    <h2 id="goals-machine-learning-26">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
+                    <div class="hero-stats">
+                        <div>
+                            <span>원문 설정</span>
+                            <strong>1 Epoch · Batch 64</strong>
                         </div>
+                        <div>
+                            <span>구조에서 계산</span>
+                            <strong>101,770 Parameter</strong>
+                        </div>
+                        <div>
+                            <span>정상 완료 시 계산</span>
+                            <strong>938회 업데이트</strong>
+                        </div>
+                        <div>
+                            <span>원본 저장 결과</span>
+                            <strong>일부 Batch Loss 10줄</strong>
+                        </div>
+                    </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                    <section class="objectives" aria-labelledby="objectives-title">
+                        <h2 id="objectives-title">학습 목표</h2>
+
+                        <ul>
+                            <li>클래스 정의·객체 생성·Weight 준비·순전파를 구분한다.</li>
+                            <li>이미지·정수 Label·Logits·Loss의 Shape를 연결한다.</li>
+                            <li>GradientTape·gradient·apply_gradients의 역할을 설명한다.</li>
+                            <li>Batch·Step·업데이트 수와 출력 횟수를 구분한다.</li>
+                            <li>원문 로그의 범위를 지키며 Loss와 Accuracy를 해석한다.</li>
+                            <li>원본에 없는 평가·추론은 별도 보완 코드로 읽는다.</li>
+                        </ul>
                     </section>
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
+                    <div class="legend">
+                        <span class="tag original">교안 원문</span>
+                        <span class="tag stored">원본 저장 출력</span>
+                        <span class="tag supplement">Step 1·2 보완</span>
+                        <span class="tag review">원문 대조·주의</span>
+                    </div>
+
+                    <div class="callout review">
+                        <strong>원문 범위:</strong>
+                        9개 Cell·저장 출력 1개·그림 0개다.
+                        정확도·Validation·Test 평가·모델 저장은 없다.
+                        아래 흐름도는 설명용 HTML이며, 원본 이미지나 재실행 결과가 아니다.
+                    </div>
+
+                    <p class="source-note">
+                        [S1] 통합교안 p.235~236, 61번 Notebook.
+                        [S2] 앞서 정리한 ML 26 Step 1·2.
+                        Python 학습·평가·추론을 새로 실행하지 않았다.
+                    </p>
+
+                    <nav class="lesson-toc" aria-label="단원 목차">
+                        <a href="#scope">원본 범위</a>
+                        <a href="#concepts">핵심 개념</a>
+                        <a href="#workflow">실행 순서</a>
+                        <a href="#dataset">Dataset</a>
+                        <a href="#shapes">Shape 흐름</a>
+                        <a href="#model">클래스 원문</a>
+                        <a href="#build">Weight·Parameter</a>
+                        <a href="#loss">Loss</a>
+                        <a href="#batch">Batch</a>
+                        <a href="#loop">학습 루프</a>
+                        <a href="#tape">자동미분</a>
+                        <a href="#timing">로그 시점</a>
+                        <a href="#results">저장 출력</a>
+                        <a href="#metrics">Metric</a>
+                        <a href="#evaluation">보완 평가</a>
+                        <a href="#inference">보완 추론</a>
+                        <a href="#mistakes">실수</a>
+                        <a href="#errors">오류</a>
+                        <a href="#leakage">Data Leakage</a>
+                        <a href="#performance">성능 개선</a>
+                        <a href="#interview">면접</a>
+                        <a href="#memory">암기</a>
+                        <a href="#next">다음 단원</a>
+                    </nav>
+
+                </header>
+
+                <!-- ==================================================
+     MAIN: 원문과 Step 1·2의 코드 해설
+=================================================== -->
+                <main class="lesson-main" id="lessonMain">
+
+                    <!-- 01. 원본 범위 -->
+                    <section class="lesson-card" id="scope" aria-labelledby="scope-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">01</span>
+                            <div>
+                                <p class="eyebrow">실습 목표·자료 범위</p>
+                                <h2 id="scope-title">클래스 모델을 fit 없이 학습한다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p>
+                            숫자 0~9를 분류하는 <code>MyModel</code>을 만들고,
+                            데이터 공급부터 Parameter 업데이트까지 직접 연결한다.
+                            ML 25의 다중 출력 모델을 이어 학습하는 것이 아니라 새 모델을 만드는 실습이다.
+                        </p>
+
+                        <p class="tag original">교안 원문 · Cell 1</p>
+                        <pre
+                            tabindex="0"><code class="language-markdown" data-source-cell="1">## Subclassing API + Custom Training Loop</code></pre>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="구현 범위">
+                            <table>
+                                <caption>원문에 있는 것과 없는 것</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">항목</th>
+                                        <th scope="col">원본 상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">MNIST·X 전처리·클래스 모델</th>
+                                        <td>구현</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Batch Dataset·직접 학습 루프</th>
+                                        <td>구현</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">일부 Training Batch Loss</th>
+                                        <td>출력·저장</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">정확도 누적·Epoch 평균 Loss</th>
+                                        <td>없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Validation·Test 평가·별도 추론</th>
+                                        <td>없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">History·학습 곡선·Checkpoint·모델 저장</th>
+                                        <td>없음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="callout review">
+                            학습 포인트에는 <strong>“정확도 누적”</strong>이 적혀 있지만
+                            실제 코드는 Accuracy를 계산하지 않는다.
+                            별도 공식 검토 메모는 없으며,
+                            이 차이는 Step 1·2에서 대조한 보완 해석이다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 학습 포인트·Cell 1~8, p.236 저장 출력·빈 Cell 9.
+                        </p>
+
                     </section>
 
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
+                    <!-- 02. 핵심 개념 -->
+                    <section class="lesson-card" id="concepts" aria-labelledby="concepts-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">02</span>
+                            <div>
+                                <p class="eyebrow">핵심 개념</p>
+                                <h2 id="concepts-title">모델 정의·학습 제어·미분 계산은 다르다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="역할 구분">
+                            <table>
+                                <caption>이번 결합의 의미</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">구분</th>
+                                        <th scope="col">책임</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Model Subclassing</th>
+                                        <td>클래스의 Layer·순전파 정의</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Custom Training Loop</th>
+                                        <td>Epoch·Batch·계산·업데이트 순서 제어</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">GradientTape</th>
+                                        <td>기록된 계산에 대한 자동미분</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Optimizer</th>
+                                        <td>Gradient를 이용한 변수 업데이트</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            교안의 <strong>“수동 역전파와 최적화”</strong>는
+                            미분식을 전부 손으로 썼다는 뜻으로 읽지 않는다.
+                            개발자는 단계의 호출 순서를 작성하고,
+                            실제 미분은 <code>tape.gradient()</code>에 맡긴다.
+                        </p>
+
+                        <div class="flow" aria-label="이전 단원과 연결">
+                            <div>ML 24<br>Functional + 직접 루프</div>
+                            <span aria-hidden="true">→</span>
+                            <div>ML 25<br>Subclass + compile·fit</div>
+                            <span aria-hidden="true">→</span>
+                            <div>ML 26<br>Subclass + 직접 루프</div>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="코드의 이름">
+                            <table>
+                                <caption>이름을 객체와 값으로 구분하기</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">이름</th>
+                                        <th scope="col">정체·역할</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">MyModel / model</th>
+                                        <td>설계 클래스 / 실제 모델 객체</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">train_dataset</th>
+                                        <td>이미지·정답 Batch 공급</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">X_batch / y_batch</th>
+                                        <td>현재 이미지 / 현재 정수 정답</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">logits</th>
+                                        <td>현재 모델의 Class별 점수</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">loss_fn / loss</th>
+                                        <td>손실 계산 객체 / 계산한 현재 손실값</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">tape / grads</th>
+                                        <td>자동미분 기록 객체 / 변수별 Gradient 목록</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">optimizer</th>
+                                        <td>Parameter 업데이트를 담당하는 Adam 객체</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 클래스·객체·루프.
+                            이전 비교·자동미분은 [S2] 보완, 참고 [D1], [D2].
+                        </p>
+
                     </section>
 
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
+                    <!-- 03. 실행 순서 -->
+                    <section class="lesson-card" id="workflow" aria-labelledby="workflow-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">03</span>
+                            <div>
+                                <p class="eyebrow">개발 환경·실행 순서</p>
+                                <h2 id="workflow-title">공통 절차를 원문에 맞추어 읽는다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="공통 절차와 Cell 지도">
+                            <table>
+                                <caption>공통 학습 절차와 이번 원문</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">단계</th>
+                                        <th scope="col">이번 Notebook</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">문제 정의</th>
+                                        <td>MNIST 숫자 분류 · Cell 1 제목</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">환경</th>
+                                        <td>Cell 2 Import</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Dataset·전처리</th>
+                                        <td>Cell 3 로드·X 변환</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Train / Validation / Test</th>
+                                        <td>Train·Test 준비, Validation 없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Model</th>
+                                        <td>Cell 4 클래스 → Cell 5 객체 생성</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">compile에 대응</th>
+                                        <td>호출 없음. Cell 6에서 Loss·Optimizer를 별도로 준비</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">데이터 공급</th>
+                                        <td>Cell 7 Epoch·Batch·Dataset</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">fit에 대응</th>
+                                        <td>호출 없음. Cell 8의 직접 반복문</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">evaluate / predict</th>
+                                        <td>원본에 별도 평가·추론 없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cell 9</th>
+                                        <td>빈 코드 Cell</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flow" aria-label="전체 실행 흐름">
+                            <div>Import·데이터 준비</div>
+                            <span aria-hidden="true">→</span>
+                            <div>클래스·객체</div>
+                            <span aria-hidden="true">→</span>
+                            <div>Loss·Adam</div>
+                            <span aria-hidden="true">→</span>
+                            <div>Dataset</div>
+                            <span aria-hidden="true">→</span>
+                            <div>Epoch·Batch 반복</div>
+                            <span aria-hidden="true">→</span>
+                            <div>일부 Loss 표시</div>
+                        </div>
+
+                        <p>
+                            <code>compile()</code>이 없다고 학습할 수 없는 것이 아니다.
+                            이번 코드는 학습에 필요한 각 작업을 직접 호출한다.
+                            원문에는 <code>@tf.function</code>도 없다.
+                            여기서는 기본 Eager 실행의 직접 루프를 기준으로 읽으며
+                            별도 그래프 최적화를 추가한 코드로 바꾸지 않는다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235~236 Cell 순서.
+                            실행 방식 설명은 [S2] 보완 [D1].
+                        </p>
+
                     </section>
 
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
+                    <!-- 04. Import -->
+                    <section class="lesson-card" id="environment" aria-labelledby="environment-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">04</span>
+                            <div>
+                                <p class="eyebrow">Import·실제 사용</p>
+                                <h2 id="environment-title">Input을 가져왔다고 Functional 모델은 아니다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 2</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="2">import tensorflow as tf
+from tensorflow.keras import Model, Input
+from tensorflow.keras.layers import Dense, Flatten
+import numpy as np</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>TensorFlow/Keras와 NumPy의 필요한 이름을 가져온다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>모델·Dataset·Loss·자동미분·dtype 변환에 사용한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>실제 데이터 입력 없음.</dd>
+                            </div>
+                            <div>
+                                <dt>출력·반환값</dt>
+                                <dd>tf, Model, Input, Dense, Flatten, np 이름.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>기능만 준비한다. 데이터·모델 객체는 아직 없다.</dd>
+                            </div>
+                        </dl>
+
+                        <p>
+                            <code>tf</code>는 MNIST·Dataset·Loss·Adam·Tape에,
+                            <code>Model</code>은 상속에,
+                            Dense·Flatten은 Layer에,
+                            <code>np</code>는 float32 지정에 사용한다.
+                            <code>Input</code>은 Import되어 있지만 활성 코드에서 호출하지 않는다.
+                        </p>
+
+                        <p>
+                            이번 원문에는 NumPy Import가 있다.
+                            이전 ML 24의 누락 문제를 그대로 적용하지 않는다.
+                            Matplotlib·pandas·scikit-learn은 이번 활성 코드에서 사용하지 않는다.
+                        </p>
+
+                        <p class="source-note">[S1] p.235 Cell 2~8의 사용 이름.</p>
+
                     </section>
 
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
+                    <!-- 05. Dataset와 전처리 -->
+                    <section class="lesson-card" id="dataset" aria-labelledby="dataset-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">05</span>
+                            <div>
+                                <p class="eyebrow">Dataset·전처리·dtype</p>
+                                <h2 id="dataset-title">X만 바꾸고 y는 정수 Label로 유지한다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 3</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="3"># 데이터 준비
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
+#0~1사이로 표준화
+X_train, X_test = X_train.astype(np.float32) / 255.0, X_test.astype(np.float32) / 255.0</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>MNIST를 로드하고 X를 float32·0~1 범위로 변환한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>숫자 이미지와 정답을 준비한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>Loader 호출 시 사용자 배열 인자 없음.</dd>
+                            </div>
+                            <div>
+                                <dt>출력 Shape</dt>
+                                <dd>Train X (60000,28,28), y (60000,); Test X (10000,28,28), y (10000,).</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>네 배열이 준비된다. X의 값·dtype은 바뀌고 Shape·정수 y는 유지된다.</dd>
+                            </div>
+                        </dl>
+
+                        <p>
+                            <span class="tag supplement">Step 1·2 Dataset 보완</span>
+                            MNIST는 28×28 Grayscale 이미지이며 원래 Pixel은 0~255다.
+                            위 개수·Shape는 Loader의 구조를 설명한 것이지
+                            원본이 별도로 출력한 값이 아니다.
+                        </p>
+
+                        <div class="formula">
+                            128 / 255 ≈ 0.50196
+                            <small>설명용 Pixel 변환</small>
+                        </div>
+
+                        <div class="callout review">
+                            원문 주석은 <strong>“0~1사이로 표준화”</strong>다.
+                            실제 연산은 고정 상수로 나누는 X/255.0이며
+                            (X−평균)/표준편차와 다르다.
+                            주석을 바꾸지 않고 연산의 의미를 따로 읽는다.
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="데이터 사용 구분">
+                            <table>
+                                <caption>준비한 데이터와 실제 사용</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">구분</th>
+                                        <th scope="col">준비</th>
+                                        <th scope="col">원본에서 사용</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Training 60,000개</th>
+                                        <td>로드·X 전처리</td>
+                                        <td>전부 학습 Dataset에 사용</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Validation</th>
+                                        <td>별도 분리 없음</td>
+                                        <td>없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Test 10,000개</th>
+                                        <td>로드·X 전처리</td>
+                                        <td>이후 평가·추론에 사용하지 않음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            이번에는 One-Hot·짝홀 Label·Channel 축·증강·모델 밖 Flatten이 없다.
+                            ML 25의 validation_split=0.2도 없으므로 학습 48,000개로 바꾸어 계산하지 않는다.
+                            <strong>Test 로드 ≠ Test 평가</strong>다.
+                        </p>
+
+                        <p>
+                            Cell 3 전체를 재실행하면 원본 배열을 다시 로드한 뒤 변환한다.
+                            변환 줄만 실행하면 현재 X를 다시 255로 나눌 수 있다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 3·4·7.
+                            규모·dtype·연산 설명은 [S2] 보완 [D3].
+                        </p>
+
                     </section>
 
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
+                    <!-- 06. Shape -->
+                    <section class="lesson-card" id="shapes" aria-labelledby="shapes-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">06</span>
+                            <div>
+                                <p class="eyebrow">X/y·모델 흐름·Shape</p>
+                                <h2 id="shapes-title">이미지는 Feature로, 정답은 Class Index로</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p>
+                            <code>X_train[i]</code>와 <code>y_train[i]</code>는 같은 Sample이어야 한다.
+                            설명용으로 숫자 3의 이미지라면 y는 정수 3이다.
+                            이미지를 실제로 표시하는 코드는 원본에 없다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Sample과 Batch Shape">
+                            <table>
+                                <caption>Sample·Batch·추론의 규격 — Step 1·2 보완</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">대상</th>
+                                        <th scope="col">이미지 X</th>
+                                        <th scope="col">정답 y</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Training 전체</th>
+                                        <td>(60000,28,28)</td>
+                                        <td>(60000,)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Test 전체</th>
+                                        <td>(10000,28,28)</td>
+                                        <td>(10000,)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Dataset의 Sample 하나</th>
+                                        <td>(28,28)</td>
+                                        <td>() — 스칼라</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">일반 Training Batch</th>
+                                        <td>(64,28,28)</td>
+                                        <td>(64,)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">마지막 Training Batch · 계산</th>
+                                        <td>(32,28,28)</td>
+                                        <td>(32,)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">한 장의 입력 Batch</th>
+                                        <td>(1,28,28)</td>
+                                        <td>정답 확인용 정수 하나</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <figure class="flow-figure">
+                            <div class="model-flow" aria-label="설명용 순전파 Shape">
+
+                                <div class="flow-node">
+                                    <strong>X_batch</strong>
+                                    <code>(B,28,28)</code>
+                                </div>
+                                <span aria-hidden="true">↓</span>
+
+                                <div class="flow-node">
+                                    <strong>Flatten</strong>
+                                    <code>(B,784)</code>
+                                </div>
+                                <span aria-hidden="true">↓</span>
+
+                                <div class="flow-node">
+                                    <strong>Dense128 + ReLU</strong>
+                                    <code>(B,128)</code>
+                                </div>
+                                <span aria-hidden="true">↓</span>
+
+                                <div class="flow-node">
+                                    <strong>Dense10 → Logits</strong>
+                                    <code>(B,10)</code>
+                                </div>
+                                <span aria-hidden="true">↓</span>
+
+                                <div class="flow-node accent">
+                                    <strong>정수 y_batch (B,)와 Sparse CCE</strong>
+                                    <code>loss: ()</code>
+                                </div>
+
+                            </div>
+
+                            <figcaption>
+                                원문 연결을 풀어 쓴 HTML 흐름도.
+                                원본 그림·모델 재실행 결과가 아니다.
+                            </figcaption>
+                        </figure>
+
+                        <p>
+                            B는 현재 Sample 수다.
+                            <code>()</code>는 스칼라, <code>(1,)</code>은 원소 하나인 1차원 배열이다.
+                            정답 (B,)와 Logits (B,10)의 차이는 Sparse Loss에서 정상이다.
+                            정답은 Class 하나, 예측은 열 개 점수이기 때문이다.
+                        </p>
+
+                        <div class="callout supplement">
+                            ML 25는 숫자 One-Hot·짝홀 0/1과 출력 딕셔너리였지만,
+                            이번은 <strong>정수 숫자 정답과 Logits Tensor 하나</strong>다.
+                            first_output·second_output Key나 정답 argmax를 가져오지 않는다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 모델·Loss·Dataset을 풀어 쓴 [S2] Shape 설명,
+                            참고 [D3], [D4].
+                        </p>
+
                     </section>
 
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
+                    <!-- 07. 모델 클래스 -->
+                    <section class="lesson-card" id="model" aria-labelledby="model-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">07</span>
+                            <div>
+                                <p class="eyebrow">Model Architecture·원문</p>
+                                <h2 id="model-title">__init__은 부품 준비, call은 실제 계산</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 4</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="4"># 모델 정의
+class MyModel(Model):
+    def __init__(self):
+        super(MyModel, self).__init__()
+        self.flatten = Flatten()
+        self.d1 = Dense(128, activation='relu',kernel_initializer='he_normal')
+        self.d2 = Dense(10)
+
+    def call(self, x, training=False):
+        x = self.flatten(x)
+        x = self.d1(x)
+        return self.d2(x)</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>Model을 상속하여 Layer와 순전파를 정의한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>입력에서 숫자별 점수를 계산할 구조가 필요하다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>클래스 정의 시 입력 없음. call은 (B,28,28)을 처리한다.</dd>
+                            </div>
+                            <div>
+                                <dt>출력 Shape</dt>
+                                <dd>call의 반환값은 (B,10) Tensor다.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>MyModel 설계가 준비된다. 실제 객체는 다음 Cell에서 만든다.</dd>
+                            </div>
+                        </dl>
+
+                        <p>
+                            <code>super(MyModel, self).__init__()</code>는 부모 초기화다.
+                            self.flatten·self.d1·self.d2에 같은 Layer를 보관한다.
+                            Keras는 모델 속성의 내부 Layer 변수를 추적한다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="클래스 내부 Layer">
+                            <table>
+                                <caption>속성과 계산</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">속성</th>
+                                        <th scope="col">역할</th>
+                                        <th scope="col">설정</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">self.flatten</th>
+                                        <td>이미지별 Pixel 펼치기</td>
+                                        <td>학습 Parameter 없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">self.d1</th>
+                                        <td>128개 은닉 특징</td>
+                                        <td>ReLU·he_normal</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">self.d2</th>
+                                        <td>10개 Class 점수</td>
+                                        <td>활성화·초기화 별도 명시 없음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            call에서 x를 재대입하는 것은 다음 Layer에 넘길 계산 결과가 바뀌는 것이다.
+                            Weight가 초기화되는 것이 아니다.
+                            call 안에서 매번 새 Layer를 만드는 코드로 변경하지 않는다.
+                        </p>
+
+                        <div class="callout supplement">
+                            <strong>training=False는 학습 금지가 아니다.</strong>
+                            원문은 training 인자를 받지만 내부에서 분기하지 않는다.
+                            Dropout·BatchNormalization도 없다.
+                            trainable과 실행 모드를 구분하며 실제 업데이트는 뒤의 apply_gradients에서 한다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 4.
+                            속성 추적·실행 모드는 [S2] 보완 [D2].
+                        </p>
+
                     </section>
 
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
+                    <!-- 08. 객체·Weight -->
+                    <section class="lesson-card" id="build" aria-labelledby="build-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">08</span>
+                            <div>
+                                <p class="eyebrow">객체·지연 Build·Parameter</p>
+                                <h2 id="build-title">첫 호출 뒤에 학습 변수 목록을 읽는다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 5</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="5"># 모델 생성
+model = MyModel()</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>MyModel 클래스로 실제 모델 객체를 만든다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>모든 Batch에서 동일한 모델을 사용한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>이미지 입력 없음.</dd>
+                            </div>
+                            <div>
+                                <dt>출력·반환값</dt>
+                                <dd>MyModel 인스턴스.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Layer 객체가 준비된다. 아직 실제 순전파를 수행하지 않았다.</dd>
+                            </div>
+                        </dl>
+
+                        <p>
+                            원문에는 사용자 정의 build·model.build 호출이 없다.
+                            이 구조에서는 첫 <code>model(X_batch)</code> 호출에 따라
+                            내부 Dense의 입력 크기에 맞는 Weight를 준비할 수 있다.
+                            순전파 뒤에서 trainable_weights에 미분을 요청한다.
+                        </p>
+
+                        <div class="flow">
+                            <div>객체·Layer 준비</div><span aria-hidden="true">→</span>
+                            <div>첫 실제 입력 호출</div><span aria-hidden="true">→</span>
+                            <div>Weight 준비·순전파</div><span aria-hidden="true">→</span>
+                            <div>Loss·학습 변수 미분</div>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Parameter 계산">
+                            <table>
+                                <caption>모델 구조에서 계산 — 원본 Summary 출력 아님</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Layer</th>
+                                        <th scope="col">Kernel Shape</th>
+                                        <th scope="col">Bias Shape</th>
+                                        <th scope="col">Parameter</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Flatten</th>
+                                        <td>없음</td>
+                                        <td>없음</td>
+                                        <td>0</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Dense128</th>
+                                        <td>(784,128)</td>
+                                        <td>(128,)</td>
+                                        <td>784×128+128 = 100,480</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Dense10</th>
+                                        <td>(128,10)</td>
+                                        <td>(10,)</td>
+                                        <td>128×10+10 = 1,290</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="formula">
+                            100,480 + 1,290 = 101,770
+                            <small>학습 변수 Tensor 네 개 안에 들어 있는 개별 수치의 수</small>
+                        </div>
+
+                        <p>
+                            Dense의 기본 Bias 사용을 포함한 계산이다.
+                            이번 원문은 summary·Parameter 수·Gradient 수치를 출력하지 않는다.
+                            Batch Size를 Parameter 수에 곱하지 않는다.
+                        </p>
+
+                        <div class="callout caution">
+                            첫 호출 전에 비어 있는 trainable_weights 목록을 별도 변수에 저장하고
+                            계속 사용하는 수정은 원문과 다르다.
+                            <strong>현재 준비된 변수</strong>를 대상으로 미분하는 순서를 확인한다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 4~5·8.
+                            Weight 준비·Bias 기본값·계산은 [S2] 보완 [D2], [D5].
+                        </p>
+
                     </section>
 
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
+                    <!-- 09. Loss -->
+                    <section class="lesson-card" id="loss" aria-labelledby="loss-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">09</span>
+                            <div>
+                                <p class="eyebrow">Loss·Logits·compile 대응</p>
+                                <h2 id="loss-title">정수 Label + Logits + Sparse Cross-Entropy</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 6</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="6"># 손실함수, 옵티마이저
+loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+optimizer = tf.keras.optimizers.Adam()</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>손실 객체와 Adam 객체를 준비한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>compile 대신 루프에서 손실·업데이트를 직접 호출한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>객체 생성 시 실제 Batch 입력 없음.</dd>
+                            </div>
+                            <div>
+                                <dt>출력·반환값</dt>
+                                <dd>loss_fn과 optimizer.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>학습 규칙이 준비된다. Loss 계산·업데이트는 아직 없다.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="손실 설정의 의미">
+                            <table>
+                                <caption>각 설정의 의미</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">항목</th>
+                                        <th scope="col">이번 의미</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Sparse</th>
+                                        <td>정답이 One-Hot이 아니라 정수 Class Index</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Categorical</th>
+                                        <td>여러 Class 중 하나를 선택</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">from_logits=True</th>
+                                        <td>예측을 확률 변환 전 Class 점수로 받음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">기본 손실 집계 · 보완</th>
+                                        <td>sum_over_batch_size → 이번 Batch 평균 스칼라</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            Sparse는 이미지에 0이 많다는 뜻이 아니다.
+                            Dense10에 활성화를 지정하지 않아 선형 변환 점수를 반환한다.
+                            정수 Class·10개 점수·분류 Loss의 조합이므로 Softmax Layer가 없어도 다중 분류다.
+                        </p>
+
+                        <p>
+                            Logits는 음수가 가능하고 합이 1일 필요가 없다.
+                            확률 표시가 필요하면 별도로 Softmax를 적용한다.
+                            from_logits=True가 logits 변수 자체를 확률로 바꾸는 것은 아니다.
+                        </p>
+
+                        <div class="formula">
+                            p<sub>i,k</sub>
+                            = exp(z<sub>i,k</sub>) / ∑<sub>j=0…9</sub>exp(z<sub>i,j</sub>)<br>
+
+                            ℓ<sub>i</sub>
+                            = −log p<sub>i,yᵢ</sub>
+                            = −z<sub>i,yᵢ</sub> + log ∑<sub>k=0…9</sub>exp(z<sub>i,k</sub>)<br>
+
+                            L<sub>batch</sub> = (1/B)∑<sub>i=1…B</sub>ℓ<sub>i</sub>
+
+                            <small>
+                                Step 1·2 보완 수식.
+                                원문이 지수·로그 연산을 직접 구현한 것은 아니다.
+                            </small>
+                        </div>
+
+                        <div class="callout caution">
+                            출력층에 Softmax를 추가하면서 from_logits=True를 그대로 유지하는 식으로
+                            조합을 바꾸지 않는다.
+                            ML 25의 One-Hot·Categorical Loss도 이번 원문과 다르다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 4·6·8.
+                            손실·Dense 기본 동작과 수식은 [S2] 보완 [D4], [D5].
+                        </p>
+
                     </section>
 
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
+                    <!-- 10. Optimizer -->
+                    <section class="lesson-card" id="optimizer" aria-labelledby="optimizer-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">10</span>
+                            <div>
+                                <p class="eyebrow">Optimizer·상태</p>
+                                <h2 id="optimizer-title">기울기를 구하는 것과 적용하는 것은 다르다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p>
+                            Cell 6의 <code>tf.keras.optimizers.Adam()</code>은 학습률을 별도 인자로 쓰지 않는다.
+                            Step 1·2의 API 보완에 따르면 기본 학습률은 0.001이다.
+                            원문에 lr=0.001이라는 선언이 있는 것처럼 제시하지 않는다.
+                        </p>
+
+                        <div class="flow">
+                            <div>현재 Batch Loss</div><span aria-hidden="true">→</span>
+                            <div>현재 Gradient</div><span aria-hidden="true">→</span>
+                            <div>Adam의 규칙·상태</div><span aria-hidden="true">→</span>
+                            <div>Parameter 변경</div>
+                        </div>
+
+                        <div class="formula">
+                            θ<sub>new</sub> = θ<sub>old</sub> − η∇<sub>θ</sub>L
+                            <small>단순 경사하강의 설명용 식이며 Adam의 실제 계산식 전체와 같지 않다.</small>
+                        </div>
+
+                        <p>
+                            Adam은 Gradient의 1차·2차 모멘트 추정치를 사용한다.
+                            과거 통계를 관리하는 것과 여러 Batch의 Gradient를 모아 한 번에 적용하는
+                            Gradient Accumulation은 다르다.
+                            이번에는 별도 누적 코드가 없다.
+                        </p>
+
+                        <p>
+                            모델과 Optimizer를 모두 반복문 밖에서 만든다.
+                            매 Batch마다 새 모델·새 Adam을 만들지 않고 같은 상태를 이어 사용한다.
+                            학습률 비교·최적값 선택 실험은 원문에 없다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 5~8.
+                            기본값·Adam 설명은 [S2] 보완 [D6].
+                        </p>
+
                     </section>
 
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
+                    <!-- 11. Batch Dataset -->
+                    <section class="lesson-card" id="batch" aria-labelledby="batch-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">11</span>
+                            <div>
+                                <p class="eyebrow">Dataset·Batch·Step</p>
+                                <h2 id="batch-title">마지막 32개도 한 Batch로 학습한다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 7</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="7">epochs = 1
+batch_size = 64
+train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(batch_size)
+</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>이미지·정답을 묶어 Batch 64로 공급한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>현재 Batch의 입력과 정답을 함께 받는다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>X (60000,28,28), y (60000,).</dd>
+                            </div>
+                            <div>
+                                <dt>출력 Shape</dt>
+                                <dd>일반 X (64,28,28), y (64,); 마지막은 32개.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Dataset이 준비된다. 모델은 아직 학습하지 않는다.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="flow">
+                            <div>전체 X·y 배열</div>
+                            <span aria-hidden="true">→</span>
+                            <div>from_tensor_slices<br>이미지 (28,28)·정답 ()</div>
+                            <span aria-hidden="true">→</span>
+                            <div>batch(64)<br>이미지·정답 묶음</div>
+                        </div>
+
+                        <div class="formula">
+                            60,000 = 64×937 + 32<br>
+                            937 + 1 = 938 Batch
+                            <small>1 Epoch 정상 완료 시 938회 업데이트 · Step 0~937</small>
+                        </div>
+
+                        <p>
+                            batch의 기본 drop_remainder=False를 기준으로 남은 32개도 반환한다.
+                            원문에는 drop_remainder=True가 없다.
+                            위 개수는 설정에서 계산한 값이지 완료 횟수를 측정한 저장 출력은 아니다.
+                        </p>
+
+                        <div class="callout review">
+                            shuffle·repeat·prefetch 호출은 없다.
+                            <strong>batch는 셔플을 자동 추가하지 않는다.</strong>
+                            fit의 기본 셔플 동작을 직접 루프에 가져와 해석하지 않는다.
+                            여러 Epoch으로 바꾸는 실험도 원문과 분리한다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 7.
+                            Dataset 기본 동작·계산은 [S2] 보완 [D7].
+                        </p>
+
                     </section>
 
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
+                    <!-- 12. 학습 루프 원문 -->
+                    <section class="lesson-card" id="loop" aria-labelledby="loop-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">12</span>
+                            <div>
+                                <p class="eyebrow">핵심 원문·학습 흐름</p>
+                                <h2 id="loop-title">직접 작성한 학습 루프 전체</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p class="tag original">교안 원문 · Cell 8</p>
+                        <pre tabindex="0"><code class="language-python" data-source-cell="8">#맞춤 학습 루프
+for epoch in range(epochs):
+    print(f"\nEpoch {epoch+1}/{epochs}")
+    for step, (X_batch, y_batch) in enumerate(train_dataset):
+        with tf.GradientTape() as tape:
+            logits = model(X_batch)
+            loss = loss_fn(y_batch, logits)
+        grads = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+
+        if step % 100 == 0:
+            print(f"Step {step}: loss = {loss.numpy():.4f}")</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>Training Batch마다 순전파·손실·미분·업데이트를 반복한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>fit이 아닌 직접 학습 절차를 실행한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>X_batch (B,28,28), y_batch (B,).</dd>
+                            </div>
+                            <div>
+                                <dt>출력 Shape</dt>
+                                <dd>logits (B,10), loss (), 변수별 Gradient 네 개.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Parameter·Adam 상태를 바꾸고 일부 Batch Loss를 표시한다.</dd>
+                            </div>
+                        </dl>
+
+                        <p>
+                            <code>range(epochs)</code>에서 이번 epoch는 0 한 번이다.
+                            표시에서는 epoch+1을 써서 Epoch 1/1이 된다.
+                            enumerate의 step도 0부터 시작한다.
+                            Step 100은 100번째 이미지가 아니라 <strong>101번째 Batch</strong>다.
+                        </p>
+
+                        <figure class="flow-figure">
+
+                            <div class="tape-zone">
+                                <h3>GradientTape 안</h3>
+                                <div class="flow">
+                                    <div>model(X_batch)<br>(B,10) Logits</div>
+                                    <span aria-hidden="true">→</span>
+                                    <div>loss_fn(y_batch, logits)<br>() Loss</div>
+                                </div>
+                            </div>
+
+                            <div class="flow">
+                                <div>Tape 밖: gradient</div><span aria-hidden="true">→</span>
+                                <div>zip으로 대응</div><span aria-hidden="true">→</span>
+                                <div>apply_gradients</div><span aria-hidden="true">→</span>
+                                <div>조건부 print</div>
+                            </div>
+
+                            <figcaption>
+                                원문 실행 순서를 표현한 HTML 구조도.
+                                학습 이미지나 계산 결과를 새로 생성한 것이 아니다.
+                            </figcaption>
+
+                        </figure>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 8.
+                            번호·상태 흐름은 [S2] 코드 해설.
+                        </p>
+
                     </section>
 
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
+                    <!-- 13. GradientTape -->
+                    <section class="lesson-card" id="tape" aria-labelledby="tape-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">13</span>
+                            <div>
+                                <p class="eyebrow">순전파·Loss·자동미분</p>
+                                <h2 id="tape-title">Tape는 Loss와 Weight 사이의 계산을 기록한다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p>
+                            Cell 8의 <code>with tf.GradientTape() as tape:</code> 안에
+                            모델 호출과 손실 계산이 들어 있다.
+                            기본 Tape는 계산에 사용된 학습 가능 변수를 추적한다.
+                            미분식 전체를 NumPy로 다시 작성하는 과정이 아니다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="핵심 호출 해설">
+                            <table>
+                                <caption>각 호출의 의미·입출력·상태</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">호출</th>
+                                        <th scope="col">무엇을·왜</th>
+                                        <th scope="col">입력 → 출력</th>
+                                        <th scope="col">실행 후 변화</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">model(X_batch)</th>
+                                        <td>정답과 비교할 예측 점수 계산</td>
+                                        <td>(B,28,28) → (B,10)</td>
+                                        <td>Logits 생성. 첫 호출 시 필요한 Weight 준비</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">loss_fn(y_batch, logits)</th>
+                                        <td>학습 목적함수 값 계산</td>
+                                        <td>(B,), (B,10) → ()</td>
+                                        <td>현재 Batch Loss 생성, 아직 업데이트 아님</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">tape.gradient(loss, model.trainable_weights)</th>
+                                        <td>각 학습 변수에 대한 미분 요청</td>
+                                        <td>스칼라 Loss·변수 목록 → Gradient 목록</td>
+                                        <td>미분값 생성, 아직 업데이트 아님</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="formula">
+                            Weight → 모델 연산 → Logits → Loss
+                            <small>손실 숫자만이 아니라 변수에서 그 숫자로 이어진 계산 관계가 필요하다.</small>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Gradient Shape">
+                            <table>
+                                <caption>모델 구조에서 도출한 변수·Gradient Shape</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">변수</th>
+                                        <th scope="col">변수 Shape</th>
+                                        <th scope="col">Gradient Shape</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">첫 Dense Kernel</th>
+                                        <td>(784,128)</td>
+                                        <td>(784,128)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">첫 Dense Bias</th>
+                                        <td>(128,)</td>
+                                        <td>(128,)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">출력 Dense Kernel</th>
+                                        <td>(128,10)</td>
+                                        <td>(128,10)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">출력 Dense Bias</th>
+                                        <td>(10,)</td>
+                                        <td>(10,)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            각 Batch에서 새 Tape를 만들고 한 번 미분한다.
+                            기본 Tape를 반복 재사용하는 구조가 아니므로 persistent=True를 원문에 추가하지 않는다.
+                            실제 Gradient 수치는 저장되어 있지 않다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 8.
+                            자동 추적·Tape 수명·Shape는 [S2] 보완 [D8], [D9].
+                        </p>
+
                     </section>
 
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
+                    <!-- 14. 업데이트 -->
+                    <section class="lesson-card" id="update" aria-labelledby="update-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">14</span>
+                            <div>
+                                <p class="eyebrow">Gradient 대응·실제 업데이트</p>
+                                <h2 id="update-title">zip은 미분값과 적용할 변수를 짝짓는다</h2>
+                            </div>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <p>
+                            원문의 <code>zip(grads, model.trainable_weights)</code>는
+                            같은 순서의 Gradient와 변수를 대응시킨다.
+                            두 목록의 순서를 따로 바꾸지 않는다.
+                        </p>
+
+                        <div class="formula">
+                            (dW1, W1) · (db1, b1) · (dW2, W2) · (db2, b2)
+                            <small>W1·b1 등은 설명용 기호이며 원문의 별도 변수 선언이 아니다.</small>
+                        </div>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>optimizer.apply_gradients(...)로 Adam 업데이트를 적용한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>Gradient를 구한 것과 실제 변수를 바꾸는 것은 다르다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape·대상</dt>
+                                <dd>각각 Shape가 대응하는 (Gradient, 학습 변수) 쌍.</dd>
+                            </div>
+                            <div>
+                                <dt>출력·반환값</dt>
+                                <dd>원문은 반환값을 사용하지 않는다.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>모델 Parameter와 Adam 내부 상태가 업데이트된다.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="callout caution">
+                            업데이트 줄은 출력용 if 바깥에 있다.
+                            조건 안으로 들여쓰면 100 Step마다만 적용하는 다른 코드가 된다.
+                            원문은 <strong>모든 Batch에 업데이트</strong>한다.
+                        </div>
+
+                        <p>
+                            <code>call()</code>을 작성하거나 Loss를 계산한 사실만으로
+                            학습이 진행되었다고 보지 않는다.
+                            gradient 계산과 apply_gradients 실행까지 연결해야 한다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 8.
+                            대응·상태 변화는 [S2] 해설.
+                        </p>
+
+                    </section>
+
+                    <!-- 15. 로그 시점 -->
+                    <section class="lesson-card" id="timing" aria-labelledby="timing-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">15</span>
+                            <div>
+                                <p class="eyebrow">Step·Loss 시점·표시 형식</p>
+                                <h2 id="timing-title">출력 시점과 Loss 계산 시점이 다르다</h2>
+                            </div>
+                        </div>
+
+                        <div class="flow">
+                            <div>① 현재 Parameter로 순전파</div><span aria-hidden="true">→</span>
+                            <div>② Loss 계산</div><span aria-hidden="true">→</span>
+                            <div>③ Gradient</div><span aria-hidden="true">→</span>
+                            <div>④ 업데이트</div><span aria-hidden="true">→</span>
+                            <div>⑤ ②의 Loss 표시</div>
+                        </div>
+
+                        <div class="callout review">
+                            출력문은 업데이트 뒤지만 출력값은
+                            <strong>그 업데이트 전에 계산한 현재 Batch Loss</strong>다.
+                            업데이트 후 같은 Batch로 다시 계산하는 줄은 없다.
+                        </div>
+
+                        <p>
+                            <code>step % 100 == 0</code>은 출력 조건이다.
+                            <code>loss.numpy()</code>는 Gradient 계산·적용 이후 표시용 값을 읽는다.
+                            <code>:.4f</code>는 소수점 네 자리 표시이며
+                            학습 연산의 정밀도를 바꾸는 설정이 아니다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Step별 업데이트 계산">
+                            <table>
+                                <caption>새 모델로 처음 실행하여 정상 진행하는 경우의 계산</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Step</th>
+                                        <th scope="col">Batch 순서</th>
+                                        <th scope="col">Loss 계산 전 업데이트 수</th>
+                                        <th scope="col">현재 업데이트 적용 후</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">0</th>
+                                        <td>첫 번째</td>
+                                        <td>0</td>
+                                        <td>1</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">100</th>
+                                        <td>101번째</td>
+                                        <td>100</td>
+                                        <td>101</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">900</th>
+                                        <td>901번째</td>
+                                        <td>900</td>
+                                        <td>901</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">937</th>
+                                        <td>938번째</td>
+                                        <td>937</td>
+                                        <td>938</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            Step 937은 출력되지 않는다.
+                            루프만 다시 실행하면 화면은 Step 0으로 돌아가지만
+                            이미 학습한 모델 상태는 그대로 이어질 수 있다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235 Cell 8 순서에서 도출한 [S2] 시점·횟수 해석.
+                        </p>
+
+                    </section>
+
+                    <!-- 16. 저장 출력 -->
+                    <section class="lesson-card" id="results" aria-labelledby="results-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">16</span>
+                            <div>
+                                <p class="eyebrow">원본 저장 결과</p>
+                                <h2 id="results-title">마지막 화면 출력이 최종 성능은 아니다</h2>
+                            </div>
+                        </div>
+
+                        <p class="tag stored">원본 저장 stdout · Cell 8</p>
+                        <pre tabindex="0"><code class="language-text" data-output="8">
+Epoch 1/1
+Step 0: loss = 2.4230
+Step 100: loss = 0.3595
+Step 200: loss = 0.2473
+Step 300: loss = 0.3258
+Step 400: loss = 0.1988
+Step 500: loss = 0.3185
+Step 600: loss = 0.1068
+Step 700: loss = 0.3096
+Step 800: loss = 0.2608
+Step 900: loss = 0.3201
+</code></pre>
+
+                        <p>
+                            저장 출력 객체 하나에 Epoch 안내와 열 개의 Loss 줄이 들어 있다.
+                            10 Epoch도, 10회 업데이트도 아니다.
+                            새 학습으로 얻은 결과가 아니다.
+                        </p>
+
+                        <div class="formula">
+                            마지막 표시: Step 900<br>
+                            설정상 마지막 Step: 937<br>
+                            정상 진행 시 남은 업데이트: 37회
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="0.3201의 해석">
+                            <table>
+                                <caption>Step 900의 0.3201을 어떻게 부를 것인가?</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">잘못된 명칭</th>
+                                        <th scope="col">구분할 이유</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Epoch 평균 Loss</th>
+                                        <td>전체 Batch를 집계하지 않음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">마지막 Batch Loss</th>
+                                        <td>설정상 마지막은 Step 937</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Test Loss</th>
+                                        <td>Training Batch 값임</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">업데이트 후 재평가 Loss</th>
+                                        <td>업데이트 전 값을 뒤에서 표시함</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">최종 모델 전체 Training Loss</th>
+                                        <td>최종 모델 고정 재평가 없음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            정확히는 <strong>Step 900의 Training Batch를 해당 업데이트 전 Parameter로 계산한 Loss</strong>다.
+                            Step 600의 0.1068과 Step 700의 0.3096은 Batch와 모델 상태가 모두 다르다.
+                            그 증가만으로 실패·과적합·Test 성능 저하를 확정하지 않는다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.236 Cell 8의 저장 stdout 전체.
+                            시점·완료 범위는 [S2] 보완.
+                        </p>
+
+                    </section>
+
+                    <!-- 17. Metric -->
+                    <section class="lesson-card" id="metrics" aria-labelledby="metrics-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">17</span>
+                            <div>
+                                <p class="eyebrow">Loss·Accuracy·R²</p>
+                                <h2 id="metrics-title">부분 로그의 평균은 Epoch 평균이 아니다</h2>
+                            </div>
+                        </div>
+
+                        <p>
+                            원본은 정확도 Metric·맞힌 개수·전체 Epoch Loss 집계를 만들지 않는다.
+                            따라서 ML 25의 Test Accuracy를 가져오거나 Loss에서 정확도를 역산할 수 없다.
+                        </p>
+
+                        <div class="formula">
+                            Accuracy = 맞힌 Sample 수 / 평가 Sample 수<br>
+                            Accuracy ≠ 1−Loss
+                        </div>
+
+                        <p>
+                            정수 Label의 분류는 Logits (B,10)에 argmax를 적용해 예측 Class (B,)를 얻고 y와 비교한다.
+                            SparseCategoricalAccuracy는 이 일치를 누적하며 Logits도 받을 수 있다.
+                            정답 y에 argmax를 적용하지 않는다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="서로 다른 손실 기록">
+                            <table>
+                                <caption>세 가지 기록을 구분한다</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">기록</th>
+                                        <th scope="col">의미</th>
+                                        <th scope="col">원본에 있는가?</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">표시된 열 개 Loss</th>
+                                        <td>938 Batch 중 일부</td>
+                                        <td>있음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Epoch 학습 손실 집계</th>
+                                        <td>변하는 Parameter로 계산한 전체 Batch 기록의 집계</td>
+                                        <td>없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">최종 모델 평가 손실</th>
+                                        <td>학습 후 모델을 고정해 평가 데이터에 적용</td>
+                                        <td>없음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="formula">
+                            L<sub>record</sub>
+                            = ∑<sub>s</sub>B<sub>s</sub>L<sub>s</sub> / ∑<sub>s</sub>B<sub>s</sub>
+                            <small>
+                                모든 Batch 평균 Loss와 실제 Batch 크기를 기록했을 때의 Sample 기준 집계식
+                            </small>
+                        </div>
+
+                        <p>
+                            마지막 Training Batch는 32개이므로 Batch 평균을 전부 동일 가중치로 평균 내는 것과
+                            Sample 평균은 다를 수 있다.
+                            하지만 원문은 전체 기록이 없어 실제 Epoch 평균을 복원할 수 없다.
+                        </p>
+
+                        <div class="callout supplement">
+                            R²는 회귀 지표다.
+                            이번 숫자 0~9는 크기를 예측하는 회귀 목표가 아니라 Class 번호다.
+                            원본에는 R²·Accuracy·Validation·Test Metric이 없다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235~236 실제 기록 범위.
+                            지표·집계식은 [S2] 보완 [D10], [D11], [D12].
+                        </p>
+
+                    </section>
+
+                    <!-- 18. 보완 평가 -->
+                    <section class="lesson-card" id="evaluation" aria-labelledby="evaluation-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">18</span>
+                            <div>
+                                <p class="eyebrow">별도 보완 코드·평가</p>
+                                <h2 id="evaluation-title">학습한 모델을 고정하고 Test를 평가한다</h2>
+                            </div>
+                        </div>
+
+                        <p>
+                            아래는 Step 1·2의 보완 예시다.
+                            원문에 있던 코드가 아니며, 원본 학습을 마친 기존
+                            model·loss_fn·X_test·y_test·batch_size를 사용한다.
+                        </p>
+
+                        <p class="tag supplement">Step 1·2 보완 평가 코드 · 미실행</p>
+                        <pre tabindex="0"><code class="language-python" data-supplement="eval"># 보완 예시: 원본 학습을 마친 뒤 실행한다.
+# 이 코드는 원본 Notebook에 포함되어 있지 않다.
+
+test_dataset = tf.data.Dataset.from_tensor_slices(
+    (X_test, y_test)
+).batch(batch_size)
+
+test_loss_metric = tf.keras.metrics.Mean(name="test_loss")
+test_accuracy_metric = tf.keras.metrics.SparseCategoricalAccuracy(
+    name="test_accuracy"
+)
+
+for X_eval_batch, y_eval_batch in test_dataset:
+    eval_logits = model(X_eval_batch, training=False)
+    eval_loss = loss_fn(y_eval_batch, eval_logits)
+
+    tf.debugging.assert_all_finite(
+        eval_loss,
+        "평가 Loss에 NaN 또는 Inf가 있습니다."
+    )
+
+    # eval_loss는 현재 Batch의 평균이므로
+    # 전체 Sample 평균을 위해 실제 Batch 크기를 가중치로 사용한다.
+    current_batch_size = tf.cast(
+        tf.shape(y_eval_batch)[0],
+        tf.float32
+    )
+
+    test_loss_metric.update_state(
+        eval_loss,
+        sample_weight=current_batch_size
+    )
+
+    test_accuracy_metric.update_state(
+        y_eval_batch,
+        eval_logits
+    )
+
+print("Test Loss:", float(test_loss_metric.result().numpy()))
+print("Test Accuracy:", float(test_accuracy_metric.result().numpy()))</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>현재 모델의 Test 전체 Loss·Accuracy를 집계한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>원본의 부분 Training 로그와 별도 평가를 구분한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>각 X (B,28,28), y (B,).</dd>
+                            </div>
+                            <div>
+                                <dt>출력·반환값</dt>
+                                <dd>Test 평균 Loss·Accuracy 집계값.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Metric 상태만 누적한다. Gradient 적용이 없어 모델을 학습하지 않는다.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="formula">
+                            10,000 = 64×156 + 16 → 157 Test Batch
+                            <small>마지막 16개도 Sample 수에 맞는 비중으로 집계한다.</small>
+                        </div>
+
+                        <p>
+                            eval_loss는 Batch 평균이므로 Mean에 실제 Batch 크기를 sample_weight로 전달한다.
+                            update_state는 집계, result는 조회다.
+                            동일 Metric을 재사용하면 이전 집계가 남을 수 있어
+                            새 객체 생성 또는 reset_state가 필요하다.
+                            위 코드는 새 객체를 만든다.
+                        </p>
+
+                        <div class="callout caution">
+                            이 보완 코드는 실행하지 않았고 새 Test 결과도 제시하지 않았다.
+                            실제 정확도는 사용자 환경에서 평가한 후 별도 결과로 기록한다.
+                            Test로 반복 튜닝하는 방식과도 구분한다.
+                        </div>
+
+                        <p class="source-note">
+                            [S2] Step 1·2 보완 평가 코드.
+                            Metric 설명 참고 [D10], [D11].
+                        </p>
+
+                    </section>
+
+                    <!-- 19. 보완 추론 -->
+                    <section class="lesson-card" id="inference" aria-labelledby="inference-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">19</span>
+                            <div>
+                                <p class="eyebrow">별도 보완 코드·추론</p>
+                                <h2 id="inference-title">Class는 argmax, 확률 표시는 Softmax</h2>
+                            </div>
+                        </div>
+
+                        <p>
+                            원본의 model(X_batch)는 학습 중 순전파다.
+                            아래는 학습 이후 Test 한 장을 넣는 Step 1·2의 별도 추론 예시다.
+                            새로운 외부 이미지 파일을 로드하는 기능은 없다.
+                        </p>
+
+                        <p class="tag supplement">Step 1·2 보완 추론 코드 · 미실행</p>
+                        <pre tabindex="0"><code class="language-python" data-supplement="predict"># 보완 예시: 원본 학습을 마친 뒤 실행한다.
+# 이미 정규화된 X_test의 첫 이미지를 사용한다.
+
+sample_x = X_test[:1]
+
+if sample_x.shape != (1, 28, 28):
+    raise ValueError(f"입력 Shape를 확인하세요: {sample_x.shape}")
+
+if not np.isfinite(sample_x).all():
+    raise ValueError("입력에 NaN 또는 Inf가 있습니다.")
+
+sample_logits = model(sample_x, training=False)
+
+if tuple(sample_logits.shape) != (1, 10):
+    raise ValueError(
+        f"출력 Shape를 확인하세요: {sample_logits.shape}"
+    )
+
+tf.debugging.assert_all_finite(
+    sample_logits,
+    "예측 Logits에 NaN 또는 Inf가 있습니다."
+)
+
+sample_probabilities = tf.nn.softmax(sample_logits, axis=-1)
+
+predicted_number = int(
+    tf.argmax(sample_logits, axis=-1)[0].numpy()
+)
+
+selected_probability = float(
+    sample_probabilities[0, predicted_number].numpy()
+)
+
+# 이번 정답은 One-Hot이 아니라 정수 Label이다.
+actual_number = int(y_test[0])
+
+print("예측 숫자:", predicted_number)
+print("선택한 숫자의 확률:", selected_probability)
+print("실제 정답:", actual_number)</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>동일한 학습 모델에 이미지 한 장을 넣어 Class와 확률을 확인한다.</dd>
+                            </div>
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>Logits와 실제 판정의 연결을 이해한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>(1,28,28) — Batch 축 유지.</dd>
+                            </div>
+                            <div>
+                                <dt>출력 Shape</dt>
+                                <dd>Logits·확률 (1,10), 예측 숫자 하나.</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>추론 결과만 계산한다. 새 모델·업데이트 없음.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="flow">
+                            <div>X_test[:1]<br>(1,28,28)</div>
+                            <span aria-hidden="true">→</span>
+                            <div>model(..., training=False)<br>(1,10) Logits</div>
+                            <span aria-hidden="true">→</span>
+                            <div>argmax: 숫자<br>Softmax: 확률</div>
+                        </div>
+
+                        <p>
+                            X_test[0]은 (28,28), X_test[:1]은 (1,28,28)이다.
+                            유한한 Logits에서 Softmax는 크기 순서를 유지하므로
+                            Class만 필요하면 Logits에 바로 argmax를 적용한다.
+                            정답은 이미 정수이므로 y_test[0]을 그대로 읽는다.
+                        </p>
+
+                        <div class="callout caution">
+                            이미 정규화한 X를 다시 나누지 않는다.
+                            이번 반환값에 first_output Key는 없다.
+                            학습 후 새 MyModel을 만들면 기존 학습 모델이 아니다.
+                            이 예시는 실행하지 않았으므로 새 숫자·확률 결과는 없다.
+                        </div>
+
+                        <p class="source-note">
+                            [S2] Step 1·2 보완 추론 코드·Shape·판정 해석,
+                            참고 [D10].
+                        </p>
+
+                    </section>
+
+                    <!-- 20. 실수·상태 -->
+                    <section class="lesson-card" id="mistakes" aria-labelledby="mistakes-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">20</span>
+                            <div>
+                                <p class="eyebrow">자주 하는 실수·Notebook 상태</p>
+                                <h2 id="mistakes-title">화면 번호가 초기화되어도 모델 상태는 남는다</h2>
+                            </div>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="재실행 상태">
+                            <table>
+                                <caption>무엇을 다시 실행했는가?</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">부분</th>
+                                        <th scope="col">의미</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Cell 3 전체</th>
+                                        <td>원본 배열 재로드 후 X 전처리</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cell 3 변환 줄만</th>
+                                        <td>현재 X를 다시 255로 나눌 수 있음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cell 4</th>
+                                        <td>클래스 정의 갱신, 기존 model 자동 교체 아님</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cell 5</th>
+                                        <td>새 모델 객체 생성</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cell 6</th>
+                                        <td>새 Loss·Adam 객체 생성</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cell 8만</th>
+                                        <td>현재 모델·Optimizer에서 추가 학습</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="흔한 개념 실수">
+                            <table>
+                                <caption>혼동하지 말 것</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">실수</th>
+                                        <th scope="col">이번 기준</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">compile이 없으므로 학습 불가</th>
+                                        <td>직접 학습 절차를 호출한다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">build 재정의가 없으므로 Weight 없음</th>
+                                        <td>첫 실제 호출의 준비를 구분한다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">training=False면 학습 금지</th>
+                                        <td>실행 모드와 업데이트는 별개다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Gradient 계산이 곧 업데이트</th>
+                                        <td>apply_gradients가 실제 변경 단계다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">batch가 셔플도 수행</th>
+                                        <td>셔플 호출은 없다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">100 Step마다만 학습</th>
+                                        <td>출력만 제한한다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">One-Hot·짝홀·출력 Key 재사용</th>
+                                        <td>이번은 정수 y·Tensor 하나다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Logits를 확률로 표시</th>
+                                        <td>확률 표시는 Softmax 이후다</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">마지막 표시를 최종 평균으로 해석</th>
+                                        <td>부분 Batch Loss다</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            Gradient가 None이면 무조건 0으로 바꾸거나 변수를 제외하지 않는다.
+                            <strong>미분값 0</strong>과 <strong>미분 연결이 없다는 None</strong>은 다르다.
+                            학습하지 않는 Layer를 숨길 수 있으므로 연결과 추적을 먼저 확인한다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] 생성 위치·호출 순서를 해석한 [S2] 보완.
+                            Gradient 설명 [D8].
+                        </p>
+
+                    </section>
+
+                    <!-- 21. 오류 -->
+                    <section class="lesson-card" id="errors" aria-labelledby="errors-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">21</span>
+                            <div>
+                                <p class="eyebrow">Shape Error·Dimension Error·dtype Error</p>
+                                <h2 id="errors-title">오류 문구보다 먼저 데이터의 의미를 확인한다</h2>
+                            </div>
+                        </div>
+
+                        <p class="tag supplement">
+                            Step 1·2 보완 진단 · 원본 Exception 기록 아님
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Shape와 dtype 오류">
+                            <table>
+                                <caption>문구는 환경마다 달라질 수 있다</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">증상·문구의 핵심</th>
+                                        <th scope="col">가능한 원인</th>
+                                        <th scope="col">확인 기준</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Input ... incompatible</th>
+                                        <td>입력 규격 불일치</td>
+                                        <td>Batch 축·이미지 크기</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Matrix size-incompatible</th>
+                                        <td>행렬곱 축 길이 불일치</td>
+                                        <td>(B,784) @ (784,128)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">정답·예측 Rank 문제</th>
+                                        <td>One-Hot을 가져옴</td>
+                                        <td>y (B,), Logits (B,10)</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Sample 수 불일치</th>
+                                        <td>X·y를 따로 자름</td>
+                                        <td>첫 축과 Index 대응</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">높은 Rank의 예상 밖 출력</th>
+                                        <td>Flatten 없이 Dense</td>
+                                        <td>Dense는 마지막 축을 처리</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">문자열·객체 Tensor 변환 실패</th>
+                                        <td>비수치 값 혼입</td>
+                                        <td>dtype와 실제 값</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Label이 Class 범위 밖</th>
+                                        <td>정답 값 손상</td>
+                                        <td>정수 0~9</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">y 전처리 후 이상한 손실</th>
+                                        <td>Label을 Pixel처럼 255로 나눔</td>
+                                        <td>Class 의미 유지</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">NaN·Inf Loss</th>
+                                        <td>입력·연산·손실·설정 문제</td>
+                                        <td>유한값·조합·학습률</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            Rank는 축의 수, Shape는 각 축의 길이다.
+                            Dense는 높은 Rank도 처리할 수 있어 잘못된 연결이 즉시 실패하지 않을 수 있다.
+                            무작정 reshape하거나 dtype만 바꾸는 것은 의미를 복구하는 해결책이 아니다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="자동미분 오류">
+                            <table>
+                                <caption>GradientTape 진단</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">증상</th>
+                                        <th scope="col">점검</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">No gradients provided ...</th>
+                                        <td>순전파·Loss가 Tape 안에서 변수와 연결되는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">일부 Gradient가 None</th>
+                                        <td>해당 변수가 Loss에 사용되고 추적되는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">기본 Tape 재사용 오류</th>
+                                        <td>같은 Tape에 여러 번 미분을 요청했는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">비어 있는 변수 목록</th>
+                                        <td>첫 호출 전 목록을 따로 저장했는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">NumPy 이후 미분 연결 없음</th>
+                                        <td>Loss 계산 경로에서 .numpy()로 빠졌는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">.numpy()를 사용할 수 없음</th>
+                                        <td>원문을 별도 그래프 실행으로 바꾸었는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">정수 미분 관련 문제</th>
+                                        <td>정답 Index를 학습 Weight처럼 미분하려 했는가?</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            원문의 y는 미분할 대상이 아니라 정답 Index다.
+                            학습 가능한 model.trainable_weights에 미분한다.
+                            원문의 loss.numpy는 미분·업데이트 이후 출력용이므로
+                            Loss 경로를 NumPy로 끊는 것과 다르다.
+                        </p>
+
+                        <div class="callout caution">
+                            <strong>조용한 오류:</strong>
+                            Logits (B,10)에 argmax(axis=0)을 적용하면 이미지별 Class가 아니라
+                            Class별 Sample 위치 (10,)가 나온다.
+                            또한 예측 (N,1)과 정답 (N,) 비교는 Broadcasting으로 (N,N)이 될 수 있다.
+                            Sample별 비교는 양쪽 Shape를 맞춘다.
+                        </div>
+
+                        <p class="source-note">
+                            [S2] 재실습 진단.
+                            Dense·자동미분·Broadcasting 근거 [D5], [D8], [D9], [D13].
+                        </p>
+
+                    </section>
+
+                    <!-- 22. Data Leakage -->
+                    <section class="lesson-card" id="leakage" aria-labelledby="leakage-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">22</span>
+                            <div>
+                                <p class="eyebrow">Data Leakage·평가 범위</p>
+                                <h2 id="leakage-title">누수 없음과 성능 검증 완료는 같은 말이 아니다</h2>
+                            </div>
+                        </div>
+
+                        <p>
+                            원문은 Training만 업데이트 Dataset에 사용한다.
+                            Test를 학습에 섞는 코드가 있다는 근거는 없다.
+                            하지만 Test 평가를 수행한 것도 아니다.
+                        </p>
+
+                        <div class="formula">
+                            Test를 학습에 넣지 않음 ≠ Test 성능 확인
+                        </div>
+
+                        <p>
+                            셔플을 하지 않았다는 사실 자체를 Data Leakage라고 부르지 않는다.
+                            데이터 순서 문제와 평가 정보가 학습·선택에 들어가는 문제는 다르다.
+                        </p>
+
+                        <div class="callout supplement">
+                            평균·분산·Feature 선택처럼 데이터로 규칙을 학습하는 전처리를 추가하면
+                            Training에만 적합하고 Validation·Test에는 적용한다.
+                            Test를 반복해서 보며 Epoch·학습률·모델을 고르는 것도 평가 독립성을 해친다.
+                            이번 고정 상수 /255.0과는 구분한다.
+                        </div>
+
+                        <p>
+                            원문 재현과 개선 실험을 따로 보관한다.
+                            개선을 위한 Validation 분할을 만들었다면 Sample 수·Batch 수부터 새로 계산해야 하며,
+                            원문 938 Batch 기록과 섞지 않는다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] p.235 데이터 공급·루프.
+                            누수 원칙은 [S2] 보완 [D14].
+                        </p>
+
+                    </section>
+
+                    <!-- 23. 성능 개선 -->
+                    <section class="lesson-card" id="performance" aria-labelledby="performance-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">23</span>
+                            <div>
+                                <p class="eyebrow">Overfitting·Underfitting·Learning Rate</p>
+                                <h2 id="performance-title">성능을 고치기 전에 판단 근거를 만든다</h2>
+                            </div>
+                        </div>
+
+                        <p>
+                            <strong>Overfitting:</strong>
+                            Training 적합이 새로운 데이터 성능으로 이어지지 않는 문제를 점검한다.
+                            이번은 Validation 기록이 없어 Step 600→700의 Batch Loss 증가만으로 확정할 수 없다.
+                        </p>
+
+                        <p>
+                            <strong>Underfitting:</strong>
+                            Training의 관련 패턴도 충분히 익히지 못한 상황이다.
+                            epochs=1이라는 설정만으로 확정하지 않는다.
+                            이번 부분 로그만으로 충분한 평가를 했다고 할 수 없다.
+                        </p>
+
+                        <p>
+                            <strong>Learning Rate:</strong>
+                            너무 크면 업데이트가 불안정하고 너무 작으면 진행이 느릴 수 있다.
+                            하지만 한 Batch의 Loss 상승만으로 원인을 학습률로 단정하지 않는다.
+                            원문은 기본 Adam을 사용하며 후보 비교 기록이 없다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="성능 문제 점검">
+                            <table>
+                                <caption>관찰을 원인으로 단정하지 않고 점검 후보를 찾는다</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">관찰</th>
+                                        <th scope="col">확인할 것</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Loss가 크게 불안정</th>
+                                        <td>입력 범위·Label·Loss 조합·학습률</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">거의 변화 없음</th>
+                                        <td>Gradient 연결·업데이트 호출·학습량</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">매번 처음처럼 학습</th>
+                                        <td>모델 객체를 재생성했는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">이어 학습 양상이 달라짐</th>
+                                        <td>Optimizer를 다시 만들었는가?</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">일부 Step에서만 업데이트</th>
+                                        <td>출력 if와 들여쓰기</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">출력만으로 판단 어려움</th>
+                                        <td>고정 평가 데이터·Metric이 있는가?</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flow">
+                            <div>문제·Label</div><span aria-hidden="true">→</span>
+                            <div>Sample 대응</div><span aria-hidden="true">→</span>
+                            <div>Shape·dtype·범위</div><span aria-hidden="true">→</span>
+                            <div>출력·Loss</div><span aria-hidden="true">→</span>
+                            <div>Weight·Gradient·업데이트</div><span aria-hidden="true">→</span>
+                            <div>평가 기준·설정 비교</div>
+                        </div>
+
+                        <p>
+                            낮은 성능을 보자마자 노드 수·Epoch부터 늘리지 않는다.
+                            추가 실험은 데이터 분리·설정·평가 기준·선택·저장 여부를 기록한다.
+                            Step 600의 낮은 부분 손실을 최적 모델·저장 모델로 부르지 않는다.
+                        </p>
+
+                        <p class="source-note">
+                            [S1] 저장 로그의 범위.
+                            개념·점검 순서는 [S2] 보완 [D15], [D16].
+                        </p>
+
+                    </section>
+
+                    <!-- 24. 실무 연결 -->
+                    <section class="lesson-card" id="practical" aria-labelledby="practical-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">24</span>
+                            <div>
+                                <p class="eyebrow">실무 연결</p>
+                                <h2 id="practical-title">직접 제어한 만큼 기록의 의미도 직접 관리한다</h2>
+                            </div>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="프로젝트 관리 대상">
+                            <table>
+                                <caption>이번 구조에서 프로젝트로 가져갈 기준</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">대상</th>
+                                        <th scope="col">관리할 내용</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">모델</th>
+                                        <td>입력→출력 계산과 Weight</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">데이터 공급</th>
+                                        <td>X·y 대응·Batch 크기·순서</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">손실</th>
+                                        <td>Label·출력 표현·집계 방식</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">자동미분·Optimizer</th>
+                                        <td>연결된 Gradient와 실제 업데이트</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">로그</th>
+                                        <td>계산 시점·데이터 범위·표시 빈도</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">평가</th>
+                                        <td>학습 중 기록과 고정 모델 성능 구분</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">상태</th>
+                                        <td>새 학습·추가 학습·객체 재생성</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">실험 비교</th>
+                                        <td>원본 설정·변경 설정·선택·저장 여부</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="callout supplement">
+                            Custom Loop 자체가 fit보다 빠르거나 정확하다는 비교 결과는 이번 자료에 없다.
+                            직접 제어할 수 있다는 사실과 성능 우월성을 혼동하지 않는다.
+                        </div>
+
+                        <p>
+                            원본은 학습의 핵심 계산만 구현한다.
+                            평가·예측·검증·저장은 목적에 맞게 별도 설계할 책임이 있다.
+                            이번 페이지의 보완 코드는 그 역할을 설명하는 예시이지
+                            원본 기능을 늘린 재현본이 아니다.
+                        </p>
+
+                        <p class="source-note">
+                            [S2] Step 1·2의 실무 연결·실험 기록 기준.
+                        </p>
+
+                    </section>
+
+                    <!-- 25. 출처 구분 -->
+                    <section class="lesson-card" id="review" aria-labelledby="review-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">25</span>
+                            <div>
+                                <p class="eyebrow">원문·저장 결과·보완 구분</p>
+                                <h2 id="review-title">없던 출력과 검토 메모를 만들지 않는다</h2>
+                            </div>
+                        </div>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="근거 구분">
+                            <table>
+                                <caption>내용의 출처를 나누어 보관한다</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">분류</th>
+                                        <th scope="col">이번 내용</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">교안 학습 포인트</th>
+                                        <td>Subclass 순전파·수동 역전파와 최적화·정확도 누적</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">실제 원문 코드</th>
+                                        <td>클래스 모델·직접 루프·일부 Batch Loss</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">저장 stdout</th>
+                                        <td>Epoch 안내·Step 0~900 중 열 개 Loss</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">구조·설정 계산</th>
+                                        <td>101,770 Parameter·네 변수·938 Batch</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">API 보완</th>
+                                        <td>지연 Build·Adam 기본 학습률·Loss 집계·Dataset 마지막 Batch</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">별도 코드</th>
+                                        <td>Test 평가·한 장 추론</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">원본에서 알 수 없는 것</th>
+                                        <td>Test Accuracy·전체 Epoch 평균·최적 모델·재실행 성능</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p>
+                            원문 주석 “표준화”는 보존하고 고정 나눗셈이라고 해설한다.
+                            “수동 역전파”는 직접 호출 순서와 자동미분을 구분한다.
+                            “정확도 누적”은 학습 포인트와 실제 코드의 차이로 표시한다.
+                        </p>
+
+                        <div class="callout review">
+                            이번 장에는 별도 공식 검토 메모가 없다.
+                            Step 1·2의 대조를 공식 메모인 것처럼 붙이지 않는다.
+                            새 Accuracy·학습 곡선·모델 그림도 원본 출력처럼 제시하지 않는다.
+                        </div>
+
+                        <p class="source-note">
+                            [S1] p.235~236 전체 범위와 [S2] 보완의 분류.
+                        </p>
+
+                    </section>
+
+                    <!-- 26. 면접 -->
+                    <section class="lesson-card" id="interview" aria-labelledby="interview-title">
+
+                        <div class="card-heading">
+                            <span class="card-number">26</span>
+                            <div>
+                                <p class="eyebrow">면접 포인트</p>
+                                <h2 id="interview-title">먼저 답하고 펼쳐서 확인한다</h2>
+                            </div>
+                        </div>
+
+                        <div class="qa-list">
+
+                            <details>
+                                <summary>Q1. Subclassing과 Custom Loop의 차이는?</summary>
+                                <div class="answer">
+                                    <p>모델 정의 방식과 학습 제어 방식의 차이다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q2. 이번은 미분식을 직접 구현한 것인가?</summary>
+                                <div class="answer">
+                                    <p>아니다. 호출 순서는 직접 작성하고 미분은 GradientTape에 맡긴다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q3. compile 없이 왜 학습할 수 있는가?</summary>
+                                <div class="answer">
+                                    <p>Loss·Optimizer·자동미분·업데이트를 직접 호출하기 때문이다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q4. __init__의 역할은?</summary>
+                                <div class="answer">
+                                    <p>사용할 Layer 객체를 모델 속성으로 준비한다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q5. call의 역할은?</summary>
+                                <div class="answer">
+                                    <p>실제 순전파와 출력 구조를 정의한다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q6. 명시적 Build가 없는데 Weight는 언제 준비되는가?</summary>
+                                <div class="answer">
+                                    <p>이 구성에서는 첫 실제 모델 호출에 따라 필요한 내부 Weight가 준비된다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q7. 입력·출력 Shape는?</summary>
+                                <div class="answer">
+                                    <p>입력 (B,28,28), 출력 (B,10)이다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q8. Softmax 출력층이 없는데 왜 분류인가?</summary>
+                                <div class="answer">
+                                    <p>정수 Class·10개 Logits·분류 손실의 조합이기 때문이다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q9. Sparse의 의미는?</summary>
+                                <div class="answer">
+                                    <p>정답이 정수 Class Index라는 의미다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q10. from_logits=True는 무엇인가?</summary>
+                                <div class="answer">
+                                    <p>손실 함수가 예측을 Logits로 받는다는 설정이다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q11. loss_fn과 loss의 차이는?</summary>
+                                <div class="answer">
+                                    <p>손실 계산 객체와 그 객체를 호출해 얻은 현재 손실값이다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q12. Parameter와 학습 변수 Tensor 수는?</summary>
+                                <div class="answer">
+                                    <p>구조상 101,770개 수치, 네 학습 변수 Tensor다. 저장 Summary가 아니다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q13. tape.gradient가 Weight를 바꾸는가?</summary>
+                                <div class="answer">
+                                    <p>아니다. Gradient를 계산한다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q14. 실제 업데이트는 어디인가?</summary>
+                                <div class="answer">
+                                    <p>optimizer.apply_gradients(...)다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q15. zip의 역할은?</summary>
+                                <div class="answer">
+                                    <p>Gradient와 적용할 변수를 순서대로 짝짓는다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q16. 100 Step마다 학습하는가?</summary>
+                                <div class="answer">
+                                    <p>아니다. 모든 Batch를 학습하고 일부만 출력한다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q17. 한 Epoch의 Batch 수는?</summary>
+                                <div class="answer">
+                                    <p>계산상 938개, 마지막 Batch는 32개다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q18. 출력 Loss는 업데이트 후의 손실인가?</summary>
+                                <div class="answer">
+                                    <p>표시 시점은 업데이트 뒤지만 그 값은 업데이트 전에 계산했다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q19. Step 900은 최종 결과인가?</summary>
+                                <div class="answer">
+                                    <p>아니다. 설정상 마지막 Step은 937이며 전체 성능 평가도 아니다.</p>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q20. 원본의 Test Accuracy는?</summary>
+                                <div class="answer">
+                                    <p>계산·저장되어 있지 않아 원본만으로 알 수 없다.</p>
+                                </div>
+                            </details>
+
+                        </div>
+
+                        <p class="source-note">
+                            [S1] 코드·설정·저장 출력 및 [S2]의 구조·API 보완 복습.
+                        </p>
+
                     </section>
 
                 </main>
 
-                <aside class="side-note" aria-label="ML 26. Subclassing Custom Training Loop 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
+                <!-- ==================================================
+     ASIDE: 암기 · 혼동 · 다음 단원
+=================================================== -->
+                <aside class="side-note" aria-label="복습·다음 단원">
+
+                    <section class="side-note-card" id="memory">
+
+                        <p class="eyebrow">Memory</p>
                         <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="빠른 복습">
+                            <table>
+                                <caption>ML 26 핵심 요약</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">항목</th>
+                                        <th scope="col">기억할 내용</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">원본</th>
+                                        <td>61번 Notebook·9 Cell·출력 객체 1개·그림 없음</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">데이터</th>
+                                        <td>MNIST, X (N,28,28), y (N,) 정수</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">전처리</th>
+                                        <td>X float32 /255.0, y는 그대로</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">모델</th>
+                                        <td>MyModel: Flatten → Dense128 ReLU → Dense10</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">출력</th>
+                                        <td>(B,10) Logits Tensor 하나</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Parameter · 계산</th>
+                                        <td>101,770개, 학습 변수 Tensor 네 개</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">손실·Optimizer</th>
+                                        <td>Sparse CCE, from_logits=True · 기본 Adam</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Epoch·Batch</th>
+                                        <td>1·64</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">횟수 · 계산</th>
+                                        <td>938 Batch, 마지막 32개, Step 0~937</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">표시</th>
+                                        <td>Step 0·100·…·900의 Loss 열 줄</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">평가·저장</th>
+                                        <td>원본에 Validation·Test 지표·별도 추론·저장 없음</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="formula">순전파 → 손실 → 자동미분 → 업데이트</div>
+
+                        <p>
+                            <strong>부분 Batch Loss ≠ Epoch 평균 ≠ 최종 모델의 Test 성능.</strong>
+                        </p>
+
+                        <p class="source-note">
+                            [S1] 원문 기록, [S2]에서 구분한 계산·해석.
+                        </p>
+
                     </section>
 
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
+                    <section class="side-note-card">
+
+                        <p class="eyebrow">Distinction</p>
                         <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="다른 역할">
+                            <table>
+                                <caption>같아 보이지만 다른 것</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">이것</th>
+                                        <th scope="col">이것과 다르다</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">클래스 정의</th>
+                                        <td>모델 객체 생성</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Layer 객체</th>
+                                        <td>입력에 맞춘 Weight 준비</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">loss_fn</th>
+                                        <td>현재 loss 값</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Gradient 계산</th>
+                                        <td>Parameter 업데이트</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Gradient None</th>
+                                        <td>계산된 Gradient 0</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Adam의 과거 통계</th>
+                                        <td>직접 Gradient Accumulation</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Logits</th>
+                                        <td>확률</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Step 출력 번호</th>
+                                        <td>모델의 누적 학습 이력</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Test 로드</th>
+                                        <td>Test 성능 평가</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">표시된 최저 Loss</th>
+                                        <td>선택·저장·복원 가능한 최적 모델</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                     </section>
 
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                    <section class="side-note-card" id="next">
+
+                        <p class="eyebrow">Next · ML 27</p>
+                        <h2>ModelCheckpoint</h2>
+
+                        <p>
+                            다음 원본은 <code>62_케라스-콜백함수-체크포인트27.ipynb</code>다.
+                            학습 도중 어떤 상태를 저장하고 다시 사용할지 공부한다.
+                            이번 루프에 저장 줄 하나만 붙이는 단원이 아니라 모델·학습 방식도 달라진다.
+                        </p>
+
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="다음 단원 비교">
+                            <table>
+                                <caption>현재 ML 26과 다음 ML 27</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">항목</th>
+                                        <th scope="col">ML 26</th>
+                                        <th scope="col">ML 27</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">구성</th>
+                                        <td>Subclass</td>
+                                        <td>Sequential</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">은닉층</th>
+                                        <td>128</td>
+                                        <td>128 → 64 → 32</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">출력</th>
+                                        <td>10 Logits</td>
+                                        <td>10 Softmax</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">정답</th>
+                                        <td>정수 Label</td>
+                                        <td>정수 Label</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Loss</th>
+                                        <td>Sparse CCE, from_logits=True</td>
+                                        <td>sparse_categorical_crossentropy</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">학습</th>
+                                        <td>직접 루프·1 Epoch</td>
+                                        <td>compile·fit·10 Epoch</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Validation</th>
+                                        <td>없음</td>
+                                        <td>validation_split=0.2</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">저장·복원 평가</th>
+                                        <td>없음</td>
+                                        <td>ModelCheckpoint·저장 상태 읽기·평가</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="flow">
+                            <div>학습</div><span aria-hidden="true">→</span>
+                            <div>Validation 확인</div><span aria-hidden="true">→</span>
+                            <div>조건에 맞는 상태 저장</div><span aria-hidden="true">→</span>
+                            <div>불러오기·평가</div>
+                        </div>
+
+                        <div class="callout review">
+                            이번 Step 600의 0.1068은 표시된 일부 Batch 중 낮은 값일 뿐이다.
+                            Validation 최적 모델도, 저장된 모델도 아니다.
+                        </div>
+
+                        <p class="source-note">
+                            [S3] 통합교안 p.237~241, 다음 모델·fit·Checkpoint·복원.
+                            [S2] 다음 연결.
+                        </p>
+
                     </section>
+
                 </aside>
+
+                <!-- ==================================================
+     FOOTER: 근거 · 마무리
+=================================================== -->
+                <footer class="lesson-footer" id="sources">
+
+                    <p class="eyebrow">ML 26 · Subclassing Custom Loop</p>
+
+                    <p class="closing">
+                        <strong>계산 → 미분 → 업데이트 → 기록 → 평가를 나누어 읽는다.</strong>
+                    </p>
+
+                    <details class="reference-detail">
+                        <summary>교안과 보완 설명의 근거</summary>
+
+                        <div class="answer">
+
+                            <p>
+                                <strong>[S1]</strong>
+                                AI_MachineLearning_통합교안_36-100.pdf,
+                                「61. Subclassing API 커스텀 학습 루프」 p.235~236.
+                                첨부 61_케라스-SubclassingAPI-CustomTrainingLoop26.ipynb의
+                                Cell 1~8 소스와 저장 stdout을 대조했다.
+                                빈 Cell 9는 Cell 지도에 표시했다.
+                            </p>
+
+                            <p>
+                                <strong>[S2]</strong>
+                                앞서 작성한 ML 26 Step 1·2.
+                                Shape·수식·기본 API 설명·오류·평가·추론 보완을 구분하여 재구성했다.
+                                <strong>[S3]</strong>
+                                같은 교안의 다음 「62. ModelCheckpoint」 p.237~241.
+                            </p>
+
+                            <p>
+                                학습·평가·추론을 새로 실행하지 않았다.
+                                원문 코드를 다른 모델로 바꾸지 않았고,
+                                없는 Accuracy·Epoch 평균·원본 그림을 추가하지 않았다.
+                                아래는 Step 1·2 보완 설명의 공식 참고 문서이며
+                                Step 3에서 최신 API를 별도 재검증했다는 뜻은 아니다.
+                            </p>
+
+                            <div class="reference-links">
+                                <a href="https://keras.io/guides/writing_a_custom_training_loop_in_tensorflow/">
+                                    [D1] Keras Custom Training Loop
+                                </a>
+                                <a href="https://keras.io/guides/making_new_layers_and_models_via_subclassing/">
+                                    [D2] Keras Subclassing
+                                </a>
+                                <a href="https://keras.io/api/datasets/mnist/">
+                                    [D3] MNIST
+                                </a>
+                                <a href="https://keras.io/api/losses/probabilistic_losses/">
+                                    [D4] 분류 손실
+                                </a>
+                                <a href="https://keras.io/api/layers/core_layers/dense/">
+                                    [D5] Dense
+                                </a>
+                                <a href="https://keras.io/api/optimizers/adam/">
+                                    [D6] Adam
+                                </a>
+                                <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset">
+                                    [D7] Dataset
+                                </a>
+                                <a href="https://www.tensorflow.org/guide/autodiff">
+                                    [D8] 자동미분
+                                </a>
+                                <a href="https://www.tensorflow.org/api_docs/python/tf/GradientTape">
+                                    [D9] GradientTape
+                                </a>
+                                <a href="https://keras.io/api/metrics/accuracy_metrics/">
+                                    [D10] Accuracy
+                                </a>
+                                <a href="https://keras.io/api/metrics/metrics_wrappers/">
+                                    [D11] Mean Metric
+                                </a>
+                                <a
+                                    href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html">
+                                    [D12] R²
+                                </a>
+                                <a href="https://numpy.org/doc/stable/user/basics.broadcasting.html">
+                                    [D13] Broadcasting
+                                </a>
+                                <a href="https://scikit-learn.org/stable/common_pitfalls.html">
+                                    [D14] Data Leakage
+                                </a>
+                                <a href="https://www.tensorflow.org/tutorials/keras/overfit_and_underfit">
+                                    [D15] 과적합·과소적합
+                                </a>
+                                <a
+                                    href="https://developers.google.com/machine-learning/crash-course/linear-regression/hyperparameters">
+                                    [D16] 학습률
+                                </a>
+                            </div>
+
+                        </div>
+                    </details>
+
+                    <a class="back-top" href="#top">단원 처음으로 ↑</a>
+
+                </footer>
+
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./25_model_subclassing.html">
-                    <span>이전 단원</span>
-                    <strong>ML 25. Model Subclassing</strong>
-                </a>
-
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./27_model_checkpoint.html">
-                    <span>다음 단원</span>
-                    <strong>ML 27. ModelCheckpoint</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+
+        <script src="../../js/00_nav.js" defer></script>
+
+        <script>
+            /* 인쇄 때 답변을 펼치고 인쇄 후 이전 상태로 복원한다. */
+            (() => {
+                let closedBeforePrint = null;
+
+                window.addEventListener('beforeprint', () => {
+                    if (closedBeforePrint !== null) return;
+
+                    closedBeforePrint = [...document.querySelectorAll(
+                        '.subclassing-custom-loop-page details:not([open])'
+                    )];
+
+                    closedBeforePrint.forEach(item => {
+                        item.open = true;
+                    });
+                });
+
+                window.addEventListener('afterprint', () => {
+                    if (closedBeforePrint === null) return;
+
+                    closedBeforePrint.forEach(item => {
+                        item.open = false;
+                    });
+
+                    closedBeforePrint = null;
+                });
+            })();
+        </script>
+
+    </body>
+
 </html>
