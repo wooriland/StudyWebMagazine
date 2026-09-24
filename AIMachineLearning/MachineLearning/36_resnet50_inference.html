@@ -1,266 +1,2249 @@
 <!DOCTYPE html>
-<html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 36. ResNet50 사전학습 모델 추론 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 36. ResNet50 사전학습 모델 추론 | AI Machine Learning | AI &amp; Machine Learning</title>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="사전학습 ResNet50의 이미지 전처리, Shape, 예측과 ImageNet 출력 해석을 정리한 학습 매거진.">
+        <title>ML 36. ResNet50 추론 | AI Machine Learning</title>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/36_resnet50_inference.css">
+    </head>
+    <body class="theme-ai-machine-learning study-page machine-learning-page ml36-page">
+        <a class="skip-link" href="#ml36-main">학습 본문으로 이동</a>
+<div class="layout">
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 공통 메뉴"></nav>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/36_resnet50_inference.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+        <div class="page-content" id="ml36-study">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="36"
-      data-step="0"
-      data-status="skeleton" data-part="part-4-cnn-transfer">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+    <header class="lesson-hero" id="ml36-top">
+        <p class="eyebrow">
+            AI MACHINE LEARNING · PART 4 이미지 분류
+        </p>
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 4. CNN과 전이학습 · ML 36</p>
-                        <h1>ML 36. ResNet50 사전학습 모델 추론</h1>
-                    </div>
+        <h1><span class="chapter-number">ML 36.</span>ResNet50 추론</h1>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
-                </div>
+        <p class="hero-summary">
+            이미 학습된 모델을 그대로 불러와,<br>
+            사진 한 장을 1,000개 클래스 중에서 분류합니다.
+        </p>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+        <div class="hero-stats">
+            <div>
+                <strong>이미지 1장</strong>
+                <span>new_dog.jpg · 정답 y 없음</span>
+            </div>
+            <div>
+                <strong>224×224×3</strong>
+                <span>RGB 이미지 한 장의 규격</span>
+            </div>
+            <div>
+                <strong>1,000개</strong>
+                <span>ImageNet 클래스별 예측 확률</span>
+            </div>
+        </div>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 4. CNN과 전이학습</span>
-                    <span>ML 36</span>
-                    <span>Skeleton</span>
-                </div>
+        <section class="learning-goals" aria-label="학습 목표">
+<h2>학습 목표</h2>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-36">
-                    <h2 id="goals-machine-learning-36">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
+        <ul class="goals">
+            <li>사전학습 모델의 추론과 전이학습 구분</li>
+            <li>이미지 → 배열 → 배치 Shape 추적</li>
+            <li>ResNet50 전용 전처리 이해</li>
+            <li>시각화와 모델 입력의 차이 이해</li>
+            <li>predict → argmax → decode 연결</li>
+            <li>확률·Loss·Accuracy 구분</li>
+            <li>원문 출력과 검토 메모 구분</li>
+            <li>새 이미지 추론과 다음 전이학습 연결</li>
+        </ul>
                 </section>
-            </header>
 
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
-                        </div>
+        <p class="source-note">
+            Notebook 71 · 통합교안 300~303쪽 · ML 36.
+            Step 1·2 내용을 재구성했습니다.
+            원문 코드 블록은 주석·공백을 정리한 활성 실행문이며 동작을 바꾸지 않았습니다.
+            저장 결과와 구조상 예상 결과를 구분합니다.
+            이번 자료 제작에서 모델 추론을 재실행하지 않았습니다.
+        </p>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+        <div class="legend">
+            <span class="tag source">원문 실행문</span>
+            <span class="tag saved">원본 저장 출력</span>
+            <span class="tag review">공식 메모·추가 검토</span>
+            <span class="tag supplement">보충 설명·예제</span>
+        </div>
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
-                        </div>
+        <p class="warning">
+            <strong>
+                98.8985%는 collie에 대한 한 이미지의 예측 확률입니다.
+            </strong>
+            이 Notebook에는 정답 y, 학습, 독립적인 테스트 평가가 없으므로
+            이 값을 모델 정확도로 해석하면 안 됩니다.
+        </p>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+        <nav class="lesson-toc" aria-label="학습 목차">
+            <a href="#ml36-core">01 핵심 개념</a>
+            <a href="#ml36-data">02 Dataset·X/y</a>
+            <a href="#ml36-env">03 환경·라이브러리</a>
+            <a href="#ml36-model">04 모델 생성</a>
+            <a href="#ml36-image">05 이미지·배치</a>
+            <a href="#ml36-display">06 원본 시각화</a>
+            <a href="#ml36-preprocess">07 전처리</a>
+            <a href="#ml36-warning">08 시각화 경고</a>
+            <a href="#ml36-shape">09 Shape 흐름</a>
+            <a href="#ml36-predict">10 predict·argmax</a>
+            <a href="#ml36-decode">11 출력 해석</a>
+            <a href="#ml36-flow">12 실행·학습 흐름</a>
+            <a href="#ml36-metric">13 Loss·Metric</a>
+            <a href="#ml36-new">14 새 이미지 예측</a>
+            <a href="#ml36-review">15 원문·검토 메모</a>
+            <a href="#ml36-mistakes">16 실수·데이터 누수</a>
+            <a href="#ml36-errors">17 오류 메시지</a>
+            <a href="#ml36-improve">18 성능 진단·개선</a>
+            <a href="#ml36-practice">19 실무 연결</a>
+            <a href="#ml36-interview">20 면접 포인트</a>
+            <a href="#ml36-memory">암기·혼동 정리</a>
+            <a href="#ml36-next">다음 ML 37 연결</a>
+        </nav>
+    </header>
 
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
-                        </div>
+    <main class="lesson-main" id="ml36-main">
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+        <!-- 01. 핵심 개념 -->
+        <section class="lesson-card" id="ml36-core">
+            <h2>
+                <span class="num">01</span>
+                핵심 개념 · 학습된 모델로 답을 계산하기
+            </h2>
 
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
-                        </div>
+            <p>
+                이번 실습의 목표는 사진 한 장을 읽어 ResNet50에 넣고,
+                가장 높은 점수를 받은 ImageNet 클래스를 해석하는 것입니다.
+                모델을 처음부터 훈련하거나 새로운 분류층을 학습하지 않습니다.
+                원본 첫 셀도
+                <strong>파라미터를 업데이트하지 않고 예측만 한다</strong>고 설명합니다.
+            </p>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+            <div class="grid two">
+                <div class="mini">
+                    <h3>왜 배우나요?</h3>
+                    <p>
+                        실제 서비스에서는 학습보다 이미 만들어진 모델을 호출하는 일이
+                        자주 일어납니다. 모델 파일을 불러오는 것만으로 끝나지 않고
+                        입력 크기·색상 순서·전처리·출력 레이블까지 일치시켜야
+                        올바른 예측을 얻습니다.
+                    </p>
+                </div>
 
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="ML 36. ResNet50 사전학습 모델 추론 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                <div class="mini">
+                    <h3>어떤 문제인가요?</h3>
+                    <p>
+                        이미지 전체를 하나의 클래스로 분류하는
+                        단일 레이블 다중 클래스 분류입니다.
+                        동물의 위치를 박스로 찾거나 개체 수를 세는
+                        객체 탐지 실습이 아닙니다.
+                    </p>
+                </div>
             </div>
 
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./35_resnet50_transfer_learning.html">
-                    <span>이전 단원</span>
-                    <strong>ML 35. ResNet50 전이학습</strong>
-                </a>
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>사전학습·추론·전이학습 구분</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">용어</th>
+                            <th scope="col">의미</th>
+                            <th scope="col">이번 실습</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>사전학습</td>
+                            <td>다른 데이터로 이미 가중치를 학습해 둠</td>
+                            <td>ImageNet 가중치 사용</td>
+                        </tr>
+                        <tr>
+                            <td>추론, Inference</td>
+                            <td>고정된 가중치로 입력의 출력을 계산</td>
+                            <td>model.predict 실행</td>
+                        </tr>
+                        <tr>
+                            <td>전이학습</td>
+                            <td>기존 지식을 새 과제에 활용하여 모델 구성·학습</td>
+                            <td>새 분류층이나 추가 학습 없음</td>
+                        </tr>
+                        <tr>
+                            <td>미세조정, Fine-tuning</td>
+                            <td>사전학습된 층도 추가 학습</td>
+                            <td>실행하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>평가, Evaluation</td>
+                            <td>예측과 실제 정답을 비교하여 성능 측정</td>
+                            <td>정답 y와 평가 코드 없음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
+            <p class="notice">
+                <strong>include_top=True + weights='imagenet'</strong>이므로
+                기존 ImageNet 분류층까지 가져옵니다.
+                파일명에 DogvsCat이 있어도 출력이 자동으로
+                고양이·개 두 클래스로 바뀌지는 않습니다.
+            </p>
+        </section>
 
-                <a class="lesson-next" href="./37_mobilenet_transfer_learning.html">
-                    <span>다음 단원</span>
-                    <strong>ML 37. MobileNet 전이학습</strong>
-                </a>
-            </nav>
-        </div>
+        <!-- 02. Dataset과 X/y -->
+        <section class="lesson-card" id="ml36-data">
+            <h2>
+                <span class="num">02</span>
+                Dataset · X는 사진, y는 제공되지 않음
+            </h2>
+
+            <pre tabindex="0"><code>현재 작업 폴더/
+└─ datasets/
+   └─ cnn/
+      └─ new_dog.jpg     이번에 추론할 이미지 한 장</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>사전학습 데이터와 현재 실습 입력</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">항목</th>
+                            <th scope="col">의미</th>
+                            <th scope="col">확인할 점</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ImageNet</td>
+                            <td>ResNet50 가중치의 사전학습에 사용된 데이터</td>
+                            <td>이 Notebook에서 전체 데이터를 내려받아 재학습하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>현재 Dataset</td>
+                            <td>new_dog.jpg 한 장</td>
+                            <td>별도 train/validation/test 폴더 구성 없음</td>
+                        </tr>
+                        <tr>
+                            <td>X</td>
+                            <td>모델에 넣을 전처리된 이미지 배열</td>
+                            <td>실제 변수명은 dog_image_array_output</td>
+                        </tr>
+                        <tr>
+                            <td>y</td>
+                            <td>모델과 별개로 확인된 실제 정답</td>
+                            <td>원본에는 제공되지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>y_pred</td>
+                            <td>모델이 계산한 클래스별 확률</td>
+                            <td>정답이 아니라 예측값</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                <code>X_train</code>, <code>X_test</code>,
+                <code>y_train</code>, <code>y_test</code>를 만드는 코드도 없습니다.
+                아래 Shape는 원문의 변수와 모델 설정으로 설명하는 값입니다.
+            </p>
+
+            <pre tabindex="0"><code>이미지 배열             (224, 224, 3)
+배치 축을 추가한 X       (1, 224, 224, 3)
+전처리 후 모델 입력      (1, 224, 224, 3)
+모델의 예측 y_pred       (1, 1000)
+실제 정답 y             원본에 없음 → y.shape도 없음</code></pre>
+
+            <p>
+                ImageNet 1,000개 클래스에는 여러 개·고양이 품종뿐 아니라
+                사물 등도 포함됩니다.
+                사진을 보고 “개 같다”고 판단하는 것과
+                ImageNet의 정확한 세부 클래스 정답을 확보하는 것은 다릅니다.
+            </p>
+        </section>
+
+        <!-- 03. 환경과 라이브러리 -->
+        <section class="lesson-card" id="ml36-env">
+            <h2>
+                <span class="num">03</span>
+                환경 · 각 도구가 담당하는 일
+            </h2>
+
+            <p>
+                <span class="tag source">원문 셀 2</span>
+                NumPy, TensorFlow/Keras, 이미지 전처리,
+                Matplotlib, ResNet50 관련 함수를 불러옵니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="2">import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from glob import glob
+from tensorflow.keras.preprocessing import image
+import matplotlib.pyplot as plt
+from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.applications.imagenet_utils import decode_predictions</code></pre>
+
+            <p>
+                <span class="tag source">원문 셀 3</span>
+                이미지 한 장의 높이·너비·채널 수를 정합니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="3">IMAGE_CHANNEL = 3
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 224</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>라이브러리와 역할</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">도구</th>
+                            <th scope="col">이 실습의 역할</th>
+                            <th scope="col">혼동 주의</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>NumPy</td>
+                            <td>배치 축 추가, squeeze, argmax</td>
+                            <td>배열 모양 변경과 픽셀 값 변경은 별개</td>
+                        </tr>
+                        <tr>
+                            <td>TensorFlow/Keras</td>
+                            <td>모델 생성과 추론 실행</td>
+                            <td>불러왔다고 자동으로 학습하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>image</td>
+                            <td>이미지 읽기·크기 조정·배열 변환</td>
+                            <td>모델별 전처리는 별도</td>
+                        </tr>
+                        <tr>
+                            <td>Matplotlib</td>
+                            <td>이미지 표시와 그림 저장</td>
+                            <td>표시용 배열과 모델용 배열을 구분</td>
+                        </tr>
+                        <tr>
+                            <td>preprocess_input</td>
+                            <td>ResNet50이 기대하는 값과 채널 순서로 변환</td>
+                            <td>다른 모델의 동명 함수와 구분</td>
+                        </tr>
+                        <tr>
+                            <td>decode_predictions</td>
+                            <td>ImageNet 확률을 클래스 이름과 연결</td>
+                            <td>임의의 2클래스·5클래스 출력에는 사용 불가</td>
+                        </tr>
+                        <tr>
+                            <td>glob</td>
+                            <td>파일 경로 검색 도구</td>
+                            <td>이 원본 실행문에서는 실제 사용하지 않음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>필요한 함수와 224×224×3 입력 설정을 준비합니다.</dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>이미지 크기와 모델 입력 규격을 같은 상수로 관리합니다.</dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>아직 이미지 텐서를 처리하지 않으므로 해당 없음.</dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>함수·클래스와 세 개의 정수 상수가 현재 커널에 정의됩니다.</dd>
+            </dl>
+
+            <p class="notice">
+                첫 실행에서 모델 가중치가 내려받아질 수 있고,
+                클래스 해석 때 ImageNet 클래스 매핑 파일이 필요할 수 있습니다.
+                캐시가 있으면 재다운로드가 생략될 수 있습니다.
+                가중치 다운로드는 모델 학습이 아닙니다.
+            </p>
+
+            <p>
+                상대 경로 <code>./datasets/cnn/new_dog.jpg</code>는
+                Python의 현재 작업 디렉터리 기준입니다.
+                Notebook 파일 위치와 현재 작업 디렉터리가 항상 같다고 가정하지 않습니다.
+                호환되는 TensorFlow/Keras 환경과 Pillow 이미지 처리 의존성을 확인하고,
+                사용한 버전을 기록합니다.
+            </p>
+        </section>
+
+        <!-- 04. 모델 생성 -->
+        <section class="lesson-card" id="ml36-model">
+            <h2>
+                <span class="num">04</span>
+                Model Architecture · 기존 분류층까지 불러오기
+            </h2>
+
+            <p><span class="tag source">원문 셀 4</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="4">model = ResNet50(
+    include_top=True,
+    weights='imagenet',
+    input_shape=(IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNEL)
+)</code></pre>
+
+            <p>
+                <span class="tag source">원문 셀 5</span>
+                모델 구조를 출력하는 활성 코드입니다.
+                원본 파일에는 이 셀의 실행 번호와 요약 출력이 저장되어 있지 않습니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="5">model.summary()</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>ResNet50 생성 인자</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">설정</th>
+                            <th scope="col">의미</th>
+                            <th scope="col">결과</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>include_top=True</td>
+                            <td>기존 상단 분류 부분 포함</td>
+                            <td>ImageNet 1,000클래스 출력 유지</td>
+                        </tr>
+                        <tr>
+                            <td>weights='imagenet'</td>
+                            <td>이미 학습된 가중치 불러오기</td>
+                            <td>무작위 초기화 모델이 아님</td>
+                        </tr>
+                        <tr>
+                            <td>input_shape=(224,224,3)</td>
+                            <td>배치 축을 제외한 이미지 한 장의 규격</td>
+                            <td>높이·너비·RGB 채널</td>
+                        </tr>
+                        <tr>
+                            <td>기본 출력 활성화</td>
+                            <td>Softmax</td>
+                            <td>이미지별 클래스 확률 합이 약 1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>ResNet50 구조를 만들고 사전학습 가중치를 로드합니다.</dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>새 학습 없이 이미 갖춘 분류 능력을 사용합니다.</dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    <code>(None,224,224,3) → (None,1000)</code>.
+                    None은 배치 크기가 정해지지 않은 자리입니다.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    <code>model</code> 객체가 생성됩니다.
+                    summary는 구조를 출력할 뿐 가중치를 학습하지 않습니다.
+                </dd>
+            </dl>
+
+            <p>
+                <span class="tag saved">원본 저장 출력</span>
+                셀 4에는 가중치 다운로드 완료 로그가 있습니다.
+                훈련 이미지, epoch, loss, accuracy 로그가 아닙니다.
+            </p>
+
+            <p>
+                <span class="tag supplement">구조 계산</span>
+                표준 ResNet50에서 마지막 특징은 <code>7×7×2048</code>이고
+                GAP 뒤 <code>2048</code>개 값이 됩니다.
+                최종 Dense는 <code>2048×1000+1000=2,049,000</code>개 파라미터이며
+                전체는 <code>25,636,712</code>개입니다.
+                이 수치는 원본에 저장된 summary를 인용한 것이 아닙니다.
+            </p>
+
+            <p class="warning">
+                <strong>
+                    predict를 위해 trainable=False를 설정해야 하는 것은 아닙니다.
+                </strong>
+                원본에는 동결 설정이 없지만 predict는 역전파나
+                Optimizer 업데이트를 실행하지 않습니다.
+                <code>trainable</code>은 학습 대상 여부,
+                <code>training</code>은 학습/추론 동작 모드와 관련됩니다.
+                predict에서 BatchNormalization은 추론 동작을 사용합니다.
+            </p>
+        </section>
+
+        <!-- 05. 이미지와 배치 -->
+        <section class="lesson-card" id="ml36-image">
+            <h2>
+                <span class="num">05</span>
+                이미지 읽기 · 배치 축이 필요한 이유
+            </h2>
+
+            <p><span class="tag source">원문 셀 6</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="6">dog_image = image.load_img(
+    './datasets/cnn/new_dog.jpg',
+    target_size=(IMAGE_HEIGHT, IMAGE_WIDTH)
+)
+dog_image_array = image.img_to_array(dog_image)
+
+print(dog_image_array.shape)
+
+dog_image_array_input = dog_image_array[np.newaxis, ...]
+print(dog_image_array_input.shape)
+
+dog_image_array_input</code></pre>
+
+            <ol>
+                <li>
+                    <code>load_img</code>는 파일을 읽고 높이·너비를 224×224로 맞춥니다.
+                    기본 RGB 모드로 읽으므로 채널은 3개입니다.
+                </li>
+                <li>
+                    <code>img_to_array</code>는 이미지 객체를 NumPy 배열로 바꿉니다.
+                    기본 설정에서 보통 float32이지만
+                    이 단계의 픽셀 값은 여전히 0~255 범위입니다.
+                </li>
+                <li>
+                    <code>np.newaxis</code>는 맨 앞에 길이 1인 축을 추가합니다.
+                    <code>...</code>는 기존 높이·너비·채널 축을
+                    그대로 유지한다는 뜻입니다.
+                </li>
+            </ol>
+
+            <pre tabindex="0"><code>사진 한 장                여러 장을 담는 배치에 한 장 넣기
+(224, 224, 3)      →      (1, 224, 224, 3)
+높이  너비  채널             장수  높이  너비  채널</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>디스크의 이미지 → RGB 배열 → 배치 배열을 만듭니다.</dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>
+                    모델은 한 장을 예측할 때도 배치 축을 포함한
+                    4차원 입력을 기대합니다.
+                </dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    이미지 파일 → <code>(224,224,3)</code>
+                    → <code>(1,224,224,3)</code>.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    <code>dog_image</code>, <code>dog_image_array</code>,
+                    <code>dog_image_array_input</code> 변수가 생깁니다.
+                    아직 ResNet50 전용 전처리를 하지 않았습니다.
+                </dd>
+            </dl>
+
+            <p class="notice">
+                셀 6에는 출력이 저장되어 있지 않습니다.
+                위 Shape는 코드와 모델 규격으로 확인하는 예상 Shape입니다.
+                <code>float32</code>는 자료형이지
+                “자동으로 0~1로 정규화되었다”는 의미가 아닙니다.
+            </p>
+        </section>
+
+        <!-- 06. 원본 시각화 -->
+        <section class="lesson-card" id="ml36-display">
+            <h2>
+                <span class="num">06</span>
+                시각화 · /255는 무엇을 위한 코드인가?
+            </h2>
+
+            <p><span class="tag source">원문 셀 7</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="7">import matplotlib.pyplot as plt
+import numpy as np
+
+plt.imshow(dog_image_array / 255.0)</code></pre>
+
+            <p>
+                Matplotlib에 RGB 실수 배열을 보여줄 때는 일반적으로 0~1 범위를 사용합니다.
+                그래서 표시할 때만 <code>dog_image_array/255.</code>를 계산합니다.
+            </p>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>원본 RGB 사진을 사람이 볼 수 있게 표시합니다.</dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>올바른 파일을 읽었는지, 이미지가 정상인지 눈으로 확인합니다.</dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    <code>(224,224,3)</code> 배열 → 그림 객체.
+                    임시 나눗셈 결과의 Shape는 같습니다.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    그림이 생성됩니다.
+                    원문의 이 식에는 재대입이 없으므로
+                    모델 입력 변수 자체를 /255로 바꾸지 않습니다.
+                </dd>
+            </dl>
+
+            <p>
+                <span class="tag saved">원본 저장 출력</span>
+                개 사진과 Matplotlib 객체 출력이 저장되어 있습니다.
+                사진이 저장되어 있다는 사실과
+                실제 품종 정답이 확보되어 있다는 사실은 구분합니다.
+            </p>
+
+            <p class="warning">
+                <span class="tag review">추가 검토</span>
+                이 셀의 원문 주석에는 VGG16이 언급되지만
+                실제 생성한 모델과 가져온 전처리 함수는 ResNet50입니다.
+                이 셀의 실행문 자체는 이미지 표시 코드입니다.
+            </p>
+        </section>
+
+        <!-- 07. 전처리 -->
+        <section class="lesson-card" id="ml36-preprocess">
+            <h2>
+                <span class="num">07</span>
+                전처리 · Shape는 같고 픽셀의 의미가 바뀐다
+            </h2>
+
+            <p><span class="tag source">원문 셀 8</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="8">dog_image_array_output = preprocess_input(dog_image_array_input)
+print(dog_image_array_output.shape)
+
+dog_image_array_output</code></pre>
+
+            <p>
+                이번 ResNet50 V1의 전처리는 RGB를 BGR 순서로 바꾼 다음,
+                채널별 ImageNet 평균을 뺍니다.
+                <strong>이 모델용 입력에는 /255를 추가하지 않습니다.</strong>
+            </p>
+
+            <pre tabindex="0"><code>원본 RGB 픽셀       [R, G, B]
+채널 순서 변경       [B, G, R]
+평균 빼기           [B - 103.939, G - 116.779, R - 123.680]
+
+계산 예시 RGB       [10, 20, 30]
+전처리 결과         [-73.939, -96.779, -113.680]
+
+입력 Shape          (1, 224, 224, 3)
+출력 Shape          (1, 224, 224, 3)   ← 모양은 동일</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>입력을 사전학습 때의 채널 순서·값의 기준에 맞춥니다.</dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>
+                    같은 사진이라도 전처리가 달라지면
+                    모델이 기대한 입력 분포와 달라집니다.
+                </dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    <code>(1,224,224,3) → (1,224,224,3)</code>.
+                    함수가 크기 조정이나 배치 축 추가를 대신하지는 않습니다.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    <code>dog_image_array_output</code>에 전처리 결과가 연결됩니다.
+                    이름의 output은 전처리 출력이며,
+                    모델에서는 입력 X입니다.
+                </dd>
+            </dl>
+
+            <p>
+                <span class="tag saved">원본 저장 출력</span>
+                Shape <code>(1,224,224,3)</code>와 float32 배열이 저장되어 있습니다.
+                배열에는 음수도 들어갑니다.
+                음수라는 이유만으로 오류라고 판단하지 않습니다.
+            </p>
+
+            <h3>같은 셀을 다시 실행할 때의 함정</h3>
+
+            <p>
+                <code>np.newaxis</code>로 만든 배열은 원본 배열과
+                메모리를 공유할 수 있습니다.
+                NumPy 경로의 <code>preprocess_input</code>도
+                입력 배열을 제자리에서 변경할 수 있으므로,
+                같은 변수에 전처리를 반복하면
+                이미 변환된 값에 변환이 다시 적용될 수 있습니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python"># 보충 예제: 새로 읽은 RGB 배열에서 시작하고 복사본을 전처리합니다.
+fresh_image = image.load_img(
+    './datasets/cnn/new_dog.jpg',
+    target_size=(224, 224),
+    color_mode='rgb'
+)
+fresh_rgb = image.img_to_array(fresh_image)
+model_input = preprocess_input(fresh_rgb[np.newaxis, ...].copy())</code></pre>
+
+            <p class="notice">
+                이미 전처리로 바뀐 배열을 나중에 copy한다고
+                원본 RGB 값으로 되돌아가지 않습니다.
+                새로 읽은 RGB 배열을 기준으로 복사해야 합니다.
+                ResNet50V2나 MobileNet의 전처리를 이번 함수와 혼용하지 않습니다.
+            </p>
+        </section>
+
+        <!-- 08. 시각화 경고 -->
+        <section class="lesson-card" id="ml36-warning">
+            <h2>
+                <span class="num">08</span>
+                출력 그림 · 전처리 후 색이 이상한 이유
+            </h2>
+
+            <p><span class="tag source">원문 셀 9</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="9">plt.imshow(np.squeeze(dog_image_array_output))
+plt.savefig('preprocessImagResnet50.png')</code></pre>
+
+            <p>
+                <code>np.squeeze</code>는 길이 1인 축을 제거합니다.
+                여기서는 <code>(1,224,224,3)</code>이
+                <code>(224,224,3)</code>이 되어 그림으로 전달됩니다.
+                배치 축을 없앨 뿐 채널 순서와 평균 빼기를 되돌리지 않습니다.
+            </p>
+
+            <div class="grid two">
+                <div class="mini">
+                    <h3>표시하기 좋은 데이터</h3>
+                    <p>
+                        RGB 순서이며 float 값이면 보통 0~1입니다.
+                        원본 사진을 확인하려면 별도로 보관한 RGB 배열을 사용합니다.
+                    </p>
+                </div>
+
+                <div class="mini">
+                    <h3>모델이 기대하는 데이터</h3>
+                    <p>
+                        이번 모델에서는 BGR 순서의 평균을 뺀 값입니다.
+                        음수나 1보다 큰 값도 정상적으로 포함될 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
+            <p>
+                <span class="tag saved">원본 저장 경고 · 발췌</span>
+            </p>
+
+            <pre tabindex="0"><code>Clipping input data to the valid range for imshow with RGB data
+([0..1] for floats or [0..255] for integers).
+Got range [-122.68..138.061].</code></pre>
+
+            <p>
+                Matplotlib이 모델용 값을 일반 RGB 표시 범위로 잘라서 보여 주기 때문에
+                원본과 다른 색의 그림이 저장되었습니다.
+                <strong>
+                    이 경고는 시각화 범위 경고이며 모델의 추론 실패를 뜻하지 않습니다.
+                </strong>
+                경고를 없애려고 모델 입력을 임의로 0~1로 잘라서는 안 됩니다.
+            </p>
+
+            <p>
+                전처리 후 그림은 CNN 내부의 Feature Map이 아니라,
+                모델에 넣기 위해 입력 픽셀 값을 변환한 결과입니다.
+            </p>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>전처리된 배열을 그림으로 표시하고 PNG로 저장합니다.</dd>
+
+                <dt>왜 살펴보나요?</dt>
+                <dd>모델용 숫자와 화면 표시용 숫자가 다를 수 있음을 이해합니다.</dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    <code>(1,224,224,3) → (224,224,3)</code>은
+                    그림에 전달할 때의 임시 변환입니다.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    <code>preprocessImagResnet50.png</code> 그림 파일이
+                    현재 작업 폴더에 저장됩니다.
+                    모델 가중치 저장이 아닙니다.
+                    원문의 모델 입력 변수에는 squeeze 결과를 재대입하지 않습니다.
+                </dd>
+            </dl>
+        </section>
+
+        <!-- 09. Shape 흐름 -->
+        <section class="lesson-card" id="ml36-shape">
+            <h2>
+                <span class="num">09</span>
+                그림처럼 이해 · 데이터와 모델의 Shape 흐름
+            </h2>
+
+            <ol class="model-flow">
+                <li>
+                    <strong>Image · RGB</strong>
+                    <code>(224,224,3)</code>
+                </li>
+                <li>
+                    <strong>Batch + 전처리</strong>
+                    <code>(B,224,224,3)</code>
+                </li>
+                <li>
+                    <strong>Conv·BN·ReLU·Pooling</strong>
+                    <code>공간 특징 추출</code>
+                </li>
+                <li>
+                    <strong>Residual blocks</strong>
+                    <code>F(x) + shortcut(x)</code>
+                </li>
+                <li>
+                    <strong>최종 Feature Map</strong>
+                    <code>(B,7,7,2048)</code>
+                </li>
+                <li>
+                    <strong>Global Average Pooling</strong>
+                    <code>(B,2048)</code>
+                </li>
+                <li>
+                    <strong>Dense + Softmax</strong>
+                    <code>(B,1000)</code>
+                </li>
+                <li>
+                    <strong>클래스별 점수</strong>
+                    <code>이미지별 합 ≈ 1</code>
+                </li>
+                <li>
+                    <strong>Top-k 해석</strong>
+                    <code>클래스 ID·이름·점수</code>
+                </li>
+            </ol>
+
+            <p>
+                <code>B</code>는 배치에 들어 있는 이미지 수입니다.
+                원본은 한 장이므로 <code>B=1</code>입니다.
+                Conv·ReLU·Pooling은 내부 연산의 개요이며
+                실제 ResNet50은 여러 잔차 블록과 BatchNormalization을 포함합니다.
+            </p>
+
+            <pre tabindex="0"><code>잔차 연결의 개념
+입력 x ─────────── shortcut ─────┐
+   └─ 여러 층의 연산 F(x) ──────┤
+                                ↓
+                     F(x) + shortcut(x)
+
+GAP의 개념
+7×7 위치의 값을 채널별 평균 → 채널 2,048개는 유지
+(B,7,7,2048)                → (B,2048)</code></pre>
+
+            <p>
+                잔차 경로끼리 더하려면 Shape가 맞아야 하므로
+                필요할 때 shortcut에도 변환이 들어갑니다.
+                이번 실습에서는 내부 블록을 새로 구현하지 않습니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>변수 이름으로 추적하는 전체 흐름</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">변수·결과</th>
+                            <th scope="col">Shape/구조</th>
+                            <th scope="col">의미</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>dog_image_array</td>
+                            <td>(224,224,3)</td>
+                            <td>배열 변환 직후 RGB</td>
+                        </tr>
+                        <tr>
+                            <td>dog_image_array_input</td>
+                            <td>(1,224,224,3)</td>
+                            <td>배치 축을 추가한 배열</td>
+                        </tr>
+                        <tr>
+                            <td>dog_image_array_output</td>
+                            <td>(1,224,224,3)</td>
+                            <td>전처리 결과, 모델의 입력</td>
+                        </tr>
+                        <tr>
+                            <td>y_pred</td>
+                            <td>(1,1000)</td>
+                            <td>모델의 출력 확률</td>
+                        </tr>
+                        <tr>
+                            <td>argmax(axis=1)</td>
+                            <td>(1,)</td>
+                            <td>이미지별 가장 높은 클래스의 정수 인덱스</td>
+                        </tr>
+                        <tr>
+                            <td>decode_pred</td>
+                            <td>바깥 리스트 1개 × 안쪽 후보 5개</td>
+                            <td>NumPy 텐서가 아닌 중첩 리스트와 튜플</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="notice">
+                이 모델은 기존 GAP와 1,000클래스 Dense를 포함합니다.
+                이전 음식 전이학습 단원의 Flatten·새 Dense·5클래스 분류층을
+                이번 구조에 붙여 해석하지 않습니다.
+            </p>
+        </section>
+
+        <!-- 10. predict와 argmax -->
+        <section class="lesson-card" id="ml36-predict">
+            <h2>
+                <span class="num">10</span>
+                predict · 확률을 만들고 가장 큰 값을 찾기
+            </h2>
+
+            <p><span class="tag source">원문 셀 10</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="10">y_pred = model.predict(dog_image_array_output)
+print(y_pred)
+print(y_pred.sum())
+print(y_pred.shape)
+
+np.argmax(y_pred, axis=1)</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>
+                    전처리한 이미지로 1,000개 클래스 점수를 계산하고
+                    확률 합·Shape·최대 점수 인덱스를 확인합니다.
+                </dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>
+                    모델 출력을 해석하기 전에
+                    예상한 차원과 확률 구조인지 확인합니다.
+                </dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    <code>(1,224,224,3) → (1,1000)</code>.
+                    <code>argmax(axis=1)</code>의 결과는 <code>(1,)</code>.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    <code>y_pred</code>가 생성됩니다.
+                    가중치는 학습되지 않습니다.
+                    argmax는 가장 큰 값 자체가 아니라 위치를 반환합니다.
+                </dd>
+            </dl>
+
+            <h3>axis=1을 읽는 방법</h3>
+
+            <pre tabindex="0"><code>y_pred.shape = (이미지 수, 클래스 수)
+                    axis=0      axis=1
+
+argmax(axis=1)
+→ 각 이미지의 클래스 축에서 가장 큰 값의 위치를 선택
+
+sum(axis=1)
+→ 각 이미지의 클래스 확률을 합함 → 이미지마다 약 1</code></pre>
+
+            <p>
+                원문의 <code>y_pred.sum()</code>은 배열 전체의 합입니다.
+                한 장이면 약 1이지만 B장 배치라면 약 B가 됩니다.
+                여러 장에서는 <code>y_pred.sum(axis=1)</code>로
+                이미지별 합을 확인합니다.
+            </p>
+
+            <p class="warning">
+                <span class="tag review">추가 검토</span>
+                이 셀에는 저장된 실행 출력이 없습니다.
+                원문 주석의 <code>1.0000001</code>을 실제 저장 결과로 인용하지 않습니다.
+                부동소수점 계산에서 합이 1과 조금 다른 것은 가능하지만
+                실제 값은 실행해서 확인해야 합니다.
+                argmax의 정수 인덱스도 원본 저장 출력으로 확인되지 않았습니다.
+            </p>
+
+            <p>
+                Softmax는 클래스별 값 <code>zᵢ</code>를
+                <code>exp(zᵢ)/Σexp(zⱼ)</code>로 바꿉니다.
+                합이 1인 분포를 만들지만,
+                높은 점수가 항상 실제 세계의 정답 확률과
+                정확히 일치한다는 보장은 없습니다.
+            </p>
+        </section>
+
+        <!-- 11. 출력 해석 -->
+        <section class="lesson-card" id="ml36-decode">
+            <h2>
+                <span class="num">11</span>
+                출력 결과 · 숫자를 클래스 이름으로 해석하기
+            </h2>
+
+            <p><span class="tag source">원문 셀 11</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="11">decode_pred = decode_predictions(y_pred, top=5)
+print(decode_pred)
+
+for i, (imagenet_id, label, score) in enumerate(decode_pred[0]):
+    print(f'Top {i + 1}:{imagenet_id}:{label}를 {score * 100}%의 확률로 예측')</code></pre>
+
+            <pre tabindex="0"><code>decode_pred
+└─ [0] 첫 번째 이미지
+   ├─ ('n02106030', 'collie', 점수)
+   ├─ ('n02105855', 'Shetland_sheepdog', 점수)
+   └─ ... 상위 5개
+
+각 후보 = (ImageNet 클래스 ID, 클래스 이름, 예측 점수)</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>
+                    ImageNet 클래스 순서에 맞춰
+                    상위 5개 확률을 클래스 이름과 연결합니다.
+                </dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>1,000개 숫자만 보고는 어떤 클래스인지 알기 어렵기 때문입니다.</dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    <code>(1,1000)</code>
+                    → 이미지 1개에 대한 후보 튜플 5개의 중첩 리스트.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    <code>decode_pred</code>와 텍스트 출력이 생깁니다.
+                    원래 1,000클래스 분류층이나 예측 확률은 변경하지 않습니다.
+                </dd>
+            </dl>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>원본 저장 출력 · 보기 쉽게 반올림한 점수</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">순위</th>
+                            <th scope="col">ImageNet ID</th>
+                            <th scope="col">클래스 이름</th>
+                            <th scope="col">예측 점수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>n02106030</td>
+                            <td>collie</td>
+                            <td>98.8985%</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>n02105855</td>
+                            <td>Shetland_sheepdog</td>
+                            <td>1.0206%</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>n02090622</td>
+                            <td>borzoi</td>
+                            <td>0.0286%</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>n02088094</td>
+                            <td>Afghan_hound</td>
+                            <td>0.0262%</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>n02105056</td>
+                            <td>groenendael</td>
+                            <td>0.0069%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                원본의 Top 1 출력은
+                <code>collie를 98.89854431152344%의 확률로 예측</code>입니다.
+                이는 모델이 이 사진을 collie 쪽으로 강하게 분류했다는 뜻입니다.
+                실제 정답이 collie인지 검증한 결과는 아닙니다.
+            </p>
+
+            <ul>
+                <li>
+                    <code>decode_pred[0]</code>은 첫 이미지의 결과 목록입니다.
+                    <code>decode_pred[0][0]</code>은 그 이미지의 첫 후보입니다.
+                </li>
+                <li>
+                    <code>top=5</code>는 상위 후보를 다섯 개 보여 달라는 뜻입니다.
+                    5클래스 모델로 바꾸거나 선택된 다섯 값의 합을
+                    1로 재정규화하지 않습니다.
+                </li>
+                <li>
+                    상위 다섯 후보를 출력하는 것과
+                    정답 포함 비율인 Top-5 Accuracy를 측정하는 것은 다릅니다.
+                </li>
+                <li>
+                    개 품종별 점수를 보여 주는 것과
+                    모든 개 클래스를 합쳐 “개일 확률”을 계산하는 것은 다릅니다.
+                    원본은 후자를 계산하지 않습니다.
+                </li>
+            </ul>
+        </section>
+
+        <!-- 12. 실행 흐름 -->
+        <section class="lesson-card" id="ml36-flow">
+            <h2>
+                <span class="num">12</span>
+                실행 흐름 · 학습 과정 중 무엇이 생략되는가?
+            </h2>
+
+            <ol class="pipeline">
+                <li>라이브러리·입력 크기 준비</li>
+                <li>ResNet50·가중치 로드</li>
+                <li>이미지 읽기·224×224 조정</li>
+                <li>배열 변환·배치 축 추가</li>
+                <li>ResNet50 전처리</li>
+                <li>predict·상위 후보 해석</li>
+            </ol>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>AI Machine Learning 공통 흐름의 적용 여부</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">공통 단계</th>
+                            <th scope="col">이번 실습</th>
+                            <th scope="col">의미</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>문제 정의</td>
+                            <td>실행</td>
+                            <td>이미지 한 장의 ImageNet 클래스 추론</td>
+                        </tr>
+                        <tr>
+                            <td>Dataset</td>
+                            <td>이미지 한 장</td>
+                            <td>ImageNet은 사전학습 배경</td>
+                        </tr>
+                        <tr>
+                            <td>전처리</td>
+                            <td>실행</td>
+                            <td>크기·차원·채널·픽셀 값 맞추기</td>
+                        </tr>
+                        <tr>
+                            <td>Train / Validation / Test</td>
+                            <td>구성하지 않음</td>
+                            <td>새 학습과 정답 기반 평가가 없음</td>
+                        </tr>
+                        <tr>
+                            <td>Model</td>
+                            <td>기존 모델 로드</td>
+                            <td>ImageNet 분류층 유지</td>
+                        </tr>
+                        <tr>
+                            <td>compile</td>
+                            <td>없음</td>
+                            <td>predict에는 Loss·Optimizer 설정이 필요하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>fit</td>
+                            <td>없음</td>
+                            <td>Epoch·배치 학습·가중치 업데이트 없음</td>
+                        </tr>
+                        <tr>
+                            <td>evaluate</td>
+                            <td>없음</td>
+                            <td>원본 성능 지표가 산출되지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>predict</td>
+                            <td>실행문 있음</td>
+                            <td>확률 계산 후 클래스 이름 해석</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="notice">
+                Loss·Optimizer·Learning Rate가
+                <strong>0인 것이 아니라 설정·계산 대상이 아닙니다.</strong>
+                새 모델을 학습하는 단원에서는 필요하지만
+                이번 추론 흐름에는 등장하지 않습니다.
+            </p>
+
+            <p>
+                재현할 때는 커널을 초기화하고 위에서 아래로 실행합니다.
+                이미지를 바꿨다면 이미지 읽기 → 전처리 → predict → decode까지
+                다시 실행해야 합니다.
+                decode만 다시 실행하면 이전 이미지의 y_pred를 해석할 수 있습니다.
+            </p>
+        </section>
+
+        <!-- 13. Loss와 Metric -->
+        <section class="lesson-card" id="ml36-metric">
+            <h2>
+                <span class="num">13</span>
+                Loss·Metric · 점수와 성능을 구분하기
+            </h2>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>이번 출력으로 알 수 있는 것과 추가 데이터가 필요한 것</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">항목</th>
+                            <th scope="col">정의</th>
+                            <th scope="col">원본에서 확인 가능한가?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>예측 확률</td>
+                            <td>한 이미지에 대한 클래스별 Softmax 점수</td>
+                            <td>상위 5개 저장 결과 있음</td>
+                        </tr>
+                        <tr>
+                            <td>Top-1 Accuracy</td>
+                            <td>최고 점수 클래스가 정답인 이미지의 비율</td>
+                            <td>정답 데이터가 없어 계산하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>Top-5 Accuracy</td>
+                            <td>상위 5개 안에 정답이 있는 이미지의 비율</td>
+                            <td>후보 출력만으로는 계산 불가</td>
+                        </tr>
+                        <tr>
+                            <td>Cross-Entropy Loss</td>
+                            <td>실제 정답 클래스에 준 확률을 평가</td>
+                            <td>원본에 계산 없음</td>
+                        </tr>
+                        <tr>
+                            <td>R²</td>
+                            <td>연속값 회귀의 설명력 지표</td>
+                            <td>이 클래스 분류의 평가 지표로 사용하지 않음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Loss는 무엇을 보나요?</h3>
+
+            <p>
+                정답이 하나인 다중 클래스 분류에서 해당 정답의 확률을
+                <code>p_true</code>라 하면 Cross-Entropy는
+                <code>−ln(p_true)</code>입니다.
+                정답 확률이 높을수록 작아집니다.
+                정답이 collie라고 <strong>가정</strong>할 경우
+                저장 점수 0.9889854의 Loss는 약 0.0111입니다.
+                이는 조건을 둔 계산 예시이며 원본에서 측정한 Loss가 아닙니다.
+            </p>
+
+            <p>
+                Accuracy는 맞혔는지를 보고 Loss는 정답 확률도 반영합니다.
+                예를 들어 정답을 맞힌 두 이미지라도
+                정답 확률이 0.51과 0.99이면 Loss는 다릅니다.
+                반대로 틀린 클래스에 과도하게 확신하면 Loss가 커질 수 있습니다.
+            </p>
+
+            <h3>R²를 클래스 번호에 적용하면 왜 안 되나요?</h3>
+
+            <p>
+                R²는 일반적으로 <code>1 − SSE/SST</code>이며
+                연속적인 수치 예측을 평가합니다.
+                실제 값에 변동이 있을 때 1은 완벽한 예측,
+                0은 평균 예측 수준, 음수는 그보다 나쁜 결과를 뜻합니다.
+                ImageNet의 클래스 번호는 크기나 거리 의미가 없는 식별자이므로
+                번호 간 차이에 회귀 지표를 적용하지 않습니다.
+            </p>
+
+            <h3>보충 예제 · 정답이 확보되었을 때만 평가하기</h3>
+
+            <p>
+                <span class="tag supplement">원본에 없는 평가 확장</span>
+                아래는 이미 구한 확률과 실제 정답으로 Metric을 계산하는 함수입니다.
+                모델을 새로 학습하거나 원본에 없는 평가 결과를
+                만들어 제시하는 코드가 아닙니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python">def classification_scores(probabilities, y_true):
+    probabilities = np.asarray(probabilities)
+    y_true = np.asarray(y_true)
+
+    assert probabilities.ndim == 2
+    assert probabilities.shape[1] == 1000
+    assert y_true.ndim == 1
+    assert len(y_true) == len(probabilities)
+    assert len(y_true) &gt; 0
+    assert np.issubdtype(y_true.dtype, np.integer)
+    assert np.all((0 &lt;= y_true) &amp; (y_true &lt; 1000))
+
+    top1_indices = np.argmax(probabilities, axis=1)
+    top5_indices = np.argsort(probabilities, axis=1)[:, -5:]
+
+    top1_correct = top1_indices == y_true
+    top5_correct = np.any(
+        top5_indices == y_true[:, np.newaxis],
+        axis=1
+    )
+
+    return {
+        'top1_accuracy': float(np.mean(top1_correct)),
+        'top5_accuracy': float(np.mean(top5_correct))
+    }</code></pre>
+
+            <dl class="code-guide">
+                <dt>입력 조건</dt>
+                <dd>
+                    <code>probabilities: (N,1000)</code>,
+                    <code>y_true: (N,)</code>.
+                    정답은 같은 ImageNet 클래스 순서의 정수 0~999이고
+                    샘플 순서도 같아야 합니다.
+                </dd>
+
+                <dt>중간 Shape</dt>
+                <dd>
+                    Top-1 인덱스 <code>(N,)</code>,
+                    Top-5 인덱스 <code>(N,5)</code>,
+                    비교용 정답 <code>(N,1)</code>,
+                    정답 포함 여부 <code>(N,)</code>.
+                </dd>
+
+                <dt>출력과 변화</dt>
+                <dd>
+                    두 Accuracy를 담은 사전을 반환합니다.
+                    가중치는 바뀌지 않습니다.
+                    함수 정의만으로 실제 평가가 실행되지는 않습니다.
+                </dd>
+            </dl>
+
+            <p class="warning">
+                고양이=0, 개=1로 새로 만든 라벨을 ImageNet 번호로 사용하면 안 됩니다.
+                모델의 예측을 정답으로 복사해서 평가해도 안 됩니다.
+                최종 성능을 측정하려면 독립적인 평가 이미지와
+                올바른 정답이 필요합니다.
+            </p>
+        </section>
+
+        <!-- 14. 새 이미지 추론 -->
+        <section class="lesson-card" id="ml36-new">
+            <h2>
+                <span class="num">14</span>
+                새로운 이미지 · 같은 입력 규칙으로 반복하기
+            </h2>
+
+            <p>
+                <span class="tag supplement">재사용을 위한 보충 예제</span>
+                원본의 읽기 → 배치 → 전처리 → 예측 → 해석 순서를 함수로 묶습니다.
+                앞에서 만든 <code>model</code>과 import가 필요합니다.
+                원문 코드를 이 함수로 바꿨다고 주장하지 않습니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python">def predict_one_image(model, image_path, top=5):
+    img = image.load_img(
+        image_path,
+        target_size=(224, 224),
+        color_mode='rgb'
+    )
+    rgb_array = image.img_to_array(img)
+
+    model_input = preprocess_input(
+        rgb_array[np.newaxis, ...].copy()
+    )
+
+    probabilities = model.predict(model_input, verbose=0)
+    top_results = decode_predictions(probabilities, top=top)[0]
+
+    return probabilities, top_results
+
+
+probabilities, top_results = predict_one_image(
+    model,
+    './datasets/cnn/new_dog.jpg',
+    top=5
+)
+
+print('확률 Shape:', probabilities.shape)
+print('이미지별 확률 합:', probabilities.sum(axis=1))
+
+for rank, (class_id, class_name, score) in enumerate(top_results, start=1):
+    print(f'{rank}위 | {class_id} | {class_name} | {float(score):.4%}')</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>
+                    파일 경로를 받아 이미지 한 장을 예측합니다.
+                    다른 이미지는 경로를 바꿔 전달합니다.
+                </dd>
+
+                <dt>왜 필요한가요?</dt>
+                <dd>
+                    전처리 누락과 중복 적용을 줄이고,
+                    원본 RGB 배열의 변경을 방지합니다.
+                </dd>
+
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    경로 → <code>(1,224,224,3)</code>
+                    → 확률 <code>(1,1000)</code> + 후보 top개의 리스트.
+                </dd>
+
+                <dt>실행 후 변화</dt>
+                <dd>
+                    새 예측 결과가 생깁니다.
+                    같은 model을 재사용하며 학습하거나 분류층을 변경하지 않습니다.
+                </dd>
+            </dl>
+
+            <p>
+                아무 사진이나 넣을 수 있다는 것과
+                그 사진의 정답 클래스가 ImageNet 1,000개 안에 있다는 것은 다릅니다.
+                해당 클래스가 없어도 모델은 기존 클래스 중 점수를 배분하므로
+                높은 점수만으로 “분류 가능한 대상”이라고 보장할 수 없습니다.
+            </p>
+        </section>
+
+        <!-- 15. 원문과 검토 메모 -->
+        <section class="lesson-card" id="ml36-review">
+            <h2>
+                <span class="num">15</span>
+                원문과 검토 메모 · 확인한 사실을 구분하기
+            </h2>
+
+            <p>
+                <span class="tag review">통합교안의 공식 검토 메모</span>
+            </p>
+
+            <blockquote>
+                이전 셀·세션 상태에 의존하는 코드와 저장 출력이 있어
+                깨끗한 커널에서 순서대로 실행해 결과를 갱신하는 검증이 필요하다.
+            </blockquote>
+
+            <p>
+                이 메모는 실행 상태를 초기화한 재현 검증이 필요하다는 뜻입니다.
+                각 변수의 정의가 아예 없다고 단정하거나
+                순서대로 실행해도 반드시 NameError가 난다는 뜻으로 확대하지 않습니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>추가 검토 · 원문 코드, 주석, 저장 출력의 차이</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">관찰 항목</th>
+                            <th scope="col">원본 상태</th>
+                            <th scope="col">학습할 때의 해석</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>셀 5·6·10</td>
+                            <td>execution_count가 null이고 저장 출력 없음</td>
+                            <td>
+                                활성 코드이며 주석 처리된 것이 아님.
+                                실행 결과는 별도 확인 필요
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>셀 7 주석</td>
+                            <td>VGG16 언급</td>
+                            <td>실제 모델·전처리 import는 ResNet50</td>
+                        </tr>
+                        <tr>
+                            <td>셀 10 주석</td>
+                            <td>“1000개 클래스(동물)”</td>
+                            <td>ImageNet 클래스는 동물만으로 구성되지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>셀 10 합 주석</td>
+                            <td>1.0000001</td>
+                            <td>주석값이며 이 셀의 저장 출력은 없음</td>
+                        </tr>
+                        <tr>
+                            <td>셀 11 결과</td>
+                            <td>상위 5개와 collie 점수 저장</td>
+                            <td>원본 저장 사실로 소개하되 현재 재현 결과와 구분</td>
+                        </tr>
+                        <tr>
+                            <td>모델 요약·파라미터</td>
+                            <td>summary 출력 미저장</td>
+                            <td>이 자료의 파라미터 수는 표준 구조 계산</td>
+                        </tr>
+                        <tr>
+                            <td>전처리 배열</td>
+                            <td>원본은 copy 없이 전달</td>
+                            <td>메모리 공유·재실행 영향은 추가 검토 사항</td>
+                        </tr>
+                        <tr>
+                            <td>새 추론·평가 함수</td>
+                            <td>원본에는 없음</td>
+                            <td>보충 예제로 표시, 결과를 실행한 것처럼 제시하지 않음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="notice">
+                원본은 마크다운 1개와 코드 셀 11개로 구성되며
+                마지막 코드 셀은 비어 있습니다.
+                이 자료는 내용이 있는 원문 코드 셀 2~11의 실행문을 모두 수록했습니다.
+            </p>
+        </section>
+
+        <!-- 16. 실수와 누수 -->
+        <section class="lesson-card" id="ml36-mistakes">
+            <h2>
+                <span class="num">16</span>
+                자주 하는 실수 · Data Leakage·Shape·dtype
+            </h2>
+
+            <h3>Data Leakage · 독립적으로 평가했는가?</h3>
+
+            <p>
+                원본은 데이터 분할이나 새 학습을 하지 않으므로
+                여기서 데이터 누수가 발생했다고 단정할 근거는 없습니다.
+                다만 평가로 확장할 때는 원본과 증강 이미지,
+                같은 장면의 연속 사진, 중복 파일이
+                학습·검증·테스트에 섞이지 않도록 관리합니다.
+                테스트 결과를 보고 전처리나 모델을 반복 선택하면
+                테스트의 독립성이 약해집니다.
+            </p>
+
+            <p>
+                새 파일명이라는 사실만으로 ImageNet 사전학습 데이터와
+                중복되지 않는다고 증명되지는 않습니다.
+                반대로 이 사진이 사전학습에 포함되었다고 단정할 근거도 없습니다.
+                ImageNet에서 정해진 평균을 전처리에 사용하는 것 자체는
+                현재 테스트 데이터에서 통계를 학습하는 누수와 다릅니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>실수와 올바른 확인 기준</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">실수</th>
+                            <th scope="col">왜 문제인가?</th>
+                            <th scope="col">확인 방법</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>배치 축 누락</td>
+                            <td>3차원 이미지를 4차원 모델에 전달</td>
+                            <td>(1,224,224,3)인지 확인</td>
+                        </tr>
+                        <tr>
+                            <td>축을 두 번 추가</td>
+                            <td>(1,1,224,224,3)으로 rank가 5</td>
+                            <td>ndim과 각 축 의미 확인</td>
+                        </tr>
+                        <tr>
+                            <td>채널 순서 혼동</td>
+                            <td>(1,3,224,224)는 현재 입력 규격과 다름</td>
+                            <td>channels_last의 높이·너비·채널 순서 확인</td>
+                        </tr>
+                        <tr>
+                            <td>채널 수 불일치</td>
+                            <td>흑백 1채널·RGBA 4채널을 그대로 전달</td>
+                            <td>RGB로 읽고 마지막 축 3 확인</td>
+                        </tr>
+                        <tr>
+                            <td>float이면 0~1이라고 생각</td>
+                            <td>dtype와 값 범위는 별개</td>
+                            <td>dtype·min·max를 함께 확인</td>
+                        </tr>
+                        <tr>
+                            <td>/255 뒤 ResNet50 전처리</td>
+                            <td>사전학습 입력 규칙과 달라짐</td>
+                            <td>모델용 원본 RGB 값에서 전용 함수 적용</td>
+                        </tr>
+                        <tr>
+                            <td>전처리 두 번 실행</td>
+                            <td>값이 다시 변환되어 잘못된 입력 생성</td>
+                            <td>이미지부터 새로 읽고 복사본 사용</td>
+                        </tr>
+                        <tr>
+                            <td>argmax의 axis 생략</td>
+                            <td>배치 전체를 펼친 한 위치를 고를 수 있음</td>
+                            <td>클래스 축 axis=1 사용</td>
+                        </tr>
+                        <tr>
+                            <td>(N,)과 (N,1)을 그대로 비교</td>
+                            <td>브로드캐스팅으로 (N,N)이 될 수 있음</td>
+                            <td>Top-1 정답과 예측 모두 (N,)인지 확인</td>
+                        </tr>
+                        <tr>
+                            <td>ImageNet 번호와 폴더 번호 혼용</td>
+                            <td>같은 숫자라도 클래스 의미가 다름</td>
+                            <td>모델과 같은 클래스 매핑으로 정답 구성</td>
+                        </tr>
+                        <tr>
+                            <td>이전 y_pred 재사용</td>
+                            <td>사진은 바뀌었지만 예측은 이전 값</td>
+                            <td>읽기 → 전처리 → predict → decode 연속 실행</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="warning">
+                오류 메시지가 없다고 데이터가 올바른 것은 아닙니다.
+                잘못된 스케일, 중복 전처리, 라벨 매핑, 오래된 변수는
+                코드가 실행되면서 결과만 틀리게 만들 수 있습니다.
+            </p>
+        </section>
+
+        <!-- 17. 오류 메시지 -->
+        <section class="lesson-card" id="ml36-errors">
+            <h2>
+                <span class="num">17</span>
+                오류 메시지 읽는 법 · 마지막 줄에서 입력까지 추적
+            </h2>
+
+            <p>
+                먼저 오류 종류와 마지막 메시지를 읽고,
+                문제가 난 줄의 변수에 대해
+                <code>shape → ndim → dtype → 값 범위 → 생성 순서</code>를 확인합니다.
+                아래에서 Matplotlib 경고만 원본에 저장된 메시지이며
+                나머지는 발생 가능한 오류 유형입니다.
+                구체적인 문구는 버전에 따라 다를 수 있습니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>실제 저장 경고와 발생 가능한 오류</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">메시지·상황</th>
+                            <th scope="col">읽는 방법</th>
+                            <th scope="col">대응</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clipping input data…</td>
+                            <td>이미지 표시 범위를 벗어남</td>
+                            <td>전처리 값은 모델에 사용하고 시각화에는 원본 RGB 사용</td>
+                        </tr>
+                        <tr>
+                            <td>FileNotFoundError</td>
+                            <td>현재 경로에서 파일을 찾지 못함</td>
+                            <td>작업 폴더·상대 경로·확장자 확인</td>
+                        </tr>
+                        <tr>
+                            <td>UnidentifiedImageError</td>
+                            <td>유효한 이미지로 읽을 수 없음</td>
+                            <td>파일 손상·실제 포맷·다운로드 상태 확인</td>
+                        </tr>
+                        <tr>
+                            <td>expected shape / incompatible shape</td>
+                            <td>모델 입력 규격 불일치</td>
+                            <td>배치·크기·채널 수와 축 순서 확인</td>
+                        </tr>
+                        <tr>
+                            <td>expected ndim=4 / found ndim=3</td>
+                            <td>차원 수가 부족함</td>
+                            <td>
+                                배치 축 추가.
+                                반대로 rank 5이면 중복 추가 여부 확인
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Cannot convert / dtype 관련 TypeError</td>
+                            <td>문자열·object 배열 등 연산 불가</td>
+                            <td>숫자형 이미지 배열인지 확인하고 적절한 float 변환 사용</td>
+                        </tr>
+                        <tr>
+                            <td>NameError</td>
+                            <td>현재 커널에 변수가 없음</td>
+                            <td>정의 셀 실행 여부·철자·커널 초기화 상태 확인</td>
+                        </tr>
+                        <tr>
+                            <td>decode_predictions의 shape 오류</td>
+                            <td>ImageNet 1,000클래스 출력이 아님</td>
+                            <td>
+                                원래 모델 출력인지 확인.
+                                새 분류층은 자체 클래스 목록 사용
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>ResourceExhaustedError / OOM</td>
+                            <td>메모리 부족</td>
+                            <td>배치 크기·중복 모델 생성·잔존 객체 점검</td>
+                        </tr>
+                        <tr>
+                            <td>가중치·매핑 다운로드 실패</td>
+                            <td>필요한 파일을 가져오지 못함</td>
+                            <td>네트워크·캐시·권한·중단된 다운로드 확인</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                <span class="tag supplement">실행 상태 점검 예제</span>
+                아래의 모델·배열 출력은 해당 변수의 준비 셀을 실행한 다음 확인합니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python">from pathlib import Path
+
+image_path = Path('./datasets/cnn/new_dog.jpg')
+
+print('작업 폴더:', Path.cwd())
+print('이미지 경로:', image_path.resolve())
+print('파일 존재:', image_path.is_file())
+print('TensorFlow:', tf.__version__)
+
+print('모델 입력/출력:', model.input_shape, model.output_shape)
+print('실제 입력:', dog_image_array_output.shape)
+print('dtype:', dog_image_array_output.dtype)
+print('값 범위:', dog_image_array_output.min(), dog_image_array_output.max())
+print('NaN/Inf 없음:', np.isfinite(dog_image_array_output).all())</code></pre>
+        </section>
+
+        <!-- 18. 성능 진단과 개선 -->
+        <section class="lesson-card" id="ml36-improve">
+            <h2>
+                <span class="num">18</span>
+                성능 개선 · 학습 진단과 추론 진단을 구분하기
+            </h2>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>필수 개념과 이번 단원에서의 적용 범위</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">개념</th>
+                            <th scope="col">학습 중 관찰하는 대표 현상</th>
+                            <th scope="col">이번 실습의 판단</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Overfitting</td>
+                            <td>훈련에는 잘 맞지만 검증 성능이 상대적으로 나쁨</td>
+                            <td>훈련·검증 곡선이 없어 판정 불가</td>
+                        </tr>
+                        <tr>
+                            <td>Underfitting</td>
+                            <td>훈련과 검증 모두 충분히 맞추지 못함</td>
+                            <td>한 장의 예측 실패만으로 판정 불가</td>
+                        </tr>
+                        <tr>
+                            <td>Learning Rate가 너무 큼</td>
+                            <td>업데이트가 커져 Loss 진동·불안정 가능</td>
+                            <td>원본은 가중치 업데이트가 없어 조정 대상 아님</td>
+                        </tr>
+                        <tr>
+                            <td>Learning Rate가 너무 작음</td>
+                            <td>학습 진행이 느리거나 제한된 시간에 충분히 학습하지 못함</td>
+                            <td>원본에 Learning Rate 설정 없음</td>
+                        </tr>
+                        <tr>
+                            <td>입력 분포 차이</td>
+                            <td>실제 서비스 사진이 사전학습 사진과 다름</td>
+                            <td>추론 결과가 나쁠 때 확인할 주요 원인</td>
+                        </tr>
+                        <tr>
+                            <td>클래스 범위 불일치</td>
+                            <td>원하는 정답이 기존 클래스에 없음</td>
+                            <td>1,000클래스 목록이 과제에 적합한지 확인</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>예측이 이상할 때의 확인 순서</h3>
+
+            <ol>
+                <li>
+                    사진 경로와 실제 내용을 확인합니다.
+                    RGB·224×224·4차원 배치인지 확인합니다.
+                </li>
+                <li>
+                    ResNet50 전처리를 새 RGB 배열에 한 번만 적용했는지 확인합니다.
+                </li>
+                <li>
+                    ImageNet 가중치, include_top=True,
+                    1,000클래스 출력인지 확인합니다.
+                </li>
+                <li>
+                    관심 대상이 ImageNet 클래스 범위에 포함되는지 확인합니다.
+                </li>
+                <li>
+                    다양한 실제 이미지와 정답으로 오류 유형을 분석합니다.
+                    한 장의 높은 점수만으로 성능을 결론 내리지 않습니다.
+                </li>
+                <li>
+                    새 과제의 클래스가 필요하면 전이학습으로 분류층을 구성합니다.
+                    기반 모델 미세조정은 추가 학습 단계에서 별도로 검토합니다.
+                </li>
+            </ol>
+
+            <p>
+                새 학습을 한다면 과적합에는 데이터 다양성·적절한 증강·정규화·학습 종료 시점 등을,
+                과소적합에는 학습량·모델 표현력·입력과 라벨 품질 등을 점검할 수 있습니다.
+                이러한 조치는 원본에서 실행한 개선 실험이 아닙니다.
+            </p>
+
+            <p class="notice">
+                단순히 Learning Rate를 바꿔서 기존 predict 결과를 개선하지는 못합니다.
+                먼저 입력 처리와 과제 적합성을 확인하고,
+                실제 추가 학습이 필요한지 판단합니다.
+            </p>
+        </section>
+
+        <!-- 19. 실무 연결 -->
+        <section class="lesson-card" id="ml36-practice">
+            <h2>
+                <span class="num">19</span>
+                실무 연결 · 모델 호출을 하나의 처리 과정으로 만들기
+            </h2>
+
+            <pre tabindex="0"><code>이미지 업로드
+  ↓ 읽을 수 있는 이미지인지 확인
+RGB·크기 변환
+  ↓ 모델 버전에 맞는 전처리
+한 번 로드한 모델로 추론
+  ↓ 클래스 ID와 이름 연결
+상위 후보와 점수 전달
+  ↓ 실제 정답을 확보할 수 있는 경우
+오류 유형·환경 변화·성능 추적</code></pre>
+
+            <ul>
+                <li>
+                    <strong>모델 재사용:</strong>
+                    이미지마다 ResNet50을 새로 생성하면 로딩 비용과 메모리 부담이 커집니다.
+                    생성한 모델로 여러 요청을 처리합니다.
+                </li>
+                <li>
+                    <strong>입력 규칙 관리:</strong>
+                    크기, RGB/BGR, 값 범위, dtype,
+                    전처리 함수와 버전을 함께 기록합니다.
+                </li>
+                <li>
+                    <strong>출력 규칙 관리:</strong>
+                    클래스 순서와 이름 매핑을 모델과 함께 관리합니다.
+                    확률 0~1과 백분율 0~100을 혼용하지 않습니다.
+                </li>
+                <li>
+                    <strong>기능 범위:</strong>
+                    이미지 전체 분류 결과만 제공합니다.
+                    여러 동물의 위치·개수를 구하려면 별도의 탐지 과제가 필요합니다.
+                </li>
+                <li>
+                    <strong>점수 해석:</strong>
+                    “이 모델에서 collie 점수가 가장 높음”과
+                    “실제 품종이 확정됨”을 구분합니다.
+                    업무가 요구하면 점수의 신뢰성과 거절 기준을 별도 데이터로 검증합니다.
+                </li>
+                <li>
+                    <strong>재현성:</strong>
+                    원본 이미지, 모델 버전, 전처리와 클래스 목록,
+                    실행 환경을 연결해 기록합니다.
+                </li>
+            </ul>
+        </section>
+
+        <!-- 20. 면접 포인트 -->
+        <section class="lesson-card" id="ml36-interview">
+            <h2>
+                <span class="num">20</span>
+                면접 포인트 · 질문에 답하며 복습하기
+            </h2>
+
+            <details open>
+                <summary>Q1. 이번 단원은 왜 전이학습 실습이 아닌가요?</summary>
+                <p>
+                    원본의 분류층과 사전학습 가중치를 그대로 사용하고,
+                    새 데이터로 파라미터를 학습하지 않기 때문입니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q2. include_top=True는 무엇을 의미하나요?</summary>
+                <p>
+                    ImageNet 분류 부분까지 포함합니다.
+                    이번 설정에서 결과는 1,000개 클래스 확률입니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q3. 사진 한 장인데 왜 4차원인가요?</summary>
+                <p>
+                    이미지 한 장의 높이·너비·채널 세 축 앞에
+                    이미지 수를 나타내는 배치 축이 필요하기 때문입니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q4. float32 배열이면 0~1 범위인가요?</summary>
+                <p>
+                    아닙니다. dtype는 값의 저장 형식입니다.
+                    img_to_array 직후 float32여도 픽셀 값은 일반적으로 0~255입니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q5. ResNet50 V1 전처리는 무엇인가요?</summary>
+                <p>
+                    RGB를 BGR로 바꾸고 채널별 ImageNet 평균을 뺍니다.
+                    이번 모델에서는 /255를 추가하지 않습니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q6. 원문의 /255는 모델 입력 정규화인가요?</summary>
+                <p>
+                    해당 식은 imshow에 넘기는 임시 표시용 계산입니다.
+                    모델 입력 변수에 재대입하지 않습니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q7. 전처리 후 음수나 이상한 색이 나오면 오류인가요?</summary>
+                <p>
+                    음수는 평균 빼기의 정상 결과일 수 있습니다.
+                    이상한 색과 Clipping 경고는 모델용 배열을
+                    RGB 표시 규칙으로 보여 줄 때 생길 수 있습니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q8. np.squeeze는 전처리를 되돌리나요?</summary>
+                <p>
+                    아닙니다. 길이 1인 축만 제거합니다.
+                    채널 순서나 픽셀 값은 복원하지 않습니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q9. predict 전에 compile이나 trainable=False가 필요한가요?</summary>
+                <p>
+                    이 추론에는 둘 다 필요하지 않습니다.
+                    predict는 가중치를 최적화하지 않으며
+                    학습 설정과 추론 모드는 구분해야 합니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q10. argmax(axis=1)는 무엇을 반환하나요?</summary>
+                <p>
+                    각 이미지에서 가장 큰 클래스 점수의 정수 인덱스를 반환합니다.
+                    점수 자체나 클래스 이름을 반환하지 않습니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q11. decode_predictions는 무엇을 하나요?</summary>
+                <p>
+                    ImageNet의 클래스 순서에 맞춰 예측 점수를
+                    ID·이름·점수 튜플로 해석합니다.
+                    새로 학습한 임의의 클래스에는 자체 매핑이 필요합니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q12. top=5이면 출력층이 다섯 개인가요?</summary>
+                <p>
+                    아닙니다. 출력층은 1,000개이고
+                    그중 상위 다섯 후보를 선택해서 보여 줍니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q13. 98.8985%를 정확도라고 해도 되나요?</summary>
+                <p>
+                    안 됩니다. 한 이미지에 대한 collie 예측 점수입니다.
+                    Accuracy는 여러 예측과 실제 정답의 일치 비율로 계산합니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q14. Top-5 출력과 Top-5 Accuracy의 차이는?</summary>
+                <p>
+                    출력은 후보 목록이고 Accuracy는
+                    실제 정답이 그 후보 안에 포함된 이미지의 비율입니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q15. 전처리 셀을 반복 실행할 때 왜 조심하나요?</summary>
+                <p>
+                    입력 메모리가 공유되거나 제자리 변경이 일어나
+                    이미 전처리된 값에 변환을 반복할 수 있습니다.
+                    새 RGB 배열의 복사본을 사용합니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q16. 이 예측만으로 과적합과 Learning Rate를 논할 수 있나요?</summary>
+                <p>
+                    원본에는 훈련·검증 곡선이나 Optimizer 업데이트가 없습니다.
+                    학습 진단을 하려면 별도 학습·검증 자료가 필요합니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q17. R²가 적합하지 않은 이유는?</summary>
+                <p>
+                    클래스 인덱스는 수치적 거리 의미가 없는 범주 식별자입니다.
+                    연속값 회귀용 R²를 적용하지 않습니다.
+                </p>
+            </details>
+
+            <details open>
+                <summary>Q18. 다음 단원에서 달라지는 것은?</summary>
+                <p>
+                    MobileNet V1의 기존 분류층을 제외하고
+                    고양이·개용 새 분류층을 추가해 학습합니다.
+                    전처리와 출력 클래스 의미도 바뀝니다.
+                </p>
+            </details>
+        </section>
+
+    </main>
+
+    <aside class="side-note" aria-label="복습 노트">
+
+        <section class="side-note-card" id="ml36-memory">
+            <h2>오늘의 암기 포인트</h2>
+
+            <ol>
+                <li>이번 실습은 추가 학습 없는 추론이다.</li>
+                <li>ImageNet 가중치와 기존 분류층을 그대로 쓴다.</li>
+                <li>사진 한 장은 224×224×3이다.</li>
+                <li>모델 입력은 (1,224,224,3)이다.</li>
+                <li>float32와 0~1 범위는 별개다.</li>
+                <li>ResNet50 V1은 BGR 전환과 평균 빼기를 쓴다.</li>
+                <li>표시용 /255를 모델 전처리와 혼동하지 않는다.</li>
+                <li>전처리는 새 RGB 배열에 한 번 적용한다.</li>
+                <li>squeeze는 축만 제거한다.</li>
+                <li>predict는 가중치를 학습하지 않는다.</li>
+                <li>출력은 (1,1000)이다.</li>
+                <li>배치별 확률 합은 sum(axis=1)로 확인한다.</li>
+                <li>argmax는 점수의 위치를 반환한다.</li>
+                <li>decode는 ImageNet 클래스 이름을 연결한다.</li>
+                <li>top=5는 후보 다섯 개를 보여 준다.</li>
+                <li>예측 점수는 정확도가 아니다.</li>
+                <li>정답 y가 없으면 실제 Loss·Accuracy를 계산할 수 없다.</li>
+                <li>다음 단원은 새 두 클래스 분류층을 학습한다.</li>
+            </ol>
+        </section>
+
+        <section class="side-note-card">
+            <h2>헷갈리기 쉬운 개념</h2>
+
+            <dl>
+                <dt><strong>전처리 output ↔ 모델 output</strong></dt>
+                <dd>
+                    dog_image_array_output은 모델 입력이고
+                    y_pred가 모델 출력입니다.
+                </dd>
+
+                <dt><strong>None ↔ 1</strong></dt>
+                <dd>
+                    None은 모델 정의의 가변 배치 자리,
+                    1은 실제 이미지 장수입니다.
+                </dd>
+
+                <dt><strong>Shape ↔ dtype ↔ 값 범위</strong></dt>
+                <dd>
+                    배열 모양, 자료형, 숫자 범위는 각각 확인해야 합니다.
+                </dd>
+
+                <dt><strong>trainable ↔ training</strong></dt>
+                <dd>
+                    학습 대상 여부와 학습/추론 동작 모드는 다른 개념입니다.
+                </dd>
+
+                <dt><strong>확률 합 ↔ Accuracy</strong></dt>
+                <dd>
+                    Softmax 합이 1이라는 성질은 정답을 맞혔다는 뜻이 아닙니다.
+                </dd>
+
+                <dt><strong>ImageNet ID ↔ 배열 인덱스</strong></dt>
+                <dd>
+                    n02106030 같은 클래스 식별자와
+                    출력 배열의 정수 위치는 다릅니다.
+                </dd>
+
+                <dt><strong>저장 출력 ↔ 주석 ↔ 예상 Shape</strong></dt>
+                <dd>
+                    원본에 저장된 사실, 작성자의 설명,
+                    구조상 계산한 결과를 구분합니다.
+                </dd>
+
+                <dt><strong>이미지 분류 ↔ 객체 탐지</strong></dt>
+                <dd>
+                    이미지 전체의 클래스 예측과
+                    객체별 위치·개수 예측은 다릅니다.
+                </dd>
+            </dl>
+        </section>
+
+        <section class="side-note-card" id="ml36-next">
+            <h2>다음 단원 연결 · ML 37 MobileNet 전이학습</h2>
+
+            <p>
+                다음 Notebook 72는 <strong>MobileNet V1</strong>을 사용하여
+                고양이·개 분류층을 학습합니다.
+                이번에 익힌 읽기·Shape·전처리·예측 해석은 유지하고,
+                새로운 정답 y와 학습 과정이 추가됩니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>이번 단원과 다음 단원의 차이</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">항목</th>
+                            <th scope="col">ML 36 · 현재</th>
+                            <th scope="col">ML 37 · 다음</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>기반 모델</td>
+                            <td>ResNet50</td>
+                            <td>MobileNet V1</td>
+                        </tr>
+                        <tr>
+                            <td>include_top</td>
+                            <td>True</td>
+                            <td>False</td>
+                        </tr>
+                        <tr>
+                            <td>전처리</td>
+                            <td>BGR 전환·채널별 평균 빼기</td>
+                            <td>MobileNet 전용 함수로 대략 −1~1 범위</td>
+                        </tr>
+                        <tr>
+                            <td>분류 부분</td>
+                            <td>기존 GAP → Dense 1000</td>
+                            <td>GAP → Dense 64 ReLU → Dense 2 Softmax</td>
+                        </tr>
+                        <tr>
+                            <td>기반 모델 학습</td>
+                            <td>추가 학습 전체 없음</td>
+                            <td>기반 층 고정, 새 분류층 학습</td>
+                        </tr>
+                        <tr>
+                            <td>입력·출력</td>
+                            <td>(B,224,224,3) → (B,1000)</td>
+                            <td>(B,224,224,3) → (B,2)</td>
+                        </tr>
+                        <tr>
+                            <td>정답 y</td>
+                            <td>없음</td>
+                            <td>고양이·개 categorical 라벨 (B,2)</td>
+                        </tr>
+                        <tr>
+                            <td>데이터 분할</td>
+                            <td>추론 이미지 한 장</td>
+                            <td>Train 2,000 / Validation 200 / Test 200장</td>
+                        </tr>
+                        <tr>
+                            <td>증강</td>
+                            <td>없음</td>
+                            <td>훈련 데이터에 적용, 검증·테스트는 전처리 중심</td>
+                        </tr>
+                        <tr>
+                            <td>학습 설정</td>
+                            <td>compile·fit 없음</td>
+                            <td>categorical_crossentropy·Adam·accuracy</td>
+                        </tr>
+                        <tr>
+                            <td>학습 실행</td>
+                            <td>없음</td>
+                            <td>배치 100, 10 epochs, steps_per_epoch=20</td>
+                        </tr>
+                        <tr>
+                            <td>평가·해석</td>
+                            <td>ImageNet decode</td>
+                            <td>평가 실행, 자체 두 클래스 매핑 필요</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="notice">
+                현재 단원의 1,000클래스 확률을 단순히 두 개로 줄여 읽는 것이 아닙니다.
+                새 두 클래스에 맞는 분류층과 정답을 준비하여 학습합니다.
+                모델이 바뀌면 <code>preprocess_input</code>의 import도
+                함께 바뀌어야 합니다.
+            </p>
+        </section>
+
+    </aside>
+
+    <footer class="lesson-footer">
+        <p>
+            <strong>자료 기준:</strong>
+            71_케라스-CNN-DogvsCat-ResNet-Only-Use36.ipynb,
+            AI_MachineLearning_통합교안_36-100.pdf 300~303쪽.
+            다음 단원 연결은 Notebook 72 기준입니다.
+            원본 파일은 수정하지 않았습니다.
+        </p>
+
+        <p>
+            <strong>공식 참고:</strong>
+            <a href="https://keras.io/api/applications/resnet/resnet_models/">
+                ResNet 모델·전처리
+            </a>
+            ·
+            <a href="https://keras.io/api/models/model_training_apis/">
+                Keras predict
+            </a>
+            ·
+            <a href="https://github.com/keras-team/keras/blob/v3.3.3/keras/src/applications/imagenet_utils.py">
+                전처리·decode 구현 참고
+            </a>
+            ·
+            <a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html">
+                Matplotlib imshow
+            </a>
+            ·
+            <a href="https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html">
+                NumPy squeeze
+            </a>
+            ·
+            <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html">
+                R²
+            </a>
+            ·
+            <a href="https://keras.io/api/applications/mobilenet/mobilenet_models/">
+                MobileNet
+            </a>
+        </p>
+
+        <p>
+            <a href="#ml36-top">맨 위로 돌아가기 ↑</a>
+        </p>
+    </footer>
+
+</div>
     </div>
-</body>
+
+        <script src="../../js/00_nav.js" defer></script>
+    </body>
 </html>

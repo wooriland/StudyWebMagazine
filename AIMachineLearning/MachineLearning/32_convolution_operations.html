@@ -1,266 +1,3523 @@
 <!DOCTYPE html>
-<html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 32. Convolution 연산 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 32. Convolution 연산 | AI Machine Learning | AI &amp; Machine Learning</title>
+<html lang="ko">
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/32_convolution_operations.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="32"
-      data-step="0"
-      data-status="skeleton" data-part="part-4-cnn-transfer">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="ML 32 Convolution 연산. MNIST 데이터, Shape, 일반·Depthwise·Pointwise 합성곱, 학습·평가·예측, 오류 진단을 정리한 HTML 학습 매거진.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>ML 32. Convolution 연산 | AI Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/32_convolution_operations.css">
+    </head>
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 4. CNN과 전이학습 · ML 32</p>
-                        <h1>ML 32. Convolution 연산</h1>
-                    </div>
+    <body class="theme-ai-machine-learning study-page machine-learning-page ml32-page">
+        <a class="skip-link" href="#ml32-main">
+                본문으로 바로가기
+            </a>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
-                </div>
+        <div class="layout">
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 공통 메뉴"></nav>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+        <div class="page-content" id="ml32-study">
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
+
+
+            <!-- ==================================================
+         HEADER
+    =================================================== -->
+            <header class="lesson-hero" id="ml32-top">
+
+                <div class="hero-badges">
                     <span>AI Machine Learning</span>
                     <span>PART 4. CNN과 전이학습</span>
                     <span>ML 32</span>
-                    <span>Skeleton</span>
+                    <span>Step 3</span>
                 </div>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-32">
-                    <h2 id="goals-machine-learning-32">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
+                <p class="eyebrow">
+                    MNIST · Convolution · Shape · Training · Prediction
+                </p>
+
+                <h1>Convolution 연산</h1>
+
+                <p class="hero-summary">
+                    작은 필터가 이미지의 특징을 읽고,
+                    그 특징이 숫자 예측으로 이어지는 과정을 따라간다.
+                    <strong>
+                        코드마다 입력·출력 Shape와 실행 후 바뀌는 상태를
+                        확인하는 CNN 실습 단원이다.
+                    </strong>
+                </p>
+
+                <div class="hero-flow" aria-label="전체 실습 흐름">
+                    <span>Dataset</span>
+                    <b aria-hidden="true">→</b>
+                    <span>전처리·분리</span>
+                    <b aria-hidden="true">→</b>
+                    <span>Model</span>
+                    <b aria-hidden="true">→</b>
+                    <span>compile·fit</span>
+                    <b aria-hidden="true">→</b>
+                    <span>evaluate·predict</span>
+                </div>
+
+                <div class="hero-stats">
+
+                    <div class="stat-card">
+                        <span class="stat-label">비교할 합성곱 구조</span>
+                        <strong>3가지</strong>
+                        <p>일반 Conv · Depthwise · Depthwise + Pointwise</p>
+                    </div>
+
+                    <div class="stat-card">
+                        <span class="stat-label">현재 모델 파라미터</span>
+                        <strong>347,572</strong>
+                        <p>합성곱 42개 + Dense 두 층 347,530개</p>
+                    </div>
+
+                    <div class="stat-card">
+                        <span class="stat-label">원본 저장 테스트 정확도</span>
+                        <strong>96.38%</strong>
+                        <p>현재 활성 모델의 저장된 실행 결과</p>
+                    </div>
+
+                </div>
+
+                <section class="learning-goals" aria-labelledby="ml32-goals-title">
+
+                    <h2 id="ml32-goals-title">학습 목표</h2>
+
+                    <ul>
+                        <li>MNIST의 X와 y가 무엇을 담는지 설명한다.</li>
+                        <li>배치·높이·너비·채널 축을 구분한다.</li>
+                        <li>일반·Depthwise·Pointwise 합성곱의 역할을 비교한다.</li>
+                        <li>층별 Shape와 파라미터 수를 직접 계산한다.</li>
+                        <li>compile·fit·evaluate·predict의 차이를 설명한다.</li>
+                        <li>훈련·검증·테스트 데이터를 구분한다.</li>
+                        <li>Loss와 Accuracy를 서로 다르게 해석한다.</li>
+                        <li>데이터 누수·Shape·dtype·학습률 문제를 진단한다.</li>
+                        <li>교안 주석과 실제 저장 결과가 다른 부분을 대조한다.</li>
+                        <li>다음 이진 분류 단원에서 예측 해석을 바꿀 수 있다.</li>
+                    </ul>
+
                 </section>
+
+                <div class="source-legend" aria-label="자료 구분">
+                    <span class="tag original">교안 원문·발췌</span>
+                    <span class="tag output">원본 저장 출력</span>
+                    <span class="tag review">검토 메모·대조</span>
+                    <span class="tag supplement">보완 설명·예제</span>
+                </div>
+
+                <div class="notice source-notice">
+                    <strong>자료를 읽는 기준</strong>
+                    <p>
+                        기준 자료는
+                        <code>67_케라스-CNN-컨볼류션연산32.ipynb</code>와
+                        통합교안 268~273쪽이다.
+                        현재 활성 모델은
+                        <strong>Depthwise → Pointwise → Pooling</strong>이며,
+                        일반 Conv와 Depthwise 단독 블록은 주석 처리되어 있다.
+                    </p>
+                    <p>
+                        학습 성능은 원본에 저장된 결과다.
+                        Shape·파라미터 계산과 보완 예제는 별도로 구분한다.
+                        코드 발췌는 필요한 실행 구문을 중심으로 제시하며,
+                        설명 주석의 오류를 원문 코드에서 조용히 바꾸지 않는다.
+                    </p>
+                </div>
+
+                <nav class="lesson-toc" aria-label="ML 32 목차">
+                    <a href="#ml32-goal">01 실습 목표</a>
+                    <a href="#ml32-visual">02 그림처럼 이해</a>
+                    <a href="#ml32-environment">03 실행 환경</a>
+                    <a href="#ml32-dataset">04 Dataset·X·y</a>
+                    <a href="#ml32-shape">05 Shape 읽기</a>
+                    <a href="#ml32-preprocess">06 전처리</a>
+                    <a href="#ml32-split">07 데이터 분리</a>
+                    <a href="#ml32-conv">08 일반 Conv</a>
+                    <a href="#ml32-depthwise">09 Depthwise</a>
+                    <a href="#ml32-pointwise">10 Pointwise</a>
+                    <a href="#ml32-model">11 Model Architecture</a>
+                    <a href="#ml32-parameters">12 파라미터 비교</a>
+                    <a href="#ml32-compile">13 compile·Loss</a>
+                    <a href="#ml32-fit">14 fit·학습 흐름</a>
+                    <a href="#ml32-results">15 학습 결과</a>
+                    <a href="#ml32-evaluate">16 evaluate·Metric</a>
+                    <a href="#ml32-predict">17 predict</a>
+                    <a href="#ml32-errors">18 오류 메시지</a>
+                    <a href="#ml32-leakage">19 Data Leakage</a>
+                    <a href="#ml32-review">20 원문 검토</a>
+                    <a href="#ml32-improve">21 성능 개선</a>
+                    <a href="#ml32-practice">22 실무 연결</a>
+                    <a href="#ml32-interview">23 면접 포인트</a>
+                    <a href="#ml32-memory">암기·다음 단원</a>
+                </nav>
+
             </header>
 
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
+            <!-- ==================================================
+         MAIN
+    =================================================== -->
+            <main class="lesson-main" id="ml32-main">
+
+                <!-- 01 -->
+                <section class="lesson-card" id="ml32-goal">
+
+                    <div class="card-heading">
+                        <span class="card-number">01</span>
+                        <div>
+                            <p class="eyebrow">Practice Goal</p>
+                            <h2>이번 실습에서 무엇을 확인하는가?</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        이번 단원은 손글씨 숫자를 분류하는 문제를 통해
+                        CNN 내부의 계산 구조를 읽는 실습이다.
+                        단순히 <code>model.fit()</code>을 실행하는 데서 끝나지 않고,
+                        층을 통과할 때 데이터가 어떻게 바뀌는지 설명할 수 있어야 한다.
+                    </p>
+
+                    <div class="concept-grid">
+
+                        <article class="mini-card">
+                            <h3>문제 정의</h3>
+                            <p>
+                                이미지 한 장을 숫자 0~9 중 하나로 분류한다.
+                                정답이 있는 지도학습이며, 클래스가 10개인 다중 분류다.
+                            </p>
+                        </article>
+
+                        <article class="mini-card">
+                            <h3>모델 구조 이해</h3>
+                            <p>
+                                합성곱 방식을 바꾸면 출력 채널,
+                                Flatten 길이, Dense 파라미터가 어떻게 달라지는지 확인한다.
+                            </p>
+                        </article>
+
+                        <article class="mini-card">
+                            <h3>실행 결과 해석</h3>
+                            <p>
+                                학습·검증 곡선, 테스트 손실,
+                                정확도와 클래스별 확률을 서로 구분한다.
+                            </p>
+                        </article>
+
+                    </div>
+
+                    <h3>이미지에서 CNN이 활용하는 구조</h3>
+
+                    <p>
+                        손글씨를 구분할 때는 획의 방향, 경계, 곡선,
+                        꺾이는 부분처럼 주변 픽셀이 함께 만드는 모양이 중요하다.
+                        CNN은 작은 영역을 계산하면서 이러한 패턴과 관련된 특징을 학습한다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="CNN의 핵심 성질">
+                        <table>
+                            <caption>CNN을 이해하는 두 가지 출발점</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">성질</th>
+                                    <th scope="col">의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">국소 연결</th>
+                                    <td>이미지 전체가 아니라 작은 주변 영역을 한 번에 계산한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">가중치 공유</th>
+                                    <td>같은 필터 가중치를 여러 공간 위치에서 반복 사용한다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="notice">
+                        <strong>필터 값도 학습 대상이다.</strong>
+                        <p>
+                            실제 CNN에서는 사람이 모든 획 검출 규칙을 직접 작성하지 않는다.
+                            초기화된 필터 가중치가 분류 손실을 줄이는 방향으로 조정된다.
+                        </p>
+                    </div>
+
+                </section>
+
+                <!-- 02 -->
+                <section class="lesson-card" id="ml32-visual">
+
+                    <div class="card-heading">
+                        <span class="card-number">02</span>
+                        <div>
+                            <p class="eyebrow">Visual Flow</p>
+                            <h2>이미지가 숫자 예측으로 바뀌는 과정</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        아래는 현재 활성화된 모델의 흐름이다.
+                        <strong>B는 현재 처리하는 이미지 개수</strong>다.
+                        ReLU는 합성곱 층의 <code>activation</code> 설정에 포함되어 있다.
+                    </p>
+
+                    <ol class="model-flow">
+
+                        <li>
+                            <span class="flow-step">INPUT</span>
+                            <strong>Image</strong>
+                            <code>(B, 28, 28, 1)</code>
+                            <small>흑백 손글씨 배치</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">SPATIAL</span>
+                            <strong>Depthwise 3×3 + ReLU</strong>
+                            <code>(B, 26, 26, 1)</code>
+                            <small>채널별 공간 특징 추출</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">CHANNEL</span>
+                            <strong>Pointwise 1×1 + ReLU</strong>
+                            <code>(B, 26, 26, 16)</code>
+                            <small>출력 채널을 16개로 변환</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">DOWNSAMPLE</span>
+                            <strong>MaxPooling 2×2</strong>
+                            <code>(B, 13, 13, 16)</code>
+                            <small>공간 크기를 줄인 Feature Map</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">RESHAPE</span>
+                            <strong>Flatten</strong>
+                            <code>(B, 2704)</code>
+                            <small>이미지별 특징을 벡터로 펼침</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">CLASSIFIER</span>
+                            <strong>Dense(128) + ReLU</strong>
+                            <code>(B, 128)</code>
+                            <small>추출한 특징 조합</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">OUTPUT</span>
+                            <strong>Dense(10) + Softmax</strong>
+                            <code>(B, 10)</code>
+                            <small>숫자 0~9의 확률</small>
+                        </li>
+
+                        <li>
+                            <span class="flow-step">DECISION</span>
+                            <strong>argmax(axis=1)</strong>
+                            <code>(B,)</code>
+                            <small>이미지별 최종 예측 숫자</small>
+                        </li>
+
+                    </ol>
+
+                    <div class="notice">
+                        <strong>Feature Map은 별도의 층 이름이 아니다.</strong>
+                        <p>
+                            합성곱과 Pooling을 거치며 만들어진 특징 배열을 가리킨다.
+                            GAP는 현재 원본 경로에 없으며,
+                            성능 개선 카드에서 별도 대안으로 다룬다.
+                        </p>
+                    </div>
+
+                    <h3>합성곱은 작은 창을 이동시키는 계산이다</h3>
+
+                    <div class="matrix-demo">
+
+                        <div>
+                            <p class="matrix-label">이미지의 작은 영역</p>
+                            <pre class="matrix"><code>1  2   3
+5  6   7
+9 10  11</code></pre>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <span class="matrix-operator" aria-hidden="true">×</span>
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
+                        <div>
+                            <p class="matrix-label">설명용 필터</p>
+                            <pre class="matrix"><code>1 0 0
+0 1 0
+0 0 1</code></pre>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <span class="matrix-operator" aria-hidden="true">→</span>
 
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
+                        <div class="matrix-answer">
+                            <strong>1 + 6 + 11 = 18</strong>
+                            <p>같은 위치끼리 곱한 뒤 합산</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    </div>
 
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
+                    <p>
+                        편향을 0으로 둔 설명용 계산이다.
+                        실제 모델에서는 필터 가중치와 편향을 학습하고,
+                        ReLU도 적용한다.
+                    </p>
+
+                    <details>
+                        <summary>보완 예제: NumPy로 필터 이동 직접 확인</summary>
+
+                        <p class="code-label">
+                            <span class="tag supplement">원본에 없는 보완 예제</span>
+                        </p>
+
+                        <pre><code>image = np.arange(1, 17, dtype=np.float32).reshape(4, 4)
+kernel = np.eye(3, dtype=np.float32)
+
+result = np.zeros((2, 2), dtype=np.float32)
+
+for row in range(2):
+    for col in range(2):
+        patch = image[row:row + 3, col:col + 3]
+        result[row, col] = np.sum(patch * kernel)
+
+print(result)
+
+# [[18. 21.]
+#  [30. 33.]]</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>역할·필요성</dt>
+                                <dd>Keras 층 내부의 위치별 곱셈·합산 원리를 확인한다.</dd>
+                            </div>
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>이미지 (4,4), 필터 (3,3)</dd>
+                            </div>
+                            <div>
+                                <dt>출력 Shape</dt>
+                                <dd>result (2,2)</dd>
+                            </div>
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>result에 계산값을 저장한다. 필터가 고정되어 있으므로 학습은 없다.</dd>
+                            </div>
+                        </dl>
+
+                    </details>
+
+                </section>
+
+                <!-- 03 -->
+                <section class="lesson-card" id="ml32-environment">
+
+                    <div class="card-heading">
+                        <span class="card-number">03</span>
+                        <div>
+                            <p class="eyebrow">Environment &amp; Execution</p>
+                            <h2>실행 환경과 Notebook 상태를 확인한다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        Python, Jupyter 호환 환경, NumPy,
+                        TensorFlow/Keras, Matplotlib을 사용한다.
+                        원본 메타데이터에는 커널 표시 이름
+                        <code>mldl2</code>, Python <code>3.13.7</code>이 기록되어 있다.
+                        TensorFlow 버전은 해당 메타데이터에 명시되지 않았다.
+                    </p>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 2와 6</span>
+                    </p>
+
+                    <pre><code>import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import (
+    Conv2D,
+    MaxPooling2D,
+    Dense,
+    Flatten,
+    DepthwiseConv2D,
+    Input
+)</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>배열 처리와 모델 구성에 필요한 모듈·클래스를 불러온다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력·출력 Shape</dt>
+                            <dd>해당 없음. 이미지 배열을 처리하는 코드가 아니다.</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>현재 커널에서 np, tf, Sequential 등의 이름을 사용할 수 있다.</dd>
+                        </div>
+                    </dl>
+
+                    <details>
+                        <summary>보완 예제: 현재 실행 환경 확인</summary>
+
+                        <pre><code>import sys
+import matplotlib
+
+print("Python:", sys.version)
+print("실행 파일:", sys.executable)
+print("NumPy:", np.__version__)
+print("TensorFlow:", tf.__version__)
+print("Matplotlib:", matplotlib.__version__)</code></pre>
+
+                        <p>
+                            패키지가 설치되어 있어도 다른 커널을 사용하면
+                            import에 실패할 수 있다.
+                            먼저 <code>sys.executable</code>로 실행 환경을 확인한다.
+                            설치 가능한 조합은
+                            <a href="https://www.tensorflow.org/install/pip">
+                                TensorFlow 공식 설치 문서
+                            </a>에서 확인한다.
+                        </p>
+
+                    </details>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="원본 셀 학습 지도">
+                        <table>
+                            <caption>원본 27개 셀의 흐름</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">셀 번호</th>
+                                    <th scope="col">내용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">1</th>
+                                    <td>세 가지 합성곱 비교 목적과 실행 안내</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">2~6</th>
+                                    <td>라이브러리, MNIST, 채널 축, 정규화, 층 import</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">7~10</th>
+                                    <td>Sequential 생성과 입력 Shape 확인</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">11~16</th>
+                                    <td>일반 Conv, Depthwise, Depthwise + Pointwise</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">17~20</th>
+                                    <td>FC 설명, Flatten·Dense, 출력층, summary</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">21~23</th>
+                                    <td>compile, fit, 손실 그래프</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">24~26</th>
+                                    <td>evaluate, predict, 직접 정확도 계산</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">27</th>
+                                    <td>빈 코드 셀</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        여기서 셀 번호는 마크다운을 포함한 파일 순서다.
+                        <code>In [ ]</code> 실행 번호와 같다고 가정하지 않는다.
+                    </p>
+
+                    <div class="notice warning">
+                        <strong>Notebook은 실행 이력을 기억한다.</strong>
+                        <p>
+                            축 추가 셀을 다시 실행하면 축이 또 붙고,
+                            정규화 셀을 다시 실행하면 다시 255로 나뉜다.
+                            model.add를 반복하면 층이 추가되고,
+                            같은 모델에 fit을 다시 호출하면 보통 현재 가중치에서 학습을 이어간다.
+                        </p>
+                    </div>
+
+                </section>
+
+                <!-- 04 -->
+                <section class="lesson-card" id="ml32-dataset">
+
+                    <div class="card-heading">
+                        <span class="card-number">04</span>
+                        <div>
+                            <p class="eyebrow">Dataset · X · y</p>
+                            <h2>이미지와 정답은 같은 인덱스의 한 쌍이다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 3</span>
+                    </p>
+
+                    <pre><code>(X_train,y_train),(X_test,y_test)=tf.keras.datasets.mnist.load_data()
+print(X_train.shape)</code></pre>
+
+                    <p class="code-label">
+                        <span class="tag output">원본 저장 출력</span>
+                    </p>
+
+                    <pre class="output-block"><code>(60000, 28, 28)</code></pre>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="MNIST 데이터 구조">
+                        <table>
+                            <caption>처음 불러왔을 때의 배열</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">변수</th>
+                                    <th scope="col">내용</th>
+                                    <th scope="col">Shape</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">X_train</th>
+                                    <td>학습·검증에 사용할 이미지 60,000장</td>
+                                    <td>(60000,28,28)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">y_train</th>
+                                    <td>위 이미지들의 정답 숫자</td>
+                                    <td>(60000,)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">X_test</th>
+                                    <td>테스트 이미지 10,000장</td>
+                                    <td>(10000,28,28)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">y_test</th>
+                                    <td>테스트 이미지들의 정답 숫자</td>
+                                    <td>(10000,)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>무엇을 하는가</dt>
+                            <dd>MNIST 이미지와 정답을 네 배열로 불러온다.</dd>
+                        </div>
+                        <div>
+                            <dt>왜 필요한가</dt>
+                            <dd>학습할 입력과 지도학습에 필요한 정답을 준비한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력</dt>
+                            <dd>사용자가 전달하는 배열은 없다. 데이터 로더를 호출한다.</dd>
+                        </div>
+                        <div>
+                            <dt>출력</dt>
+                            <dd>위 표의 이미지 배열 두 개와 정답 배열 두 개.</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>네 변수에 데이터가 할당된다.</dd>
+                        </div>
+                    </dl>
+
+                    <div class="formula">
+                        X_train[i] → i번째 손글씨 이미지<br>
+                        y_train[i] → 그 이미지의 정답 숫자
+                    </div>
+
+                    <p>
+                        정답은 0~9의 정수 클래스 번호다.
+                        한 이미지에 정답 하나가 대응한다.
+                        이미지와 정답을 따로 섞어 순서가 어긋나면
+                        모델이 잘못된 정답으로 학습한다.
+                    </p>
+
+                    <div class="notice">
+                        <strong>숫자를 예측하지만 회귀가 아니다.</strong>
+                        <p>
+                            7은 연속적인 양의 크기가 아니라 클래스 이름이다.
+                            “정답 7을 8로 예측했으니 1로 예측한 것보다 가깝다”는
+                            숫자 거리 해석을 그대로 적용하지 않는다.
+                        </p>
+                    </div>
+
+                </section>
+
+                <!-- 05 -->
+                <section class="lesson-card" id="ml32-shape">
+
+                    <div class="card-heading">
+                        <span class="card-number">05</span>
+                        <div>
+                            <p class="eyebrow">Read the Shape</p>
+                            <h2>Shape·차원 수·축·dtype은 다른 정보다</h2>
+                        </div>
+                    </div>
+
+                    <div class="shape-banner">
+                        <code>(batch, height, width, channel)</code>
+                        <p>이번 이미지 배치의 기본 형식</p>
+                    </div>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="배열 상태를 읽는 다섯 가지 정보">
+                        <table>
+                            <caption>예시: (128,28,28,1)</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">구분</th>
+                                    <th scope="col">질문</th>
+                                    <th scope="col">예</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Shape</th>
+                                    <td>축별 크기가 얼마인가?</td>
+                                    <td>(128,28,28,1)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Rank / ndim</th>
+                                    <td>축이 몇 개인가?</td>
+                                    <td>4차원 배열</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Axis</th>
+                                    <td>어느 축인가?</td>
+                                    <td>0=배치, 1=높이, 2=너비, 3=채널</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">dtype</th>
+                                    <td>어떤 자료형인가?</td>
+                                    <td>float32</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">값의 범위</th>
+                                    <td>실제 숫자가 어느 구간인가?</td>
+                                    <td>전처리 후 0~1</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="compare-grid">
+
+                        <article class="mini-card">
+                            <h3>이미지 한 장</h3>
+                            <code>(28,28,1)</code>
+                            <p>높이·너비·채널을 가진 3차원 배열이다.</p>
+                        </article>
+
+                        <article class="mini-card">
+                            <h3>전체 데이터</h3>
+                            <code>(60000,28,28,1)</code>
+                            <p>샘플 축까지 포함한 4차원 배열이다.</p>
+                        </article>
+
+                        <article class="mini-card">
+                            <h3>학습 배치</h3>
+                            <code>(128,28,28,1)</code>
+                            <p>전체 데이터 중 한 번에 처리하는 묶음이다.</p>
+                        </article>
+
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 8과 9</span>
+                    </p>
+
+                    <pre><code>X_train.shape</code></pre>
+                    <pre class="output-block"><code>(60000, 28, 28, 1)</code></pre>
+
+                    <pre><code>X_train.shape[1:]</code></pre>
+                    <pre class="output-block"><code>(28, 28, 1)</code></pre>
+
+                    <p>
+                        <code>shape[1:]</code>은 첫 번째 축인 이미지 개수를 제외한다.
+                        Shape 조회는 배열을 바꾸지 않는다.
+                        정답 Shape <code>(60000,)</code>의 쉼표는
+                        원소 하나짜리 튜플 표기이며, 정답 배열은 1차원이다.
+                    </p>
+
+                </section>
+
+                <!-- 06 -->
+                <section class="lesson-card" id="ml32-preprocess">
+
+                    <div class="card-heading">
+                        <span class="card-number">06</span>
+                        <div>
+                            <p class="eyebrow">Preprocessing</p>
+                            <h2>채널 축 추가와 정규화를 구분한다</h2>
+                        </div>
+                    </div>
+
+                    <h3>① 채널 축 추가</h3>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 4</span>
+                    </p>
+
+                    <pre><code>X_train=X_train[...,np.newaxis]
+X_test=X_test[...,np.newaxis]
+print(X_train.shape)
+X_test.shape</code></pre>
+
+                    <pre class="output-block"><code>(60000, 28, 28, 1)
+(10000, 28, 28, 1)</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>흑백 이미지의 채널 수 1을 배열에 명시하여 CNN 입력 형태를 맞춘다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>(N,28,28)</dd>
+                        </div>
+                        <div>
+                            <dt>출력 Shape</dt>
+                            <dd>(N,28,28,1)</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>배열 모양이 바뀐다. 이미지 개수와 픽셀 값은 바뀌지 않는다.</dd>
+                        </div>
+                    </dl>
+
+                    <p>
+                        <code>...</code>는 기존 축들을 유지한다는 뜻이고,
+                        <code>np.newaxis</code>는 새 축을 하나 추가한다.
+                        새로운 픽셀이나 색상을 만드는 작업이 아니다.
+                    </p>
+
+                    <h3>② float32 변환과 /255</h3>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 5</span>
+                    </p>
+
+                    <pre><code>X_train = X_train.astype(np.float32)/255
+X_test  = X_test.astype(np.float32)/255</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>실수 연산에 맞는 dtype과 일관된 입력 범위를 준비한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>(N,28,28,1), 원시 픽셀 범위 0~255</dd>
+                        </div>
+                        <div>
+                            <dt>출력 Shape</dt>
+                            <dd>동일한 (N,28,28,1), float32, 값 범위 0~1</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>X의 자료형과 값이 바뀐다. 정답 y는 클래스 번호 그대로 유지한다.</dd>
+                        </div>
+                    </dl>
+
+                    <div class="formula">
+                        0 ÷ 255 = 0.0<br>
+                        127 ÷ 255 ≈ 0.498<br>
+                        255 ÷ 255 = 1.0
+                    </div>
+
+                    <p>
+                        <code>astype()</code>는 자료형을 바꾸고,
+                        <code>/255</code>는 값의 범위를 바꾼다.
+                        자료형만 float32로 바꾸었다고 픽셀이 자동으로 0~1이 되는 것은 아니다.
+                    </p>
+
+                    <details>
+                        <summary>보완 예제: 전처리 결과 확인</summary>
+
+                        <pre><code>print(X_train.shape)
+print(X_train.dtype)
+print(X_train.min(), X_train.max())
+
+print(y_train.shape)
+print(np.unique(y_train))</code></pre>
+
+                        <p>
+                            기대 상태는 이미지 4차원, float32, 0~1 범위와
+                            정답 1차원, 클래스 번호 0~9다.
+                        </p>
+
+                    </details>
+
+                    <div class="notice warning">
+                        <strong>전처리 셀을 반복 실행하면 상태가 달라진다.</strong>
+                        <p>
+                            채널 추가를 반복하면
+                            <code>(N,28,28,1,1)</code>이 될 수 있다.
+                            정규화를 반복하면 이미 0~1인 값을 다시 255로 나눈다.
+                            새 실험에서는 데이터 로딩부터 실행 순서를 확인한다.
+                        </p>
+                    </div>
+
+                </section>
+
+                <!-- 07 -->
+                <section class="lesson-card" id="ml32-split">
+
+                    <div class="card-heading">
+                        <span class="card-number">07</span>
+                        <div>
+                            <p class="eyebrow">Train · Validation · Test</p>
+                            <h2>세 데이터는 서로 다른 질문에 답한다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        원본은 학습용 60,000장 중 20%를
+                        <code>fit(validation_split=0.2)</code>에서 검증용으로 분리한다.
+                        처음 불러온 테스트 10,000장은 별도로 남는다.
+                    </p>
+
+                    <div class="split-grid">
+
+                        <div class="split-box train">
+                            <span>TRAIN</span>
+                            <strong>48,000장</strong>
+                            <p>가중치 업데이트</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
+                        <div class="split-box validation">
+                            <span>VALIDATION</span>
+                            <strong>12,000장</strong>
+                            <p>학습 진행·설정 판단</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
+                        <div class="split-box test">
+                            <span>TEST</span>
+                            <strong>10,000장</strong>
+                            <p>독립적인 최종 평가</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    </div>
 
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="분할별 Shape">
+                        <table>
+                            <caption>fit 내부의 역할을 Shape로 표현</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">구분</th>
+                                    <th scope="col">이미지</th>
+                                    <th scope="col">정답</th>
+                                    <th scope="col">가중치 업데이트</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Train</th>
+                                    <td>(48000,28,28,1)</td>
+                                    <td>(48000,)</td>
+                                    <td>예</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Validation</th>
+                                    <td>(12000,28,28,1)</td>
+                                    <td>(12000,)</td>
+                                    <td>아니요</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Test</th>
+                                    <td>(10000,28,28,1)</td>
+                                    <td>(10000,)</td>
+                                    <td>아니요</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        이 구분 때문에 <code>X_train</code> 변수 자체가
+                        48,000장짜리로 바뀌는 것은 아니다.
+                        fit 내부에서 학습과 검증에 사용할 부분을 나눈다.
+                    </p>
+
+                    <div class="notice">
+                        <strong>validation_split은 매번 무작위 추출하는 기능이 아니다.</strong>
+                        <p>
+                            NumPy 배열 입력에서는 셔플 전에 마지막 부분을
+                            검증 데이터로 분리한다.
+                            매 epoch마다 새로운 20%를 뽑거나
+                            클래스별 비율을 자동으로 맞추지 않는다.
+                            정답순으로 정렬된 자료라면 분할별 분포를 확인해야 한다.
+                        </p>
+                    </div>
+
+                    <p>
+                        검증 데이터는 역전파에 사용하지 않지만,
+                        검증 결과를 보고 모델·학습률·epoch를 선택하므로 개발 과정에 쓰인다.
+                        테스트 결과까지 반복적으로 보고 설정을 고르면
+                        최종 평가의 독립성이 약해진다.
+                    </p>
+
+                    <p class="reference">
+                        참고:
+                        <a href="https://keras.io/api/models/model_training_apis/">
+                            Keras Model training APIs
+                        </a>
+                    </p>
+
+                </section>
+
+                <!-- 08 -->
+                <section class="lesson-card" id="ml32-conv">
+
+                    <div class="card-heading">
+                        <span class="card-number">08</span>
+                        <div>
+                            <p class="eyebrow">Normal Convolution</p>
+                            <h2>공간 영역과 입력 채널을 함께 계산한다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        일반 합성곱의 필터 하나는 입력 채널 전체를 함께 고려한다.
+                        현재 입력은 흑백 1채널이므로
+                        필터 하나의 가중치 형태는 <code>3×3×1</code>이다.
+                    </p>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 12</span>
+                        <span class="status-badge">현재 주석 처리</span>
+                    </p>
+
+                    <pre><code># model.add(Conv2D(filters=32,kernel_size=(3,3),strides=1,padding='valid',activation='relu',kernel_initializer='he_normal'))
+# model.add(MaxPooling2D(pool_size=(2,2)))</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>일반 합성곱과 Pooling을 사용한 비교 모델을 구성한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>(B,28,28,1)</dd>
+                        </div>
+                        <div>
+                            <dt>출력 Shape</dt>
+                            <dd>Conv: (B,26,26,32) → Pooling: (B,13,13,32)</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>현재는 주석이므로 변화가 없다. 선택해 실행하면 해당 층이 추가된다.</dd>
+                        </div>
+                    </dl>
+
+                    <h3>출력 높이와 너비 계산</h3>
+
+                    <div class="formula">
+                        출력 크기 = floor((입력 크기 + 2P − 필터 크기) / stride) + 1
+                    </div>
+
+                    <p>
+                        위 식은 dilation=1이고 양쪽 패딩이 P로 동일한 경우다.
+                        원본은 <code>padding='valid'</code>이므로 P=0이다.
+                    </p>
+
+                    <div class="formula">
+                        (28 − 3) / 1 + 1 = 26
+                    </div>
+
+                    <p>
+                        <code>padding='same'</code>은
+                        <strong>stride=1일 때</strong> 높이와 너비를 유지한다.
+                        모든 stride에서 입력과 동일한 공간 크기를 보장하는 것은 아니다.
+                    </p>
+
+                    <h3>파라미터 수 계산</h3>
+
+                    <div class="formula">
+                        (필터 높이 × 필터 너비 × 입력 채널 + 편향 1) × 출력 채널<br>
+                        = (3 × 3 × 1 + 1) × 32<br>
+                        = 320
+                    </div>
+
+                    <p>
+                        <code>filters=32</code>는 필터 32개가 출력 채널 32개를 만든다는 뜻이다.
+                        가중치는 여러 위치에서 공유하므로
+                        출력 위치 26×26마다 별도의 파라미터가 생기지 않는다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="합성곱 설정과 의미">
+                        <table>
+                            <caption>코드의 옵션 읽기</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">설정</th>
+                                    <th scope="col">의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">kernel_size=(3,3)</th>
+                                    <td>공간 계산 창의 크기</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">filters=32</th>
+                                    <td>출력 채널 수</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">strides=1</th>
+                                    <td>한 칸씩 이동</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">padding='valid'</th>
+                                    <td>패딩을 추가하지 않음</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">activation='relu'</th>
+                                    <td>합성곱과 편향 계산 뒤 음수를 0으로 변경</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">kernel_initializer='he_normal'</th>
+                                    <td>ReLU를 사용하는 층의 가중치 초기화 설정</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>ReLU와 Pooling의 차이</h3>
+
+                    <div class="formula">
+                        ReLU(z) = max(0, z)<br>
+                        [-3, 0, 2, 5] → [0, 0, 2, 5]
+                    </div>
+
+                    <p>
+                        ReLU는 값에 비선형 변환을 적용하며 Shape는 유지한다.
+                        MaxPooling은 작은 영역의 최댓값을 골라 공간 크기를 줄인다.
+                    </p>
+
+                    <div class="formula">
+                        MaxPooling2D(pool_size=(2,2))<br>
+                        기본 stride=2 → 26×26×32에서 13×13×32로 변경
+                    </div>
+
+                    <p>
+                        Pooling은 채널별로 수행되므로 채널 수는 유지된다.
+                        최댓값을 선택하는 고정 규칙이어서 학습할 파라미터는 없다.
+                        Conv·ReLU·Pooling을 하나의 블록으로 설명할 수 있지만,
+                        모든 CNN이 반드시 이 세 가지를 같은 방식으로 붙이는 것은 아니다.
+                    </p>
+
+                    <p class="reference">
+                        <a href="https://www.tensorflow.org/api_docs/python/tf/keras/layers/Conv2D">
+                            TensorFlow Conv2D 공식 문서
+                        </a>
+                    </p>
+
+                </section>
+
+                <!-- 09 -->
+                <section class="lesson-card" id="ml32-depthwise">
+
+                    <div class="card-heading">
+                        <span class="card-number">09</span>
+                        <div>
+                            <p class="eyebrow">Depthwise Convolution</p>
+                            <h2>채널별 공간 계산을 독립적으로 수행한다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 14</span>
+                        <span class="status-badge">현재 주석 처리</span>
+                    </p>
+
+                    <pre><code># model.add(DepthwiseConv2D(kernel_size=(3,3),strides=1,padding='valid',activation='relu',depthwise_initializer='he_normal'))
+# model.add(MaxPooling2D(pool_size=(2,2)))</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>채널별 독립적인 합성곱을 일반 Conv와 비교한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>(B,28,28,1), 기본 depth_multiplier=1</dd>
+                        </div>
+                        <div>
+                            <dt>출력 Shape</dt>
+                            <dd>(B,26,26,1) → Pooling 뒤 (B,13,13,1)</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>주석 상태에서는 아무 층도 추가되지 않는다.</dd>
+                        </div>
+                    </dl>
+
+                    <div class="channel-flow">
+                        <div><strong>채널 1</strong><span>→ 채널 1용 공간 필터 → 결과 1</span></div>
+                        <div><strong>채널 2</strong><span>→ 채널 2용 공간 필터 → 결과 2</span></div>
+                        <div><strong>채널 3</strong><span>→ 채널 3용 공간 필터 → 결과 3</span></div>
+                    </div>
+
+                    <p>
+                        위 그림은 입력이 여러 채널인 경우를 설명한 것이다.
+                        Depthwise 단계에서는 서로 다른 입력 채널의 정보를 섞지 않는다.
+                        현재 MNIST 입력은 1채널이므로 첫 번째 경로 하나만 생각하면 된다.
+                    </p>
+
+                    <div class="formula">
+                        출력 채널 수 = 입력 채널 수 × depth_multiplier<br>
+                        현재 출력 채널 = 1 × 1 = 1
+                    </div>
+
+                    <div class="formula">
+                        파라미터 = (Kh × Kw + 1) × 입력 채널 × multiplier<br>
+                        = (3 × 3 + 1) × 1 × 1<br>
+                        = 10
+                    </div>
+
+                    <p>
+                        원본에서 <code>depth_multiplier</code>를 생략했으므로 기본값 1이다.
+                        “입력 채널 수로 출력이 결정된다”는 설명에는
+                        이 조건을 함께 붙여 이해한다.
+                        초기화 옵션 이름도 일반 Conv의
+                        <code>kernel_initializer</code>와 달리
+                        <code>depthwise_initializer</code>다.
+                    </p>
+
+                    <div class="notice">
+                        <strong>적은 파라미터는 표현력의 차이도 의미한다.</strong>
+                        <p>
+                            이 설정에서는 3×3 공간 필터 한 개만 학습한다.
+                            파라미터가 적다는 사실만으로 정확도나 일반화 성능이
+                            더 좋다고 결론 내릴 수 없다.
+                        </p>
+                    </div>
+
+                    <p class="reference">
+                        <a href="https://www.tensorflow.org/api_docs/python/tf/keras/layers/DepthwiseConv2D">
+                            TensorFlow DepthwiseConv2D 공식 문서
+                        </a>
+                    </p>
+
+                </section>
+
+                <!-- 10 -->
+                <section class="lesson-card" id="ml32-pointwise">
+
+                    <div class="card-heading">
+                        <span class="card-number">10</span>
+                        <div>
+                            <p class="eyebrow">Depthwise + Pointwise</p>
+                            <h2>공간 특징 추출과 채널 변환을 나눈다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 16</span>
+                        <span class="status-badge active">현재 활성 모델</span>
+                    </p>
+
+                    <pre><code>#step1)Depthwise Conv
+model.add(DepthwiseConv2D(kernel_size=(3,3),strides=1,padding='valid',activation='relu',depthwise_initializer='he_normal'))
+
+#step2)Pointhwise Conv
+#Conv2D 의 kernel_size=(1,1)로 하면 Pointhwise Conv이다
+model.add(Conv2D(filters=16,kernel_size=(1,1),strides=1,padding='valid',activation='relu',kernel_initializer='he_normal'))
+
+model.add(MaxPooling2D(pool_size=(2,2)))</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>무엇을 하는가</dt>
+                            <dd>Depthwise → Pointwise → Pooling을 연결한다.</dd>
+                        </div>
+                        <div>
+                            <dt>왜 필요한가</dt>
+                            <dd>공간 특징 추출과 채널 변환을 분리한 계산 구조를 확인한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>(B,28,28,1)</dd>
+                        </div>
+                        <div>
+                            <dt>출력 Shape</dt>
+                            <dd>(B,26,26,1) → (B,26,26,16) → (B,13,13,16)</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>해당 층과 초기 가중치를 모델에 추가한다. 실제 학습은 fit에서 수행한다.</dd>
+                        </div>
+                    </dl>
+
+                    <h3>1×1 필터는 무엇을 계산하는가?</h3>
+
+                    <p>
+                        여러 채널을 가진 입력의 한 위치가
+                        <code>[2,5,1]</code>이라면
+                        출력 채널 하나는 다음과 같은 가중합으로 만들 수 있다.
+                    </p>
+
+                    <div class="formula">
+                        2×w1 + 5×w2 + 1×w3 + bias
+                    </div>
+
+                    <p>
+                        공간 크기는 1×1이지만 채널 방향의 변환을 수행한다.
+                        현재는 Depthwise 출력이 1채널이므로
+                        위치별 특징값 h에 서로 다른 가중치와 편향을 적용해
+                        16개 출력 채널을 만든다.
+                    </p>
+
+                    <div class="formula">
+                        출력 채널 f의 값 = h×w_f + b_f<br>
+                        Pointwise 파라미터 = (1×1×1 + 1)×16 = 32<br>
+                        현재 합성곱 블록 = Depthwise 10 + Pointwise 32 = 42
+                    </div>
+
+                    <div class="notice warning">
+                        <strong>16채널이 서로 다른 3×3 공간 필터 16개를 뜻하지 않는다.</strong>
+                        <p>
+                            이 모델에서는 공간 필터 하나가 만든 특징을
+                            1×1 계산으로 16채널로 변환한다.
+                        </p>
+                    </div>
+
+                    <details>
+                        <summary>SeparableConv2D 한 층과 완전히 같은가?</summary>
+
+                        <p>
+                            원본은 Depthwise 뒤와 Pointwise 뒤에
+                            각각 편향과 ReLU를 사용한다.
+                            반면
+                            <code>SeparableConv2D(16,3,activation='relu')</code>는
+                            두 합성곱을 수행한 뒤 최종 편향과 활성화를 적용한다.
+                        </p>
+
+                        <div class="formula">
+                            원본의 두 층 블록: 10 + 32 = 42개<br>
+                            단일 SeparableConv2D: 9 + 16 + 16 = 41개
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <p>
+                            단순히 클래스를 바꾸면 중간 활성화와 편향 구성도 달라진다.
+                            같은 계산으로 조용히 대체하지 않고 별도 실험으로 구분해야 한다.
+                        </p>
 
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
+                        <p class="reference">
+                            <a href="https://keras.io/api/layers/convolution_layers/separable_convolution2d/">
+                                Keras SeparableConv2D 공식 문서
+                            </a>
+                        </p>
+
+                    </details>
+
+                </section>
+
+                <!-- 11 -->
+                <section class="lesson-card" id="ml32-model">
+
+                    <div class="card-heading">
+                        <span class="card-number">11</span>
+                        <div>
+                            <p class="eyebrow">Model Architecture</p>
+                            <h2>입력부터 분류층까지 연결한다</h2>
+                        </div>
+                    </div>
+
+                    <h3>입력 규격 설정</h3>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 7과 10</span>
+                    </p>
+
+                    <pre><code>model = Sequential()
+model.add(Input(shape=X_train.shape[1:]))</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>새 모델과 이미지 한 장의 입력 규격을 만든다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 / 전제</dt>
+                            <dd>X_train.shape[1:] = (28,28,1)</dd>
+                        </div>
+                        <div>
+                            <dt>결과</dt>
+                            <dd>기호적인 배치 입력 형태 (None,28,28,1)</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>model 변수가 새 모델을 가리키고 입력 구조가 설정된다.</dd>
+                        </div>
+                    </dl>
+
+                    <p>
+                        <code>Input(shape=...)</code>에는 이미지 한 장의 형태를 넣는다.
+                        배치 크기는 넣지 않는다.
+                        summary의 <code>None</code>은
+                        배치 크기를 고정하지 않았다는 뜻이다.
+                    </p>
+
+                    <div class="notice">
+                        <strong>모델 구성은 전체 데이터를 즉시 변환하는 작업이 아니다.</strong>
+                        <p>
+                            model.add를 실행하면 층과 계산 구조를 준비한다.
+                            X_train 전체가 즉시 다른 배열로 바뀌지 않는다.
+                            실제 데이터가 모델을 통과하는 것은
+                            fit·evaluate·predict 등의 호출에서다.
+                        </p>
+                    </div>
+
+                    <h3>Flatten과 Dense 분류층</h3>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 발췌 · 셀 18과 19</span>
+                    </p>
+
+                    <pre><code>model.add(Flatten())
+model.add(Dense(units=128,activation='relu',kernel_initializer='he_normal'))
+model.add(Dense(units=10,activation='softmax'))</code></pre>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="분류층 Shape와 파라미터">
+                        <table>
+                            <caption>현재 합성곱 블록 뒤의 분류층</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">층</th>
+                                    <th scope="col">입력 Shape</th>
+                                    <th scope="col">출력 Shape</th>
+                                    <th scope="col">파라미터</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Flatten</th>
+                                    <td>(B,13,13,16)</td>
+                                    <td>(B,2704)</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Dense(128)</th>
+                                    <td>(B,2704)</td>
+                                    <td>(B,128)</td>
+                                    <td>346,240</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Dense(10)</th>
+                                    <td>(B,128)</td>
+                                    <td>(B,10)</td>
+                                    <td>1,290</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="formula">
+                        Flatten 길이: 13×13×16 = 2704<br>
+                        Dense(128): 2704×128 + 128 = 346,240<br>
+                        Dense(10): 128×10 + 10 = 1,290
+                    </div>
+
+                    <p>
+                        Flatten은 이미지마다 특징을 펼친다.
+                        배치에 들어 있는 여러 이미지를 하나의 벡터로 합치지 않는다.
+                        Dense는 이 특징들을 가중합해 분류에 필요한 표현을 만든다.
+                    </p>
+
+                    <h3>Softmax 출력 해석</h3>
+
+                    <div class="formula">
+                        p_k = exp(z_k) / Σ exp(z_j)
+                    </div>
+
+                    <p>
+                        z는 Softmax 이전의 클래스 점수다.
+                        출력의 10개 위치는 숫자 0~9에 대응하며,
+                        각 이미지 행의 합은 부동소수점 오차 범위에서 약 1이다.
+                        가장 큰 확률의 위치를 최종 클래스 번호로 선택한다.
+                    </p>
+
+                    <p>
+                        이 코드 실행은 분류층을 모델에 추가하는 단계다.
+                        가중치를 실제 정답에 맞게 업데이트하는 것은 뒤의 fit이다.
+                    </p>
+
+                </section>
+
+                <!-- 12 -->
+                <section class="lesson-card" id="ml32-parameters">
+
+                    <div class="card-heading">
+                        <span class="card-number">12</span>
+                        <div>
+                            <p class="eyebrow">Parameters &amp; Fair Comparison</p>
+                            <h2>summary의 숫자를 직접 계산한다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">셀 20의 실행 구문 발췌</span>
+                    </p>
+
+                    <pre><code>model.summary()</code></pre>
+
+                    <p>
+                        summary는 모델 구조를 표시한다.
+                        학습을 수행하거나 가중치를 바꾸는 함수가 아니다.
+                        같은 셀의 설명 문자열에는 이전 구조의 숫자가 섞여 있으므로
+                        현재 저장된 표와 대조한다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="현재 모델의 저장 summary">
+                        <table>
+                            <caption>현재 활성 모델의 저장 출력</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">층</th>
+                                    <th scope="col">출력 Shape</th>
+                                    <th scope="col">파라미터</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">DepthwiseConv2D</th>
+                                    <td>(None,26,26,1)</td>
+                                    <td>10</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Pointwise Conv2D</th>
+                                    <td>(None,26,26,16)</td>
+                                    <td>32</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">MaxPooling2D</th>
+                                    <td>(None,13,13,16)</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Flatten</th>
+                                    <td>(None,2704)</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Dense(128)</th>
+                                    <td>(None,128)</td>
+                                    <td>346,240</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Dense(10)</th>
+                                    <td>(None,10)</td>
+                                    <td>1,290</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <th scope="row">합계</th>
+                                    <td>Trainable 전체 / Non-trainable 0</td>
+                                    <td>347,572</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="세 모델의 계산상 크기 비교">
+                        <table>
+                            <caption>원본 대안을 각각 단독 선택했을 때의 계산값</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">대안</th>
+                                    <th scope="col">Pooling 후</th>
+                                    <th scope="col">Flatten</th>
+                                    <th scope="col">합성곱 파라미터</th>
+                                    <th scope="col">전체 파라미터</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">일반 Conv 32채널</th>
+                                    <td>13×13×32</td>
+                                    <td>5,408</td>
+                                    <td>320</td>
+                                    <td>693,962</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Depthwise 단독</th>
+                                    <td>13×13×1</td>
+                                    <td>169</td>
+                                    <td>10</td>
+                                    <td>23,060</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Depthwise + Pointwise 16채널</th>
+                                    <td>13×13×16</td>
+                                    <td>2,704</td>
+                                    <td>42</td>
+                                    <td>347,572</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        첫 두 행은 원본 대안을 따로 활성화한다고 가정하여 계산한 값이다.
+                        세 모델을 모두 새로 학습해 얻은 성능 비교표는 아니다.
+                    </p>
+
+                    <h3>출력 채널 수도 다르다는 점이 중요하다</h3>
+
+                    <p>
+                        원본은 출력 채널이 32·1·16으로 다르다.
+                        이 차이가 Flatten 길이와 Dense 크기까지 바꾼다.
+                        전체 파라미터 차이를 모두 합성곱 종류의 효과로 해석하면 안 된다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="같은 출력 채널 조건 비교">
+                        <table>
+                            <caption>보완 계산: 일반 Conv도 출력 16채널로 맞추면?</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">구조</th>
+                                    <th scope="col">합성곱 파라미터</th>
+                                    <th scope="col">전체 파라미터</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">일반 Conv 16채널</th>
+                                    <td>160</td>
+                                    <td>347,690</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">현재 분리 블록</th>
+                                    <td>42</td>
+                                    <td>347,572</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="notice">
+                        <strong>전체 차이는 118개다.</strong>
+                        <p>
+                            현재 모델의 합성곱은 42개이지만
+                            Dense 두 층은 347,530개다.
+                            Flatten 뒤 Dense가 전체 파라미터 대부분을 차지한다.
+                        </p>
+                    </div>
+
+                    <h3>파라미터 수 ≠ 연산량 ≠ 실행 시간</h3>
+
+                    <ul>
+                        <li>파라미터 수는 학습할 가중치·편향의 개수다.</li>
+                        <li>연산량은 그 값들을 사용해 수행하는 계산의 양이다.</li>
+                        <li>같은 필터는 여러 공간 위치에서 반복 사용된다.</li>
+                        <li>실행 시간에는 하드웨어·구현·메모리 접근도 영향을 준다.</li>
+                    </ul>
+
+                </section>
+
+                <!-- 13 -->
+                <section class="lesson-card" id="ml32-compile">
+
+                    <div class="card-heading">
+                        <span class="card-number">13</span>
+                        <div>
+                            <p class="eyebrow">Compile · Loss · Optimizer</p>
+                            <h2>학습 방법을 정하는 단계</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 21</span>
+                    </p>
+
+                    <pre><code>adam=keras.optimizers.Adam(learning_rate=0.001)
+model.compile(optimizer=adam,loss='sparse_categorical_crossentropy',metrics=['acc'])</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>무엇을 하는가</dt>
+                            <dd>옵티마이저, 손실, 기록할 지표를 설정한다.</dd>
+                        </div>
+                        <div>
+                            <dt>왜 필요한가</dt>
+                            <dd>어떤 기준으로 오차를 계산하고 가중치를 업데이트할지 정한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력</dt>
+                            <dd>모델과 설정값. X·y 배열을 받는 호출이 아니다.</dd>
+                        </div>
+                        <div>
+                            <dt>출력</dt>
+                            <dd>학습 설정이 완료된다. 배열 출력 Shape는 없다.</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>학습·평가 설정이 바뀐다. 아직 데이터로 가중치를 학습하지 않는다.</dd>
+                        </div>
+                    </dl>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="출력과 손실의 연결">
+                        <table>
+                            <caption>이번 분류 문제에 맞는 조합</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">항목</th>
+                                    <th scope="col">현재 설정</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">정답</th>
+                                    <td>(B,), 정수 클래스 번호 0~9</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">출력</th>
+                                    <td>(B,10), Softmax 확률</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">손실</th>
+                                    <td>sparse_categorical_crossentropy</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">옵티마이저</th>
+                                    <td>Adam, learning_rate=0.001</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">지표</th>
+                                    <td>acc</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        sparse는 이미지에 빈 픽셀이 많다는 뜻이 아니다.
+                        정답을 원핫 벡터 대신 클래스 번호로 표현한다는 맥락이다.
+                        원핫 정답을 사용하면 손실 설정도 함께 맞춰야 한다.
+                    </p>
+
+                    <div class="formula">
+                        한 샘플의 Loss = −log(정답 클래스에 준 확률)
+                    </div>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="교차엔트로피 손실 예">
+                        <table>
+                            <caption>정답에 높은 확률을 주면 손실이 작아진다</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">정답 확률</th>
+                                    <th scope="col">손실</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>0.9</td>
+                                    <td>약 0.105</td>
+                                </tr>
+                                <tr>
+                                    <td>0.5</td>
+                                    <td>약 0.693</td>
+                                </tr>
+                                <tr>
+                                    <td>0.1</td>
+                                    <td>약 2.303</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        Accuracy는 가장 큰 확률의 클래스가 맞았는지 본다.
+                        Loss는 정답에 준 확률까지 반영한다.
+                        따라서 정답을 선택한 두 예측이라도 확률이 0.55와 0.99이면 손실은 다르다.
+                    </p>
+
+                    <h3>Adam과 초기화를 구분한다</h3>
+
+                    <div class="formula">
+                        he_normal → 학습 시작 전 가중치 초기화<br>
+                        Adam → 학습 중 가중치 업데이트<br>
+                        learning_rate → 업데이트 규모 조절
+                    </div>
+
+                    <p>
+                        Adam은 기울기와 기울기 크기에 관한 정보를 누적해 업데이트를 조절한다.
+                        학습률 0.001은 모든 가중치에서 매번 정확히 0.001을 빼라는 뜻이 아니다.
+                    </p>
+
+                    <div class="notice">
+                        <strong>확률과 logits도 구분한다.</strong>
+                        <p>
+                            현재 출력은 Softmax 확률이다.
+                            logits를 출력하는 모델로 바꾸면
+                            손실의 <code>from_logits</code> 설정도 함께 확인해야 한다.
+                        </p>
+                    </div>
+
+                    <p class="reference">
+                        <a href="https://keras.io/api/losses/probabilistic_losses/">
+                            Keras 확률 손실 공식 문서
+                        </a>
+                    </p>
+
+                </section>
+
+                <!-- 14 -->
+                <section class="lesson-card" id="ml32-fit">
+
+                    <div class="card-heading">
+                        <span class="card-number">14</span>
+                        <div>
+                            <p class="eyebrow">Fit · Batch · Epoch · History</p>
+                            <h2>이제 실제 가중치가 바뀐다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 22, 주석 포함</span>
+                    </p>
+
+                    <pre><code>history = model.fit(X_train,y_train,epochs=10,batch_size=128,validation_split=0.2)#에폭이 100이면 과적합 평가 데이타에 대해 정확도가 47%</code></pre>
+
+                    <div class="notice warning">
+                        <strong>끝의 주석과 현재 저장 결과를 구분한다.</strong>
+                        <p>
+                            현재 저장된 것은 10 epoch의 학습 결과다.
+                            이 기록에는 100 epoch에서 정확도 47%가 되었다는 실행 로그가 없다.
+                            특정 과거 실험 메모일 수 있으며 일반 규칙으로 받아들이지 않는다.
+                        </p>
+                    </div>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>무엇을 하는가</dt>
+                            <dd>예측·손실·역전파·가중치 업데이트를 반복한다.</dd>
+                        </div>
+                        <div>
+                            <dt>왜 필요한가</dt>
+                            <dd>필터와 Dense 가중치를 손글씨 분류에 맞게 조정한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력</dt>
+                            <dd>X: (60000,28,28,1), y: (60000,), 이 중 20%는 검증용</dd>
+                        </div>
+                        <div>
+                            <dt>출력</dt>
+                            <dd>History 객체. 학습된 모델은 model 변수에 남는다.</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>가중치와 옵티마이저 상태가 업데이트된다.</dd>
+                        </div>
+                    </dl>
+
+                    <ol class="training-flow">
+                        <li><strong>배치 준비</strong><span>X: (128,28,28,1), y: (128,)</span></li>
+                        <li><strong>순전파</strong><span>클래스별 확률 (128,10) 계산</span></li>
+                        <li><strong>손실 계산</strong><span>정답 클래스에 준 확률 평가</span></li>
+                        <li><strong>역전파</strong><span>각 가중치가 손실에 미친 영향 계산</span></li>
+                        <li><strong>Adam 업데이트</strong><span>가중치와 편향 조정</span></li>
+                        <li><strong>Epoch 종료</strong><span>375개 학습 배치 처리 후 검증</span></li>
+                    </ol>
+
+                    <div class="formula">
+                        48,000 ÷ 128 = 375 batch<br>
+                        저장 로그: 375/375<br>
+                        epochs=10: 실제 훈련 부분을 10차례 반복
+                    </div>
+
+                    <p>
+                        검증 과정에서는 가중치를 업데이트하지 않는다.
+                        같은 model에 fit을 다시 호출하면 보통 기존 가중치에서 학습을 이어가므로,
+                        모델 비교 실험에서는 새 모델과 옵티마이저로 시작해야 한다.
+                    </p>
+
+                    <h3>History는 모델 자체가 아니다</h3>
+
+                    <p class="code-label">
+                        <span class="tag supplement">보완 확인 코드</span>
+                    </p>
+
+                    <pre><code>print(history.history.keys())
+
+print(history.history["loss"])
+print(history.history["val_loss"])
+print(history.history["acc"])
+print(history.history["val_acc"])</code></pre>
+
+                    <p>
+                        History는 epoch별 지표 목록을 담는다.
+                        원본은 <code>metrics=['acc']</code>이므로
+                        <code>acc</code>, <code>val_acc</code> 키를 사용한다.
+                        키 이름을 추측하기보다 실제 keys를 확인한다.
+                    </p>
+
+                </section>
+
+                <!-- 15 -->
+                <section class="lesson-card" id="ml32-results">
+
+                    <div class="card-heading">
+                        <span class="card-number">15</span>
+                        <div>
+                            <p class="eyebrow">Saved Training Results</p>
+                            <h2>학습 로그와 손실 곡선을 연결한다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag output">원본에 저장된 10 epoch 결과</span>
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="원본 학습 로그">
+                        <table>
+                            <caption>학습·검증 지표</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Epoch</th>
+                                    <th scope="col">Train acc</th>
+                                    <th scope="col">Train loss</th>
+                                    <th scope="col">Val acc</th>
+                                    <th scope="col">Val loss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>0.8025</td>
+                                    <td>0.6655</td>
+                                    <td>0.8964</td>
+                                    <td>0.3381</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>0.8971</td>
+                                    <td>0.3342</td>
+                                    <td>0.9067</td>
+                                    <td>0.2951</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>0.9162</td>
+                                    <td>0.2730</td>
+                                    <td>0.9263</td>
+                                    <td>0.2350</td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td>0.9322</td>
+                                    <td>0.2187</td>
+                                    <td>0.9374</td>
+                                    <td>0.1984</td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td>0.9442</td>
+                                    <td>0.1808</td>
+                                    <td>0.9463</td>
+                                    <td>0.1698</td>
+                                </tr>
+                                <tr>
+                                    <td>6</td>
+                                    <td>0.9543</td>
+                                    <td>0.1462</td>
+                                    <td>0.9528</td>
+                                    <td>0.1587</td>
+                                </tr>
+                                <tr>
+                                    <td>7</td>
+                                    <td>0.9599</td>
+                                    <td>0.1258</td>
+                                    <td>0.9564</td>
+                                    <td>0.1407</td>
+                                </tr>
+                                <tr>
+                                    <td>8</td>
+                                    <td>0.9660</td>
+                                    <td>0.1083</td>
+                                    <td>0.9606</td>
+                                    <td>0.1263</td>
+                                </tr>
+                                <tr>
+                                    <td>9</td>
+                                    <td>0.9689</td>
+                                    <td>0.0981</td>
+                                    <td>0.9608</td>
+                                    <td>0.1274</td>
+                                </tr>
+                                <tr>
+                                    <td>10</td>
+                                    <td>0.9715</td>
+                                    <td>0.0888</td>
+                                    <td>0.9623</td>
+                                    <td>0.1218</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 23</span>
+                    </p>
+
+                    <pre><code>import matplotlib.pyplot as plt
+plt.plot(history.history['loss'],label='TRAIN')
+plt.plot(history.history['val_loss'],label='VAL')
+plt.legend()
+plt.show()</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>학습·검증 손실을 시각화하여 진행 상태와 일반화 추세를 본다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력</dt>
+                            <dd>길이 10인 loss와 val_loss 목록</dd>
+                        </div>
+                        <div>
+                            <dt>출력</dt>
+                            <dd>손실 그래프</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>그림만 만든다. 모델 가중치는 바뀌지 않는다.</dd>
+                        </div>
+                    </dl>
+
+                    <figure class="loss-figure">
+
+                        <div class="chart-wrap">
+                            <svg viewBox="0 0 740 405" class="loss-chart" role="img"
+                                aria-labelledby="ml32-chart-title ml32-chart-description">
+                                <title id="ml32-chart-title">
+                                    원본 저장 손실 수치로 재구성한 학습 곡선
+                                </title>
+
+                                <desc id="ml32-chart-description">
+                                    훈련 손실은 0.6655에서 0.0888로,
+                                    검증 손실은 0.3381에서 0.1218로 전반적으로 감소한다.
+                                    검증 손실은 9 epoch에서 소폭 상승한 뒤 다시 감소한다.
+                                </desc>
+
+                                <g class="chart-grid">
+                                    <line x1="70" y1="330" x2="680" y2="330"></line>
+                                    <line x1="70" y1="290" x2="680" y2="290"></line>
+                                    <line x1="70" y1="250" x2="680" y2="250"></line>
+                                    <line x1="70" y1="210" x2="680" y2="210"></line>
+                                    <line x1="70" y1="170" x2="680" y2="170"></line>
+                                    <line x1="70" y1="130" x2="680" y2="130"></line>
+                                    <line x1="70" y1="90" x2="680" y2="90"></line>
+                                    <line x1="70" y1="50" x2="680" y2="50"></line>
+                                </g>
+
+                                <g class="chart-labels">
+                                    <text x="50" y="335" text-anchor="end">0.0</text>
+                                    <text x="50" y="295" text-anchor="end">0.1</text>
+                                    <text x="50" y="255" text-anchor="end">0.2</text>
+                                    <text x="50" y="215" text-anchor="end">0.3</text>
+                                    <text x="50" y="175" text-anchor="end">0.4</text>
+                                    <text x="50" y="135" text-anchor="end">0.5</text>
+                                    <text x="50" y="95" text-anchor="end">0.6</text>
+                                    <text x="50" y="55" text-anchor="end">0.7</text>
+
+                                    <text x="70" y="355" text-anchor="middle">1</text>
+                                    <text x="136" y="355" text-anchor="middle">2</text>
+                                    <text x="202" y="355" text-anchor="middle">3</text>
+                                    <text x="268" y="355" text-anchor="middle">4</text>
+                                    <text x="334" y="355" text-anchor="middle">5</text>
+                                    <text x="400" y="355" text-anchor="middle">6</text>
+                                    <text x="466" y="355" text-anchor="middle">7</text>
+                                    <text x="532" y="355" text-anchor="middle">8</text>
+                                    <text x="598" y="355" text-anchor="middle">9</text>
+                                    <text x="664" y="355" text-anchor="middle">10</text>
+
+                                    <text x="70" y="25">Loss</text>
+                                    <text x="365" y="390" text-anchor="middle">Epoch</text>
+                                </g>
+
+                                <polyline class="train-line"
+                                    points="70,63.8 136,196.3 202,220.8 268,242.5 334,257.7 400,271.5 466,279.7 532,286.7 598,290.8 664,294.5">
+                                </polyline>
+
+                                <polyline class="validation-line"
+                                    points="70,194.8 136,212.0 202,236.0 268,250.6 334,262.1 400,266.5 466,273.7 532,279.5 598,279.0 664,281.3">
+                                </polyline>
+
+                                <line class="train-line" x1="415" y1="24" x2="448" y2="24"></line>
+                                <text class="chart-legend" x="455" y="29">TRAIN</text>
+
+                                <line class="validation-line" x1="550" y1="24" x2="583" y2="24"></line>
+                                <text class="chart-legend" x="590" y="29">VAL</text>
+                            </svg>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <figcaption>
+                            보완 시각화: 원본 저장 수치로 재구성한 그림이다.
+                            원문 plt 코드는 가로축 값을 생략해 0~9로 표시하지만,
+                            여기서는 epoch 1~10으로 표시했다.
+                            새로 학습한 결과가 아니다.
+                        </figcaption>
 
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
+                    </figure>
+
+                    <ul>
+                        <li>학습 손실과 검증 손실이 전반적으로 함께 감소한다.</li>
+                        <li>9번째 검증 손실은 조금 상승하지만 10번째에서 다시 감소한다.</li>
+                        <li>한 번의 작은 변동만으로 과적합을 확정하지 않는다.</li>
+                        <li>현재 기록만으로 심한 과적합이라고 단정할 근거는 부족하다.</li>
+                    </ul>
+
+                    <p>
+                        초반에 검증 정확도가 훈련 정확도보다 높다고 즉시 오류는 아니다.
+                        훈련 지표는 epoch 안에서 가중치가 바뀌는 동안 측정하고,
+                        검증은 해당 epoch의 학습을 마친 모델로 측정하기 때문이다.
+                    </p>
+
+                </section>
+
+                <!-- 16 -->
+                <section class="lesson-card" id="ml32-evaluate">
+
+                    <div class="card-heading">
+                        <span class="card-number">16</span>
+                        <div>
+                            <p class="eyebrow">Evaluate · Metrics</p>
+                            <h2>테스트 손실과 정확도를 다르게 읽는다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 24</span>
+                    </p>
+
+                    <pre><code>model.evaluate(X_test,y_test)</code></pre>
+
+                    <p class="code-label">
+                        <span class="tag output">원본 저장 반환값</span>
+                    </p>
+
+                    <pre class="output-block"><code>[0.11739186942577362, 0.9638000130653381]</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>무엇을 하는가</dt>
+                            <dd>테스트 예측을 정답과 비교해 손실과 지표를 계산한다.</dd>
+                        </div>
+                        <div>
+                            <dt>왜 필요한가</dt>
+                            <dd>개발에 직접 사용하지 않은 자료에서 최종 성능을 확인한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>X_test: (10000,28,28,1), y_test: (10000,)</dd>
+                        </div>
+                        <div>
+                            <dt>출력</dt>
+                            <dd>현재 설정에서 [loss, accuracy] 두 값</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>이 모델의 학습 가중치는 업데이트되지 않는다.</dd>
+                        </div>
+                    </dl>
+
+                    <div class="metric-grid">
+
+                        <div class="metric-card">
+                            <span>TEST LOSS</span>
+                            <strong>0.11739</strong>
+                            <p>정답 확률에 기반한 평균 손실</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
+                        <div class="metric-card">
+                            <span>TEST ACCURACY</span>
+                            <strong>96.38%</strong>
+                            <p>10,000장 중 9,638장 정답</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
+                        <div class="metric-card">
+                            <span>INCORRECT</span>
+                            <strong>362장</strong>
+                            <p>저장된 테스트 실행의 오분류 수</p>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    </div>
 
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
+                    <div class="notice warning">
+                        <strong>Loss 0.11739는 오답률 11.739%가 아니다.</strong>
+                        <p>
+                            정확도는 정답 일치 비율이고, 손실은 정답 클래스에 준 확률을 평가한다.
+                            서로 다른 질문에 답하는 수치다.
+                        </p>
+                    </div>
+
+                    <h3>왜 평가 로그는 313/313인가?</h3>
+
+                    <div class="formula">
+                        기본 평가 배치 크기 32<br>
+                        ceil(10000 / 32) = 313
+                    </div>
+
+                    <p>
+                        학습에 지정한 batch_size=128이
+                        모든 evaluate·predict 호출에 자동 적용되는 것은 아니다.
+                    </p>
+
+                    <p>
+                        전체 정확도 96.38%는 각 숫자별 정확도가 모두 같다는 뜻이 아니다.
+                        새로운 촬영 이미지나 다른 필기 스타일에서도
+                        동일한 성능을 보장한다는 뜻도 아니다.
+                    </p>
+
+                </section>
+
+                <!-- 17 -->
+                <section class="lesson-card" id="ml32-predict">
+
+                    <div class="card-heading">
+                        <span class="card-number">17</span>
+                        <div>
+                            <p class="eyebrow">Predict · Argmax</p>
+                            <h2>확률 배열에서 예측 숫자를 꺼낸다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 25</span>
+                    </p>
+
+                    <pre><code>y_pred=model.predict(X_test)
+y_pred</code></pre>
+
+                    <dl class="code-guide">
+                        <div>
+                            <dt>역할·필요성</dt>
+                            <dd>정답 없이 입력 이미지별 클래스 확률을 계산한다.</dd>
+                        </div>
+                        <div>
+                            <dt>입력 Shape</dt>
+                            <dd>(10000,28,28,1)</dd>
+                        </div>
+                        <div>
+                            <dt>출력 Shape</dt>
+                            <dd>(10000,10), float32</dd>
+                        </div>
+                        <div>
+                            <dt>실행 후 변화</dt>
+                            <dd>y_pred에 예측 배열이 할당된다. 가중치는 바뀌지 않는다.</dd>
+                        </div>
+                    </dl>
+
+                    <div class="formula">
+                        행 = 이미지 한 장<br>
+                        열 = 숫자 클래스 0~9<br>
+                        y_pred[0,7] = 첫 이미지가 숫자 7일 확률
+                    </div>
+
+                    <p>
+                        원본 저장 출력에서 첫 이미지의 숫자 7 확률은 약
+                        <code>0.99990547</code>,
+                        두 번째 이미지의 숫자 2 확률은 약
+                        <code>0.99769348</code>이다.
+                        높은 Softmax 점수는 실제 정답을 보증하는 값은 아니다.
+                    </p>
+
+                    <h3>원문의 정확도 계산</h3>
+
+                    <p class="code-label">
+                        <span class="tag original">원문 · 셀 26</span>
+                    </p>
+
+                    <pre><code>print(np.mean(np.argmax(y_pred,axis=1)==y_test).astype(np.float32)*100)</code></pre>
+
+                    <pre class="output-block"><code>96.380005</code></pre>
+
+                    <p>
+                        이 결과는 evaluate의 96.38%와 같다.
+                        작은 끝자리 차이는 float32 표현 과정의 반올림 차이다.
+                    </p>
+
+                    <p class="code-label">
+                        <span class="tag supplement">원문의 한 줄을 나누어 설명</span>
+                    </p>
+
+                    <pre><code>predicted_labels = np.argmax(y_pred, axis=1)
+correct = predicted_labels == y_test
+accuracy = np.mean(correct)
+
+print(accuracy * 100)</code></pre>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="예측 후처리 Shape">
+                        <table>
+                            <caption>확률에서 정확도까지</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">연산</th>
+                                    <th scope="col">입력</th>
+                                    <th scope="col">출력</th>
+                                    <th scope="col">의미</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">argmax(axis=1)</th>
+                                    <td>(N,10)</td>
+                                    <td>(N,)</td>
+                                    <td>각 이미지의 최대 확률 클래스</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">== y_test</th>
+                                    <td>두 (N,) 배열</td>
+                                    <td>(N,)</td>
+                                    <td>True 또는 False</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">mean()</th>
+                                    <td>(N,)</td>
+                                    <td>스칼라</td>
+                                    <td>정답 비율</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">×100</th>
+                                    <td>스칼라</td>
+                                    <td>스칼라</td>
+                                    <td>백분율</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        argmax는 최댓값 자체가 아니라 최댓값의 위치를 반환한다.
+                        axis=1은 이미지 한 행 안에서 10개 클래스를 비교한다.
+                        axis=0이면 클래스마다 확률이 가장 큰 샘플 번호를 찾아
+                        결과가 (10,)이 되므로 목적이 다르다.
+                        Boolean 평균에서는 True가 1, False가 0처럼 계산된다.
+                    </p>
+
+                    <h3>이미지 한 장 예측</h3>
+
+                    <p class="code-label">
+                        <span class="tag supplement">보완 예제</span>
+                    </p>
+
+                    <pre><code>one_image = X_test[0:1]
+
+probabilities = model.predict(one_image, verbose=0)
+predicted_digit = int(np.argmax(probabilities[0]))
+
+print(one_image.shape)       # (1,28,28,1)
+print(probabilities.shape)   # (1,10)
+
+print("예측:", predicted_digit)
+print("정답:", int(y_test[0]))</code></pre>
+
+                    <p>
+                        <code>X_test[0]</code>은 (28,28,1)이지만
+                        <code>X_test[0:1]</code>은 배치 축을 유지한 (1,28,28,1)이다.
+                        이미 전처리된 데이터이므로 다시 /255를 하지 않는다.
+                        이 과정에서도 가중치는 바뀌지 않는다.
+                    </p>
+
+                    <details>
+                        <summary>보완 예제: 외부 원시 이미지 배열 예측</summary>
+
+                        <pre><code>def predict_raw_digit(raw_image):
+    # raw_image: (28,28) 흑백 배열
+    # 원시 픽셀 범위: 0~255
+    image = np.asarray(raw_image, dtype=np.float32)
+
+    if image.shape != (28, 28):
+        raise ValueError("28×28 흑백 이미지 배열이 필요합니다.")
+
+    image = image / 255.0
+    batch = image[np.newaxis, ..., np.newaxis]
+
+    probabilities = model.predict(batch, verbose=0)[0]
+
+    return int(np.argmax(probabilities)), probabilities</code></pre>
+
+                        <dl class="code-guide">
+                            <div>
+                                <dt>입력</dt>
+                                <dd>(28,28), 0~255의 원시 픽셀 배열</dd>
+                            </div>
+                            <div>
+                                <dt>모델에 전달</dt>
+                                <dd>(1,28,28,1), float32, 0~1</dd>
+                            </div>
+                            <div>
+                                <dt>출력</dt>
+                                <dd>예측 숫자 하나와 확률 벡터 (10,)</dd>
+                            </div>
+                            <div>
+                                <dt>상태 변화</dt>
+                                <dd>새 배열을 만든다. 학습 모델은 그대로 유지된다.</dd>
+                            </div>
+                        </dl>
+
+                        <p>
+                            파일 로딩·흑백 변환·크기 조정은 함수 밖에서 준비하는 예제다.
+                            실제 사진은 숫자의 위치, 여백, 배경과 글자의 밝기 방향도 확인한다.
+                            Shape만 맞추었다고 MNIST와 같은 입력 분포가 되지는 않는다.
+                        </p>
+
+                    </details>
+
+                </section>
+
+                <!-- 18 -->
+                <section class="lesson-card" id="ml32-errors">
+
+                    <div class="card-heading">
+                        <span class="card-number">18</span>
+                        <div>
+                            <p class="eyebrow">Errors &amp; Debugging</p>
+                            <h2>오류 메시지를 배열의 상태와 연결한다</h2>
+                        </div>
+                    </div>
+
+                    <div class="notice warning">
+                        <strong>아래는 대표 오류 예시다.</strong>
+                        <p>
+                            원본 Notebook에 저장된 실제 오류 기록이 아니다.
+                            TensorFlow/Keras 버전에 따라 문구와 자동 보정 동작이 달라질 수 있다.
+                        </p>
+                    </div>
+
+                    <ol>
+                        <li>오류 종류를 확인한다.</li>
+                        <li>마지막 메시지에서 expected와 received를 비교한다.</li>
+                        <li>내 코드에서 오류가 시작된 줄을 찾는다.</li>
+                        <li>해당 줄에 들어가는 Shape·dtype·범위를 확인한다.</li>
+                        <li>직전 셀부터 현재 상태가 만들어진 과정을 추적한다.</li>
+                    </ol>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="대표 오류와 진단">
+                        <table>
+                            <caption>오류 종류별 첫 확인 항목</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">오류·증상</th>
+                                    <th scope="col">의미와 확인 사항</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">ModuleNotFoundError</th>
+                                    <td>현재 커널에 패키지가 있는지 sys.executable과 설치 환경을 확인한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">NameError: history</th>
+                                    <td>fit 전에 그래프를 그렸거나 fit이 실패했는지 확인한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">compile 필요 메시지</th>
+                                    <td>현재 model을 새로 만든 뒤 compile을 건너뛰지 않았는지 확인한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">KeyError: accuracy</th>
+                                    <td>history.history.keys()를 확인한다. 원본 키는 acc·val_acc다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Shape 불일치</th>
+                                    <td>기대 (1,28,28,1)에 실제 (1,28,28,3)을 넣었다면 채널 수가 다르다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Rank / ndim 불일치</th>
+                                    <td>채널 축을 반복 추가해 (N,28,28,1,1)이 되지 않았는지 확인한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Data cardinality</th>
+                                    <td>이미지 수와 정답 수가 같은지 확인한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Label 범위 오류</th>
+                                    <td>출력은 10클래스인데 정답에 10 이상이나 잘못된 번호가 없는지 확인한다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Dimension Error와 Shape Error는 구분한다</h3>
+
+                    <div class="compare-grid two-columns">
+
+                        <article class="mini-card">
+                            <h3>축 개수가 다른 경우</h3>
+                            <code>(N,28,28,1)</code>
+                            <p>정상적인 4차원 입력</p>
+                            <code>(N,28,28,1,1)</code>
+                            <p>축이 하나 더 생긴 5차원 입력</p>
+                        </article>
+
+                        <article class="mini-card">
+                            <h3>축 개수는 같고 크기가 다른 경우</h3>
+                            <code>(1,28,28,1)</code>
+                            <p>흑백 입력</p>
+                            <code>(1,28,28,3)</code>
+                            <p>RGB 입력</p>
+                        </article>
+
+                    </div>
+
+                    <h3>AxisError: 존재하지 않는 축을 지정</h3>
+
+                    <pre><code>one_prediction = np.array([0.1, 0.9])
+np.argmax(one_prediction, axis=1)</code></pre>
+
+                    <pre
+                        class="error-block"><code>AxisError: axis 1 is out of bounds for array of dimension 1</code></pre>
+
+                    <p>
+                        이 배열의 Shape는 (2,)이므로 축 0만 있다.
+                        여러 이미지의 (N,10)과 이미지 한 장의 (10,)을 구분해야 한다.
+                    </p>
+
+                    <h3>Reshape Error: 원소 수가 맞지 않음</h3>
+
+                    <pre><code>np.zeros(784).reshape(28, 28, 3)</code></pre>
+
+                    <pre
+                        class="error-block"><code>ValueError: cannot reshape array of size 784 into shape (28,28,3)</code></pre>
+
+                    <p>
+                        784개 값을 2,352개 자리에 넣으려 한 것이다.
+                        reshape는 색상 채널에 필요한 픽셀 값을 새로 만들지 않는다.
+                    </p>
+
+                    <h3>dtype Error: 정수 배열에 실수 결과를 제자리 저장</h3>
+
+                    <pre><code>pixels = np.array([0, 127, 255], dtype=np.uint8)
+pixels /= 255</code></pre>
+
+                    <pre class="error-block"><code>Cannot cast ufunc 'divide' output from dtype('float64')
+to dtype('uint8') with casting rule 'same_kind'</code></pre>
+
+                    <p>
+                        나눗셈 결과는 실수인데 기존 uint8 배열에 저장하려고 해 실패한다.
+                        원본처럼 실수 배열을 새로 만들어 처리할 수 있다.
+                    </p>
+
+                    <pre><code>pixels = pixels.astype(np.float32) / 255</code></pre>
+
+                    <p>
+                        float64나 정수 픽셀을 전달했다고 언제나 즉시 오류가 나는 것은 아니다.
+                        자동 변환되는 경우도 있다.
+                        문자열·object dtype 여부와 실제 입력 범위까지 확인한다.
+                    </p>
+
+                    <h3>오류 없이 틀리는 경우: Broadcasting</h3>
+
+                    <pre><code>predicted = np.array([1, 2, 3])       # (3,)
+target = np.array([[1], [2], [3]])    # (3,1)
+
+comparison = predicted == target
+
+print(comparison.shape)              # (3,3)
+print(np.mean(comparison))           # 0.3333333333333333</code></pre>
+
+                    <p>
+                        모두 맞은 예측인데도 NumPy가 모든 조합을 비교해
+                        33.3%처럼 보이는 결과가 나왔다.
+                        실제 정답이 샘플당 정수 하나인데 축만 추가된 상황임을 확인했다면
+                        (N,)으로 맞출 수 있다.
+                    </p>
+
+                    <pre><code>target_flat = target.reshape(-1)
+print(np.mean(predicted == target_flat))  # 1.0</code></pre>
+
+                    <div class="notice warning">
+                        <strong>원핫 정답을 무조건 펼치는 처방은 아니다.</strong>
+                        <p>
+                            정확도 계산 전 예측 번호와 정답의 의미·Shape를 함께 확인한다.
+                            (10000,)과 (10000,1)을 그대로 비교하면
+                            (10000,10000) 비교가 만들어질 수 있다.
+                        </p>
+                    </div>
+
+                    <details>
+                        <summary>보완 진단 코드: 입력 상태와 예측 Shape 확인</summary>
+
+                        <pre><code># 전처리를 한 번 마친 뒤 확인
+print(X_train.shape, X_train.dtype)
+print(X_train.min(), X_train.max())
+print(y_train.shape, y_train.dtype)
+
+assert X_train.ndim == 4
+assert X_train.shape[1:] == (28, 28, 1)
+assert y_train.ndim == 1
+assert X_train.shape[0] == y_train.shape[0]
+
+assert X_train.dtype == np.float32
+assert np.isfinite(X_train).all()
+assert 0.0 &lt;= X_train.min()
+assert X_train.max() &lt;= 1.0
+
+assert np.issubdtype(y_train.dtype, np.integer)
+assert y_train.min() &gt;= 0
+assert y_train.max() &lt; 10
+
+# predict 실행 뒤 확인
+predicted_labels = np.argmax(y_pred, axis=1)
+assert predicted_labels.shape == y_test.shape</code></pre>
+
+                        <p>
+                            이 점검을 통과해도 모든 오류가 사라진 것은 아니다.
+                            중복 정규화로 최댓값이 0.0039 정도가 되어도
+                            0~1 범위 검사는 통과한다.
+                            실제 min/max와 전처리 실행 순서를 함께 본다.
+                        </p>
+
+                    </details>
+
+                </section>
+
+                <!-- 19 -->
+                <section class="lesson-card" id="ml32-leakage">
+
+                    <div class="card-heading">
+                        <span class="card-number">19</span>
+                        <div>
+                            <p class="eyebrow">Data Leakage</p>
+                            <h2>평가 정보가 모델 개발에 섞이지 않게 한다</h2>
+                        </div>
+                    </div>
+
+                    <p>
+                        데이터 누수는 예측할 때 사용할 수 없는 정보나
+                        평가용 정보가 모델을 만드는 과정에 들어가
+                        성능을 실제보다 좋게 보이게 하는 문제다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="데이터 누수 사례">
+                        <table>
+                            <caption>이후 실습에서 주의할 사례</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">사례</th>
+                                    <th scope="col">문제</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">훈련·테스트를 합쳐 학습</th>
+                                    <td>테스트가 독립적인 평가 자료가 아니게 된다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">테스트 점수를 보며 설정 반복 선택</th>
+                                    <td>테스트 정보가 모델 선택에 반영된다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">전체 데이터로 평균·표준편차 학습</th>
+                                    <td>검증·테스트 정보가 전처리에 들어간다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">같은 원본의 증강본이 서로 다른 분할에 포함</th>
+                                    <td>사실상 비슷한 이미지를 이미 본 상태에서 평가할 수 있다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>원본의 /255는 왜 구분해야 하는가?</h3>
+
+                    <pre><code>X_train = X_train.astype(np.float32) / 255
+X_test = X_test.astype(np.float32) / 255</code></pre>
+
+                    <p>
+                        255는 미리 정한 상수다.
+                        테스트 데이터의 평균이나 최댓값을 계산해 학습한 값이 아니다.
+                        따라서 검증 분할 전에 /255를 했다는 이유만으로
+                        이 코드를 데이터 누수라고 판단하면 안 된다.
+                    </p>
+
+                    <div class="notice">
+                        <strong>데이터에서 학습하는 전처리와 고정 변환을 구분한다.</strong>
+                        <p>
+                            평균·표준편차·특징 선택처럼 데이터에서 정보를 추정하는 과정은
+                            훈련 부분에서 학습하고 검증·테스트에는 같은 변환을 적용한다.
+                            고정 상수 나눗셈과 채널 축 추가는 그 자체로 같은 종류의 추정 과정이 아니다.
+                        </p>
+                    </div>
+
+                    <ul>
+                        <li>원본은 MNIST 훈련용과 테스트용 자료를 따로 받는다.</li>
+                        <li>검증 부분은 훈련용 자료에서 분리한다.</li>
+                        <li>현재 코드만으로 반복적인 테스트 활용이 있었다고 단정할 수 없다.</li>
+                        <li>증강을 추가한다면 원본을 먼저 분리한 뒤 훈련 부분에서 생성한다.</li>
+                    </ul>
+
+                    <p class="reference">
+                        <a href="https://scikit-learn.org/stable/common_pitfalls.html">
+                            scikit-learn: 데이터 누수와 일관된 전처리
+                        </a>
+                    </p>
+
+                </section>
+
+                <!-- 20 -->
+                <section class="lesson-card" id="ml32-review">
+
+                    <div class="card-heading">
+                        <span class="card-number">20</span>
+                        <div>
+                            <p class="eyebrow">Original · Review · Supplement</p>
+                            <h2>원문 주석과 현재 실행 결과를 대조한다</h2>
+                        </div>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag review">통합교안 268쪽 검토 메모 원문</span>
+                    </p>
+
+                    <blockquote>
+                        일부 컨볼루션 파라미터 수 설명과 저장된 모델 summary가 서로 맞지 않는 구간이 있다.
+                        수식과 model.summary()를 같은 입력 shape에서 다시 대조한다.
+                    </blockquote>
+
+                    <p>
+                        아래 표는 위 메모를 바탕으로 활성 코드·저장 출력·수식을
+                        대조한 보완 검토 결과다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="원문 설명과 현재 코드 비교">
+                        <table>
+                            <caption>원문을 바꾸지 않고 바로잡아 읽기</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">원문에서 혼동하기 쉬운 내용</th>
+                                    <th scope="col">현재 코드 기준</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">일반 Conv와 Depthwise가 모두 이어지는 듯한 설명</th>
+                                    <td>활성 경로는 Depthwise → Pointwise → Pooling이다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Pointwise 출력 11×11×16</th>
+                                    <td>현재는 26×26×16이다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Pointwise 파라미터 528개</th>
+                                    <td>입력 1채널이므로 32개다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Flatten 2,304 또는 400</th>
+                                    <td>13×13×16=2,704다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Dense 295,040 또는 51,328개</th>
+                                    <td>2,704×128+128=346,240개다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Depthwise 출력은 입력 채널 수로만 결정</th>
+                                    <td>입력 채널 수×depth_multiplier이며, 현재 기본 multiplier=1이다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">파라미터 수를 연산량과 같은 뜻으로 사용</th>
+                                    <td>학습할 숫자 개수와 실제 계산 횟수는 다르다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Depthwise는 항상 과적합 가능성이 가장 낮음</th>
+                                    <td>표현력·데이터·전체 모델·학습 조건과 실제 검증 결과를 함께 본다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">100 epoch이면 정확도 47%</th>
+                                    <td>현재 10 epoch 저장 기록으로 확인되지 않는 주석이다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <details>
+                        <summary>원문 셀 20의 설명 문자열 보기</summary>
+
+                        <p>
+                            다음은 현재 구조와 맞지 않는 숫자가 포함된 원문 설명이다.
+                            학습용 정답 표로 외우지 않고 위의 대조 결과와 함께 읽는다.
+                        </p>
+
+                        <pre><code>'''
+입력층(이미지:28x28x1) - Conv - Relu - Pooling - Depthwise Conv - Conv(필터 1 x 1)-Pooling - Flatten - FC(relu) - FC(Softmax)
+필터의 갯수만큼 편향 존재 즉 파라미터 계산시는 편향을 추가해야 한다
+
+Normal Convolution적용 conv2d(Conv2D) : (None,26,26,32)  320.(26,26,32)는 피처맵의 형태,320는 컨볼류션층의 파라미터 수(3x3x32+1(편향)x32).
+Max Pooling적용 max_pooling2d (MaxPooling2D) : (None, 13, 13, 32)  0
+Depthwise Convolution적용 depthwise_conv2d(DepthwiseConv2D) :  (None, 26, 26, 1) 10.(26, 26, 1)는 피처맵의 형태,필터의 Depth는 무조건 1.10는 컨볼류션층의 파라미터 수(3x3x1+1(편향)).
+Max Pooling적용 max_pooling2d(MaxPooling2D) : (None, 13, 13,1) 0. (26-2)/2+1임으로 13x13x1 피처맵. 스트라이드는 2x2임으로 2
+
+Pointwise Convolution적용 conv2d_1 (Conv2D) : (None, 11, 11, 16) 528.(11, 11, 16)는 피처맵의 형태,528는 컨볼류션층의 파라미터 수(1x1x16*32+1(편향)x16).
+
+flatten (Flatten) : (None,2304) :    0   5x5x16의 피처맵을 1차원 형태로 평탄화함으로 5*5*16=400
+dense (Dense) : (None,128)  295,040. 400*128+128(편향)=51,328
+dense_1 (Dense) : (None,10) 1,290.   128*10+10(편향)=1290
+'''
+model.summary()</code></pre>
+
+                    </details>
+
+                    <h3>비교 실험을 다시 실행할 때</h3>
+
+                    <ol>
+                        <li>합성곱 블록 하나를 선택한다.</li>
+                        <li>나머지 비교 블록은 주석 처리한다.</li>
+                        <li>데이터와 모델을 처음부터 일관되게 구성한다.</li>
+                        <li>summary의 Shape와 파라미터를 먼저 확인한다.</li>
+                        <li>같은 분할과 학습 조건으로 학습한다.</li>
+                        <li>검증 결과와 최종 테스트 결과를 구분하여 기록한다.</li>
+                    </ol>
+
+                    <p>
+                        첨부된 Notebook에는 활성 모델의 결과만 저장되어 있다.
+                        현재 자료만으로 세 합성곱 방식의 정확도 순위를 만들 수는 없다.
+                    </p>
+
+                </section>
+
+                <!-- 21 -->
+                <section class="lesson-card" id="ml32-improve">
+
+                    <div class="card-heading">
+                        <span class="card-number">21</span>
+                        <div>
+                            <p class="eyebrow">Performance Diagnosis</p>
+                            <h2>성능을 바꾸기 전에 원인을 구분한다</h2>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="성능 문제 진단">
+                        <table>
+                            <caption>증상과 점검 순서</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">관찰</th>
+                                    <th scope="col">해석 후보</th>
+                                    <th scope="col">먼저 확인</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">훈련 손실 하락, 검증 손실 지속 상승</th>
+                                    <td>Overfitting 가능성</td>
+                                    <td>여러 epoch의 추세와 분할 상태</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">훈련·검증 성능이 모두 낮음</th>
+                                    <td>Underfitting, 전처리·정답·학습 문제</td>
+                                    <td>입력 범위, 레이블, 모델 표현력, 학습 시간</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">손실이 크게 진동·발산</th>
+                                    <td>큰 학습률 또는 수치 문제</td>
+                                    <td>NaN/Inf, 입력 스케일, 학습률</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">매우 느린 개선</th>
+                                    <td>작은 학습률, 학습 부족, 구조적 한계</td>
+                                    <td>중복 정규화 여부와 실제 업데이트</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Overfitting을 판단할 때</h3>
+
+                    <p>
+                        학습 정확도가 검증 정확도보다 높다는 사실만으로 확정하지 않는다.
+                        학습 손실은 계속 내려가는데 검증 손실은 지속적으로 악화되고,
+                        격차가 커지는지 본다.
+                        현재 저장 기록은 검증 손실도 전반적으로 감소한다.
+                    </p>
+
+                    <h3>Underfitting을 판단할 때</h3>
+
+                    <p>
+                        훈련·검증 성능이 모두 낮다면 모델이 필요한 패턴을 충분히
+                        학습하지 못했을 수 있다.
+                        그러나 이미지와 정답의 대응, 잘못된 정규화,
+                        손실 설정, 학습률을 먼저 확인해야 한다.
+                        모델이 작다는 이유만으로 원인을 확정하지 않는다.
+                    </p>
+
+                    <h3>Learning Rate·Epoch·Batch Size는 역할이 다르다</h3>
+
+                    <div class="formula">
+                        Learning Rate → 업데이트 규모<br>
+                        Epoch → 훈련 자료 반복 횟수<br>
+                        Batch Size → 한 번에 묶는 샘플 수
+                    </div>
+
+                    <p>
+                        NaN이나 발산을 곧바로 과적합이라고 해석하지 않는다.
+                        입력에 비정상 값이 없는지 먼저 보고 학습률 등을 점검한다.
+                        원인을 모른 채 epoch만 늘리면 해결되지 않을 수 있다.
+                    </p>
+
+                    <h3>일반 Conv와 분리 블록의 비교 조건</h3>
+
+                    <ul>
+                        <li>출력 채널 수·padding·stride·후속 분류층을 맞춘다.</li>
+                        <li>중간 ReLU와 편향 구성의 차이를 기록한다.</li>
+                        <li>동일한 데이터 분리와 전처리를 사용한다.</li>
+                        <li>새 모델·새 옵티마이저로 시작한다.</li>
+                        <li>초기화 변동을 고려해 같은 난수 조건이나 반복 실험을 사용한다.</li>
+                        <li>정확도뿐 아니라 검증 손실·메모리·실제 시간을 함께 확인한다.</li>
+                    </ul>
+
+                    <details>
+                        <summary>보완 설계: Flatten 대신 GAP를 사용한다면?</summary>
+
+                        <p>
+                            GlobalAveragePooling2D는 각 채널의 공간 평균을 구한다.
+                            현재 Pooling 출력 (B,13,13,16)을 (B,16)으로 바꾼다.
+                            원본과 동일한 모델이 아니라 별도 설계 실험이다.
+                        </p>
+
+                        <pre><code># 별도 실험용 분류부
+# 기존 Flatten 뒤에 추가하지 말고 새 모델에서 구성
+model.add(keras.layers.GlobalAveragePooling2D())
+model.add(Dense(128, activation='relu',
+                kernel_initializer='he_normal'))
+model.add(Dense(10, activation='softmax'))</code></pre>
+
+                        <div class="formula">
+                            GAP 출력: (B,16)<br>
+                            Dense(128): 16×128+128 = 2,176<br>
+                            전체: 42 + 2,176 + 1,290 = 3,508개
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <p>
+                            원본 347,572개보다 크게 줄지만
+                            공간 배치 정보를 압축하는 방식도 달라진다.
+                            손글씨 분류 성능이 좋아진다고 보장할 수 없다.
+                            3,508개는 계산한 파라미터 수이며 학습 성능 결과가 아니다.
+                        </p>
 
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
+                    </details>
+
+                    <div class="notice">
+                        <strong>보완 기법은 하나씩 비교한다.</strong>
+                        <p>
+                            조기 종료, 데이터 증강, 가중치 규제, Dropout, 모델 축소 등은
+                            원본에 없던 추가 실험 방향이다.
+                            기준 모델을 남기고 변경 하나의 효과부터 확인한다.
+                        </p>
+                    </div>
+
+                </section>
+
+                <!-- 22 -->
+                <section class="lesson-card" id="ml32-practice">
+
+                    <div class="card-heading">
+                        <span class="card-number">22</span>
+                        <div>
+                            <p class="eyebrow">Practical Connections</p>
+                            <h2>실제 프로젝트에서는 입력 규격과 평가를 함께 관리한다</h2>
                         </div>
+                    </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="서비스 입력 규격">
+                        <table>
+                            <caption>학습과 추론에서 맞춰야 할 항목</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">항목</th>
+                                    <th scope="col">이번 실습</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">이미지 크기</th>
+                                    <td>28×28</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">색상 모드</th>
+                                    <td>흑백 1채널</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">채널 위치</th>
+                                    <td>마지막 축</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">dtype·범위</th>
+                                    <td>float32, 0~1</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">출력 클래스 순서</th>
+                                    <td>0번 위치부터 숫자 0~9</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">이미지 표현</th>
+                                    <td>숫자의 크기·위치·여백·배경 밝기 확인</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
+                    <p>
+                        학습에서는 정규화했는데 서비스에서는 하지 않으면
+                        모델 구조가 같아도 입력 분포가 달라진다.
+                        모델과 함께 전처리 규칙 및 클래스 매핑을 관리해야 한다.
+                    </p>
+
+                    <h3>Accuracy 다음에 볼 지표</h3>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="추가 분류 평가">
+                        <table>
+                            <caption>전체 정확도만으로 알기 어려운 것</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">도구·지표</th>
+                                    <th scope="col">확인하는 내용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">혼동행렬</th>
+                                    <td>실제 숫자가 어떤 숫자로 잘못 예측되는가</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Recall</th>
+                                    <td>실제 특정 클래스의 샘플을 얼마나 놓치지 않는가</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Precision</th>
+                                    <td>특정 클래스라고 예측한 것 중 얼마나 맞는가</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">오분류 이미지</th>
+                                    <td>어떤 글씨 형태와 전처리 조건에서 실패하는가</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="code-label">
+                        <span class="tag supplement">오분류 확인 예제</span>
+                    </p>
+
+                    <pre><code>predicted_labels = np.argmax(y_pred, axis=1)
+wrong_indices = np.flatnonzero(predicted_labels != y_test)
+
+print("오분류 개수:", len(wrong_indices))
+
+if len(wrong_indices) &gt; 0:
+    i = wrong_indices[0]
+
+    plt.imshow(X_test[i, :, :, 0], cmap="gray")
+    plt.title(
+        f"true={int(y_test[i])}, pred={int(predicted_labels[i])}"
+    )
+    plt.axis("off")
+    plt.show()</code></pre>
+
+                    <p>
+                        이 코드는 가중치를 바꾸지 않고 실패 사례를 확인한다.
+                        테스트 오분류를 보고 계속 모델을 수정한다면
+                        그 테스트 자료가 개발 판단에 사용된다.
+                        반복 개선에는 검증 자료를 사용하고
+                        독립적인 최종 평가 자료를 유지하는 것이 좋다.
+                    </p>
+
+                    <h3>R²는 왜 이번 문제에 쓰지 않는가?</h3>
+
+                    <p>
+                        R²는 연속 수치의 회귀 예측을 평가하는 지표다.
+                        실제 값이 모두 같지 않은 경우 다음 식으로 이해할 수 있다.
+                    </p>
+
+                    <div class="formula">
+                        R² = 1 − Σ(yᵢ − ŷᵢ)² / Σ(yᵢ − ȳ)²
+                    </div>
+
+                    <p>
+                        yᵢ는 실제 값, ŷᵢ는 예측값,
+                        ȳ는 평가 자료의 실제 값 평균이다.
+                        실제 값이 모두 같으면 분모가 0이므로 별도 처리가 필요하다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="R 제곱 해석">
+                        <table>
+                            <caption>정답에 변동이 있는 경우</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">R²</th>
+                                    <th scope="col">해석</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">1</th>
+                                    <td>예측이 실제 값과 모두 일치한다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">0</th>
+                                    <td>평가 자료의 평균을 항상 예측하는 기준과 제곱오차가 같다.</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">음수</th>
+                                    <td>그 평균 기준보다 제곱오차가 크다.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        R²=0.8을 “80% 맞혔다”라고 읽지 않는다.
+                        이번 0~9는 클래스 ID이므로 숫자 거리로 오분류를 평가하지 않는다.
+                        현재 96.38%는 Accuracy이며 R²가 아니다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="문제 유형별 출력과 지표">
+                        <table>
+                            <caption>문제가 달라지면 마지막 부분도 달라진다</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">문제</th>
+                                    <th scope="col">출력 예</th>
+                                    <th scope="col">평가 예</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">숫자 다중 분류</th>
+                                    <td>Softmax 10개</td>
+                                    <td>Accuracy, 혼동행렬</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">정상·불량 이진 분류</th>
+                                    <td>Sigmoid 1개</td>
+                                    <td>Precision, Recall, 임계값 검토</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">연속값 회귀</th>
+                                    <td>선형 출력</td>
+                                    <td>MAE, RMSE, R²</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        위 표는 활용 예시이며, 이 Notebook에서 불량 분류나 회귀를 학습한 것은 아니다.
+                        객체의 위치까지 찾는 탐지는 현재 이미지 분류와 정답·출력 구조가 다르다.
+                    </p>
+
+                    <p class="reference">
+                        <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html">
+                            scikit-learn R² 공식 문서
+                        </a>
+                    </p>
+
+                </section>
+
+                <!-- 23 -->
+                <section class="lesson-card" id="ml32-interview">
+
+                    <div class="card-heading">
+                        <span class="card-number">23</span>
+                        <div>
+                            <p class="eyebrow">Interview &amp; Review</p>
+                            <h2>코드를 보지 않고 설명해 보기</h2>
                         </div>
+                    </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <p>
+                        먼저 스스로 답한 뒤 펼쳐서 확인한다.
+                        숫자를 외우는 것보다 입력과 출력의 연결을 설명하는 것이 중요하다.
+                    </p>
 
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
+                    <details>
+                        <summary>1. CNN이 이미지에 적합한 이유는?</summary>
+                        <p>
+                            주변 픽셀의 관계를 작은 영역에서 계산하고,
+                            같은 필터를 여러 위치에서 공유하기 때문이다.
+                            국소적인 패턴을 반복적으로 추출할 수 있다.
+                        </p>
+                    </details>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <details>
+                        <summary>2. Conv2D인데 입력 배열은 왜 4차원인가?</summary>
+                        <p>
+                            2D는 필터가 이동하는 공간 축이 높이·너비 두 개라는 뜻이다.
+                            입력은 배치와 채널까지 포함해
+                            (batch,height,width,channel)의 4차원이다.
+                        </p>
+                    </details>
 
-                </main>
+                    <details>
+                        <summary>3. 채널 축을 추가하면 새로운 픽셀이 생기는가?</summary>
+                        <p>
+                            아니다. 흑백 이미지의 채널이 1임을 배열 모양에 명시한다.
+                            (N,28,28)이 (N,28,28,1)이 되며 픽셀 값은 유지된다.
+                        </p>
+                    </details>
 
-                <aside class="side-note" aria-label="ML 32. Convolution 연산 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <details>
+                        <summary>4. 일반 Conv와 Depthwise의 차이는?</summary>
+                        <p>
+                            일반 Conv는 입력 채널 전체를 함께 고려한다.
+                            Depthwise는 입력 채널별로 독립적인 공간 합성곱을 수행하며,
+                            그 단계에서 채널 정보를 섞지 않는다.
+                        </p>
+                    </details>
 
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <details>
+                        <summary>5. 1×1 Pointwise는 무엇을 학습하는가?</summary>
+                        <p>
+                            같은 공간 위치의 채널 값을 가중합하여 새 채널을 만든다.
+                            현재는 입력이 1채널이므로 한 특징값을 16채널로 변환한다.
+                            파라미터는 (1×1×1+1)×16=32개다.
+                        </p>
+                    </details>
 
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
-            </div>
+                    <details>
+                        <summary>6. 합성곱 파라미터 수는 어떻게 계산하는가?</summary>
+                        <p>
+                            일반 Conv에서 groups=1이고 편향을 사용하면
+                            (Kh×Kw×입력 채널+1)×출력 채널이다.
+                            이번 일반 Conv 예제는 320개다.
+                        </p>
+                    </details>
 
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./31_deep_learning_performance.html">
-                    <span>이전 단원</span>
-                    <strong>ML 31. 딥러닝 모델 성능 개선</strong>
-                </a>
+                    <details>
+                        <summary>7. 파라미터가 적으면 반드시 빠른가?</summary>
+                        <p>
+                            아니다. 출력 공간 크기와 가중치 재사용 횟수,
+                            메모리 접근, 하드웨어와 구현이 실행 시간에 영향을 준다.
+                        </p>
+                    </details>
 
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
+                    <details>
+                        <summary>8. Flatten과 MaxPooling도 학습하는가?</summary>
+                        <p>
+                            이번 두 층에는 학습할 파라미터가 없다.
+                            Flatten은 모양을 바꾸고 MaxPooling은 최댓값을 선택한다.
+                        </p>
+                    </details>
 
-                <a class="lesson-next" href="./33_cnn_cat_dog_classification.html">
-                    <span>다음 단원</span>
-                    <strong>ML 33. CNN 고양이&#183;개 이미지 분류</strong>
-                </a>
-            </nav>
+                    <details>
+                        <summary>9. 현재 모델에서 파라미터가 가장 많은 층은?</summary>
+                        <p>
+                            Flatten 뒤 Dense(128)이다.
+                            2,704개 입력을 128개 노드에 연결하여
+                            2,704×128+128=346,240개다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>10. 왜 sparse categorical crossentropy인가?</summary>
+                        <p>
+                            정답이 원핫 벡터가 아니라 정수 클래스 번호이고,
+                            출력은 10개 클래스의 Softmax 확률이기 때문이다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>11. compile·fit·evaluate·predict의 차이는?</summary>
+                        <p>
+                            compile은 학습 방법 설정, fit은 가중치 학습,
+                            evaluate는 정답과 비교한 성능 계산,
+                            predict는 입력에 대한 모델 출력 생성이다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>12. 60,000장인데 왜 375 step인가?</summary>
+                        <p>
+                            20%인 12,000장을 검증용으로 분리하여
+                            48,000장으로 학습하기 때문이다.
+                            48,000÷128=375다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>13. 검증은 역전파하지 않으니 데이터 누수와 무관한가?</summary>
+                        <p>
+                            그렇게 단정할 수 없다.
+                            테스트 결과로 설정을 반복 선택하거나
+                            전체 데이터 통계로 전처리를 학습해도
+                            평가 정보가 개발 과정에 들어갈 수 있다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>14. 100 epoch이면 반드시 과적합인가?</summary>
+                        <p>
+                            아니다. 원본의 100 epoch·47% 내용은 주석이며
+                            현재 저장된 것은 10 epoch 결과다.
+                            epoch 수만으로 판단하지 않고 학습·검증 추세를 본다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>15. argmax(axis=1)의 의미는?</summary>
+                        <p>
+                            각 이미지 행의 10개 클래스 확률 중
+                            가장 큰 값의 위치를 선택한다.
+                            (N,10)이 (N,) 클래스 번호 배열이 된다.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>16. 모든 분류 문제에서 argmax를 사용하는가?</summary>
+                        <p>
+                            아니다. 여러 클래스 점수 중 하나를 고를 때 사용한다.
+                            Sigmoid 출력 하나인 이진 분류에서는
+                            보통 확률을 임계값과 비교한다.
+                        </p>
+                    </details>
+
+                </section>
+
+            </main>
+
+            <!-- ==================================================
+         SIDE NOTE
+    =================================================== -->
+            <aside class="side-note" id="ml32-memory" aria-label="암기 포인트와 다음 단원 연결">
+
+                <section class="side-note-card">
+
+                    <p class="eyebrow">Memory Points</p>
+                    <h2>오늘의 암기 포인트</h2>
+
+                    <ol class="memory-list">
+                        <li>이미지 배치는 <code>(B,H,W,C)</code>다.</li>
+                        <li>MNIST 한 장은 <code>(28,28,1)</code>이다.</li>
+                        <li>정답은 클래스 번호 하나이므로 <code>(N,)</code>이다.</li>
+                        <li>astype는 dtype, /255는 값의 범위를 바꾼다.</li>
+                        <li>일반 Conv 출력 채널은 filters다.</li>
+                        <li>Depthwise 출력 채널은 입력 채널×multiplier다.</li>
+                        <li>Pointwise는 1×1 Conv2D다.</li>
+                        <li>3×3, stride 1, valid이면 28→26이다.</li>
+                        <li>2×2 Pooling, stride 2이면 26→13이다.</li>
+                        <li>13×13×16=2,704다.</li>
+                        <li>현재 전체 파라미터는 347,572개다.</li>
+                        <li>파라미터 대부분은 Flatten 뒤 Dense에 있다.</li>
+                        <li>compile은 설정, fit은 학습이다.</li>
+                        <li>학습·검증·테스트는 48,000·12,000·10,000장이다.</li>
+                        <li>48,000÷128=375 step이다.</li>
+                        <li>predict 출력은 (N,10), argmax 후에는 (N,)이다.</li>
+                        <li>Loss는 오답률이 아니다.</li>
+                        <li>Accuracy와 R²는 같은 지표가 아니다.</li>
+                        <li>예측과 정답의 Shape를 맞춘 뒤 비교한다.</li>
+                        <li>테스트 자료로 설정을 반복 선택하지 않는다.</li>
+                    </ol>
+
+                    <div class="formula">
+                        (B,28,28,1)<br>
+                        → (B,26,26,1)<br>
+                        → (B,26,26,16)<br>
+                        → (B,13,13,16)<br>
+                        → (B,2704)<br>
+                        → (B,128)<br>
+                        → (B,10)
+                    </div>
+
+                </section>
+
+                <section class="side-note-card">
+
+                    <p class="eyebrow">Do Not Confuse</p>
+                    <h2>헷갈리기 쉬운 개념</h2>
+
+                    <dl class="confusion-list">
+
+                        <dt>필터 크기 / 필터 수</dt>
+                        <dd>
+                            3×3은 공간 크기이고,
+                            filters=16은 일반 Conv의 출력 채널 수다.
+                        </dd>
+
+                        <dt>Shape / dtype / 범위</dt>
+                        <dd>
+                            배열 형태, 자료형, 실제 값의 구간은 각각 다른 정보다.
+                        </dd>
+
+                        <dt>Flatten / Dense</dt>
+                        <dd>
+                            Flatten은 펼치는 연산이고,
+                            Dense는 가중치와 편향을 학습하는 층이다.
+                        </dd>
+
+                        <dt>초기화 / 최적화</dt>
+                        <dd>
+                            he_normal은 시작 가중치를 정하고,
+                            Adam은 학습 중 가중치를 바꾼다.
+                        </dd>
+
+                        <dt>검증 / 테스트</dt>
+                        <dd>
+                            검증은 개발 중 판단에 사용하고,
+                            테스트는 최종 일반화 성능을 확인한다.
+                        </dd>
+
+                        <dt>파라미터 / 연산량</dt>
+                        <dd>
+                            학습할 값의 개수와 실제 계산 횟수는 다르다.
+                        </dd>
+
+                        <dt>원본 주석 / 저장 출력</dt>
+                        <dd>
+                            셀 20의 일부 설명 수치는 현재 모델과 다르다.
+                            활성 코드, 수식, summary를 같은 입력에서 대조한다.
+                        </dd>
+
+                        <dt>실행 성공 / 올바른 계산</dt>
+                        <dd>
+                            Broadcasting, 중복 정규화, 잘못된 axis는
+                            오류 없이 잘못된 결과를 만들 수 있다.
+                        </dd>
+
+                    </dl>
+
+                </section>
+
+                <section class="side-note-card next-lesson">
+
+                    <p class="eyebrow">Next Lesson · ML 33 / Notebook 68</p>
+                    <h2>다음 단원: CNN 고양이·개 이미지 분류</h2>
+
+                    <p>
+                        다음 단원에서는 준비된 MNIST 배열 대신
+                        폴더에서 실제 이미지 파일을 읽고 크기를 맞추며 정답을 구성한다.
+                        입력과 출력이 달라지므로 Shape와 손실 해석을 다시 연결해야 한다.
+                    </p>
+
+                    <div class="table-wrap" tabindex="0" role="region" aria-label="다음 단원 비교">
+                        <table>
+                            <caption>이번 단원에서 다음 단원으로</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">구분</th>
+                                    <th scope="col">ML 32</th>
+                                    <th scope="col">ML 33</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">데이터</th>
+                                    <td>MNIST</td>
+                                    <td>고양이·개 이미지</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">준비 과정</th>
+                                    <td>데이터셋 API</td>
+                                    <td>파일 로딩·크기 조정</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">입력 한 장</th>
+                                    <td>(28,28,1)</td>
+                                    <td>(128,128,3)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">클래스</th>
+                                    <td>숫자 10종류</td>
+                                    <td>고양이·개 2종류</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">출력층</th>
+                                    <td>Dense(10, softmax)</td>
+                                    <td>Dense(1, sigmoid)</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">손실</th>
+                                    <td>Sparse categorical crossentropy</td>
+                                    <td>Binary crossentropy</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">최종 판단</th>
+                                    <td>argmax</td>
+                                    <td>확률과 임계값 비교</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p>
+                        RGB 3채널에 3×3 필터 16개를 적용하는 일반 Conv라면
+                        파라미터는 다음과 같다.
+                    </p>
+
+                    <div class="formula">
+                        (3×3×3 + 1)×16 = 448
+                    </div>
+
+                    <h3>다음 단원에서는 예측 선택 방식도 바뀐다</h3>
+
+                    <pre><code># 이번 ML 32: Softmax 출력 10개
+predicted_labels = np.argmax(y_pred, axis=1)
+
+# 다음 단원 연결용 예제: Sigmoid 출력 1개
+# p.shape == (N,1)
+predicted_labels = (p[:, 0] &gt;= 0.5).astype(np.int32)</code></pre>
+
+                    <div class="notice warning">
+                        <strong>Sigmoid 출력 하나에 argmax를 그대로 쓰지 않는다.</strong>
+                        <p>
+                            (N,1)에 argmax(axis=1)를 적용하면
+                            각 행에 원소가 하나뿐이므로 모든 결과가 인덱스 0이다.
+                            클래스 1의 확률을 임계값과 비교해야 한다.
+                        </p>
+                    </div>
+
+                    <p>
+                        0과 1 중 어느 쪽이 고양이인지 클래스 매핑을 먼저 확인한다.
+                        <code>p[:,0]</code>으로 (N,)을 만들면
+                        같은 모양의 정답과 비교할 수 있다.
+                        이 코드는 연결 설명용이며 다음 단원의 학습 성능을 제시한 것은 아니다.
+                    </p>
+
+                </section>
+
+            </aside>
+
+            <footer class="lesson-footer">
+
+                <p>
+                    기준 자료:
+                    67_케라스-CNN-컨볼류션연산32.ipynb /
+                    AI_MachineLearning_통합교안_36-100.pdf 268~273쪽.
+                </p>
+
+                <p>
+                    원문 실행 구문, 저장 결과, 검토 메모, 보완 설명을 구분한 학습 자료다.
+                    추가 실험의 파라미터 계산을 실제 학습 성능으로 해석하지 않는다.
+                </p>
+
+                <a class="back-to-top" href="#ml32-top">맨 위로 이동 ↑</a>
+
+            </footer>
+
         </div>
+
     </div>
-</body>
+
+        <script src="../../js/00_nav.js" defer></script>
+    </body>
+
 </html>
