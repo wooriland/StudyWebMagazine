@@ -1,266 +1,2068 @@
 <!DOCTYPE html>
-<html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 37. MobileNet 전이학습 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 37. MobileNet 전이학습 | AI Machine Learning | AI &amp; Machine Learning</title>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="MobileNet 사전학습 특징과 새 분류층으로 고양이·개를 구분하며 데이터, 전처리, 학습과 평가를 정리한 학습 매거진.">
+        <title>ML 37. MobileNet 전이학습 | AI Machine Learning</title>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/37_mobilenet_transfer_learning.css">
+    </head>
+    <body class="theme-ai-machine-learning study-page machine-learning-page ml37-page">
+        <a class="skip-link" href="#ml37-main">학습 본문으로 이동</a>
+        <div class="layout">
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 공통 메뉴"></nav>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/37_mobilenet_transfer_learning.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+<div class="page-content" id="ml37-study">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="37"
-      data-step="0"
-      data-status="skeleton" data-part="part-4-cnn-transfer">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+    <header class="lesson-hero" id="ml37-top">
+        <p class="eyebrow">AI MACHINE LEARNING · PART 4 이미지 분류</p>
+        <h1><span class="chapter-number">ML 37.</span>MobileNet 전이학습</h1>
+        <p class="hero-summary">
+            이미 학습한 이미지 특징을 가져와,<br>
+            고양이·개를 구분하는 새 분류층만 학습합니다.
+        </p>
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <div class="hero-stats">
+            <div>
+                <strong>2,000 / 200 / 200</strong>
+                <span>Train / Validation / Test 이미지</span>
+            </div>
+            <div>
+                <strong>65,730개</strong>
+                <span>실제로 학습하는 새 분류층 파라미터</span>
+            </div>
+            <div>
+                <strong>99.5%</strong>
+                <span>원본에 저장된 테스트 200장의 정확도</span>
+            </div>
+        </div>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
+        <section class="learning-goals" aria-label="학습 목표">
+        <h2>학습 목표</h2>
+        <ul class="goals">
+            <li>추론·전이학습·미세조정 구분</li>
+            <li>Dataset과 클래스 매핑 확인</li>
+            <li>배치·원핫 정답·Shape 추적</li>
+            <li>MobileNet 전처리와 증강 이해</li>
+            <li>기반 모델 동결과 GAP 이해</li>
+            <li>compile → fit → evaluate → predict 연결</li>
+            <li>Loss·Accuracy·예측 확률 구분</li>
+            <li>누수·차원·dtype·학습 문제 진단</li>
+        </ul>
+        </section>
+
+        <p class="source-note">
+            Notebook 72 · 통합교안 304~317쪽 · Step 1·2 재구성.
+            원문 코드의 설명 주석·단독 설명 문자열·공백만 정리하고 실행 동작은 유지했습니다.
+            셀 7은 주석 처리 상태를 그대로 표시합니다.
+            수치는 원본 저장 결과 또는 명시한 계산 예시이며 이번 제작에서 모델을 재학습하지 않았습니다.
+        </p>
+
+        <div class="legend">
+            <span class="tag source">원문 실행문</span>
+            <span class="tag saved">원본 저장 결과</span>
+            <span class="tag review">추가 검토</span>
+            <span class="tag supplement">보충 설명·예제</span>
+        </div>
+
+        <p class="warning">
+            <strong>99.5%는 특정 이미지의 확률이 아니라 테스트 정확도입니다.</strong>
+            해당 테스트 200장 중 199장 정답에 해당합니다.
+            이 단원에는 공식 검토 메모가 없으며, 원문의 오타와 주의점은 추가 검토로 구분합니다.
+        </p>
+
+        <nav class="lesson-toc" aria-label="학습 목차">
+            <a href="#ml37-core">01 핵심 개념</a>
+            <a href="#ml37-data">02 Dataset 구조</a>
+            <a href="#ml37-xy">03 X·y·클래스</a>
+            <a href="#ml37-env">04 환경·실행 흐름</a>
+            <a href="#ml37-preprocess">05 증강·전처리</a>
+            <a href="#ml37-batch">06 배치 공급</a>
+            <a href="#ml37-model">07 모델 구성</a>
+            <a href="#ml37-shape">08 Shape·GAP</a>
+            <a href="#ml37-compile">09 compile·Loss</a>
+            <a href="#ml37-fit">10 학습 흐름</a>
+            <a href="#ml37-history">11 학습 결과</a>
+            <a href="#ml37-evaluate">12 테스트 평가</a>
+            <a href="#ml37-predict">13 예측·수동 Accuracy</a>
+            <a href="#ml37-new">14 새 이미지 예측</a>
+            <a href="#ml37-review">15 원문 검토</a>
+            <a href="#ml37-leak">16 Data Leakage</a>
+            <a href="#ml37-mistakes">17 Shape·dtype 실수</a>
+            <a href="#ml37-errors">18 오류 메시지</a>
+            <a href="#ml37-improve">19 성능 진단·개선</a>
+            <a href="#ml37-practice">20 실무 연결</a>
+            <a href="#ml37-interview">21 면접 포인트</a>
+            <a href="#ml37-memory">암기·혼동 정리</a>
+            <a href="#ml37-next">다음 ML 38 연결</a>
+        </nav>
+    </header>
+
+    <main class="lesson-main" id="ml37-main">
+
+        <section class="lesson-card" id="ml37-core">
+            <h2><span class="num">01</span>핵심 개념 · 특징은 가져오고 판단은 새로 학습</h2>
+
+            <p>
+                사진 한 장을 고양이 또는 개로 분류합니다.
+                이번 구현은 <strong>원핫 정답 + Dense 2 Softmax + categorical cross-entropy</strong>를 사용합니다.
+                두 클래스 문제라고 해서 반드시 Dense 1 Sigmoid로 구성해야 하는 것은 아닙니다.
+            </p>
+
+            <div class="grid two">
+                <div class="mini">
+                    <h3>왜 전이학습을 하나요?</h3>
+                    <p>
+                        큰 데이터에서 배운 경계·질감·형태 등의 특징을 새 문제의 출발점으로 활용합니다.
+                        모델 전체를 처음부터 학습하는 대신 학습 대상 파라미터를 줄일 수 있습니다.
+                    </p>
                 </div>
-
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 4. CNN과 전이학습 · ML 37</p>
-                        <h1>ML 37. MobileNet 전이학습</h1>
-                    </div>
-
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                <div class="mini">
+                    <h3>무엇을 학습하나요?</h3>
+                    <p>
+                        MobileNet V1 기반 모델은 고정하고 새 Dense 두 층만 학습합니다.
+                        기반 모델의 가중치까지 다시 학습하는 미세조정은 원문의 활성 코드에 없습니다.
+                    </p>
                 </div>
-
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
-
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 4. CNN과 전이학습</span>
-                    <span>ML 37</span>
-                    <span>Skeleton</span>
-                </div>
-
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-37">
-                    <h2 id="goals-machine-learning-37">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="ML 37. MobileNet 전이학습 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
             </div>
 
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./36_resnet50_inference.html">
-                    <span>이전 단원</span>
-                    <strong>ML 36. ResNet50 사전학습 모델 추론</strong>
-                </a>
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>역할이 다른 핵심 설정</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">용어·설정</th>
+                            <th scope="col">역할</th>
+                            <th scope="col">이번 적용</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>사전학습</td>
+                            <td>다른 데이터로 이미 학습한 가중치 사용</td>
+                            <td>ImageNet 가중치</td>
+                        </tr>
+                        <tr>
+                            <td>include_top=False</td>
+                            <td>기존 분류 부분 제외</td>
+                            <td>ImageNet 분류 부분 제거</td>
+                        </tr>
+                        <tr>
+                            <td>trainable=False</td>
+                            <td>가중치 업데이트 대상에서 제외</td>
+                            <td>기반 모델 모든 층 고정</td>
+                        </tr>
+                        <tr>
+                            <td>전이학습</td>
+                            <td>기존 특징을 새 과제에 활용</td>
+                            <td>고양이·개 분류층 학습</td>
+                        </tr>
+                        <tr>
+                            <td>미세조정</td>
+                            <td>기반 층 일부·전체도 추가 학습</td>
+                            <td>실행하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>추론</td>
+                            <td>현재 가중치로 예측 계산</td>
+                            <td>학습 후 predict</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
+            <p>
+                MobileNet V1은 채널별 공간 패턴을 처리하는 Depthwise Convolution과
+                채널 정보를 결합하는 1×1 Pointwise Convolution을 활용하는 경량 CNN입니다.
+                이번에는 내부 연산을 직접 구현하지 않고 준비된 모델을 특징 추출기로 사용합니다.
+            </p>
 
-                <a class="lesson-next" href="./38_vgg16_inference.html">
-                    <span>다음 단원</span>
-                    <strong>ML 38. VGG16 사전학습 모델</strong>
-                </a>
-            </nav>
+            <p class="notice">
+                <strong>동결은 계산 생략이 아닙니다.</strong>
+                고정된 MobileNet도 이미지의 특징을 계산합니다.
+                달라지는 것은 Optimizer가 그 가중치를 업데이트하지 않는다는 점입니다.
+                ML 36의 기존 1,000클래스 추론과 달리, 이번에는 정답 y를 사용해 새 두 클래스 분류층을 학습합니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-data">
+            <h2><span class="num">02</span>Dataset · 이미 분리된 세 폴더를 읽기</h2>
+
+            <p>
+                원본에는 다운로드·압축 해제·데이터 분할 코드가 없습니다.
+                아래 세 경로를 실행 전에 준비해야 합니다.
+                클래스 하위 폴더 이름은 구조 설명용 예시이며 실제 매핑은 데이터 객체에서 확인합니다.
+            </p>
+
+            <pre tabindex="0"><code>현재 작업 폴더/
+└─ datasets/cats_dogs/
+   ├─ train/  ─ cats/, dogs/     학습
+   ├─ val/    ─ cats/, dogs/     학습 중 검증
+   └─ test/   ─ cats/, dogs/     학습 후 평가</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>원본 저장 출력으로 확인한 데이터 수</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">구분</th>
+                            <th scope="col">이미지 수</th>
+                            <th scope="col">증강</th>
+                            <th scope="col">가중치 업데이트</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Train</td>
+                            <td>2,000장 · 2클래스</td>
+                            <td>적용</td>
+                            <td>새 Dense 층 업데이트</td>
+                        </tr>
+                        <tr>
+                            <td>Validation</td>
+                            <td>200장 · 2클래스</td>
+                            <td>적용하지 않음</td>
+                            <td>업데이트하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>Test</td>
+                            <td>200장 · 2클래스</td>
+                            <td>적용하지 않음</td>
+                            <td>업데이트하지 않음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                <span class="tag saved">원본 저장 출력</span>
+                Train은 <code>Found 2000 images belonging to 2 classes.</code>,
+                Test와 Validation은 각각 <code>Found 200 images belonging to 2 classes.</code>입니다.
+                원문 생성 순서는 Train → Test → Validation입니다.
+            </p>
+
+            <p>
+                원문 주석은 테스트 데이터를 고양이 100장·개 100장으로 설명합니다.
+                실제 클래스별 개수와 번호는 데이터 객체로 확인합니다.
+                세 폴더가 있다는 사실만으로 중복 이미지가 없다고 보장되지는 않습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-xy">
+            <h2><span class="num">03</span>X / y · 원핫 정답과 정수 정답 구분</h2>
+
+            <p>
+                <strong>X는 전처리된 이미지, y는 정답 클래스입니다.</strong>
+                원본은 전체 데이터를 X_train·y_train 배열에 한꺼번에 넣지 않고
+                공급원이 <code>(X_batch, y_batch)</code>를 제공합니다.
+            </p>
+
+            <pre tabindex="0"><code>X_batch: (100, 224, 224, 3)
+          장수  높이  너비  채널
+
+y_batch: (100, 2)
+          장수  클래스 수
+
+class_indices가 {'cats': 0, 'dogs': 1}인 경우
+고양이 → [1, 0]
+개     → [0, 1]</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>같은 정답을 다른 형태로 사용하는 이유</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">대상</th>
+                            <th scope="col">Shape</th>
+                            <th scope="col">용도</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>학습 배치의 y</td>
+                            <td>(B,2) · 원핫</td>
+                            <td>categorical cross-entropy 계산</td>
+                        </tr>
+                        <tr>
+                            <td>test_datasets.labels</td>
+                            <td>(200,) · 정수</td>
+                            <td>수동 정답 비교</td>
+                        </tr>
+                        <tr>
+                            <td>y_pred</td>
+                            <td>(200,2) · 확률</td>
+                            <td>각 이미지의 두 클래스 점수</td>
+                        </tr>
+                        <tr>
+                            <td>argmax(axis=1)</td>
+                            <td>(200,) · 정수</td>
+                            <td>이미지별 예측 클래스 번호</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                <span class="tag supplement">클래스 매핑 확인</span>
+                실제 폴더 이름을 확인하지 않고 0번이 고양이라고 단정하지 않습니다.
+                세 데이터에서 숫자와 클래스의 의미가 같아야 합니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python">print(train_datasets_iterator.class_indices)
+print(val_datasets.class_indices)
+print(test_datasets.class_indices)</code></pre>
+
+            <p class="notice">
+                <strong>None은 데이터가 없다는 뜻이 아닙니다.</strong>
+                <code>(None,224,224,3)</code>의 None은 모델 정의에서 배치 크기를 고정하지 않았다는 의미입니다.
+                실제 일반 배치에서는 B=100입니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-env">
+            <h2><span class="num">04</span>환경·실행 흐름 · 코드의 역할 지도</h2>
+            <p><span class="tag source">원문 셀 2~3</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="2">import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from glob import glob
+from tensorflow.keras.preprocessing import image
+import matplotlib.pyplot as plt
+from tensorflow.keras.applications.mobilenet import MobileNet,preprocess_input
+from tensorflow.keras.applications.imagenet_utils import decode_predictions
+from tensorflow.keras.layers import Input,Flatten,Dense,GlobalAveragePooling2D</code></pre>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="3">IMAGE_CHANNEL=3
+IMAGE_HEIGHT=224
+IMAGE_WIDTH=224
+IMAGE_CLASS=2
+TRAIN_SAMPLE_SIZE=2000
+BATCH_SIZE=100</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>라이브러리·상수 읽기</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">도구·설정</th>
+                            <th scope="col">역할</th>
+                            <th scope="col">주의점</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>NumPy</td>
+                            <td>argmax·평균 정확도</td>
+                            <td>축과 비교 Shape 확인</td>
+                        </tr>
+                        <tr>
+                            <td>TensorFlow/Keras</td>
+                            <td>Dataset·모델·학습·평가</td>
+                            <td>데이터 공급원과 모델 구분</td>
+                        </tr>
+                        <tr>
+                            <td>Matplotlib</td>
+                            <td>Loss 그래프</td>
+                            <td>원본은 Accuracy 그래프가 아님</td>
+                        </tr>
+                        <tr>
+                            <td>MobileNet·preprocess_input</td>
+                            <td>특징 추출·전용 전처리</td>
+                            <td>MobileNet V1 import</td>
+                        </tr>
+                        <tr>
+                            <td>Input·GAP·Dense</td>
+                            <td>입력·특징 요약·새 분류층</td>
+                            <td>실제 모델에는 Flatten을 쓰지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>TRAIN_SAMPLE_SIZE=2000</td>
+                            <td>epoch Step 계산</td>
+                            <td>직접 작성한 상수, 데이터에서 자동 계산한 값 아님</td>
+                        </tr>
+                        <tr>
+                            <td>BATCH_SIZE=100</td>
+                            <td>한 배치의 이미지 수</td>
+                            <td>이미 배치된 Dataset을 다시 batch하지 않음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>도구와 입력·학습 기준을 준비합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>데이터와 모델에서 같은 크기·클래스 수를 사용합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>아직 이미지 텐서를 받지 않습니다. 함수·클래스·상수가 정의됩니다.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>이름들이 현재 커널에 준비됩니다. 모델 생성·학습은 아직 하지 않습니다.</dd>
+            </dl>
+
+            <p>
+                glob, image, Flatten, decode_predictions는 원본의 활성 실행문에서 직접 사용되지 않습니다.
+                뒤의 보충 단일 이미지 예제에서는 image를 사용합니다.
+                상대 경로는 Python의 현재 작업 디렉터리를 기준으로 합니다.
+                첫 모델 생성에서 사전학습 가중치 다운로드가 필요할 수 있습니다.
+            </p>
+
+            <ol class="pipeline">
+                <li>문제·이미 분할된 Dataset 확인</li>
+                <li>Train 증강 + 각 split 전처리</li>
+                <li>이미지·정답 배치 공급</li>
+                <li>기반 모델 고정 + 분류층 구성</li>
+                <li>compile → fit → 검증</li>
+                <li>evaluate → predict → 정답 비교</li>
+            </ol>
+
+            <p class="source-note">
+                ImageDataGenerator는 현재 TensorFlow 문서에서 deprecated로 표시됩니다.
+                여기서는 교안의 구조를 이해하기 위해 원문 방식을 유지합니다.
+                새로운 API로 변경하는 작업은 별도 단계입니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-preprocess">
+            <h2><span class="num">05</span>전처리·증강 · 모델과 입력 규칙 맞추기</h2>
+            <p><span class="tag source">원문 셀 4</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="4">train_generator=keras.preprocessing.image.ImageDataGenerator(
+        preprocessing_function=preprocess_input,
+        rotation_range=25,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True,
+        vertical_flip=True)
+test_generator=keras.preprocessing.image.ImageDataGenerator(preprocessing_function=preprocess_input)
+val_generator=keras.preprocessing.image.ImageDataGenerator(preprocessing_function=preprocess_input)</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>훈련 증강 옵션</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">옵션</th>
+                            <th scope="col">의미</th>
+                            <th scope="col">읽는 방법</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>rotation_range=25</td>
+                            <td>약 ±25도 회전</td>
+                            <td>기울기 변화</td>
+                        </tr>
+                        <tr>
+                            <td>width_shift_range=0.2</td>
+                            <td>너비 기준 약 20% 범위 이동</td>
+                            <td>좌우 위치 변화</td>
+                        </tr>
+                        <tr>
+                            <td>height_shift_range=0.2</td>
+                            <td>높이 기준 약 20% 범위 이동</td>
+                            <td>상하 위치 변화</td>
+                        </tr>
+                        <tr>
+                            <td>zoom_range=0.2</td>
+                            <td>확대·축소 변환</td>
+                            <td>피사체 크기 변화</td>
+                        </tr>
+                        <tr>
+                            <td>horizontal_flip=True</td>
+                            <td>무작위 좌우 반전 허용</td>
+                            <td>항상 모든 이미지를 반전하는 것은 아님</td>
+                        </tr>
+                        <tr>
+                            <td>vertical_flip=True</td>
+                            <td>무작위 상하 반전 허용</td>
+                            <td>실제 촬영 상황에 자연스러운지 추가 검토</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>데이터별 증강·전처리 규칙을 만듭니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>훈련 입력에 다양성을 주고 모델이 학습했던 입력 기준을 맞춥니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>
+                    생성 시점에는 이미지 배치를 받지 않고 ImageDataGenerator 객체를 만듭니다.
+                    이후 이미지 처리 시 높이·너비·채널 구조를 유지합니다.
+                </dd>
+                <dt>실행 후 변화</dt>
+                <dd>처리 규칙이 준비됩니다. 증강 이미지 파일을 디스크에 새로 저장하는 코드는 없습니다.</dd>
+            </dl>
+
+            <h3>MobileNet V1 전처리</h3>
+            <pre tabindex="0"><code>x' = x / 127.5 - 1
+
+원래 값 0      → -1
+원래 값 127.5  →  0
+원래 값 255    →  1
+
+Shape: (B,224,224,3) → (B,224,224,3)
+변화: 픽셀 값의 기준과 범위</code></pre>
+
+            <p>
+                훈련·검증·테스트 모두 같은 MobileNet 전처리를 사용합니다.
+                무작위 증강은 훈련에만 있습니다.
+                원본에는 <code>rescale=1./255</code>가 없으며 별도 /255를 중복 적용하지 않습니다.
+            </p>
+
+            <p class="warning">
+                <strong>같은 이름의 preprocess_input이어도 모델마다 다릅니다.</strong>
+                이전 ResNet50 V1의 BGR 전환·평균 빼기를 이번 MobileNet V1 전처리와 혼용하지 않습니다.
+                dtype가 float32라는 사실만으로 이미 −1~1 범위가 되었다고 판단하지 않습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-batch">
+            <h2><span class="num">06</span>배치 공급 · Generator와 Dataset 연결</h2>
+            <p>
+                <span class="tag source">원문 셀 6</span>
+                폴더에서 배치를 만들고, 훈련 공급원을 tf.data.Dataset으로 감쌉니다.
+                Test·Validation의 target_size 순서도 원문대로 표시합니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="6">train_datasets_iterator=train_generator.flow_from_directory(
+    directory='./datasets/cats_dogs/train',
+    target_size=(IMAGE_HEIGHT,IMAGE_WIDTH),
+    batch_size=BATCH_SIZE,
+    seed=42,
+    class_mode='categorical'
+)
+train_dataset=tf.data.Dataset.from_generator(
+    generator=lambda:train_datasets_iterator,
+    output_signature=(
+        tf.TensorSpec(shape=(None,IMAGE_HEIGHT,IMAGE_WIDTH,IMAGE_CHANNEL),dtype=tf.float32),
+        tf.TensorSpec(shape=(None,IMAGE_CLASS),dtype=tf.float32)
+    )
+)
+test_datasets=test_generator.flow_from_directory(
+    directory='./datasets/cats_dogs/test',
+    target_size=(IMAGE_WIDTH,IMAGE_HEIGHT),
+    batch_size=BATCH_SIZE,
+    shuffle=False,
+    class_mode='categorical'
+)
+val_datasets=val_generator.flow_from_directory(
+    directory='./datasets/cats_dogs/val',
+    target_size=(IMAGE_WIDTH,IMAGE_HEIGHT),
+    batch_size=BATCH_SIZE,
+    seed=42,
+    class_mode='categorical'
+)</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>주요 코드의 역할·Shape·실행 후 변화</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">코드</th>
+                            <th scope="col">역할과 필요성</th>
+                            <th scope="col">입력 → 출력</th>
+                            <th scope="col">실행 후 변화</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>train flow_from_directory</td>
+                            <td>훈련 폴더에서 증강·전처리한 배치 공급</td>
+                            <td>파일 → X(B,224,224,3), y(B,2)</td>
+                            <td>파일 목록·클래스 매핑·반복 상태를 가진 iterator 생성</td>
+                        </tr>
+                        <tr>
+                            <td>from_generator</td>
+                            <td>기존 배치를 TensorFlow Dataset으로 연결</td>
+                            <td>배치 iterator → 같은 배치를 내놓는 Dataset</td>
+                            <td>fit에 전달할 train_dataset 생성</td>
+                        </tr>
+                        <tr>
+                            <td>TensorSpec</td>
+                            <td>반환할 값의 구조와 dtype 명시</td>
+                            <td>X: float32(None,224,224,3), y: float32(None,2)</td>
+                            <td>공급 규격 선언. resize·batch를 대신하지 않음</td>
+                        </tr>
+                        <tr>
+                            <td>test flow_from_directory</td>
+                            <td>테스트 이미지·정답 공급</td>
+                            <td>파일 → 배치 X·원핫 y</td>
+                            <td>shuffle=False로 외부 정답 비교 순서 유지</td>
+                        </tr>
+                        <tr>
+                            <td>val flow_from_directory</td>
+                            <td>epoch 종료 후 검증 배치 공급</td>
+                            <td>파일 → 배치 X·원핫 y</td>
+                            <td>검증 공급원 생성. 무작위 증강 없음</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                <code>class_mode='categorical'</code>은 폴더를 이용해 원핫 정답을 생성합니다.
+                Train·Validation은 shuffle을 생략하여 기본 섞기를 사용합니다.
+                seed=42는 데이터 처리의 난수 설정이며 전체 모델 초기화와 모든 연산의 재현성을 보장하는 설정은 아닙니다.
+            </p>
+
+            <pre tabindex="0"><code>ImageDataGenerator        = 처리 규칙
+DirectoryIterator         = 파일에서 배치를 공급하는 객체
+tf.data.Dataset           = 해당 배치를 TensorFlow에 연결한 공급원
+
+Dataset 한 원소는 이미 배치입니다.
+X: (100,224,224,3), y: (100,2)
+여기에 .batch(100)을 추가하면 중복 배치 축이 생길 수 있습니다.</code></pre>
+
+            <p class="warning">
+                <strong>원문의 lambda는 같은 iterator를 반환합니다.</strong>
+                매 호출마다 새 공급원을 만드는 코드가 아닙니다.
+                점검용 next(iter(train_dataset))도 반복 상태와 난수를 소비할 수 있습니다.
+                정확한 재현은 데이터 객체를 새로 만들고 순서대로 실행하여 확인합니다.
+            </p>
+
+            <p>
+                target_size의 API 의미는 (높이, 너비)입니다.
+                원문 Test·Validation은 (WIDTH, HEIGHT)이지만 두 값이 모두 224여서 현재 결과 차이가 없습니다.
+                Keras의 evaluate는 이미지·정답 쌍으로 평가하므로 shuffle=True라는 이유만으로 항상 틀리는 것은 아닙니다.
+                외부 labels와 행별로 비교할 때 순서 일치가 중요합니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-model">
+            <h2><span class="num">07</span>Model Architecture · 고정된 기반 모델 + 새 Dense</h2>
+
+            <p>
+                <span class="tag source">원문 셀 8</span>
+                weights 인자는 원문에서 생략되었습니다.
+                MobileNet의 기본 ImageNet 가중치를 사용합니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="8">def create_model():
+    base_model = MobileNet(include_top=False,input_shape=(IMAGE_HEIGHT,IMAGE_WIDTH,IMAGE_CHANNEL))
+    for layer in base_model.layers:
+        layer.trainable=False
+        print(f'레이어명:{layer.name}')
+    input = Input(shape=(IMAGE_HEIGHT,IMAGE_WIDTH,IMAGE_CHANNEL))
+    base_model_output=base_model(input)
+    flattening_output=GlobalAveragePooling2D()(base_model_output)
+    print('모바일넷의 추가한 새 분류층 직전의 출력 텐서:',flattening_output)
+    hidden_output=Dense(units=64,activation='relu')(flattening_output)
+    output = Dense(IMAGE_CLASS,activation='softmax')(hidden_output)
+    return tf.keras.models.Model(inputs=input,outputs=output)</code></pre>
+
+            <p><span class="tag source">원문 셀 9</span></p>
+            <pre tabindex="0"><code class="language-python" data-source-cell="9">model=create_model()
+model.summary()</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>기존 분류 부분을 제외한 MobileNet에 GAP·Dense 64·Dense 2를 연결합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>기존 특징을 새로운 두 클래스 판단에 사용합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd><code>(None,224,224,3) → (None,2)</code>.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>
+                    함수 정의 후 create_model을 호출하면 model이 생성됩니다.
+                    새 Dense는 아직 고양이·개를 학습하기 전이며 summary는 구조만 출력합니다.
+                </dd>
+            </dl>
+
+            <p>
+                함수형 API의 <code>Dense(...)(앞선_텐서)</code>는 층을 만들고 앞 단계에 연결하는 표현입니다.
+                이 단계에서 연결하는 것은 계산 구조이며 실제 학습은 fit에서 이루어집니다.
+            </p>
+
+            <p class="notice">
+                <strong>동결 루프는 모든 기반 층에 적용됩니다.</strong>
+                Conv뿐 아니라 BatchNormalization도 포함합니다.
+                Keras에서 동결된 BatchNormalization은 저장된 통계를 사용하는 추론 동작을 합니다.
+                원문에 training=False가 없다는 이유만으로 BN 통계가 갱신된다고 해석하지 않습니다.
+            </p>
+
+            <p>
+                model=create_model()을 다시 실행하면 새 Dense 가중치의 새 모델이 만들어집니다.
+                반대로 같은 model에 fit만 다시 실행하면 현재 가중치에서 학습을 이어갑니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-shape">
+            <h2><span class="num">08</span>Shape·GAP·파라미터 · 숫자로 구조 이해</h2>
+
+            <ol class="model-flow">
+                <li><strong>Image batch</strong><code>(B,224,224,3)</code></li>
+                <li><strong>MobileNet 전처리</strong><code>같은 Shape · 약 −1~1</code></li>
+                <li><strong>Conv·Depthwise·Pointwise</strong><code>기반 모델 동결</code></li>
+                <li><strong>Feature Map</strong><code>(B,7,7,1024)</code></li>
+                <li><strong>Global Average Pooling</strong><code>(B,1024)</code></li>
+                <li><strong>Dense 64 + ReLU</strong><code>(B,64) · 학습 가능</code></li>
+                <li><strong>Dense 2 + Softmax</strong><code>(B,2) · 학습 가능</code></li>
+                <li><strong>원핫 정답과 비교</strong><code>y: (B,2)</code></li>
+                <li><strong>Loss → Adam</strong><code>새 Dense만 업데이트</code></li>
+            </ol>
+
+            <p>
+                MobileNet 내부는 여러 합성곱·BatchNormalization·활성화 연산을 포함합니다.
+                위 흐름은 중요한 입출력을 요약한 것으로, 모든 내부 층을 하나씩 표시한 것은 아닙니다.
+            </p>
+
+            <pre tabindex="0"><code>GAP: 각 채널의 7×7 값 49개를 평균
+채널 0의 49개 값 → 평균 하나
+채널 1의 49개 값 → 평균 하나
+... 총 1,024개 채널
+
+(B,7,7,1024) → (B,1024)
+
+Flatten이라면: 7×7×1024 = 50,176개 값
+GAP라면:                    1,024개 값</code></pre>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>원본에 저장된 실제 전이학습 모델 요약</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">부분</th>
+                            <th scope="col">출력 Shape</th>
+                            <th scope="col">파라미터</th>
+                            <th scope="col">학습</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>MobileNet 기반</td>
+                            <td>(None,7,7,1024)</td>
+                            <td>3,228,864</td>
+                            <td>고정</td>
+                        </tr>
+                        <tr>
+                            <td>GAP</td>
+                            <td>(None,1024)</td>
+                            <td>0</td>
+                            <td>가중치 없음</td>
+                        </tr>
+                        <tr>
+                            <td>Dense 64</td>
+                            <td>(None,64)</td>
+                            <td>65,600</td>
+                            <td>업데이트</td>
+                        </tr>
+                        <tr>
+                            <td>Dense 2</td>
+                            <td>(None,2)</td>
+                            <td>130</td>
+                            <td>업데이트</td>
+                        </tr>
+                        <tr>
+                            <td>전체</td>
+                            <td>(None,2)</td>
+                            <td>3,294,594</td>
+                            <td>학습 가능 65,730</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <pre tabindex="0"><code>Dense 64: 1024×64 + 64 = 65,600
+Dense 2:     64×2 +  2 =    130
+학습 가능:                65,730
+학습 불가:             3,228,864
+
+보충 비교: Flatten 뒤에 Dense 64를 붙인다면
+50,176×64 + 64 = 3,211,328개
+GAP 뒤의 Dense 64는 65,600개</code></pre>
+
+            <p>
+                Dense 파라미터 수는 입력 수×출력 수에 bias 수를 더합니다.
+                GAP는 공간 평균 연산으로 자체 학습 가중치가 없습니다.
+                변수명 flattening_output을 보고 Flatten 연산이라고 오해하지 않습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-compile">
+            <h2><span class="num">09</span>compile · Loss·Optimizer·Metric 연결</h2>
+            <p><span class="tag source">원문 셀 10</span></p>
+
+            <pre
+                tabindex="0"><code class="language-python" data-source-cell="10">model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['acc'])</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>줄일 오차, 업데이트 방법, 확인할 지표를 정합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>새 분류층의 학습·평가 기준을 연결합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>compile 자체에는 이미지 입력이 없습니다. 모델 입력·출력 규격은 유지됩니다.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>학습 설정이 연결되며 아직 데이터로 가중치를 학습하지 않습니다.</dd>
+            </dl>
+
+            <div class="grid two">
+                <div class="mini">
+                    <h3>원문의 맞는 조합</h3>
+                    <p>
+                        y는 (B,2) 원핫, 출력은 (B,2) Softmax,
+                        Loss는 categorical_crossentropy입니다.
+                        두 클래스라도 이 조합은 유효합니다.
+                    </p>
+                </div>
+                <div class="mini">
+                    <h3>Adam·acc</h3>
+                    <p>
+                        Adam은 학습 가능한 새 Dense만 업데이트합니다.
+                        원문은 학습률 숫자를 쓰지 않고 기본 설정을 사용합니다.
+                        acc는 이번 구성에서 클래스 argmax 일치 비율입니다.
+                    </p>
+                </div>
+            </div>
+
+            <pre tabindex="0"><code>Cross-Entropy = -Σ y_c × ln(p_c)
+원핫 정답이면 = -ln(정답 클래스의 확률)
+
+정답 [1,0], 예측 [0.9,0.1] → Loss 약 0.1054
+정답 [1,0], 예측 [0.6,0.4] → Loss 약 0.5108
+정답 [1,0], 예측 [0.1,0.9] → Loss 약 2.3026</code></pre>
+
+            <p>
+                위 숫자는 보충 계산입니다.
+                별도 샘플 가중치·정규화 손실이 없는 이번 구성에서는
+                이미지별 손실을 평균낸 배치 손실로 이해할 수 있습니다.
+                정답에 높은 확률을 줄수록 작아집니다.
+            </p>
+
+            <p>
+                현재 Keras Adam 기본 Learning Rate는 0.001이지만 원문에 숫자가 명시된 것은 아닙니다.
+                실제 환경에서는 <code>model.optimizer.get_config()</code>로 확인합니다.
+                Loss는 학습 방향을 정하고 Accuracy는 맞힌 비율을 보여 줍니다.
+            </p>
+
+            <p class="notice">
+                <strong>compile은 설정, fit은 학습입니다.</strong>
+                [0.51,0.49]와 [0.99,0.01]이 모두 정답 클래스를 고르더라도 Loss는 다릅니다.
+                Loss를 오답률이나 백분율로 읽지 않습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-fit">
+            <h2><span class="num">10</span>fit · Step과 Epoch를 정확히 읽기</h2>
+            <p><span class="tag source">원문 셀 11 · 설명 문자열을 제외한 실행문</span></p>
+
+            <pre
+                tabindex="0"><code class="language-python" data-source-cell="11">history=model.fit(train_dataset,epochs=10,validation_data=val_datasets,verbose=1,steps_per_epoch=TRAIN_SAMPLE_SIZE//BATCH_SIZE)</code></pre>
+
+            <pre tabindex="0"><code>한 Step = 이미지 100장으로 한 번의 학습 처리
+한 Epoch = 2000 // 100 = 20개 배치 처리
+전체 학습 = 20 Steps × 10 Epochs = 200 Steps
+
+배치 입력 → 특징 추출 → 예측 → Loss → 기울기 → 새 Dense 업데이트
+Epoch 종료 → 검증 200장으로 val_loss·val_acc 계산</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>훈련 데이터로 새 분류층을 학습하고 각 epoch 뒤 검증합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>고양이·개 정답을 이용하여 새 Dense 가중치를 조정합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>X(B,224,224,3)·y(B,2)를 받습니다. 반환값은 예측 배열이 아니라 History 객체입니다.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>새 Dense 가중치와 학습 기록이 바뀝니다. 기반 모델은 고정되고 검증 데이터로는 업데이트하지 않습니다.</dd>
+            </dl>
+
+            <p>
+                <code>steps_per_epoch=20</code>은 전체 데이터를 20회 반복한다는 뜻이 아닙니다.
+                한 epoch에서 배치 20개를 소비한다는 뜻입니다.
+                입력이 이미 배치를 제공하므로 fit에 별도 batch_size를 추가하지 않습니다.
+            </p>
+
+            <p class="warning">
+                <strong>데이터 개수보다 공급원의 종료 방식이 중요합니다.</strong>
+                원문 .repeat()는 주석이지만 DirectoryIterator의 Python 반복 경로는 계속 순환할 수 있어
+                steps로 epoch 경계를 정합니다.
+                “작은 데이터면 repeat 필수”, “모든 Generator는 steps 필수”,
+                “모든 tf.data는 길이를 자동으로 안다”는 일반화는 피합니다.
+            </p>
+
+            <p>
+                이번 2,000장은 100으로 나누어떨어집니다.
+                다른 데이터가 2,050장이면 2050//100=20이므로 마지막 50장 분량을 어떻게 처리할지 검토해야 합니다.
+                검증·테스트 iterator를 직접 Keras에 전달하는 경로는 길이로 각각 두 배치를 처리할 수 있습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-history">
+            <h2><span class="num">11</span>출력 결과 · 학습곡선과 최적 Epoch</h2>
+            <p><span class="tag source">원문 셀 12~13</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="12">history.history.keys()</code></pre>
+
+            <p>
+                <span class="tag saved">저장 결과</span>
+                <code>dict_keys(['acc', 'loss', 'val_acc', 'val_loss'])</code>
+            </p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="13">plt.plot(history.history['loss'],label='TRAIN')
+plt.plot(history.history['val_loss'],label='VAL')
+plt.legend()
+plt.show()</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>History 키와 훈련·검증 Loss 변화를 확인합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>학습 개선과 검증 성능을 함께 판단합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>각각 길이 10인 손실 기록 → Matplotlib 그래프. 모델 예측 텐서는 아닙니다.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>그림이 표시됩니다. 모델 가중치는 바뀌지 않습니다.</dd>
+            </dl>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>원본 저장 로그 · 각 Epoch의 마지막 값</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Epoch</th>
+                            <th scope="col">Train Loss</th>
+                            <th scope="col">Train Acc</th>
+                            <th scope="col">Val Loss</th>
+                            <th scope="col">Val Acc</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>0.5164</td>
+                            <td>75.30%</td>
+                            <td>0.1069</td>
+                            <td>95.50%</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>0.2405</td>
+                            <td>89.90%</td>
+                            <td>0.0689</td>
+                            <td>97.00%</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>0.1757</td>
+                            <td>92.70%</td>
+                            <td>0.0680</td>
+                            <td>98.00%</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>0.1366</td>
+                            <td>94.85%</td>
+                            <td>0.0632</td>
+                            <td>98.50%</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>0.1409</td>
+                            <td>94.00%</td>
+                            <td>0.0610</td>
+                            <td>98.00%</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>0.1184</td>
+                            <td>94.95%</td>
+                            <td>0.0642</td>
+                            <td>98.00%</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>0.1502</td>
+                            <td>94.00%</td>
+                            <td>0.0582</td>
+                            <td>98.00%</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>0.1233</td>
+                            <td>95.00%</td>
+                            <td>0.0796</td>
+                            <td>97.00%</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>0.1369</td>
+                            <td>94.45%</td>
+                            <td>0.0592</td>
+                            <td>97.50%</td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>0.1111</td>
+                            <td>95.55%</td>
+                            <td>0.0649</td>
+                            <td>98.00%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <figure>
+                <div class="chart-wrap" tabindex="0">
+                    <svg viewBox="0 0 760 335" role="img" aria-labelledby="ml37-chart-title ml37-chart-desc">
+                        <title id="ml37-chart-title">저장 로그로 다시 그린 훈련·검증 Loss</title>
+                        <desc id="ml37-chart-desc">
+                            Epoch 1에서 10까지 훈련 Loss는 0.5164에서 0.1111로,
+                            검증 Loss는 0.1069에서 0.0649로 감소합니다.
+                            검증 Loss의 최솟값은 Epoch 7의 0.0582입니다.
+                        </desc>
+                        <text x="24" y="32">Loss</text>
+
+                        <line x1="240" y1="25" x2="270" y2="25" stroke="#146b60" stroke-width="3" />
+                        <text x="280" y="30">TRAIN</text>
+                        <line x1="390" y1="25" x2="420" y2="25" stroke="#b86b18" stroke-width="3"
+                            stroke-dasharray="6 4" />
+                        <text x="430" y="30">VALIDATION</text>
+
+                        <line x1="72" y1="270" x2="702" y2="270" stroke="#d3e4dd" />
+                        <text x="30" y="274">0.0</text>
+                        <line x1="72" y1="235" x2="702" y2="235" stroke="#d3e4dd" />
+                        <text x="30" y="239">0.1</text>
+                        <line x1="72" y1="200" x2="702" y2="200" stroke="#d3e4dd" />
+                        <text x="30" y="204">0.2</text>
+                        <line x1="72" y1="165" x2="702" y2="165" stroke="#d3e4dd" />
+                        <text x="30" y="169">0.3</text>
+                        <line x1="72" y1="130" x2="702" y2="130" stroke="#d3e4dd" />
+                        <text x="30" y="134">0.4</text>
+                        <line x1="72" y1="95" x2="702" y2="95" stroke="#d3e4dd" />
+                        <text x="30" y="99">0.5</text>
+                        <line x1="72" y1="60" x2="702" y2="60" stroke="#d3e4dd" />
+                        <text x="30" y="64">0.6</text>
+
+                        <text x="72" y="293" text-anchor="middle">1</text>
+                        <text x="142" y="293" text-anchor="middle">2</text>
+                        <text x="212" y="293" text-anchor="middle">3</text>
+                        <text x="282" y="293" text-anchor="middle">4</text>
+                        <text x="352" y="293" text-anchor="middle">5</text>
+                        <text x="422" y="293" text-anchor="middle">6</text>
+                        <text x="492" y="293" text-anchor="middle">7</text>
+                        <text x="562" y="293" text-anchor="middle">8</text>
+                        <text x="632" y="293" text-anchor="middle">9</text>
+                        <text x="702" y="293" text-anchor="middle">10</text>
+
+                        <polyline fill="none" stroke="#146b60" stroke-width="3"
+                            points="72.00,89.26 142.00,185.82 212.00,208.50 282.00,222.19 352.00,220.69 422.00,228.56 492.00,217.43 562.00,226.84 632.00,222.09 702.00,231.12" />
+                        <polyline fill="none" stroke="#b86b18" stroke-width="3" stroke-dasharray="6 4"
+                            points="72.00,232.59 142.00,245.88 212.00,246.20 282.00,247.88 352.00,248.65 422.00,247.53 492.00,249.63 562.00,242.14 632.00,249.28 702.00,247.28" />
+
+                        <circle cx="492" cy="249.63" r="5" fill="#b86b18" />
+                        <text x="380" y="325">Epoch</text>
+                    </svg>
+                </div>
+                <figcaption>
+                    원본 저장 로그의 소수 네 자리 값으로 재구성한 Loss 그래프입니다.
+                    여기서는 Epoch를 1~10으로 표시했습니다.
+                    원문 plt.plot은 x축을 지정하지 않아 0~9로 표시됩니다.
+                    Accuracy 그래프가 아닙니다.
+                </figcaption>
+            </figure>
+
+            <p>
+                <strong>Val Loss 최솟값은 Epoch 7의 0.0582, Val Accuracy 최댓값은 Epoch 4의 98.5%입니다.</strong>
+                원문에는 EarlyStopping·ModelCheckpoint·최적 가중치 복원 코드가 없습니다.
+                이후 평가는 마지막 epoch 이후 모델 기준입니다.
+            </p>
+
+            <h3>검증 성능이 훈련 성능보다 좋아도 되나요?</h3>
+            <p>
+                훈련에는 증강이 있어 더 어려운 이미지가 들어갈 수 있습니다.
+                훈련 지표는 epoch 동안 계속 바뀌는 모델의 결과를 집계하고,
+                검증은 epoch 종료 모델로 계산합니다.
+                데이터 난이도도 다를 수 있습니다.
+                검증 정확도가 더 높거나 검증 Loss가 더 낮다는 사실만으로 누수·오류를 확정하지 않습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-evaluate">
+            <h2><span class="num">12</span>evaluate · 테스트 정확도 99.5%의 의미</h2>
+            <p><span class="tag source">원문 셀 14</span></p>
+
+            <pre
+                tabindex="0"><code class="language-python" data-source-cell="14">model.evaluate(test_datasets)</code></pre>
+
+            <p><span class="tag saved">원본 저장 반환값</span></p>
+            <pre tabindex="0"><code>[0.02677074633538723, 0.9950000047683716]
+
+Test Loss     ≈ 0.02677
+Test Accuracy ≈ 99.5%
+처리 배치 수   = 200 / 100 = 2 → 로그 2/2</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>테스트 이미지와 정답으로 Loss·Accuracy를 계산합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>학습에 사용하지 않은 데이터의 성능을 확인합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>배치 X(100,224,224,3)·y(100,2) → 이번 설정에서 Loss와 Accuracy 두 스칼라.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>평가값이 반환됩니다. 가중치를 업데이트하지 않습니다.</dd>
+            </dl>
+
+            <div class="grid two">
+                <div class="mini">
+                    <h3>Loss 0.02677</h3>
+                    <p>
+                        정답 클래스에 준 확률을 바탕으로 계산한 손실입니다.
+                        오답률 2.677%라는 뜻이 아닙니다.
+                    </p>
+                </div>
+                <div class="mini">
+                    <h3>Accuracy 99.5%</h3>
+                    <p>
+                        해당 테스트 200장 중 199장의 예측 클래스가 정답과 일치한 결과입니다.
+                        모든 서비스 사진에서 같은 성능을 보장하지 않습니다.
+                    </p>
+                </div>
+            </div>
+
+            <p>
+                원본에는 혼동행렬·클래스별 Precision/Recall·오답 이미지 분석 결과가 없습니다.
+                추가 성능 해석에서는 이런 자료를 확인할 수 있지만,
+                원문에서 이미 측정한 결과처럼 제시하지 않습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-predict">
+            <h2><span class="num">13</span>predict · 확률에서 수동 Accuracy까지</h2>
+            <p><span class="tag source">원문 셀 15</span></p>
+
+            <pre tabindex="0"><code class="language-python" data-source-cell="15">y_pred=model.predict(test_datasets)
+print(y_pred.shape)
+y_pred</code></pre>
+
+            <p><span class="tag saved">원본 저장 결과 · 첫 행 발췌</span></p>
+            <pre tabindex="0"><code>y_pred.shape = (200,2)
+첫 번째 행 = [9.99667048e-01, 3.32960888e-04]
+           ≈ [0.999667048, 0.000332960888]</code></pre>
+
+            <p>
+                각 행은 이미지 한 장, 각 열은 클래스 한 개의 점수입니다.
+                클래스 매핑이 cats=0·dogs=1임을 확인했다면 첫 이미지의 고양이 점수는 약 99.9667%입니다.
+                이것은 전체 테스트 정확도 99.5%와 다른 값입니다.
+            </p>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>테스트 이미지별 두 클래스 확률을 계산합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>개별 예측·클래스 선택·오답 분석에 사용합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>이미지 배치 (B,224,224,3) → 전체 예측 (200,2).</dd>
+                <dt>실행 후 변화</dt>
+                <dd>y_pred가 생성됩니다. 모델 가중치는 유지됩니다.</dd>
+            </dl>
+
+            <p>
+                Softmax 출력은 이미지별 두 확률의 합이 약 1입니다.
+                <code>y_pred.sum(axis=1)</code>로 행별 합을 확인할 수 있습니다.
+                이는 정답을 맞혔다는 뜻이 아니라 출력 확률의 구성 규칙입니다.
+            </p>
+
+            <p><span class="tag source">원문 셀 16</span></p>
+            <pre tabindex="0"><code class="language-python" data-source-cell="16">prob=np.mean(np.argmax(y_pred,axis=1)==test_datasets.labels)*100
+f'정확도:{prob}%'</code></pre>
+
+            <pre tabindex="0"><code>y_pred: (200,2)
+    ↓ argmax(axis=1): 각 이미지의 가장 큰 클래스 점수 위치
+예측 클래스: (200,)
+    ↓ test_datasets.labels: (200,)와 비교
+정답 여부: (200,) → True는 1, False는 0
+    ↓ mean × 100
+199 / 200 × 100 = 99.5%</code></pre>
+
+            <p>
+                <span class="tag saved">원본 저장 결과</span>
+                <code>'정확도:99.5%'</code>
+            </p>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>argmax 예측과 실제 정수 정답의 일치 비율을 구합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>evaluate에서 나온 Accuracy의 계산 원리를 직접 확인합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>확률(200,2)·정수 정답(200,) → 백분율 스칼라.</dd>
+                <dt>실행 후 변화</dt>
+                <dd>prob에 정확도 백분율이 저장됩니다. 이름과 달리 개별 예측 확률이 아닙니다.</dd>
+            </dl>
+
+            <p class="notice">
+                <strong>두 Accuracy는 독립적인 두 테스트가 아닙니다.</strong>
+                같은 테스트 이미지와 정답으로 같은 argmax 일치 비율을 확인합니다.
+                예측 행과 labels의 순서가 일치해야 하며,
+                이를 위해 원문은 테스트 shuffle=False를 지정했습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-new">
+            <h2><span class="num">14</span>새 이미지 예측 · 클래스 이름까지 연결</h2>
+
+            <p>
+                <span class="tag supplement">원본에 없는 단일 이미지 예제</span>
+                학습한 model과 앞의 import가 필요합니다.
+                이미지 경로는 실제 파일에 맞게 바꿉니다.
+                예제의 예측 결과를 새로 실행한 것처럼 제시하지 않습니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python">new_image_path = './datasets/cnn/new_dog.jpg'
+new_image = image.load_img(
+    new_image_path,
+    target_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
+    color_mode='rgb'
+)
+new_image_array = image.img_to_array(new_image)
+new_image_input = preprocess_input(
+    new_image_array[np.newaxis, ...].copy()
+)
+new_prediction = model.predict(new_image_input, verbose=0)
+predicted_index = int(np.argmax(new_prediction, axis=1)[0])
+index_to_class = {
+    index: class_name
+    for class_name, index
+    in train_datasets_iterator.class_indices.items()
+}
+predicted_class = index_to_class[predicted_index]
+predicted_score = float(new_prediction[0, predicted_index])
+print('입력 Shape:', new_image_input.shape)
+print('출력 Shape:', new_prediction.shape)
+print('예측 확률:', new_prediction[0])
+print('예측 클래스:', predicted_class)
+print(f'선택한 클래스의 점수: {predicted_score:.2%}')</code></pre>
+
+            <dl class="code-guide">
+                <dt>무엇을 하나요?</dt>
+                <dd>새 이미지 한 장을 읽어 두 클래스 점수와 이름을 출력합니다.</dd>
+                <dt>왜 필요한가요?</dt>
+                <dd>테스트 폴더 평가를 실제 개별 이미지 사용으로 연결합니다.</dd>
+                <dt>입력 → 출력 Shape</dt>
+                <dd>파일 → (224,224,3) → (1,224,224,3) → (1,2) → 인덱스(1,).</dd>
+                <dt>실행 후 변화</dt>
+                <dd>새 예측값이 생성됩니다. 추가 학습은 하지 않습니다.</dd>
+            </dl>
+
+            <p>
+                새로 읽은 RGB 배열의 복사본에 전처리합니다.
+                이미 잘못 전처리된 배열을 복사한다고 원래 RGB 값으로 돌아오지는 않습니다.
+                훈련 때와 같은 MobileNet 전처리를 한 번 적용해야 합니다.
+            </p>
+
+            <p class="warning">
+                <strong>이번 출력에 ImageNet decode_predictions를 사용하지 않습니다.</strong>
+                사용자 데이터의 두 클래스는 class_indices로 이름을 연결합니다.
+                Softmax는 고양이·개가 아닌 사진에도 두 클래스 점수를 배분하므로
+                높은 점수만으로 입력 대상이 확정되는 것은 아닙니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-review">
+            <h2><span class="num">15</span>원문 검토 · 과거 출력과 현재 실행문 구분</h2>
+
+            <p>
+                <strong>이번 통합교안 단원에는 공식 검토 메모가 없습니다.</strong>
+                아래는 Step 1·2에서 원문과 저장 출력을 대조한 추가 검토입니다.
+            </p>
+
+            <p><span class="tag review">원문 셀 7 · 전체 주석 상태 유지</span></p>
+            <pre tabindex="0"><code class="language-python" data-source-cell="7">#탑층 True/False시 모델 구조 확인용코드
+
+# model = MobileNet(include_top=True,weights='imagenet',input_shape=(IMAGE_HEIGHT,IMAGE_WIDTH,IMAGE_CHANNEL))
+# model.summary()</code></pre>
+
+            <p>
+                현재 셀은 실행하지 않지만 과거 1,000클래스 모델 요약이 남아 있습니다.
+                그 총 파라미터는 4,253,864개이며 이번 실제 학습 모델 3,294,594개와 구분해야 합니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>추가 검토 목록</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">원문 항목</th>
+                            <th scope="col">정확한 해석</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>첫 마크다운의 244×244×3</td>
+                            <td>실행 상수·모델 입력은 224×224×3</td>
+                        </tr>
+                        <tr>
+                            <td>class_mode='spares' 설명</td>
+                            <td>정수 라벨 옵션은 sparse. 실제 실행은 categorical</td>
+                        </tr>
+                        <tr>
+                            <td>weights 생략</td>
+                            <td>MobileNet 기본 ImageNet 가중치 사용</td>
+                        </tr>
+                        <tr>
+                            <td>flattening_output·Flattening 주석</td>
+                            <td>실행 층은 GlobalAveragePooling2D</td>
+                        </tr>
+                        <tr>
+                            <td>Conv층 동결 설명</td>
+                            <td>루프는 BN 등을 포함한 모든 기반 층을 고정</td>
+                        </tr>
+                        <tr>
+                            <td>부분 동결·미세조정 설명</td>
+                            <td>관련 예시는 주석, 실제 추가 기반 학습 없음</td>
+                        </tr>
+                        <tr>
+                            <td>repeat·steps 주석</td>
+                            <td>데이터 크기보다 유한성·길이 인지·반복 방식이 기준</td>
+                        </tr>
+                        <tr>
+                            <td>Test·Validation target_size 순서</td>
+                            <td>높이·너비가 의미이나 원문은 WIDTH·HEIGHT. 현재 둘 다 224</td>
+                        </tr>
+                        <tr>
+                            <td>셀 6의 DirectoryIterator 타입 출력</td>
+                            <td>현재 실행문에 해당 출력 호출이 없어 저장 상태와 소스 차이 존재</td>
+                        </tr>
+                        <tr>
+                            <td>prob라는 변수명</td>
+                            <td>개별 확률이 아니라 Accuracy 백분율</td>
+                        </tr>
+                        <tr>
+                            <td>최적 모델 복원</td>
+                            <td>원문에 없음. 마지막 epoch 이후 평가</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="source-note">
+                Notebook은 셀 18개(마크다운 2·코드 16)이며 마지막 두 코드 셀은 비어 있습니다.
+                의미 있는 원문 실행문은 모두 수록하고, 설명용 문자열·주석의 주의점은 본문에서 별도로 풀었습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-leak">
+            <h2><span class="num">16</span>Data Leakage · 평가 데이터의 독립성</h2>
+
+            <p>
+                원본은 이미 나뉜 폴더를 읽을 뿐 분할 과정이나 중복 검사를 수행하지 않습니다.
+                누수가 발생했다고 단정할 근거도 없고,
+                폴더가 나뉘었다는 사실만으로 없다고 증명된 것도 아닙니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>평가가 지나치게 좋아질 수 있는 상황</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">상황</th>
+                            <th scope="col">문제</th>
+                            <th scope="col">확인 방향</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>동일 이미지가 Train·Test에 존재</td>
+                            <td>본 적 있는 이미지를 평가</td>
+                            <td>파일 내용·중복 확인</td>
+                        </tr>
+                        <tr>
+                            <td>원본은 Train, 변형본은 Test</td>
+                            <td>사실상 같은 시각 정보 공유</td>
+                            <td>원본 기준 분할 후 훈련 증강</td>
+                        </tr>
+                        <tr>
+                            <td>연속 사진을 무작위 분할</td>
+                            <td>같은 장면·배경 공유</td>
+                            <td>개체·촬영 그룹별 분할</td>
+                        </tr>
+                        <tr>
+                            <td>테스트 결과로 반복 선택</td>
+                            <td>테스트가 모델 선택에 사용됨</td>
+                            <td>설정 선택은 검증, 최종 확인은 테스트</td>
+                        </tr>
+                        <tr>
+                            <td>전체 데이터로 통계 계산</td>
+                            <td>테스트 정보가 학습 전처리에 유입 가능</td>
+                            <td>학습이 필요한 통계는 Train에서 결정</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <pre tabindex="0"><code>원본 데이터의 관계 확인
+        ↓
+원본·개체·촬영 그룹 기준으로 분할
+        ↓
+훈련 데이터에 증강
+        ↓
+검증으로 설정 선택
+        ↓
+독립적인 테스트 평가</code></pre>
+
+            <p class="notice">
+                사전학습 가중치 사용 자체를 누수라고 단정하지 않습니다.
+                평가 이미지가 사전학습 데이터와 중복되지 않는다는 주장도 별도 근거가 필요합니다.
+                높은 Accuracy 한 숫자만으로 데이터 독립성을 확인할 수는 없습니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-mistakes">
+            <h2><span class="num">17</span>자주 하는 실수 · Shape·Dimension·dtype</h2>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>배열 모양과 의미를 함께 확인하기</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">실수</th>
+                            <th scope="col">문제</th>
+                            <th scope="col">기준</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>(224,224,3) 전달</td>
+                            <td>배치 축 없는 rank 3</td>
+                            <td>(B,224,224,3)</td>
+                        </tr>
+                        <tr>
+                            <td>(1,1,224,224,3) 전달</td>
+                            <td>배치 축 중복, rank 5</td>
+                            <td>한 번만 배치 구성</td>
+                        </tr>
+                        <tr>
+                            <td>(B,3,224,224) 전달</td>
+                            <td>channels-first 순서</td>
+                            <td>현재 모델은 channels-last</td>
+                        </tr>
+                        <tr>
+                            <td>흑백·RGBA 그대로 전달</td>
+                            <td>채널 수 1·4</td>
+                            <td>RGB 3채널</td>
+                        </tr>
+                        <tr>
+                            <td>Dataset에 다시 batch</td>
+                            <td>배치 묶음을 또 묶음</td>
+                            <td>한 원소의 구조 먼저 확인</td>
+                        </tr>
+                        <tr>
+                            <td>float32면 전처리 완료라고 판단</td>
+                            <td>자료형과 값 범위를 혼동</td>
+                            <td>dtype·min·max 함께 확인</td>
+                        </tr>
+                        <tr>
+                            <td>/255 중복·다른 전처리 사용</td>
+                            <td>Shape는 맞아도 입력 의미가 달라짐</td>
+                            <td>MobileNet 전용 전처리 한 번</td>
+                        </tr>
+                        <tr>
+                            <td>원핫 y와 sparse Loss 혼용</td>
+                            <td>정답·출력·Loss 규격 불일치</td>
+                            <td>현재는 (B,2)·Softmax·categorical CE</td>
+                        </tr>
+                        <tr>
+                            <td>클래스 매핑이 서로 다름</td>
+                            <td>같은 숫자가 다른 정답 의미</td>
+                            <td>Train·Val·Test 매핑 일치</td>
+                        </tr>
+                        <tr>
+                            <td>argmax의 axis 생략</td>
+                            <td>전체 배열을 펼쳐 한 위치 선택 가능</td>
+                            <td>이미지별 클래스 축 axis=1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                Shape Error는 특정 축의 크기 불일치일 수 있고,
+                Dimension Error는 차원 수나 축 사용 문제일 수 있습니다.
+                무조건 reshape로 숫자만 맞추면 축의 의미가 틀릴 수 있습니다.
+                uint8 원본 이미지 자체는 오류가 아니며,
+                모델 입력 단계에서 올바른 숫자형·전처리를 갖추어야 합니다.
+            </p>
+
+            <h3>오류 없이 잘못 계산되는 브로드캐스팅</h3>
+            <pre tabindex="0"><code class="language-python"># 보충 예제: 의도한 일대일 비교가 아닙니다.
+predicted = np.array([0, 1, 0])
+true_labels = np.array([[0], [1], [1]])
+print((predicted == true_labels).shape)  # (3, 3)</code></pre>
+
+            <p>
+                예측(N,)과 정답(N,1)을 그대로 비교하면 결과가 (N,N)이 될 수 있습니다.
+                수동 Accuracy에서는 양쪽 모두 같은 순서의 정수 정답·예측 (N,)인지 확인합니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>비교용 보충 · 정답·출력·Loss 조합</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">정답</th>
+                            <th scope="col">출력</th>
+                            <th scope="col">Loss</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>원핫 (B,C)</td>
+                            <td>Dense C Softmax</td>
+                            <td>categorical cross-entropy · 원문 방식</td>
+                        </tr>
+                        <tr>
+                            <td>정수 (B,)</td>
+                            <td>Dense C Softmax</td>
+                            <td>sparse categorical cross-entropy</td>
+                        </tr>
+                        <tr>
+                            <td>이진 정답</td>
+                            <td>Dense 1 Sigmoid</td>
+                            <td>binary cross-entropy</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="warning">
+                전처리·클래스 순서·오래된 y_pred·정답 비교는 오류 메시지 없이 결과만 틀리게 만들 수 있습니다.
+                예측 전에 새 이미지가 실제로 다시 읽혔는지,
+                모델을 재생성하여 학습 결과를 잃지는 않았는지도 확인합니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-errors">
+            <h2><span class="num">18</span>오류 메시지 · 실제 경고와 가능한 오류 구분</h2>
+            <p><span class="tag saved">실제 저장 경고 · 발췌</span></p>
+
+            <pre tabindex="0"><code>Your `PyDataset` class should call `super().__init__(**kwargs)`
+in its constructor.</code></pre>
+
+            <p>
+                데이터 어댑터의 초기화·호환성과 관련된 경고입니다.
+                저장 로그는 10 epoch를 완료했으므로 학습 실패로 해석하지 않습니다.
+                원문에 사용자 정의 PyDataset 클래스가 없는데
+                메시지만 보고 super 호출을 임의로 추가하지 않습니다.
+            </p>
+
+            <p>
+                아래는 발생 가능한 오류 유형이며 원본에서 모두 발생한 것은 아닙니다.
+                문구는 버전에 따라 다를 수 있습니다.
+                <strong>마지막 메시지 → 해당 코드 줄 → 입력 객체 → Shape·ndim·dtype·범위·생성 순서</strong>로 확인합니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>오류 메시지를 원인으로 연결하기</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">메시지·현상</th>
+                            <th scope="col">가능한 의미</th>
+                            <th scope="col">먼저 확인</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>FileNotFoundError</td>
+                            <td>경로를 찾지 못함</td>
+                            <td>작업 폴더·상대 경로</td>
+                        </tr>
+                        <tr>
+                            <td>Found 0 images</td>
+                            <td>폴더 구조·파일 형식 불일치</td>
+                            <td>클래스 하위 폴더·이미지 파일</td>
+                        </tr>
+                        <tr>
+                            <td>expected ndim=4</td>
+                            <td>rank 불일치</td>
+                            <td>배치 축 누락·중복</td>
+                        </tr>
+                        <tr>
+                            <td>incompatible shape</td>
+                            <td>크기·채널·순서 불일치</td>
+                            <td>(B,224,224,3)</td>
+                        </tr>
+                        <tr>
+                            <td>target and output shape</td>
+                            <td>정답·출력 구성 불일치</td>
+                            <td>원핫(B,2)·출력(B,2)</td>
+                        </tr>
+                        <tr>
+                            <td>TypeError·변환 실패</td>
+                            <td>문자열·object 등 부적절한 자료형</td>
+                            <td>dtype·실제 값</td>
+                        </tr>
+                        <tr>
+                            <td>output_signature 오류</td>
+                            <td>반환 데이터와 선언이 다름</td>
+                            <td>튜플 구조·Shape·dtype</td>
+                        </tr>
+                        <tr>
+                            <td>KeyError: 'accuracy'</td>
+                            <td>History에 해당 키 없음</td>
+                            <td>원문은 acc·loss·val_acc·val_loss</td>
+                        </tr>
+                        <tr>
+                            <td>Your input ran out of data</td>
+                            <td>요구한 Step보다 공급이 먼저 종료</td>
+                            <td>유한성·반복·steps</td>
+                        </tr>
+                        <tr>
+                            <td>ResourceExhaustedError·OOM</td>
+                            <td>메모리 부족</td>
+                            <td>배치 크기·중복 모델</td>
+                        </tr>
+                        <tr>
+                            <td>ImageNet decode Shape 오류</td>
+                            <td>2클래스 출력을 전용 함수에 전달</td>
+                            <td>자체 클래스 매핑</td>
+                        </tr>
+                        <tr>
+                            <td>가중치 다운로드 오류</td>
+                            <td>사전학습 파일 로드 실패</td>
+                            <td>네트워크·캐시·권한</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                <span class="tag supplement">환경·입력 점검 코드</span>
+                관련 데이터 객체와 model을 준비한 뒤 실행합니다.
+            </p>
+
+            <pre tabindex="0"><code class="language-python">from pathlib import Path
+print('작업 폴더:', Path.cwd())
+print('TensorFlow:', tf.__version__)
+for folder in ['train', 'val', 'test']:
+    path = Path('./datasets/cats_dogs') / folder
+    print(folder, path.resolve(), path.is_dir())
+print('훈련:', train_datasets_iterator.samples,
+      train_datasets_iterator.class_indices)
+print('검증:', val_datasets.samples, val_datasets.class_indices)
+print('테스트:', test_datasets.samples, test_datasets.class_indices)
+print('Dataset 규격:', train_dataset.element_spec)
+print('모델 입출력:', model.input_shape, model.output_shape)
+
+# 배치 점검은 공급원 상태를 진행시킬 수 있습니다.
+X_batch, y_batch = next(iter(train_dataset))
+print(X_batch.shape, y_batch.shape)
+print(X_batch.dtype, y_batch.dtype)
+print(tf.reduce_min(X_batch).numpy(), tf.reduce_max(X_batch).numpy())
+print('유한한 값:', tf.reduce_all(tf.math.is_finite(X_batch)).numpy())
+print('정답 예시:', y_batch[:5].numpy())
+print('정답 행별 합:', tf.reduce_sum(y_batch[:5], axis=1).numpy())</code></pre>
+
+            <p>
+                정상적인 원핫 정답은 각 행의 합이 1입니다.
+                Dataset 자체를 거대한 NumPy 배열로 생각하여 .shape를 조회하기보다
+                element_spec과 실제 배치를 구분해 확인합니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-improve">
+            <h2><span class="num">19</span>성능 개선 · 과적합·과소적합·학습률</h2>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>대표 증상과 점검 방향 · 원본에서 수행한 개선 실험은 아님</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">개념</th>
+                            <th scope="col">대표 현상</th>
+                            <th scope="col">점검·개선 후보</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Overfitting</td>
+                            <td>Train은 개선되지만 Validation이 지속 악화</td>
+                            <td>중복·증강·분류층 크기·정규화·종료 시점</td>
+                        </tr>
+                        <tr>
+                            <td>Underfitting</td>
+                            <td>Train과 Validation 모두 충분히 맞추지 못함</td>
+                            <td>전처리·라벨·학습량·표현력·과한 증강</td>
+                        </tr>
+                        <tr>
+                            <td>Learning Rate가 큼</td>
+                            <td>Loss 진동·불안정 가능</td>
+                            <td>입력 확인 후 학습률 조정 검토</td>
+                        </tr>
+                        <tr>
+                            <td>Learning Rate가 작음</td>
+                            <td>학습이 느리고 제한된 Epoch 안에 개선 부족</td>
+                            <td>학습 진행·학습률·학습량 함께 확인</td>
+                        </tr>
+                        <tr>
+                            <td>도메인 차이</td>
+                            <td>기존 특징이 실제 업무 사진에 충분하지 않음</td>
+                            <td>대표 데이터 검증·필요시 미세조정 검토</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p>
+                한두 epoch의 작은 변동만으로 과적합을 확정하지 않습니다.
+                이번 Epoch 8의 검증 Loss 상승만 보고 이후 전체가 실패했다고 판단하지 않습니다.
+                원문에는 조기 종료나 최적 가중치 복원이 없다는 점도 함께 봅니다.
+            </p>
+
+            <pre tabindex="0"><code>성능이 이상함
+    ↓ 경로·이미지·정답·클래스 매핑
+    ↓ Shape·dtype·전처리
+    ↓ Train/Val 분할과 증강 난이도
+    ↓ 학습량·Learning Rate·분류층 표현력
+    ↓ 필요할 때 별도 미세조정 검토
+
+미세조정 보충 개념
+일부 기반 층 동결 해제 → 재컴파일 → 작은 학습률로 추가 학습
+BatchNormalization 상태도 함께 관리</code></pre>
+
+            <h3>R²를 분류 번호에 적용하지 않기</h3>
+            <p>
+                R²는 연속값 회귀에서 <code>1 − SSE/SST</code>로 사용하는 지표입니다.
+                <code>SSE = Σ(y − ŷ)²</code>는 예측 오차 제곱합이고,
+                <code>SST = Σ(y − ȳ)²</code>는 정답과 정답 평균의 차이 제곱합입니다.
+                실제 정답에 변동이 있는 일반적인 경우 1은 완벽한 예측,
+                0은 평균값 예측 수준, 음수는 그보다 나쁜 결과를 뜻합니다.
+                클래스 번호는 수치적 크기·거리 의미를 가진 연속값이 아니므로
+                이번 분류의 주 평가 지표로 사용하지 않습니다.
+                원본에는 R² 계산이 없습니다.
+            </p>
+
+            <p class="notice">
+                Loss는 정답에 준 확률, Accuracy는 클래스 선택의 정답 비율,
+                개별 점수는 특정 이미지의 클래스 확률입니다.
+                같은 말로 바꾸어 읽지 않습니다.
+                99.5%만으로 클래스별 Recall이나 서비스 성능까지 확인한 것은 아닙니다.
+            </p>
+        </section>
+
+        <section class="lesson-card" id="ml37-practice">
+            <h2><span class="num">20</span>실무 연결 · 모델과 입력·출력 규칙을 함께 관리</h2>
+
+            <p>
+                상품 종류, 정상·불량 이미지, 식물 종류, 사내 이미지 분류처럼
+                새 분류 문제를 적은 데이터로 시작할 때 연결할 수 있습니다.
+                ImageNet 특징이 모든 업무에 똑같이 잘 맞는 것은 아니므로 실제 데이터로 확인합니다.
+            </p>
+
+            <div class="grid two">
+                <div class="mini">
+                    <h3>입력 규칙</h3>
+                    <p>
+                        224×224, RGB 3채널, 배치 축, dtype,
+                        MobileNet 전처리와 버전을 함께 관리합니다.
+                        모델 파일만 전달하면 재현 정보가 부족합니다.
+                    </p>
+                </div>
+                <div class="mini">
+                    <h3>출력 규칙</h3>
+                    <p>
+                        클래스 번호와 이름 순서를 모델과 함께 관리합니다.
+                        학습 때 cats=0인데 화면에서 dogs=0으로 해석하면
+                        예측 숫자가 맞아도 결과 이름이 바뀝니다.
+                    </p>
+                </div>
+            </div>
+
+            <ul>
+                <li><strong>모델 재사용:</strong> 이미지마다 모델을 새로 생성하지 않고 준비된 모델로 추론합니다.</li>
+                <li><strong>속도 확인:</strong> 경량 모델이라는 이름만으로 장치별 속도가 보장되지는 않습니다. 입력 크기·전처리·배치·실행 장치·동시 요청을 함께 측정합니다.</li>
+                <li><strong>오류 분석:</strong> 어둡거나 흐린 사진, 다른 배경, 대상 외 이미지, 클래스별 오답을 확인합니다.</li>
+                <li><strong>기능 범위:</strong> 이미지 전체 분류이며 여러 동물의 위치와 개수를 찾는 객체 탐지는 아닙니다.</li>
+                <li><strong>기록:</strong> 데이터 분할·클래스 매핑·증강·전처리·동결 범위·Learning Rate·Epoch·모델 선택 기준·테스트 결과를 함께 남깁니다.</li>
+                <li><strong>저장:</strong> 이번 원본에는 모델 저장 코드가 없습니다. 다음 VGG16 단원에서 저장·재로딩을 확인합니다.</li>
+            </ul>
+        </section>
+
+        <section class="lesson-card" id="ml37-interview">
+            <h2><span class="num">21</span>면접 포인트 · 질문으로 개념 확인</h2>
+
+            <details open>
+                <summary>Q1. 무엇을 전이하나요?</summary>
+                <p>ImageNet으로 학습한 MobileNet의 이미지 특징 추출 능력을 새 고양이·개 분류에 활용합니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q2. include_top=False와 trainable=False의 차이는?</summary>
+                <p>기존 분류 부분을 제외하는 것과 가중치 업데이트 대상에서 제외하는 것은 다른 역할입니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q3. 동결하면 계산도 하지 않나요?</summary>
+                <p>아닙니다. 순전파로 특징을 계산하되 가중치를 업데이트하지 않습니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q4. MobileNet V1인 근거는?</summary>
+                <p>원문이 tensorflow.keras.applications.mobilenet.MobileNet을 가져옵니다. MobileNetV2가 아닙니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q5. weights를 생략했는데 왜 사전학습인가요?</summary>
+                <p>MobileNet의 기본 가중치 설정이 ImageNet이기 때문입니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q6. 입력이 왜 4차원인가요?</summary>
+                <p>높이·너비·채널 앞에 이미지 수를 나타내는 배치 축이 필요합니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q7. GAP와 Flatten은 어떻게 다른가요?</summary>
+                <p>Flatten은 값을 펼치고 GAP는 채널별 공간 평균을 구합니다. 이번에는 (B,7,7,1024)가 (B,1024)가 됩니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q8. 실제 학습 파라미터 수는?</summary>
+                <p>새 Dense 두 층의 65,730개입니다. 기반 3,228,864개는 고정합니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q9. 두 클래스에 categorical cross-entropy를 써도 되나요?</summary>
+                <p>정답이 원핫(B,2)이고 출력이 Dense 2 Softmax이면 맞는 조합입니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q10. 배치 y와 labels의 Shape가 다른 이유는?</summary>
+                <p>학습에는 원핫(B,2), 수동 비교에는 전체 정수 정답(N,)을 사용하기 때문입니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q11. from_generator가 배치를 새로 만드나요?</summary>
+                <p>이번 원문에서는 이미 배치화된 DirectoryIterator를 감쌉니다. TensorSpec이 batch나 resize를 수행하지 않습니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q12. steps_per_epoch=20은 무엇인가요?</summary>
+                <p>한 epoch에서 배치 20개를 소비합니다. 전체 데이터를 20회 반복한다는 뜻이 아닙니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q13. 데이터가 적으면 repeat가 필수인가요?</summary>
+                <p>아닙니다. 공급원의 종료·반복 방식과 길이 인지 여부를 봐야 합니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q14. 검증 성능이 훈련보다 좋을 수 있나요?</summary>
+                <p>훈련 증강, 집계 시점, 데이터 난이도 차이가 원인일 수 있습니다. 지표 대소만으로 오류를 확정하지 않습니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q15. Loss와 Accuracy의 차이는?</summary>
+                <p>Accuracy는 클래스 선택의 정답 여부, Loss는 정답 클래스에 부여한 확률도 반영합니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q16. 99.5%는 무엇을 뜻하나요?</summary>
+                <p>해당 테스트 200장의 정확도로 199장 정답에 해당합니다. 한 이미지의 예측 확률이 아닙니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q17. 테스트 shuffle=False가 중요한 이유는?</summary>
+                <p>예측 행을 외부 정답 배열 labels와 순서대로 비교하기 위해서입니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q18. decode_predictions를 사용하지 않는 이유는?</summary>
+                <p>새 두 클래스는 ImageNet 출력 순서가 아니므로 class_indices로 이름을 연결합니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q19. 동결 해제 후 바로 fit하면 되나요?</summary>
+                <p>학습 대상을 바꿨다면 재컴파일해야 합니다. 학습률과 BatchNormalization 상태도 검토합니다. 원본은 미세조정을 수행하지 않습니다.</p>
+            </details>
+
+            <details open>
+                <summary>Q20. 클래스 번호에 R²를 적용하지 않는 이유는?</summary>
+                <p>번호가 연속적인 크기·거리 의미를 갖지 않으며 현재 과제는 분류 성능을 평가해야 하기 때문입니다.</p>
+            </details>
+        </section>
+
+    </main>
+
+    <aside class="side-note" aria-label="복습 노트">
+
+        <section class="side-note-card" id="ml37-memory">
+            <h2>오늘의 암기 포인트</h2>
+            <ol>
+                <li>이번 모델은 MobileNet V1이다.</li>
+                <li>이미지 한 장은 224×224×3이다.</li>
+                <li>모델 입력은 (B,224,224,3)이다.</li>
+                <li>MobileNet 전처리는 약 −1~1이다.</li>
+                <li>모델과 전처리 함수를 함께 선택한다.</li>
+                <li>include_top=False는 기존 분류 부분을 제외한다.</li>
+                <li>trainable=False는 가중치 업데이트를 막는다.</li>
+                <li>동결된 모델도 특징 계산을 한다.</li>
+                <li>기반 출력은 (B,7,7,1024)이다.</li>
+                <li>GAP 출력은 (B,1024)이다.</li>
+                <li>GAP는 Flatten과 다르다.</li>
+                <li>새 분류층은 Dense 64 → Dense 2 Softmax이다.</li>
+                <li>학습 가능 파라미터는 65,730개다.</li>
+                <li>원핫 정답은 (B,2)이다.</li>
+                <li>정수 정답·argmax는 (N,)이다.</li>
+                <li>이미 배치된 Dataset을 다시 batch하지 않는다.</li>
+                <li>20 Steps × 10 Epochs로 학습한다.</li>
+                <li>Loss는 categorical CE, Optimizer는 Adam이다.</li>
+                <li>compile은 설정, fit은 학습이다.</li>
+                <li>evaluate·predict는 가중치를 학습하지 않는다.</li>
+                <li>예측 확률과 Accuracy는 다르다.</li>
+                <li>prob에는 Accuracy 백분율이 담긴다.</li>
+                <li>99.5%는 200장 중 199장 정답이다.</li>
+                <li>원본에는 최적 가중치 복원이 없다.</li>
+                <li>공식 검토 메모와 추가 검토를 혼동하지 않는다.</li>
+            </ol>
+        </section>
+
+        <section class="side-note-card">
+            <h2>헷갈리기 쉬운 개념</h2>
+            <dl>
+                <dt><strong>처리 규칙 ↔ 배치 공급원</strong></dt>
+                <dd>ImageDataGenerator는 규칙, DirectoryIterator는 실제 배치 공급 객체입니다.</dd>
+
+                <dt><strong>None ↔ 실제 배치 100</strong></dt>
+                <dd>None은 가변 규격이고 100은 현재 설정의 일반 배치 크기입니다.</dd>
+
+                <dt><strong>원핫 ↔ 정수 라벨</strong></dt>
+                <dd>학습 y는 (B,2), 수동 비교용 labels는 (N,)입니다.</dd>
+
+                <dt><strong>분류층 제거 ↔ 동결</strong></dt>
+                <dd>구조를 제외하는 것과 업데이트를 막는 것은 다릅니다.</dd>
+
+                <dt><strong>동결 ↔ 추론 모드</strong></dt>
+                <dd>학습 대상 여부와 동작 모드는 구분합니다. Keras BN의 동결은 추론 동작과 연결됩니다.</dd>
+
+                <dt><strong>Step ↔ Epoch</strong></dt>
+                <dd>한 배치 처리와 정해진 여러 배치의 학습 구간입니다.</dd>
+
+                <dt><strong>Loss ↔ Accuracy ↔ 예측 점수</strong></dt>
+                <dd>정답 확률 기반 오차, 정답 비율, 개별 이미지의 클래스 점수입니다.</dd>
+
+                <dt><strong>마지막 모델 ↔ 최적 검증 모델</strong></dt>
+                <dd>원본은 최적 가중치를 자동 복원하지 않습니다.</dd>
+
+                <dt><strong>과거 summary ↔ 실제 학습 모델</strong></dt>
+                <dd>주석 셀의 1,000클래스 출력과 새 2클래스 모델을 구분합니다.</dd>
+            </dl>
+        </section>
+
+        <section class="side-note-card" id="ml37-next">
+            <h2>다음 단원 연결 · ML 38 VGG16 추론</h2>
+
+            <p>
+                이번에는 새로운 두 클래스 분류층을 학습했습니다.
+                다음 Notebook 73은 VGG16의 기존 ImageNet 분류 모델로 사진 한 장을 추론하고,
+                모델을 저장·재로딩하여 다시 예측합니다.
+            </p>
+
+            <div class="table-wrap" tabindex="0">
+                <table>
+                    <caption>현재와 다음 단원의 차이</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">항목</th>
+                            <th scope="col">ML 37 · MobileNet 전이학습</th>
+                            <th scope="col">ML 38 · VGG16 추론</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>기존 분류층</td>
+                            <td>제외 후 새 두 클래스 층</td>
+                            <td>기존 ImageNet 분류 부분 유지</td>
+                        </tr>
+                        <tr>
+                            <td>데이터</td>
+                            <td>Train·Validation·Test</td>
+                            <td>새 이미지 한 장</td>
+                        </tr>
+                        <tr>
+                            <td>정답 y</td>
+                            <td>있음</td>
+                            <td>원본 추론에서 없음</td>
+                        </tr>
+                        <tr>
+                            <td>전처리</td>
+                            <td>대략 −1~1</td>
+                            <td>RGB→BGR·채널별 평균 빼기</td>
+                        </tr>
+                        <tr>
+                            <td>출력</td>
+                            <td>(B,2)</td>
+                            <td>(1,1000)</td>
+                        </tr>
+                        <tr>
+                            <td>compile·fit·evaluate</td>
+                            <td>실행</td>
+                            <td>없음</td>
+                        </tr>
+                        <tr>
+                            <td>클래스 이름</td>
+                            <td>class_indices</td>
+                            <td>ImageNet decode_predictions</td>
+                        </tr>
+                        <tr>
+                            <td>모델 저장</td>
+                            <td>원본에 없음</td>
+                            <td>.keras 저장·재로딩·재추론</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <pre tabindex="0"><code>VGG16 생성 → 이미지 전처리 → predict → ImageNet 이름 해석
+        ↓
+model.save('vgg16_model.keras')
+        ↓
+load_model(...) → 다시 예측</code></pre>
+
+            <p class="notice">
+                다음 단원에서도 입력 Shape·전용 전처리·출력 클래스 의미를 함께 확인합니다.
+                MobileNet의 두 클래스 매핑과 전처리를 VGG16에 그대로 가져가면 안 됩니다.
+            </p>
+        </section>
+
+    </aside>
+
+    <footer class="lesson-footer">
+        <p>
+            <strong>자료 기준:</strong>
+            72_케라스-CNN-DogvsCat-MobilNet-TransferLearning37.ipynb,
+            통합교안 304~317쪽. 다음 단원은 Notebook 73 기준입니다.
+            원본 자료는 수정하지 않았고 모델 학습·추론을 새로 실행하지 않았습니다.
+        </p>
+
+        <p>
+            <strong>공식 참고:</strong>
+            <a href="https://keras.io/api/applications/mobilenet/mobilenet_models/">MobileNet·전처리</a> ·
+            <a
+                href="https://www.tensorflow.org/api_docs/python/tf/keras/preprocessing/image/ImageDataGenerator">ImageDataGenerator</a>
+            ·
+            <a
+                href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset#from_generator">Dataset.from_generator</a>
+            ·
+            <a href="https://keras.io/api/models/model_training_apis/">compile·fit·evaluate·predict</a> ·
+            <a href="https://keras.io/guides/transfer_learning/">전이학습·미세조정</a> ·
+            <a href="https://keras.io/api/layers/normalization_layers/batch_normalization/">BatchNormalization</a> ·
+            <a href="https://keras.io/api/optimizers/adam/">Adam</a> ·
+            <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html">R²</a>
+        </p>
+
+        <p><a href="#ml37-top">맨 위로 돌아가기 ↑</a></p>
+    </footer>
+</div>
         </div>
-    </div>
-</body>
+        <script src="../../js/00_nav.js" defer></script>
+    </body>
 </html>
