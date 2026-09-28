@@ -1,266 +1,2440 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 42. Custom YOLO 학습 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 42. Custom YOLO 학습 | AI Machine Learning | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/42_custom_yolo_training.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description"
+            content="ML 42 Custom YOLO 학습: XML에서 YOLO 라벨 변환, 데이터 분할, YOLO11s 학습, Shape·Loss·mAP 해석과 오류 점검.">
+        <title>ML 42. Custom YOLO 학습 | AI Machine Learning</title>
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="42"
-      data-step="0"
-      data-status="skeleton" data-part="part-5-yolo-vision">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/42_custom_yolo_training.css">
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+    <body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page ml42"
+        data-nav-category="ai-machine-learning" data-course="machine-learning" data-lesson="42" data-step="3"
+        data-status="complete" data-part="part-5-yolo-vision">
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <a class="skip-link" href="#lesson-main">본문 바로가기</a>
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 5. YOLO 기반 컴퓨터 비전 · ML 42</p>
-                        <h1>ML 42. Custom YOLO 학습</h1>
+        <div class="layout">
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+
+            <div class="page-content">
+                <header class="ai-ml-hero lesson-hero">
+                    <div class="header-topline">
+                        <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
+                        <p class="reading-time">STEP 3 · 코드로 읽는 학습 매거진</p>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <div class="hero-copy">
+                        <div>
+                            <p class="eyebrow">
+                                PART 5. YOLO 기반 컴퓨터 비전 · ML 42
+                            </p>
+                            <h1>Custom YOLO 학습</h1>
+                        </div>
+                        <div class="lesson-status">학습 자료 완성</div>
+                    </div>
+
+                    <p class="hero-summary">
+                        XML 정답을 YOLO 라벨로 바꾸고, 마스크 3클래스를 학습합니다.
+                        데이터의 Shape부터 best.pt의 검증 지표와 새 이미지 추론까지
+                        연결해 이해합니다.
+                    </p>
+
+                    <div class="hero-keywords" aria-label="핵심 키워드">
+                        <span>PASCAL VOC → YOLO</span>
+                        <span>853 images · 4,072 objects</span>
+                        <span>YOLO11s</span>
+                        <span>Train / Val / Test</span>
+                        <span>Loss · mAP</span>
+                    </div>
+
+                    <section class="learning-goals" aria-labelledby="goals-machine-learning-42">
+                        <h2 id="goals-machine-learning-42">학습 목표</h2>
+                        <ol class="goal-list">
+                            <li>
+                                <span>01</span>
+                                <p>이미지·객체·파일명·Tensor의 Shape를 구분합니다.</p>
+                            </li>
+                            <li>
+                                <span>02</span>
+                                <p>XML → TXT → YAML의 역할과 좌표 변환을 설명합니다.</p>
+                            </li>
+                            <li>
+                                <span>03</span>
+                                <p>누수 없이 분할하고 원문 코드의 실행 순서를 따라갑니다.</p>
+                            </li>
+                            <li>
+                                <span>04</span>
+                                <p>실제 Optimizer·Loss·Validation·Test를 구분합니다.</p>
+                            </li>
+                            <li>
+                                <span>05</span>
+                                <p>학습한 best.pt로 추론하고 오류와 개선 방향을 찾습니다.</p>
+                            </li>
+                        </ol>
+                    </section>
+                </header>
+
+                <div class="content-layout">
+                    <main id="lesson-main" class="lesson-main">
+
+                        <section id="goal" class="lesson-card goal-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">PROBLEM · CUSTOM DETECTION</p>
+                                <h2>01. 실습 목표와 핵심 개념</h2>
+                            </div>
+
+                            <p>
+                                사진 속 얼굴마다
+                                <strong>어디에 있는지(Bounding Box)</strong>와
+                                <strong>어떤 마스크 상태인지(Class)</strong>를 함께 예측합니다.
+                                이미지 전체에 이름 하나를 붙이는 분류에서,
+                                이미지 안의 여러 객체를 찾는 탐지로 확장합니다.
+                            </p>
+
+                            <div class="concept-grid">
+                                <article class="concept-box">
+                                    <h3>이미지 분류</h3>
+                                    <p>사진 한 장 → 클래스 하나.</p>
+                                    <p>예: “이 사진은 고양이입니다.”</p>
+                                </article>
+
+                                <article class="concept-box">
+                                    <h3>객체 탐지</h3>
+                                    <p>사진 한 장 → 객체마다 박스 + 클래스 + confidence.</p>
+                                    <p>예: “왼쪽 얼굴은 착용, 오른쪽 얼굴은 미착용입니다.”</p>
+                                </article>
+                            </div>
+
+                            <p>
+                                <strong>Custom 학습</strong>은 사전 학습된
+                                <code>yolo11s.pt</code>를 출발점으로,
+                                우리가 준비한 세 클래스의 정답을 이용해 가중치를 추가 학습하는 과정입니다.
+                                모델 구조 전체를 직접 구현하는 실습은 아닙니다.
+                            </p>
+
+                            <ol class="flow-list">
+                                <li>원본 이미지와 XML</li>
+                                <li>객체 정보 추출</li>
+                                <li>분할·YOLO TXT·YAML</li>
+                                <li>YOLO11s 학습</li>
+                                <li>best.pt 평가·추론</li>
+                            </ol>
+
+                            <div class="callout source-note">
+                                <strong>자료 구분:</strong>
+                                Notebook 77 「YOLO-Custom-Image-Detect-Pascal42」와
+                                통합교안 356~379쪽을 기준으로 구성했습니다.
+                                해당 단원에 별도 공식 검토 메모는 없습니다.
+                                ‘추가 검토’는 코드와 출력의 차이를 설명한 보완입니다.
+                                아래 수치는 <strong>원본에 저장된 결과</strong>이며
+                                이 페이지를 만들면서 다시 학습한 수치가 아닙니다.
+                                원문 실행문은 유지하고 긴 주석·설명용 docstring만 생략했습니다.
+                            </div>
+
+                            <nav id="lesson-contents" class="lesson-toc" aria-label="ML 42 본문 목차">
+                                <h3>이 단원에서 찾아보기</h3>
+                                <div class="hero-keywords">
+                                    <a href="#dataset">Dataset</a>
+                                    <a href="#shape">X / y · Shape</a>
+                                    <a href="#preprocess">좌표 변환</a>
+                                    <a href="#split">데이터 분할</a>
+                                    <a href="#model">모델</a>
+                                    <a href="#code">원문 코드</a>
+                                    <a href="#flow">학습 흐름</a>
+                                    <a href="#result">실행 결과</a>
+                                    <a href="#metric">Metric</a>
+                                    <a href="#mistake">실수</a>
+                                    <a href="#error">오류</a>
+                                    <a href="#performance">성능 개선</a>
+                                    <a href="#practice">실무</a>
+                                    <a href="#interview">면접</a>
+                                </div>
+                            </nav>
+                        </section>
+
+                        <section id="dataset" class="lesson-card dataset-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">DATASET · ANNOTATION</p>
+                                <h2>02. Dataset — 이미지와 객체 수를 구분하기</h2>
+                            </div>
+
+                            <p>
+                                원문은 Kaggle의
+                                <a href="https://www.kaggle.com/datasets/andrewmvd/face-mask-detection">
+                                    Face Mask Detection 데이터
+                                </a>를 사용합니다.
+                                다운로드한 이미지와 XML을 지정 폴더에 준비하는 과정은 수동입니다.
+                                <strong>VOC 형식</strong>을 쓴다는 것과
+                                <strong>VOC 20클래스 데이터셋</strong>을 학습한다는 것은 다릅니다.
+                            </p>
+
+                            <div class="result-grid">
+                                <div class="result-box">
+                                    <strong>853</strong>
+                                    <span>이미지 수</span>
+                                </div>
+                                <div class="result-box">
+                                    <strong>4,072</strong>
+                                    <span>정답 객체 수</span>
+                                </div>
+                                <div class="result-box">
+                                    <strong>3</strong>
+                                    <span>클래스 수</span>
+                                </div>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="클래스 매핑과 객체 분포">
+                                <table>
+                                    <caption>클래스 매핑과 객체 분포</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">ID</th>
+                                            <th scope="col">XML 클래스</th>
+                                            <th scope="col">원문 표시 이름</th>
+                                            <th scope="col">객체 수</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>0</td>
+                                            <td><code>with_mask</code></td>
+                                            <td>마스크_착용</td>
+                                            <td>3,232 · 약 79.37%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1</td>
+                                            <td><code>mask_weared_incorrect</code></td>
+                                            <td>마스크_턱걸이</td>
+                                            <td>123 · 약 3.02%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td><code>without_mask</code></td>
+                                            <td>마스크_미착용</td>
+                                            <td>717 · 약 17.61%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                클래스 1은 원래 ‘잘못 착용’을 뜻합니다.
+                                ‘턱걸이’는 원문 YAML의 표시 이름이므로 실제 라벨 기준을 함께 확인합니다.
+                                클래스 ID와 이름은 XML → TXT → YAML → 모델 출력까지 일치해야 합니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="객체 DataFrame의 6개 열">
+                                <table>
+                                    <caption>객체 DataFrame의 6개 열</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">열</th>
+                                            <th scope="col">의미</th>
+                                            <th scope="col">저장 dtype</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>filename</td>
+                                            <td>이미지 파일명</td>
+                                            <td>object</td>
+                                        </tr>
+                                        <tr>
+                                            <td>label</td>
+                                            <td>XML의 클래스 이름</td>
+                                            <td>object</td>
+                                        </tr>
+                                        <tr>
+                                            <td>class_id</td>
+                                            <td>0, 1, 2 중 하나</td>
+                                            <td>int64</td>
+                                        </tr>
+                                        <tr>
+                                            <td>width / height</td>
+                                            <td>원본 이미지 너비와 높이</td>
+                                            <td>각각 int64</td>
+                                        </tr>
+                                        <tr>
+                                            <td>bboxes</td>
+                                            <td>[xmin, ymin, xmax, ymax] 리스트</td>
+                                            <td>object</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                한 이미지에 얼굴이 3개 있으면 같은 파일명의 행이 3개 생깁니다.
+                                따라서 <code>df_pascal_data.shape == (4072, 6)</code>입니다.
+                                <code>bboxes</code> 열이 object인 것은 리스트를 담기 때문이며
+                                그 자체가 오류는 아닙니다.
+                            </p>
+
+                            <pre class="code-block" tabindex="0"><code>작업 폴더/
+├─ mask_config.yaml
+├─ datasets/yolo_datasets/
+│  ├─ annotations/        원본 XML
+│  ├─ images/             원본 이미지
+│  └─ mask/
+│     ├─ train/{images, labels}/
+│     ├─ valid/{images, labels}/
+│     └─ test/{images, labels}/
+└─ runs/detect/train.../weights/{best.pt, last.pt}</code></pre>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="세 가지 파일의 역할">
+                                <table>
+                                    <caption>세 가지 파일의 역할</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">파일</th>
+                                            <th scope="col">들어 있는 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>XML</td>
+                                            <td>원본 정답: 이미지 크기, 객체 이름, 픽셀 xyxy 좌표</td>
+                                        </tr>
+                                        <tr>
+                                            <td>TXT</td>
+                                            <td>이미지별 YOLO 정답: 객체당 class_id cx cy w h 한 줄</td>
+                                        </tr>
+                                        <tr>
+                                            <td>YAML</td>
+                                            <td>
+                                                Dataset 안내: 분할 경로, 클래스 수와 이름.
+                                                모든 박스 좌표를 담는 파일이 아님
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="callout review">
+                                원문 파서는 객체가 없는 XML에서 행을 만들지 않습니다.
+                                나중에 DataFrame의 고유 파일명만 추출하면 이런 이미지가 빠질 수 있습니다.
+                                다른 Dataset에 재사용할 때 배경 이미지의 포함 방법도 확인합니다.
+                            </div>
+                        </section>
+
+                        <section id="shape" class="lesson-card shape-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">SHAPE · DTYPE</p>
+                                <h2>03. X / y와 Shape — 파일명·픽셀·객체 축</h2>
+                            </div>
+
+                            <p>
+                                개념적으로 <strong>X는 이미지, y는 객체별 클래스와 박스</strong>입니다.
+                                그러나 원문의 <code>X_train</code>에는 픽셀이 아니라 파일명 문자열이 들어 있습니다.
+                                별도의 <code>y_train</code> 배열 대신 이미지별 TXT가 정답을 제공합니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="단계별 Shape">
+                                <table>
+                                    <caption>단계별 Shape</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">대상</th>
+                                            <th scope="col">Shape / 구조</th>
+                                            <th scope="col">해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>객체 DataFrame</td>
+                                            <td>(4072, 6)</td>
+                                            <td>4,072개 객체의 정보. CNN 입력 Feature 6개라는 뜻이 아님</td>
+                                        </tr>
+                                        <tr>
+                                            <td>고유 이미지 파일명</td>
+                                            <td>(853,)</td>
+                                            <td>이미지 파일명 853개</td>
+                                        </tr>
+                                        <tr>
+                                            <td>X_train / valid / X_test</td>
+                                            <td>(613,) / (154,) / (86,)</td>
+                                            <td>세 분할의 파일명 배열</td>
+                                        </tr>
+                                        <tr>
+                                            <td>원본 이미지</td>
+                                            <td>(H, W, 3)</td>
+                                            <td>OpenCV 기준 HWC, BGR, uint8</td>
+                                        </tr>
+                                        <tr>
+                                            <td>한 이미지의 정답</td>
+                                            <td>개념적으로 (N_i, 5)</td>
+                                            <td>객체 수 × [class_id, cx, cy, w, h]</td>
+                                        </tr>
+                                        <tr>
+                                            <td>학습 배치</td>
+                                            <td>대표적으로 (B, 3, 640, 640)</td>
+                                            <td>PyTorch의 BCHW. 입력 조건에 따라 공간 크기는 달라질 수 있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>추론 결과</td>
+                                            <td>list[Results]</td>
+                                            <td>사진마다 하나의 결과 객체</td>
+                                        </tr>
+                                        <tr>
+                                            <td>예측 좌표 / 클래스 / 점수</td>
+                                            <td>(N_pred, 4) / (N_pred,) / (N_pred,)</td>
+                                            <td>정답 개수와 예측 개수는 다를 수 있음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <ol class="flow-list">
+                                <li>파일명 (613,)</li>
+                                <li>이미지 읽기 HWC</li>
+                                <li>증강·크기 조정</li>
+                                <li>Tensor BCHW</li>
+                                <li>객체별 결과</li>
+                            </ol>
+
+                            <div class="concept-grid">
+                                <article class="concept-box">
+                                    <h3>정답 객체 축</h3>
+                                    <p>
+                                        얼굴 3개 → 라벨 3행. 얼굴 1개 → 라벨 1행.
+                                        여러 이미지의 정답을 단순히 <code>(B, 5)</code>로 가정하지 않습니다.
+                                    </p>
+                                </article>
+
+                                <article class="concept-box">
+                                    <h3>dtype의 역할</h3>
+                                    <p>
+                                        파일명은 문자열, 클래스 ID는 정수 의미, 좌표는 실수입니다.
+                                        라벨 배열이 실수 dtype이어도 첫 열은 정수 값이어야 합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                <code>height, width = image.shape[:2]</code>처럼 배열의 첫째 축은 높이입니다.
+                                단일 객체 TXT를 읽으면 객체 축이 사라질 수 있으므로
+                                <code>(1, 5)</code>인지 확인합니다.
+                                비어 있는 정답은 개념적으로 <code>(0, 5)</code>입니다.
+                            </p>
+                        </section>
+
+                        <section id="preprocess" class="lesson-card preprocess-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">COORDINATES · PIXELS</p>
+                                <h2>04. 전처리 — VOC xyxy → YOLO xywh</h2>
+                            </div>
+
+                            <p>
+                                VOC는 왼쪽 위와 오른쪽 아래 모서리의 <strong>픽셀 좌표</strong>를 저장합니다.
+                                YOLO TXT는 중심과 크기를 <strong>원본 이미지 크기로 정규화</strong>하여 저장합니다.
+                            </p>
+
+                            <pre class="code-block" tabindex="0"><code>(xmin, ymin) ●──────────────┐
+             │      ×       │  × = 중심 (cx, cy)
+             │              │
+             └──────────────● (xmax, ymax)
+
+cx = (xmin + xmax) / (2 × W)
+cy = (ymin + ymax) / (2 × H)
+w  = (xmax - xmin) / W
+h  = (ymax - ymin) / H</code></pre>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="원문 첫 번째 박스 계산">
+                                <table>
+                                    <caption>원문 첫 번째 박스 계산</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">값</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>원본 크기</td>
+                                            <td>W=512, H=366</td>
+                                        </tr>
+                                        <tr>
+                                            <td>VOC 박스</td>
+                                            <td>[79, 105, 109, 142]</td>
+                                        </tr>
+                                        <tr>
+                                            <td>픽셀 중심·크기</td>
+                                            <td>중심 (94, 123.5), 너비 30, 높이 37</td>
+                                        </tr>
+                                        <tr>
+                                            <td>YOLO 박스</td>
+                                            <td>[0.18359375, 0.337431694, 0.05859375, 0.101092896]</td>
+                                        </tr>
+                                        <tr>
+                                            <td>클래스</td>
+                                            <td>2: without_mask</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <pre class="code-block"
+                                tabindex="0"><code>2 0.18359375 0.337431693989071 0.05859375 0.10109289617486339</code></pre>
+
+                            <div class="concept-grid">
+                                <article class="concept-box">
+                                    <h3>라벨 정규화</h3>
+                                    <p>
+                                        박스 좌표를 원본 W/H로 나눕니다.
+                                        <code>imgsz=640</code>으로 나누지 않습니다.
+                                        클래스 ID는 정규화하지 않습니다.
+                                    </p>
+                                </article>
+
+                                <article class="concept-box">
+                                    <h3>이미지 전처리</h3>
+                                    <p>
+                                        로더가 이미지 읽기, 증강, 리사이즈·패딩,
+                                        채널·Tensor 정리, 픽셀 스케일 조정을 수행합니다.
+                                        기하학적 변환은 박스에도 함께 반영되어야 합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <p>
+                                박스 함수는 픽셀 밝기를 바꾸지 않습니다.
+                                OpenCV 이미지의 BGR/HWC와 모델의 RGB/BCHW도 구분합니다.
+                                원문처럼 고수준 API에 이미지를 전달할 때는 내부 처리를 이해하고
+                                이중 정규화·잘못된 채널 변환을 피합니다.
+                            </p>
+
+                            <div class="callout review">
+                                원문 좌표 함수에는 유효성 검사가 없습니다.
+                                W/H 양수, xmax&gt;xmin, ymax&gt;ymin, 이미지 범위를 확인합니다.
+                                경계 포함 규약을 확인하지 않고 +1 또는 -1을 임의로 추가하지 않습니다.
+                            </div>
+                        </section>
+
+                        <section id="split" class="lesson-card split-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">SPLIT · GENERALIZATION</p>
+                                <h2>05. Train / Validation / Test와 Data Leakage</h2>
+                            </div>
+
+                            <ol class="flow-list">
+                                <li>전체 853장</li>
+                                <li>Test 86장 분리</li>
+                                <li>나머지 767장</li>
+                                <li>Validation 154장</li>
+                                <li>Train 613장</li>
+                            </ol>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="분할 수와 역할">
+                                <table>
+                                    <caption>분할 수와 역할</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">분할</th>
+                                            <th scope="col">이미지 수</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Train</td>
+                                            <td>613 · 약 71.86%</td>
+                                            <td>가중치 업데이트</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Validation</td>
+                                            <td>154 · 약 18.05%</td>
+                                            <td>학습 중 점검, 모델·설정 선택</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Test</td>
+                                            <td>86 · 약 10.08%</td>
+                                            <td>선택을 끝낸 모델의 최종 평가</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                전체의 10%를 Test로 떼고, <strong>남은 데이터의 20%</strong>를
+                                Validation으로 나누므로 약 <strong>72:18:10</strong>입니다.
+                                80:10:10이 아닙니다. 원문에는 stratify가 없습니다.
+                            </p>
+
+                            <div class="callout review">
+                                <strong>객체 행을 나누면 안 되는 이유:</strong>
+                                같은 사진의 얼굴 A는 Train, 얼굴 B는 Validation으로 들어갈 수 있습니다.
+                                원문은 <code>filename.unique()</code>로 이미지 단위 분할을 합니다.
+                                다만 이름이 다른 복제 이미지, 같은 영상의 인접 프레임까지 막아 주지는 않습니다.
+                            </div>
+
+                            <ul>
+                                <li>동일·유사 장면은 영상·촬영 그룹 단위 분할을 검토합니다.</li>
+                                <li>
+                                    원문은 기존 출력 폴더를 비우지 않습니다.
+                                    분할을 바꿔 재실행하면 이전 파일이 남을 수 있습니다.
+                                </li>
+                                <li>파일명 집합뿐 아니라 디스크의 실제 파일 목록과 라벨 대응도 확인합니다.</li>
+                                <li>
+                                    원문의 glob 목록은 정렬하지 않았습니다.
+                                    seed가 같아도 입력 순서가 바뀌면 분할이 달라질 수 있습니다.
+                                </li>
+                                <li>
+                                    confidence·모델·증강 설정을 Test 결과를 보며 반복 선택하면
+                                    평가 정보가 새어 들어갑니다.
+                                </li>
+                            </ul>
+                        </section>
+
+                        <section id="model" class="lesson-card model-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">BACKBONE · NECK · HEAD</p>
+                                <h2>06. Model Architecture — 사전 학습 YOLO11s</h2>
+                            </div>
+
+                            <ol class="flow-list">
+                                <li>Image Tensor</li>
+                                <li>Backbone 특징 추출</li>
+                                <li>Neck 다중 크기 특징 결합</li>
+                                <li>Detect 박스·클래스</li>
+                                <li>후처리·원본 좌표 결과</li>
+                            </ol>
+
+                            <p>
+                                작은 얼굴과 큰 얼굴을 다루기 위해 서로 다른 해상도의 특징을 활용합니다.
+                                마지막 Detect 로그의 <code>[3, [128, 256, 512]]</code>는
+                                <strong>클래스 3개</strong>와 입력 특징 맵의 채널 수를 나타냅니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="원본 모델 로그">
+                                <table>
+                                    <caption>원본 모델 로그</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">시점</th>
+                                            <th scope="col">기록</th>
+                                            <th scope="col">해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>학습 모델</td>
+                                            <td>181 layers · 9,428,953 parameters</td>
+                                            <td>3클래스 탐지를 위한 학습 구성</td>
+                                        </tr>
+                                        <tr>
+                                            <td>전이</td>
+                                            <td>Transferred 499/499 items</td>
+                                            <td>가중치 전이 로그. 전체 Backbone 동결을 의미하지 않음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>일부 고정</td>
+                                            <td>model.23.dfl.conv.weight</td>
+                                            <td>특정 DFL 구조의 고정이며 전체 특징 추출기 동결이 아님</td>
+                                        </tr>
+                                        <tr>
+                                            <td>best 검증 모델</td>
+                                            <td>fused: 100 layers · 9,413,961 parameters</td>
+                                            <td>추론을 위한 연산 결합으로 표기가 달라질 수 있음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                이미지 분류의 Flatten → Dense → 클래스 하나와 달리,
+                                이 모델은 여러 위치의 객체 후보를 만듭니다.
+                                후처리된 <code>boxes.xyxy</code>는 원본 이미지의 픽셀 좌표이며
+                                TXT의 정규화된 중심 좌표와 다릅니다.
+                            </p>
+                        </section>
+
+                        <section id="code" class="lesson-card code-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">CODE WALKTHROUGH</p>
+                                <h2>07. 원문 코드 — 준비부터 추론까지</h2>
+                            </div>
+
+                            <p>
+                                다음 코드는 원문 셀 순서를 따릅니다.
+                                실행문은 유지하고 긴 설명 주석·docstring만 생략했습니다.
+                                각 블록을 읽을 때
+                                <strong>무엇을 하는지 → 왜 필요한지 → 입출력 → 상태 변화</strong>를 확인합니다.
+                            </p>
+
+                            <article class="code-step">
+                                <h3>① 도구·폰트·버전·경로 확인</h3>
+                                <p class="code-label">원문 실행문 · 셀 3, 4, 5, 8</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="3,4,5,8">import cv2
+import os
+import numpy as np
+import pandas as pd
+import shutil
+import glob
+import yaml
+import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+from matplotlib import rc
+from PIL import Image
+from sklearn.model_selection import train_test_split
+import ultralytics
+from ultralytics import YOLO
+
+fp=fm.FontProperties(fname='C:\\Windows\\Fonts\\gulim.ttc')
+rc('font',family=fp.get_name())
+
+ultralytics.__version__
+
+from ultralytics import settings
+settings.get("datasets_dir")</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>XML·표·파일·이미지·YOLO 도구를 불러옵니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>데이터 준비부터 표시까지 담당 도구가 다릅니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>모듈 이름과 설정 경로. 배열 입력 없음.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>버전·경로 문자열, 폰트 설정.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>사용할 이름과 Matplotlib 폰트가 등록됩니다.</dd>
+                                </dl>
+
+                                <p>
+                                    기록: Ultralytics 8.3.213.
+                                    <code>settings.update(...)</code>는 원문에서 주석 처리되어 실행되지 않습니다.
+                                    <code>yaml</code>은 import하지만 YAML 저장은 문자열로 수행합니다.
+                                    폰트 경로는 Windows 환경에 종속됩니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>② XML 목록과 클래스 사전</h3>
+                                <p class="code-label">원문 실행문 · 셀 9, 11</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="9,11">directory='./datasets/yolo_datasets'
+annotation_directory=os.path.join(directory,'annotations')
+annotation_paths = list(glob.glob(r'{}/*.xml'.format(annotation_directory)))
+
+classes ={
+    'with_mask' : 0,
+    'mask_weared_incorrect': 1,
+    'without_mask': 2
+}
+
+pascal_data ={
+    'filename':[],
+    'label':[],
+    'class_id':[],
+    'width':[],
+    'height':[],
+    'bboxes':[]
+}</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>XML 경로와 클래스 매핑, 저장 리스트를 만듭니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>문자열 클래스를 숫자 ID로 바꾸기 위해서입니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>폴더 경로 및 세 클래스 이름.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>XML 경로 리스트, 빈 리스트 6개.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>파싱할 목록과 객체 저장 공간이 준비됩니다.</dd>
+                                </dl>
+
+                                <p>
+                                    glob가 빈 리스트여도 즉시 예외가 나지 않을 수 있습니다.
+                                    이 단계는 다운로드나 XML 내용 파싱을 하지 않습니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>③ XML을 객체 단위로 파싱</h3>
+                                <p class="code-label">원문 실행문 · 셀 12</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="12">for annotation_path in annotation_paths:
+    tree = ET.parse(annotation_path)
+    root = tree.getroot()
+    filename = root.find('filename').text
+
+    for obj in root.findall("object"):
+        label = obj.find("name").text
+        bbox = []
+
+        bndbox_tree = obj.find('bndbox')
+        bbox.append(int(bndbox_tree.find('xmin').text))
+        bbox.append(int(bndbox_tree.find('ymin').text))
+        bbox.append(int(bndbox_tree.find('xmax').text))
+        bbox.append(int(bndbox_tree.find('ymax').text))
+
+        size = root.find('size')
+
+        pascal_data['filename'].append(filename)
+        pascal_data['width'].append(int(size.find('width').text))
+        pascal_data['height'].append(int(size.find('height').text))
+        pascal_data['label'].append(label)
+        pascal_data['class_id'].append(classes[label])
+        pascal_data['bboxes'].append(bbox)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>각 XML 안의 모든 object를 읽습니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>객체 이름과 좌표를 계산 가능한 자료로 바꿉니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>이미지별 XML, 객체 수는 가변.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>각 리스트에 객체당 값 1개. 전체 길이 4,072.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>pascal_data에 정보가 누적됩니다.</dd>
+                                </dl>
+
+                                <p>
+                                    바깥 반복은 XML, 안쪽 반복은 객체입니다.
+                                    <code>classes[label]</code>이 이름을 ID로 바꿉니다.
+                                    초기화 없이 이 셀만 재실행하면 중복 추가됩니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>④ 표·결측치·자료형·분포 확인</h3>
+                                <p class="code-label">원문 실행문 · 셀 13, 14, 15, 16, 17</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="13,14,15,16,17">print(pascal_data['bboxes'][0])
+
+df_pascal_data = pd.DataFrame(pascal_data)
+df_pascal_data.head()
+
+df_pascal_data.isnull().sum()
+
+df_pascal_data.info()
+
+df_pascal_data.label.value_counts()</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>객체 데이터를 표로 만들고 상태를 조회합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>변환 전에 누락과 클래스 분포를 확인합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>길이 4,072인 리스트 6개.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>DataFrame (4072, 6), 통계 출력.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>DataFrame 생성. 조회 코드는 데이터를 고치지 않습니다.</dd>
+                                </dl>
+
+                                <p>
+                                    첫 박스는 <code>[79, 105, 109, 142]</code>.
+                                    모든 열의 결측치는 0으로 기록됩니다.
+                                    결측치가 없다고 좌표·파일·라벨 의미까지 올바른 것은 아닙니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑤ 좌표 변환 함수</h3>
+                                <p class="code-label">원문 실행문 · 셀 18</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="18">def pascal_to_yolo_bbox(bbox, w, h):
+    x_min, y_min, x_max, y_max = bbox
+    x_center = ((x_max + x_min) / 2) / w
+    y_center = ((y_max + y_min) / 2) / h
+    width = (x_max - x_min) / w
+    height = (y_max - y_min) / h
+    return [x_center, y_center, width, height]</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>모서리 픽셀 좌표를 정규화 중심·크기로 변환합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>YOLO TXT의 좌표 규칙에 맞추기 위해서입니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>박스 (4,), 원본 W와 H.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>실수 4개 [cx, cy, w, h].</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>호출할 때 새 리스트를 반환하며 원본 이미지는 바뀌지 않습니다.</dd>
+                                </dl>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑥ 이미지·라벨 폴더 준비</h3>
+                                <p class="code-label">원문 실행문 · 셀 19</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="19">train_images_dir = f"{directory}/mask/train/images"
+train_labels_dir = f"{directory}/mask/train/labels"
+test_images_dir =  f"{directory}/mask/test/images"
+test_labels_dir =  f"{directory}/mask/test/labels"
+valid_images_dir = f"{directory}/mask/valid/images"
+valid_labels_dir = f"{directory}/mask/valid/labels"
+
+if not os.path.exists(train_images_dir):
+    os.makedirs(train_images_dir)
+if not os.path.exists(train_labels_dir):
+    os.makedirs(train_labels_dir)
+if not os.path.exists(test_images_dir):
+    os.makedirs(test_images_dir)
+if not os.path.exists(test_labels_dir):
+    os.makedirs(test_labels_dir)
+if not os.path.exists(valid_images_dir):
+    os.makedirs(valid_images_dir)
+if not os.path.exists(valid_labels_dir):
+    os.makedirs(valid_labels_dir)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>분할별 디렉터리 6개를 만듭니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>이미지와 정답을 대응하는 위치에 저장합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>경로 문자열.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>생성된 폴더.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>디스크 구조가 생성됩니다. 기존 파일은 삭제하지 않습니다.</dd>
+                                </dl>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑦ 고유 이미지 기준 분할</h3>
+                                <p class="code-label">원문 실행문 · 셀 20, 21</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="20,21">X_train,X_test=train_test_split(df_pascal_data.filename.unique(),test_size=0.1,random_state=42)
+X_train,valid = train_test_split(X_train,test_size=0.2,random_state=42)
+
+print(X_train.shape)
+X_train[0:6]</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>파일명을 Train/Validation/Test로 나눕니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>같은 이미지의 객체가 여러 분할에 섞이지 않게 합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>고유 파일명 (853,).</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>X_train (613,), valid (154,), X_test (86,).</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>목록만 생성됩니다. 실제 파일은 아직 복사되지 않습니다.</dd>
+                                </dl>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑧ 이미지 복사</h3>
+                                <p class="code-label">원문 실행문 · 셀 22, 23</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="22,23">kaggle_image_directory='./datasets/yolo_datasets/images'
+
+def copy_images(images, folder_name):
+    for image in images:
+            kaggle_image = os.path.join(kaggle_image_directory,image)
+            yolo_image_path = os.path.join(folder_name, image)
+            shutil.copy(kaggle_image, yolo_image_path)
+
+copy_images(X_train, train_images_dir)
+copy_images(X_test, test_images_dir)
+copy_images(valid, valid_images_dir)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>파일명 목록에 해당하는 이미지를 복사합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>YAML이 읽을 실제 Dataset 폴더를 만듭니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>파일명 목록과 대상 폴더.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>각 분할의 이미지 파일.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>디스크에 파일이 복사됩니다. 픽셀 전처리는 하지 않습니다.</dd>
+                                </dl>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑨ 이미지별 TXT 생성</h3>
+                                <p class="code-label">원문 실행문 · 셀 25, 26</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="25,26">def create_yolo_label_file(images, folder_name):
+    for image in images:
+        filename = image.split('.')[0]
+        df = df_pascal_data[df_pascal_data['filename'] == image]
+
+        with open(folder_name + "/" + filename +'.txt', 'w') as f:
+            for i in range(0, len(df)):
+                bbox = pascal_to_yolo_bbox(df.iloc[i]['bboxes'], df.iloc[i]['width'], df.iloc[i]['height'])
+                bbox_text = " ".join(map(str, bbox))
+                txt = str(df.iloc[i]['class_id'])+ " " + bbox_text
+                f.write(txt)
+
+                if i != len(df) - 1:
+                    f.write("\n")
+
+create_yolo_label_file(X_train, train_labels_dir)
+create_yolo_label_file(X_test, test_labels_dir)
+create_yolo_label_file(valid, valid_labels_dir)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>동일 이미지의 객체 행을 모아 한 줄씩 저장합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>이미지마다 대응하는 YOLO 정답이 필요합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>각 이미지의 객체 행 (N_i, 6).</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>TXT: N_i행 × 5값. 함수 반환값은 없음.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>labels 폴더에 파일이 생성되거나 덮어써집니다.</dd>
+                                </dl>
+
+                                <div class="callout review">
+                                    원문 <code>image.split('.')[0]</code>는 여러 점이 있는 파일명에서
+                                    충돌할 수 있습니다.
+                                    다른 데이터에 적용할 때 <code>Path(image).stem</code>을
+                                    별도 개선안으로 검토합니다.
+                                    같은 stem의 서로 다른 확장자 이미지도 라벨 이름이 충돌할 수 있습니다.
+                                </div>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑩ Dataset YAML 작성</h3>
+                                <p class="code-label">원문 실행문 · 셀 28</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="28">config_yaml=f'''
+    train: datasets/yolo_datasets/mask/train
+    val: datasets/yolo_datasets/mask/valid
+    test: datasets/yolo_datasets/mask/test
+    nc: {df_pascal_data.label.unique().size}
+    names:
+        0: 마스크_착용
+        1: 마스크_턱걸이
+        2: 마스크_미착용
+'''
+with open('mask_config.yaml','w',encoding='utf8') as f:
+    f.write(config_yaml)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>분할 경로와 클래스 정보를 저장합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>Trainer에 데이터의 위치와 의미를 알려 줍니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>경로·클래스 수·표시 이름.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>mask_config.yaml 파일.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>Dataset 설정 파일이 생성됩니다.</dd>
+                                </dl>
+
+                                <div class="callout review">
+                                    원문의 train/valid/test 부모 폴더 지정은 이 실행에서
+                                    하위 이미지를 정상 탐색했습니다.
+                                    모든 상대경로가 무조건 datasets_dir 기준이라는 주석은 일반화하지 않습니다.
+                                    실제 해석 경로를 로그에서 확인합니다.
+                                    <code>nc</code>를 고유 클래스 개수로 구할 때도
+                                    ID 범위·names와의 일치를 확인합니다.
+                                </div>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑪ 모델 로드와 학습</h3>
+                                <p class="code-label">원문 실행문 · 셀 30, 31</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="30,31">model =YOLO('yolo11s.pt')
+
+results = model.train(data='mask_config.yaml',epochs=50)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>사전 학습 YOLO11s를 마스크 데이터로 학습합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>세 마스크 상태에 맞는 가중치를 얻습니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>이미지 배치 BCHW와 가변 객체 정답.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>원본 환경의 DetMetrics, 가중치·로그 파일.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>가중치가 업데이트되고 best.pt/last.pt가 저장됩니다.</dd>
+                                </dl>
+
+                                <p>
+                                    활성 코드는 50 Epoch입니다.
+                                    원문의 수업용 5 Epoch 주석과 구분합니다.
+                                    Loss·Optimizer는 Trainer가 준비하므로
+                                    Keras식 compile()/fit()을 추가하지 않습니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑫ 지표와 저장 위치 조회</h3>
+                                <p class="code-label">원문 실행문 · 셀 33, 34, 35</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="33,34,35">results
+
+print(results.save_dir)
+dir(results.save_dir)
+
+str(results.save_dir)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>학습 결과 객체와 저장 경로를 확인합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>best.pt 위치와 평가 결과를 확인합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>DetMetrics 객체.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>지표·WindowsPath·문자열.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>조회만 수행하며 가중치는 바뀌지 않습니다.</dd>
+                                </dl>
+
+                                <p>
+                                    <code>dir(results.save_dir)</code>는 폴더의 파일 목록이 아니라
+                                    경로 객체의 속성·메서드 목록입니다.
+                                    실제 기록은 <code>runs/detect/train11</code>이며
+                                    다음 실행의 번호는 달라질 수 있습니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑬ best 모델과 Test 파일 목록</h3>
+                                <p class="code-label">원문 실행문 · 셀 36, 37, 38</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="36,37,38">mask_model = YOLO(model=f'runs/detect/{results.save_dir.name}/weights/best.pt')
+
+filenames= glob.glob("./datasets/yolo_datasets/mask/test/images"+'/*.png',recursive=False)
+filenames[:2]
+
+len(filenames)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>최적 체크포인트와 Test 이미지 목록을 읽습니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>새 입력에 학습된 모델을 적용합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>best.pt 경로, PNG 검색 경로.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>YOLO 객체와 86개 파일 경로 리스트.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>mask_model과 filenames가 생성됩니다.</dd>
+                                </dl>
+
+                                <p>
+                                    상대 체크포인트 경로는 원문의 작업 위치·기본 저장 구조에 의존합니다.
+                                    <code>filenames[:2]</code>는 조회이며
+                                    다음 코드에서 실제로 추론할 두 장과 다릅니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑭ 첫 번째·마지막 이미지 추론</h3>
+                                <p class="code-label">원문 실행문 · 셀 40</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="40">image1 = cv2.imread(filenames[0])
+image2 = cv2.imread(filenames[len(filenames)-1])
+images=[image1,image2]
+results=mask_model.predict(source=images,save=True,conf=0.5)
+results</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>두 이미지를 읽어 confidence 0.5로 탐지합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>학습 모델이 실제 이미지에서 만든 결과를 확인합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>리스트 안의 (289,400,3), (280,400,3) BGR uint8 이미지.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>길이 2인 list[Results].</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>결과 이미지가 저장되고 results의 타입이 바뀝니다.</dd>
+                                </dl>
+
+                                <div class="callout review">
+                                    실제 선택은 앞의 두 장이 아니라 <strong>첫 번째와 마지막</strong>입니다.
+                                    predict는 단일 경로도 받을 수 있으므로
+                                    반드시 리스트여야 한다는 주석은 일반화하지 않습니다.
+                                    추론은 가중치를 학습하지 않습니다.
+                                </div>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑮ 저장된 탐지 이미지 표시</h3>
+                                <p class="code-label">원문 실행문 · 셀 42</p>
+
+                                <pre class="code-block" tabindex="0"><code data-source-cells="42">for index in range(len(images)):
+    pred_image = Image.open(os.path.join(results[index].save_dir,f'image{str(index)}.jpg'))
+    print(pred_image)
+    %matplotlib inline
+    plt.figure(figsize=(10,10))
+    plt.imshow(pred_image)
+    plt.title("Object Detection")
+    plt.axis(False)
+plt.show()</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>표시용 결과 파일을 열어 Notebook에 그립니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>박스·이름·누락을 눈으로 확인합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>image0.jpg, image1.jpg 경로.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>PIL 이미지와 Matplotlib Figure.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>화면 출력만 바뀝니다.</dd>
+                                </dl>
+
+                                <div class="callout review">
+                                    image0.jpg 형식은 이번 NumPy 입력에 원본 경로가 없었던 상황과 관련됩니다.
+                                    Custom 학습이면 항상 이 이름이 되는 것은 아닙니다.
+                                    %matplotlib inline은 Notebook 매직이며 일반 .py 문법이 아닙니다.
+                                </div>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑯ 보충: 학습 결과 보관과 Test 정량 평가</h3>
+                                <p class="code-label">보충 코드 · 원문에서 실행하지 않은 평가</p>
+
+                                <pre class="code-block" tabindex="0"><code># model.train(...) 직후, results가 추론으로 덮이기 전에 실행
+train_metrics = results
+best_path = train_metrics.save_dir / "weights" / "best.pt"
+mask_model = YOLO(str(best_path))
+
+test_metrics = mask_model.val(data="mask_config.yaml", split="test")
+print(test_metrics.results_dict)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>Test 전체를 정답과 비교합니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>Validation에 맞춰 고른 모델의 최종 성능을 별도로 측정합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>Test 86장 + 대응 TXT + 학습 모델.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>Test 지표 객체. 원문에 이 점수는 없습니다.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>평가 결과가 생성되며 학습 가중치는 업데이트하지 않습니다.</dd>
+                                </dl>
+
+                                <p>
+                                    Test 결과를 반복 보며 설정을 선택하지 않습니다.
+                                    <code>val()</code>이라는 메서드 이름만 보지 말고
+                                    <code>split</code>을 확인합니다.
+                                </p>
+                            </article>
+
+                            <article class="code-step">
+                                <h3>⑰ 보충: 새 이미지와 숫자 결과 활용</h3>
+                                <p class="code-label">보충 코드 · 실제 새 이미지 경로로 변경</p>
+
+                                <pre class="code-block" tabindex="0"><code>prediction_results = mask_model.predict(
+    source="datasets/yolo/new_mask.jpg", conf=0.5, save=True
+)
+result = prediction_results[0]
+
+if result.boxes is None or len(result.boxes) == 0:
+    print("설정 조건에서 탐지된 객체가 없습니다.")
+else:
+    for box in result.boxes:
+        class_id = int(box.cls[0].item())
+        confidence = float(box.conf[0].item())
+        xyxy = box.xyxy[0].detach().cpu().tolist()
+        print(result.names[class_id], confidence, xyxy)</code></pre>
+
+                                <dl class="code-guide">
+                                    <dt>무엇을 하나?</dt>
+                                    <dd>표시 그림에 사용된 클래스·점수·박스를 읽습니다.</dd>
+                                    <dt>왜 필요한가?</dt>
+                                    <dd>업무 로직이나 저장 데이터에 연결합니다.</dd>
+                                    <dt>입력 Shape</dt>
+                                    <dd>이미지 한 장.</dd>
+                                    <dt>출력 Shape</dt>
+                                    <dd>객체별 ID, 실수 confidence, 좌표 4개.</dd>
+                                    <dt>실행 후 변화</dt>
+                                    <dd>추론·출력만 수행하며 모델은 학습되지 않습니다.</dd>
+                                </dl>
+                            </article>
+                        </section>
+
+                        <section id="flow" class="lesson-card flow-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">ENVIRONMENT · TRAINING</p>
+                                <h2>08. 환경과 학습 흐름 — compile·fit의 대응</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="원본 실행 환경과 실제 설정">
+                                <table>
+                                    <caption>원본 실행 환경과 실제 설정</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">기록</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Python / Ultralytics / PyTorch</td>
+                                            <td>3.13.7 / 8.3.213 / 2.8.0+cpu</td>
+                                        </tr>
+                                        <tr>
+                                            <td>장치</td>
+                                            <td>CPU · Intel Core i7-13700</td>
+                                        </tr>
+                                        <tr>
+                                            <td>epochs / batch / imgsz</td>
+                                            <td>50 / 16 / 640</td>
+                                        </tr>
+                                        <tr>
+                                            <td>요청 Optimizer</td>
+                                            <td>auto</td>
+                                        </tr>
+                                        <tr>
+                                            <td>실제 선택</td>
+                                            <td>AdamW · 초기 LR 0.001429 · momentum 0.9</td>
+                                        </tr>
+                                        <tr>
+                                            <td>weight_decay / patience</td>
+                                            <td>0.0005 / 100</td>
+                                        </tr>
+                                        <tr>
+                                            <td>DataLoader</td>
+                                            <td>인자 출력 workers=8, 실제 실행은 Using 0 dataloader workers</td>
+                                        </tr>
+                                        <tr>
+                                            <td>학습 시간</td>
+                                            <td>원본 기록 6.509시간. 다른 환경의 예상 소요 시간이 아님</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <ol class="flow-list">
+                                <li>문제 정의</li>
+                                <li>Dataset·전처리</li>
+                                <li>분할</li>
+                                <li>YOLO 생성</li>
+                                <li>train 내부 준비·학습</li>
+                                <li>val 평가</li>
+                                <li>predict</li>
+                            </ol>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Keras에서 배운 흐름을 YOLO에 연결">
+                                <table>
+                                    <caption>Keras에서 배운 흐름을 YOLO에 연결</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">일반 단계</th>
+                                            <th scope="col">이번 API</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Model</td>
+                                            <td>YOLO('yolo11s.pt')</td>
+                                        </tr>
+                                        <tr>
+                                            <td>compile</td>
+                                            <td>명시 호출 없음. Trainer가 Loss·Optimizer 준비</td>
+                                        </tr>
+                                        <tr>
+                                            <td>fit</td>
+                                            <td>model.train(...)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>evaluate</td>
+                                            <td>학습 중 Validation, 종료 후 best 검증, 별도 model.val(...)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>predict</td>
+                                            <td>mask_model.predict(...)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Train 613장, batch 16이므로 <code>ceil(613 / 16) = 39</code>개 배치를 처리합니다.
+                                마지막 배치는 통상 5장이지만 증강된 이미지의 객체 수는 계속 달라집니다.
+                                Gradient accumulation 등이 있으므로 배치 수를 그대로
+                                Optimizer 업데이트 횟수로 단정하지 않습니다.
+                            </p>
+
+                            <div class="callout review">
+                                <strong>로그를 우선 읽기:</strong>
+                                auto가 인자 덤프의 lr0=0.01과 momentum=0.937을 무시하고 AdamW를 선택했습니다.
+                                초기 LR은 0.001429이며 warmup·스케줄로 실제 값이 변할 수 있습니다.
+                                auto가 항상 AdamW를 선택하는 것도 아닙니다.
+                            </div>
+
+                            <p>
+                                학습 설정에는 Mosaic, 좌우 반전, HSV 변화가 있습니다.
+                                <code>augment=False</code> 한 항목을 보고
+                                학습 증강이 없었다고 결론 내리지 않습니다.
+                                원본은 마지막 10 Epoch를 앞두고 Mosaic을 종료합니다.
+                            </p>
+
+                            <p>
+                                <code>patience=100</code>은 한 번 개선되지 않으면 종료한다는 뜻이 아닙니다.
+                                연속적인 개선 부재를 얼마나 기다릴지에 관한 설정입니다.
+                                이번 기록은 50 Epoch를 완료했습니다.
+                            </p>
+                        </section>
+
+                        <section id="result" class="lesson-card result-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">SAVED OUTPUT · INTERPRETATION</p>
+                                <h2>09. 실행 결과 — 손실·검증·두 장의 추론</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="저장된 학습 손실">
+                                <table>
+                                    <caption>저장된 학습 손실</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">시점</th>
+                                            <th scope="col">box_loss</th>
+                                            <th scope="col">cls_loss</th>
+                                            <th scope="col">dfl_loss</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Epoch 1</td>
+                                            <td>1.5650</td>
+                                            <td>1.9080</td>
+                                            <td>1.3640</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Epoch 50</td>
+                                            <td>0.8271</td>
+                                            <td>0.3797</td>
+                                            <td>0.9046</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                세 손실이 시작보다 감소했습니다.
+                                이는 학습 오차가 줄었다는 단서이며 일반화 성능을 보장하지 않습니다.
+                                Validation 지표와 클래스별 오류를 함께 확인합니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="마지막 Epoch와 best 평가의 차이">
+                                <table>
+                                    <caption>마지막 Epoch와 best 평가의 차이 — 모두 Validation</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">시점</th>
+                                            <th scope="col">P</th>
+                                            <th scope="col">R</th>
+                                            <th scope="col">mAP50</th>
+                                            <th scope="col">mAP50-95</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Epoch 50</td>
+                                            <td>0.912</td>
+                                            <td>0.833</td>
+                                            <td>0.898</td>
+                                            <td>0.629</td>
+                                        </tr>
+                                        <tr>
+                                            <td>종료 후 best.pt</td>
+                                            <td>0.905</td>
+                                            <td>0.847</td>
+                                            <td>0.912</td>
+                                            <td>0.631</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="best.pt의 클래스별 Validation 결과">
+                                <table>
+                                    <caption>best.pt의 클래스별 Validation 결과</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">클래스</th>
+                                            <th scope="col">이미지</th>
+                                            <th scope="col">GT 객체</th>
+                                            <th scope="col">P</th>
+                                            <th scope="col">R</th>
+                                            <th scope="col">AP50</th>
+                                            <th scope="col">AP50-95</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>전체</td>
+                                            <td>154</td>
+                                            <td>711</td>
+                                            <td>0.905</td>
+                                            <td>0.847</td>
+                                            <td>0.912</td>
+                                            <td>0.631</td>
+                                        </tr>
+                                        <tr>
+                                            <td>착용</td>
+                                            <td>137</td>
+                                            <td>549</td>
+                                            <td>0.969</td>
+                                            <td>0.906</td>
+                                            <td>0.968</td>
+                                            <td>0.689</td>
+                                        </tr>
+                                        <tr>
+                                            <td>잘못 착용</td>
+                                            <td>15</td>
+                                            <td>20</td>
+                                            <td>0.891</td>
+                                            <td>0.819</td>
+                                            <td>0.871</td>
+                                            <td>0.605</td>
+                                        </tr>
+                                        <tr>
+                                            <td>미착용</td>
+                                            <td>59</td>
+                                            <td>142</td>
+                                            <td>0.856</td>
+                                            <td>0.817</td>
+                                            <td>0.898</td>
+                                            <td>0.599</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                클래스별 이미지 수의 합이 154보다 큰 이유는 한 사진에 여러 클래스가 있기 때문입니다.
+                                이 표의 Instances는 <strong>정답 객체 수</strong>이며 예측 박스 수가 아닙니다.
+                                학습 진행 줄의 Instances는 해당 배치의 정답 객체 수라는 맥락으로 읽습니다.
+                            </p>
+
+                            <div class="callout note">
+                                <strong>Test mAP는 원문에 없습니다.</strong>
+                                YAML에 test를 지정했지만 저장된 정량 지표는 Validation입니다.
+                                Test 단계에서는 86장 중 두 장을 추론하여 시각적으로 확인했습니다.
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="두 장의 저장된 추론 결과">
+                                <table>
+                                    <caption>두 장의 저장된 추론 결과</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">첫 번째</th>
+                                            <th scope="col">두 번째</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>원본 Shape</td>
+                                            <td>(289, 400, 3)</td>
+                                            <td>(280, 400, 3)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>탐지 수</td>
+                                            <td>7개</td>
+                                            <td>4개</td>
+                                        </tr>
+                                        <tr>
+                                            <td>클래스 구성</td>
+                                            <td>착용 5 · 미착용 2</td>
+                                            <td>착용 2 · 미착용 2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>출력 파일</td>
+                                            <td>image0.jpg</td>
+                                            <td>image1.jpg</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                로그에는 입력 Shape <code>(1, 3, 640, 640)</code>와
+                                이미지당 inference 약 185.0ms가 기록됩니다.
+                                전처리·후처리·파일 입출력까지 포함한 서비스 전체 FPS와 같지는 않습니다.
+                                한글 클래스가 콘솔에서 축약되더라도 <code>result.names</code>의 매핑을 확인합니다.
+                            </p>
+
+                            <p>
+                                학습 결과의 <code>best.pt</code>와 <code>last.pt</code>는
+                                각각 약 19.2MB로 기록됩니다.
+                                최종 저장 과정의 “Optimizer stripped” 문구를 고려하면
+                                last.pt가 완전한 Optimizer 상태를 보존한다고 단정할 수 없습니다.
+                                검증 속도의 <code>loss: 0.0ms</code>는 시간이며 Loss 값 0이 아닙니다.
+                            </p>
+                        </section>
+
+                        <section id="metric" class="lesson-card metric-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">LOSS · PRECISION · RECALL · mAP</p>
+                                <h2>10. Loss와 Metric을 정확히 읽기</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="학습 손실의 역할">
+                                <table>
+                                    <caption>학습 손실의 역할</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">배우는 것</th>
+                                            <th scope="col">주의</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>box_loss</td>
+                                            <td>정답과 예측 박스의 위치·형태 일치</td>
+                                            <td>좌표의 단순 정확도 %가 아님</td>
+                                        </tr>
+                                        <tr>
+                                            <td>cls_loss</td>
+                                            <td>올바른 클래스 예측</td>
+                                            <td>클래스 혼동·불균형·라벨 오류와 함께 해석</td>
+                                        </tr>
+                                        <tr>
+                                            <td>dfl_loss</td>
+                                            <td>박스 경계 위치의 분포 기반 학습</td>
+                                            <td>박스 위치 정밀도와 관련된 구성 요소</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                개념적으로 <code>L = λbox·Lbox + λcls·Lcls + λdfl·Ldfl</code>입니다.
+                                로그 항목에는 구현의 가중치 처리가 반영될 수 있으므로
+                                설정값을 다시 곱해 임의로 총 Loss를 만들지 않습니다.
+                                원문 주석의 모델 크기별 ‘정상 Loss 범위’는 보편적 기준이 아닙니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="평가 지표와 confidence">
+                                <table>
+                                    <caption>평가 지표와 confidence</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">개념</th>
+                                            <th scope="col">정의</th>
+                                            <th scope="col">읽는 방법</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>IoU</td>
+                                            <td>박스 교집합 면적 / 합집합 면적</td>
+                                            <td>두 박스의 겹침 정도</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Precision</td>
+                                            <td>TP / (TP + FP)</td>
+                                            <td>예측한 객체 중 맞춘 비율</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Recall</td>
+                                            <td>TP / (TP + FN)</td>
+                                            <td>정답 객체 중 찾은 비율</td>
+                                        </tr>
+                                        <tr>
+                                            <td>AP</td>
+                                            <td>한 클래스의 Precision–Recall 관계를 종합</td>
+                                            <td>confidence 기준을 변화시켜 평가</td>
+                                        </tr>
+                                        <tr>
+                                            <td>mAP50</td>
+                                            <td>IoU 0.50 기준 클래스 AP 평균</td>
+                                            <td>비교적 관대한 위치 조건</td>
+                                        </tr>
+                                        <tr>
+                                            <td>mAP50-95</td>
+                                            <td>IoU 0.50~0.95, 0.05 간격의 AP를 종합</td>
+                                            <td>더 엄격한 위치 조건 포함</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Confidence</td>
+                                            <td>개별 탐지의 모델 점수</td>
+                                            <td>
+                                                전체 Accuracy·Recall·mAP 또는
+                                                보정된 정답 확률과 다름
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                <strong>설명용 가상 예:</strong>
+                                정답 10개, 예측 8개 중 클래스·위치 조건을 만족한 매칭이 6개라면
+                                TP=6, FP=2, FN=4입니다.
+                                Precision=6/8=0.75, Recall=6/10=0.60입니다.
+                                중복 예측과 클래스 일치까지 고려해 매칭해야 합니다.
+                            </p>
+
+                            <p>
+                                원본 mAP50 약 0.912와 mAP50-95 약 0.631의 차이는
+                                엄격한 위치 기준에서 성능이 낮아짐을 보여 줍니다.
+                                모든 오류 원인이 좌표라고 단정하지는 않습니다.
+                                표의 all P/R은 클래스 평균 집계이므로
+                                전체 TP·FP를 합친 단일 비율과 항상 같지는 않습니다.
+                            </p>
+
+                            <div class="concept-grid">
+                                <article class="concept-box">
+                                    <h3>평가 IoU</h3>
+                                    <p>예측 박스 ↔ 정답 박스. 맞춘 탐지인지 판단합니다.</p>
+                                </article>
+                                <article class="concept-box">
+                                    <h3>NMS IoU</h3>
+                                    <p>예측 박스 ↔ 다른 예측 박스. 중복 후보를 제거합니다.</p>
+                                </article>
+                            </div>
+
+                            <p>
+                                <strong>Accuracy / R²:</strong>
+                                이 문제는 이미지마다 클래스 하나를 비교하는 분류와 다릅니다.
+                                객체 수·매칭·위치를 함께 평가하므로 Precision·Recall·mAP를 사용합니다.
+                                클래스 ID나 매칭 전 좌표에 회귀 지표 R²를 적용하여 탐지 성능으로 해석하지 않습니다.
+                            </p>
+                        </section>
+
+                        <section id="mistake" class="lesson-card mistake-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">PITFALLS · REVIEW</p>
+                                <h2>11. 자주 하는 실수 — 원문과 검토를 구분하기</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="실수와 올바른 해석">
+                                <table>
+                                    <caption>실수와 올바른 해석</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">실수</th>
+                                            <th scope="col">확인할 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>VOC 20클래스를 학습한다고 생각</td>
+                                            <td>이번 데이터는 마스크 3클래스. 형식과 Dataset은 별개</td>
+                                        </tr>
+                                        <tr>
+                                            <td>주석의 yolov11m.pt를 실제 모델로 읽기</td>
+                                            <td>실제 실행문은 YOLO('yolo11s.pt')</td>
+                                        </tr>
+                                        <tr>
+                                            <td>객체 4,072개를 이미지 4,072장으로 해석</td>
+                                            <td>이미지는 853장. 행은 객체 단위</td>
+                                        </tr>
+                                        <tr>
+                                            <td>결측치 0이면 라벨 정상이라고 판단</td>
+                                            <td>실제 이미지 크기·박스·클래스·파일 대응도 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td>W/H 뒤바꿈, 640으로 나누기</td>
+                                            <td>원본 W/H와 좌표 축을 사용</td>
+                                        </tr>
+                                        <tr>
+                                            <td>정규화 좌표를 int로 변환</td>
+                                            <td>0~1 실수 정보가 사라짐</td>
+                                        </tr>
+                                        <tr>
+                                            <td>TXT 파일 없음 = 확실한 배경</td>
+                                            <td>정답 누락과 검수된 무객체 이미지는 다름</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Loss 감소 = 과적합 없음</td>
+                                            <td>독립 Validation 추이와 오류를 함께 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td>미탐 하나 = 과소적합</td>
+                                            <td>작은 얼굴·라벨·도메인·threshold 등 원인을 구분</td>
+                                        </tr>
+                                        <tr>
+                                            <td>conf=0.5를 LR로 해석</td>
+                                            <td>conf는 탐지 선택 기준. 가중치 학습률과 별개</td>
+                                        </tr>
+                                        <tr>
+                                            <td>results는 항상 같은 타입</td>
+                                            <td>학습 DetMetrics → 추론 list[Results]로 바뀜</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Test 앞의 두 장을 추론한다고 설명</td>
+                                            <td>실제 인덱스는 첫 번째와 마지막</td>
+                                        </tr>
+                                        <tr>
+                                            <td>best 지표를 Test 지표로 보고</td>
+                                            <td>154장 Validation 결과. Test 정량 평가는 별도</td>
+                                        </tr>
+                                        <tr>
+                                            <td>같은 폴더에 재실행하면 항상 안전</td>
+                                            <td>기존 분할 파일 잔존과 XML 중복 append 확인</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                원문의 Precision 설명은 박스 포함 정도와 혼동될 수 있습니다.
+                                Precision은 TP/(TP+FP)입니다.
+                                GPU 성능이 좋다는 이유만으로 mAP가 자동으로 높아지는 것도 아닙니다.
+                                모델 크기별 Loss·mAP 범위 표는 모든 데이터에 적용되는 합격 기준으로 외우지 않습니다.
+                            </p>
+                        </section>
+
+                        <section id="error" class="lesson-card error-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">DEBUGGING · READ-ONLY CHECKS</p>
+                                <h2>12. 오류 메시지와 데이터 점검</h2>
+                            </div>
+
+                            <p>
+                                먼저 <strong>
+                                    파일 찾기 → XML 파싱 → 좌표·라벨 생성 → Dataset 로딩
+                                    → 학습 → 추론 → 표시
+                                </strong> 중 어느 단계에서 실패했는지 찾습니다.
+                                아래 오류 예시는 원본에서 모두 발생했다는 뜻이 아니며
+                                실제 문구는 버전에 따라 다를 수 있습니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="메시지와 증상의 확인 위치">
+                                <table>
+                                    <caption>메시지·증상과 확인 위치</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">메시지 / 증상</th>
+                                            <th scope="col">가능한 원인과 점검</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>ModuleNotFoundError</td>
+                                            <td>현재 Notebook 커널과 패키지 설치 환경 불일치</td>
+                                        </tr>
+                                        <tr>
+                                            <td>FileNotFoundError</td>
+                                            <td>CWD, 이미지/XML/YAML/가중치/폰트 경로</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ParseError</td>
+                                            <td>손상되거나 잘못된 XML 문법</td>
+                                        </tr>
+                                        <tr>
+                                            <td>KeyError: 클래스명</td>
+                                            <td>XML name과 classes 사전 키 불일치</td>
+                                        </tr>
+                                        <tr>
+                                            <td>NoneType ... text</td>
+                                            <td>XML에서 filename, size, bndbox 등의 필수 요소를 찾지 못함</td>
+                                        </tr>
+                                        <tr>
+                                            <td>n_samples=0 / 빈 train set</td>
+                                            <td>잘못된 glob 경로·빈 목록·빈 DataFrame</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ValueError: 숫자 변환 실패</td>
+                                            <td>TXT의 문자열·쉼표·헤더·누락값</td>
+                                        </tr>
+                                        <tr>
+                                            <td>non-normalized or out of bounds coordinates</td>
+                                            <td>픽셀 좌표를 그대로 저장, W/H 또는 좌표 순서 오류</td>
+                                        </tr>
+                                        <tr>
+                                            <td>클래스 ID 범위 오류</td>
+                                            <td>0~2 외 ID, nc/names와 불일치</td>
+                                        </tr>
+                                        <tr>
+                                            <td>No labels / backgrounds 증가</td>
+                                            <td>실제 배경인지 라벨 누락·파일 대응 실패인지 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td>이미지 객체가 None</td>
+                                            <td>cv2.imread 실패: 경로·손상·읽기 가능 여부</td>
+                                        </tr>
+                                        <tr>
+                                            <td>CUDA out of memory</td>
+                                            <td>GPU 사용 시 batch/imgsz/모델 크기 점검. 원본은 CPU 실행</td>
+                                        </tr>
+                                        <tr>
+                                            <td>expected 4D input / expected 3 channels</td>
+                                            <td>직접 Tensor 입력 시 배치축·채널축과 BCHW 순서 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td>floating / Long / uint8 dtype 오류</td>
+                                            <td>
+                                                직접 Tensor와 고수준 이미지 API가 요구하는 자료형을 구분.
+                                                좌표를 정수로 바꾸지 않음
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>list ... save_dir</td>
+                                            <td>추론 이후 results 타입 변경. results[0] 또는 분리한 변수 사용</td>
+                                        </tr>
+                                        <tr>
+                                            <td>%matplotlib inline 문법 오류</td>
+                                            <td>IPython 매직을 일반 .py에서 실행</td>
+                                        </tr>
+                                        <tr>
+                                            <td>한글 표시 깨짐</td>
+                                            <td>폰트·출력 환경 확인. 클래스 매핑 손실과 구분</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="callout review">
+                                <strong>원본에서 실제 발생:</strong>
+                                첫 Epoch 검증 중
+                                <code>WARNING NMS time limit 3.600s exceeded</code>.
+                                NMS 처리 시간 제한 경고이며 CUDA 메모리 오류가 아닙니다.
+                                학습은 50 Epoch까지 완료했지만 해당 후처리 구간의 평가가 영향을 받았을 수 있으므로
+                                반복 시 조건을 점검하고 평가를 다시 확인합니다.
+                            </div>
+
+                            <h3>보충: 파일명 분할과 작업 위치 확인</h3>
+
+                            <pre class="code-block" tabindex="0"><code>from pathlib import Path
+
+print("CWD:", Path.cwd())
+print("XML:", len(annotation_paths), "DataFrame:", df_pascal_data.shape)
+print(X_train.shape, valid.shape, X_test.shape)
+
+train_set, valid_set, test_set = set(X_train), set(valid), set(X_test)
+
+print(len(train_set &amp; valid_set))
+print(len(train_set &amp; test_set))
+print(len(valid_set &amp; test_set))</code></pre>
+
+                            <p>
+                                교집합은 0이어야 합니다.
+                                단, 다른 파일명의 동일 이미지나 폴더에 남은 파일까지 검사하는 코드는 아닙니다.
+                            </p>
+
+                            <h3>보충: 라벨 수치 형식 검사</h3>
+                            <p>
+                                파일을 읽어 검사하며 자동 clip·ID 재매핑·파일 수정은 하지 않습니다.
+                            </p>
+
+                            <pre class="code-block" tabindex="0"><code>from pathlib import Path
+import numpy as np
+
+def inspect_yolo_label(label_path, class_count=3, tolerance=1e-6):
+    path = Path(label_path)
+
+    if not path.is_file():
+        raise FileNotFoundError(f"라벨 누락: {path}")
+
+    rows = []
+
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8-sig").splitlines(), start=1
+    ):
+        if not line.strip():
+            continue
+
+        tokens = line.split()
+
+        if len(tokens) != 5:
+            raise ValueError(f"{line_number}행: 값 5개가 필요합니다.")
+
+        rows.append([float(token) for token in tokens])
+
+    labels = np.asarray(rows, dtype=np.float64).reshape(-1, 5)
+
+    if len(labels) == 0:
+        print("빈 라벨: 실제 배경 이미지인지 별도 검수하세요.")
+        return labels
+
+    if not np.isfinite(labels).all():
+        raise ValueError("NaN 또는 Inf가 있습니다.")
+
+    ids, boxes = labels[:, 0], labels[:, 1:]
+
+    if not np.equal(ids, np.floor(ids)).all():
+        raise ValueError("클래스 ID는 정수여야 합니다.")
+
+    if ((ids &lt; 0) | (ids &gt;= class_count)).any():
+        raise ValueError("클래스 ID 범위 오류")
+
+    if ((boxes &lt; -tolerance) | (boxes &gt; 1 + tolerance)).any():
+        raise ValueError("정규화 좌표 범위 오류")
+
+    cx, cy, w, h = boxes.T
+
+    if ((w &lt;= 0) | (h &lt;= 0)).any():
+        raise ValueError("너비와 높이는 양수여야 합니다.")
+
+    corners = np.column_stack([
+        cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2
+    ])
+
+    if ((corners &lt; -tolerance) | (corners &gt; 1 + tolerance)).any():
+        raise ValueError("박스가 이미지 밖에 있습니다.")
+
+    return labels</code></pre>
+
+                            <p>
+                                먼저 줄당 값 5개를 검사한 뒤 reshape합니다.
+                                그렇지 않으면 한 줄의 값 10개가 두 객체로 조용히 바뀔 수 있습니다.
+                                출력은 <code>(N_i, 5)</code>, 한 객체는 <code>(1, 5)</code>,
+                                빈 파일은 <code>(0, 5)</code>입니다.
+                                이 검사는 실제 얼굴 위치나 클래스 의미의 정답 여부까지 판정하지 않습니다.
+                            </p>
+                        </section>
+
+                        <section id="performance" class="lesson-card performance-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">OVERFITTING · UNDERFITTING · LR</p>
+                                <h2>13. 성능 개선 — 증상에서 원인으로</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="진단과 개선 방향">
+                                <table>
+                                    <caption>진단과 개선 방향</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">관찰</th>
+                                            <th scope="col">확인할 원인</th>
+                                            <th scope="col">개선 방향</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Train Loss 감소, Val 정체·악화</td>
+                                            <td>과적합, 분할 유사도, 라벨 품질</td>
+                                            <td>데이터 다양성, 적절한 증강·규제·학습 종료 시점 검토</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Train과 Val 모두 낮은 성능</td>
+                                            <td>학습 부족, 모델 용량, 라벨 오류</td>
+                                            <td>입력·정답을 먼저 확인하고 학습 설정 조정</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Loss가 불안정하거나 비정상</td>
+                                            <td>학습률, 잘못된 라벨, 수치 문제</td>
+                                            <td>실제 LR 로그·좌표·dtype 확인 후 한 조건씩 변경</td>
+                                        </tr>
+                                        <tr>
+                                            <td>작은 얼굴 미탐</td>
+                                            <td>해상도, 작은 객체 데이터 부족</td>
+                                            <td>imgsz·작은 객체 수집 검토. 속도·메모리도 비교</td>
+                                        </tr>
+                                        <tr>
+                                            <td>잘못 착용 클래스 약함</td>
+                                            <td>전체 123개, 검증 20개인 희소 클래스</td>
+                                            <td>클래스 기준 정리·추가 수집·클래스별 지표 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td>배경 오탐이 많음</td>
+                                            <td>배경 사례, 라벨 누락, threshold</td>
+                                            <td>오탐 사례 검수·배경 데이터·Validation에서 conf 선택</td>
+                                        </tr>
+                                        <tr>
+                                            <td>박스가 체계적으로 어긋남</td>
+                                            <td>W/H, 좌표 포맷, XML 크기 불일치</td>
+                                            <td>원본 위에 정답 박스를 그려 전처리 검증</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                LR이 너무 크면 불안정해질 수 있고 너무 작으면 개선이 느릴 수 있습니다.
+                                그러나 변동 하나만으로 LR을 원인으로 확정하지 않습니다.
+                                설정을 하나씩 바꾸고 동일한 Validation 조건에서 비교합니다.
+                            </p>
+
+                            <p>
+                                confidence를 낮추면 일반적으로 더 많은 후보를 남겨
+                                Recall을 높일 가능성이 있지만 오탐도 늘 수 있습니다.
+                                놓침과 잘못된 경보의 비용에 따라 운영 기준을 정합니다.
+                                높은 GPU 성능은 주로 계산 속도와 실행 규모에 영향을 줍니다.
+                            </p>
+                        </section>
+
+                        <section id="practice" class="lesson-card practice-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">APPLICATION · REPRODUCIBILITY</p>
+                                <h2>14. 실무 연결 — 데이터 계약부터 배포 기록까지</h2>
+                            </div>
+
+                            <p>
+                                제조 결함, 매장 상품, 과일·병든 잎, 차량·보행자 탐지도 같은 흐름을 사용합니다.
+                                모델을 바꾸기 전에
+                                <strong>무엇을 객체로 세고 어떤 기준으로 클래스를 나눌지</strong> 먼저 정합니다.
+                            </p>
+
+                            <ul>
+                                <li>
+                                    <strong>라벨 기준:</strong>
+                                    코 노출, 턱에 걸침, 가려진 얼굴 등 애매한 사례의
+                                    포함·제외 규칙을 문서화합니다.
+                                </li>
+                                <li>
+                                    <strong>정답 시각 검수:</strong>
+                                    숫자 범위가 맞아도 얼굴을 잘못 감싼 박스나
+                                    잘못된 클래스가 있을 수 있습니다.
+                                </li>
+                                <li>
+                                    <strong>오류 비용:</strong>
+                                    미탐을 줄이는 업무인지 오탐 경보를 줄이는 업무인지에 따라
+                                    threshold를 선택합니다.
+                                </li>
+                                <li>
+                                    <strong>도메인:</strong>
+                                    조명·카메라·각도·거리·배경이 학습 자료와 다르면
+                                    현장 성능이 달라질 수 있습니다.
+                                </li>
+                                <li>
+                                    <strong>함께 보관할 정보:</strong>
+                                    best.pt, 클래스 매핑, 데이터 버전, 분할 목록,
+                                    라이브러리 버전, 학습·추론 설정,
+                                    검증·테스트 지표, 대표 오류 사례.
+                                </li>
+                                <li>
+                                    <strong>탐지와 추적:</strong>
+                                    동영상의 같은 사람을 여러 프레임에서 연결하는 Tracking은 별도입니다.
+                                    프레임별 탐지 수를 단순 합하면 중복 집계될 수 있습니다.
+                                </li>
+                            </ul>
+
+                            <h3>보완 설명 확인 자료</h3>
+                            <ul>
+                                <li>
+                                    <a href="https://docs.ultralytics.com/datasets/detect/">
+                                        Ultralytics: YOLO 데이터·라벨 형식
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="https://docs.ultralytics.com/modes/val/">
+                                        Ultralytics: Validation과 split 지정
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://raw.githubusercontent.com/ultralytics/ultralytics/v8.3.213/ultralytics/engine/trainer.py">
+                                        원본 버전 v8.3.213: Trainer와 Optimizer 선택
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="https://raw.githubusercontent.com/ultralytics/ultralytics/v8.3.213/ultralytics/utils/loss.py">
+                                        원본 버전 v8.3.213: Loss 구현
+                                    </a>
+                                </li>
+                            </ul>
+
+                            <p class="source-note">
+                                공식 문서의 최신 예제 모델명과 별개로,
+                                이 페이지는 교안의 YOLO11s·8.3.213 실행을 설명합니다.
+                            </p>
+                        </section>
+
+                        <section id="interview" class="lesson-card interview-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">REVIEW · Q&amp;A</p>
+                                <h2>15. 면접 포인트 — 질문을 눌러 답 확인</h2>
+                            </div>
+
+                            <div class="qa-list">
+                                <details>
+                                    <summary>Q1. 이번 입력 X와 정답 y는?</summary>
+                                    <p>X는 이미지, y는 객체별 클래스와 박스입니다. 이미지마다 객체 수가 다릅니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q2. VOC 형식이면 VOC 20클래스를 배우나요?</summary>
+                                    <p>
+                                        아닙니다. 저장 형식과 실제 데이터의 클래스는 별개입니다.
+                                        이번에는 마스크 3클래스입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q3. 853장인데 왜 4,072행인가요?</summary>
+                                    <p>한 행은 이미지가 아니라 객체 하나입니다. 같은 이미지에 여러 행이 대응합니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q4. X_train.shape=(613,)의 의미는?</summary>
+                                    <p>이미지 파일명 613개입니다. 픽셀 Tensor도, Feature 613개도 아닙니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q5. YOLO TXT 한 줄의 다섯 값은?</summary>
+                                    <p>클래스 ID, 정규화된 중심 x·y, 너비, 높이입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q6. 왜 640으로 좌표를 나누면 안 되나요?</summary>
+                                    <p>원본 픽셀 좌표이므로 원본 이미지 W/H로 정규화해야 합니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q7. 왜 이미지 단위로 분할하나요?</summary>
+                                    <p>같은 이미지의 객체들이 서로 다른 분할에 들어가는 누수를 피하기 위해서입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q8. 원문의 분할 비율은?</summary>
+                                    <p>
+                                        전체 Test 10%, 남은 자료의 Validation 20%이므로
+                                        약 72:18:10, 실제 613/154/86장입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q9. 파일명을 분리하면 누수는 완전히 없나요?</summary>
+                                    <p>복제 이미지, 인접 프레임, 이전 분할 잔존 파일은 별도로 검사해야 합니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q10. YAML과 TXT는 어떻게 다른가요?</summary>
+                                    <p>YAML은 경로·클래스 안내서이고 TXT는 이미지별 실제 객체 정답입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q11. compile()과 fit()이 없는 이유는?</summary>
+                                    <p>
+                                        Ultralytics Trainer가 학습 준비와 반복을 담당하며
+                                        model.train()을 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q12. 실제 Optimizer와 학습률은?</summary>
+                                    <p>
+                                        원본 auto 로그는 AdamW, 초기 LR 0.001429입니다.
+                                        덤프의 0.01과 구분합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q13. 세 Loss의 역할은?</summary>
+                                    <p>
+                                        box는 박스 일치, cls는 클래스 예측,
+                                        dfl은 박스 경계 위치 분포 학습입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q14. Train Loss가 낮으면 일반화가 좋은가요?</summary>
+                                    <p>
+                                        보장되지 않습니다.
+                                        독립 Validation 추이·클래스별 오류·최종 Test를 확인합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q15. best.pt와 last.pt의 차이는?</summary>
+                                    <p>
+                                        best는 검증 기준 최적 체크포인트, last는 마지막 시점입니다.
+                                        최종 파일의 Optimizer 보존 여부도 확인합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q16. mAP50 약 0.912는 Test 성능인가요?</summary>
+                                    <p>아닙니다. 원본 best 모델의 Validation 154장 결과입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q17. Precision과 Recall의 차이는?</summary>
+                                    <p>Precision은 예측 중 맞춘 비율, Recall은 정답 중 찾아낸 비율입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q18. mAP50-95가 더 엄격한 이유는?</summary>
+                                    <p>IoU 0.95까지의 더 높은 위치 일치 기준을 포함하기 때문입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q19. confidence 0.9는 Accuracy 90%인가요?</summary>
+                                    <p>
+                                        아닙니다. 개별 탐지 점수이며 전체 성능이나
+                                        보정된 정답 확률과 다릅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q20. 평가 IoU와 NMS IoU의 차이는?</summary>
+                                    <p>
+                                        전자는 예측과 정답을 비교하고
+                                        후자는 예측끼리 비교하여 중복을 줄입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q21. results 재사용의 위험은?</summary>
+                                    <p>
+                                        학습 DetMetrics가 추론 list[Results]로 바뀌므로
+                                        속성과 접근 방식이 달라집니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q22. 원본은 Test 앞의 두 장을 추론하나요?</summary>
+                                    <p>아닙니다. 조회는 [:2]이지만 실제 입력은 첫 번째와 마지막입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q23. image0.jpg는 Custom 학습의 특징인가요?</summary>
+                                    <p>아닙니다. 이번 NumPy 입력에는 원본 파일 경로가 없어서 생성된 이름입니다.</p>
+                                </details>
+
+                                <details>
+                                    <summary>Q24. 라벨 값이 0~1이면 충분한가요?</summary>
+                                    <p>
+                                        ID·양수 크기·모서리 범위와
+                                        실제 박스 위치·클래스 의미를 더 확인해야 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>Q25. 다음 단원의 핵심은?</summary>
+                                    <p>
+                                        저장된 best.pt를 로드하여
+                                        검증·새 이미지 추론·표시·CSV/JSON 활용을 수행합니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+                    </main>
+
+                    <aside class="side-note" aria-label="ML 42 보충 노트">
+                        <section class="note-card memory-note">
+                            <p class="note-number">MEMORY</p>
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ol class="memory-list">
+                                <li>이미지 853장, 객체 4,072개, 클래스 3개.</li>
+                                <li>VOC는 형식, 이번 내용은 마스크 데이터.</li>
+                                <li>한 DataFrame 행은 객체 하나.</li>
+                                <li>X_train은 픽셀이 아닌 파일명 613개.</li>
+                                <li>정답 개수는 이미지마다 다름.</li>
+                                <li>VOC: xmin, ymin, xmax, ymax.</li>
+                                <li>YOLO: class_id, cx, cy, w, h.</li>
+                                <li>x·w는 원본 W, y·h는 원본 H로 나눔.</li>
+                                <li>클래스 ID는 0부터 시작.</li>
+                                <li>이미지와 TXT는 같은 stem으로 대응.</li>
+                                <li>이미지 기준으로 분할.</li>
+                                <li>분할은 613 / 154 / 86, 약 72:18:10.</li>
+                                <li>YAML은 안내, TXT는 객체 정답.</li>
+                                <li>모델은 yolo11s.pt, 학습 50 Epoch.</li>
+                                <li>실제 auto 선택: AdamW, 초기 LR 0.001429.</li>
+                                <li>Loss: box·cls·dfl을 함께 해석.</li>
+                                <li>Loss 감소만으로 일반화를 보장하지 않음.</li>
+                                <li>best와 마지막 Epoch의 지표는 다를 수 있음.</li>
+                                <li>원본 최종 mAP는 Validation 결과.</li>
+                                <li>confidence와 Precision·Recall·mAP는 다름.</li>
+                                <li>평가 IoU와 NMS IoU는 비교 대상이 다름.</li>
+                                <li>Test 경로 지정 ≠ Test 평가 실행.</li>
+                                <li>학습 results와 추론 results의 타입이 다름.</li>
+                                <li>원문 실제 추론은 첫 번째·마지막 이미지.</li>
+                                <li>모델과 클래스·데이터·설정 기록을 함께 보관.</li>
+                            </ol>
+                        </section>
+
+                        <section class="note-card">
+                            <p class="note-number">CONFUSION</p>
+                            <h2>헷갈리기 쉬운 개념</h2>
+
+                            <dl>
+                                <dt>이미지 수 ≠ 객체 수</dt>
+                                <dd>한 장에 여러 객체가 있습니다.</dd>
+
+                                <dt>파일명 배열 ≠ 이미지 Tensor</dt>
+                                <dd>(613,)을 BCHW와 혼동하지 않습니다.</dd>
+
+                                <dt>라벨 정규화 ≠ 픽셀 정규화</dt>
+                                <dd>변환 대상과 분모가 다릅니다.</dd>
+
+                                <dt>Validation ≠ Test</dt>
+                                <dd>선택용 자료와 최종 평가용 자료를 구분합니다.</dd>
+
+                                <dt>predict ≠ train</dt>
+                                <dd>추론에서는 가중치를 학습하지 않습니다.</dd>
+
+                                <dt>빈 라벨 ≠ 라벨 누락</dt>
+                                <dd>검수된 배경인지 정답을 빠뜨렸는지 확인합니다.</dd>
+
+                                <dt>탐지 ≠ 추적</dt>
+                                <dd>같은 사람의 프레임 간 연결은 별도 문제입니다.</dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card next-note">
+                            <p class="note-number">NEXT · ML 43</p>
+                            <h2>학습된 YOLO 활용</h2>
+
+                            <p>
+                                이번 단원은 <strong>best.pt 만들기</strong>,
+                                다음 단원은 <strong>best.pt 다시 불러 사용하기</strong>가 중심입니다.
+                            </p>
+
+                            <ol>
+                                <li>저장 가중치 로드</li>
+                                <li>model.val()로 검증</li>
+                                <li>새 이미지 conf=0.7 추론</li>
+                                <li>show / save / plot</li>
+                                <li>to_csv / to_json 활용</li>
+                            </ol>
+
+                            <pre class="code-block" tabindex="0"><code>model = YOLO('datasets/yolo_datasets/mask/best.pt')
+metrics = model.val()
+
+results = model.predict(
+    'datasets/yolo/google_mask.jpg',
+    save=True, conf=0.7
+)</code></pre>
+
+                            <p>
+                                다음 Notebook 78의 실행 흐름입니다.
+                                이 경로에 이번 학습의 best.pt를 복사해 두거나
+                                실제 체크포인트 경로로 변경해야 합니다.
+                                인자 없는 val()도 자동으로 Test를 뜻하지 않습니다.
+                                데이터와 split을 확인합니다.
+                                NumPy 그림을 표시할 때 RGB/BGR도 구분합니다.
+                            </p>
+
+                            <a href="./43_yolo_mask_detection.html">
+                                ML 43. YOLO 마스크 탐지로 이동 →
+                            </a>
+                        </section>
+                    </aside>
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
+                    <a class="lesson-prev" href="./41_yolo_object_detection.html">
+                        <span>이전 단원</span>
+                        <strong>ML 41. YOLO 객체 탐지</strong>
+                    </a>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 5. YOLO 기반 컴퓨터 비전</span>
-                    <span>ML 42</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a class="lesson-course-index" href="#lesson-contents">
+                        <span>이 단원 목차</span>
+                        <strong>ML 42 학습 흐름</strong>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-42">
-                    <h2 id="goals-machine-learning-42">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
-
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="ML 42. Custom YOLO 학습 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
+                    <a class="lesson-next" href="./43_yolo_mask_detection.html">
+                        <span>다음 단원</span>
+                        <strong>ML 43. YOLO 마스크 탐지</strong>
+                    </a>
+                </nav>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./41_yolo_object_detection.html">
-                    <span>이전 단원</span>
-                    <strong>ML 41. YOLO 객체 탐지</strong>
-                </a>
-
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./43_yolo_mask_detection.html">
-                    <span>다음 단원</span>
-                    <strong>ML 43. YOLO 마스크 탐지</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+    </body>
+
 </html>
