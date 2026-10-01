@@ -1,266 +1,3187 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 47. Custom YOLO Pose Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 47. Custom YOLO Pose | AI Machine Learning | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/47_custom_yolo_pose.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="47"
-      data-step="0"
-      data-status="skeleton" data-part="part-5-yolo-vision">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <meta name="description"
+            content="AI Machine Learning ML 47 Custom Pose. 학습된 YOLO Pose best.pt를 로드하고 Validation, Box/Pose Metric, 새 이미지 Predict, Results Rendering, Box 제거 이미지 저장을 학습한다.">
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <title>ML 47. Custom Pose | AI Machine Learning</title>
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 5. YOLO 기반 컴퓨터 비전 · ML 47</p>
-                        <h1>ML 47. Custom YOLO Pose</h1>
+        <!-- =====================================================
+         공통 CSS
+    ====================================================== -->
+        <link rel="stylesheet" href="../../css/00_nav.css">
+
+        <link rel="stylesheet" href="../../css/study-theme.css">
+
+
+        <!-- =====================================================
+         ML 47 전용 CSS
+        ====================================================== -->
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/47_custom_yolo_pose.css">
+    </head>
+
+
+    <body class="
+    theme-ai-ml
+    study-page
+    machine-learning-page
+    custom-pose-page
+" data-nav-category="ai-machine-learning" data-course="machine-learning" data-lesson="47">
+
+        <a class="cp-skip" href="#lessonMain">
+            본문으로 바로가기
+        </a>
+
+
+        <div class="layout">
+
+            <!-- =====================================================
+         SIDE NAV
+    ====================================================== -->
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="학습 매거진 공통 메뉴"></nav>
+
+
+            <div class="page-content">
+
+                <!-- =====================================================
+             HEADER
+        ====================================================== -->
+                <header class="lesson-hero" id="top">
+
+                    <div class="cp-badges">
+                        <span>AI Machine Learning</span>
+                        <span>PART 5. 컴퓨터 비전</span>
+                        <span>ML 47</span>
+                        <span>Step 3</span>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
-                </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                    <p class="cp-kicker">
+                        Load → Validate → Predict → Render → Save
+                    </p>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 5. YOLO 기반 컴퓨터 비전</span>
-                    <span>ML 47</span>
-                    <span>Skeleton</span>
-                </div>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-47">
-                    <h2 id="goals-machine-learning-47">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
+                    <h1>Custom Pose</h1>
 
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
+
+                    <p class="cp-lead">
+                        이미 학습된 Pose 모델을 다시 불러와 검증하고,
+                        새 이미지에 적용한 뒤
+                        <strong>
+                            Prediction과 Rendering, 저장을 서로 다른 단계로 이해한다.
+                        </strong>
+                    </p>
+
+
+                    <div class="cp-hero-flow">
+
+                        <div>
+                            <span>Model</span>
+                            <strong>best.pt</strong>
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+                        <span aria-hidden="true">→</span>
+
+                        <div>
+                            <span>Validation</span>
+                            <strong>model.val()</strong>
+                        </div>
+
+                        <span aria-hidden="true">→</span>
+
+                        <div>
+                            <span>Predict</span>
+                            <strong>2 persons</strong>
+                        </div>
+
+                        <span aria-hidden="true">→</span>
+
+                        <div>
+                            <span>Results</span>
+                            <strong>Pose Result</strong>
+                        </div>
+
+                        <span aria-hidden="true">→</span>
+
+                        <div>
+                            <span>Rendering</span>
+                            <strong>Box On / Off</strong>
+                        </div>
+
+                        <span aria-hidden="true">→</span>
+
+                        <div>
+                            <span>Output</span>
+                            <strong>JPEG</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="cp-stats">
+
+                        <article>
+                            <span>Validation</span>
+                            <strong>4 images</strong>
+                        </article>
+
+                        <article>
+                            <span>Instances</span>
+                            <strong>14 persons</strong>
+                        </article>
+
+                        <article>
+                            <span>Box mAP50-95</span>
+                            <strong>0.752</strong>
+                        </article>
+
+                        <article>
+                            <span>Pose mAP50-95</span>
+                            <strong>0.487</strong>
+                        </article>
+
+                        <article>
+                            <span>Predict</span>
+                            <strong>2 persons</strong>
+                        </article>
+
+                        <article>
+                            <span>Model Input</span>
+                            <strong>(1,3,448,640)</strong>
+                        </article>
+
+                    </div>
+
+
+                    <div class="cp-note important">
+
+                        <strong>이번 단원의 핵심 분리</strong>
+
+                        <p>
+                            <code>Model Prediction</code>,
+                            <code>Results Rendering</code>,
+                            <code>File Save</code>는 같은 작업이 아니다.
+                            같은 Results 객체라도 Rendering 설정에 따라
+                            Box가 있는 이미지와 없는 이미지를 만들 수 있다.
+                        </p>
+
+                    </div>
+
+
+                    <section class="cp-goals" aria-labelledby="goalsTitle">
+
+                        <h2 id="goalsTitle">학습 목표</h2>
+
+                        <ul>
+                            <li>이전에 학습한 Pose <code>best.pt</code>를 다시 로드한다.</li>
+                            <li><code>model.val()</code>과 <code>model.predict()</code>의 역할을 구분한다.</li>
+                            <li>Validation Dataset과 새 Predict 이미지를 구분한다.</li>
+                            <li>Box Metric과 Pose Metric을 별도로 읽는다.</li>
+                            <li><code>metrics.box.map</code>, <code>map50</code>, <code>map75</code>, <code>maps</code>를
+                                이해한다.</li>
+                            <li>Validation 결과 디렉터리의 Curve와 Prediction 파일을 이해한다.</li>
+                            <li>원본 이미지 Shape와 모델 입력 Shape를 구분한다.</li>
+                            <li><code>show_boxes=False</code>의 의미를 정확히 설명한다.</li>
+                            <li><code>Results.save()</code>와 <code>Results.plot()</code>의 차이를 이해한다.</li>
+                            <li>BGR과 RGB Channel 순서를 구분한다.</li>
+                            <li>PIL, NumPy, Tensor의 Shape 표기 순서를 구분한다.</li>
+                            <li>Data Leakage·Overfitting·Underfitting·Learning Rate를 현재 단계와 연결한다.</li>
+                            <li>다음 영상 Pose 추론으로 자연스럽게 연결한다.</li>
+                        </ul>
+
                     </section>
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
+
+                    <div class="cp-legend">
+
+                        <span class="cp-tag original">
+                            교안 원문
+                        </span>
+
+                        <span class="cp-tag stored">
+                            원본 저장 출력
+                        </span>
+
+                        <span class="cp-tag supplement">
+                            Step 1·2 보완
+                        </span>
+
+                        <span class="cp-tag review">
+                            원문 대조·주의
+                        </span>
+
+                    </div>
+
+
+                    <nav class="cp-toc" aria-label="ML 47 단원 목차">
+
+                        <a href="#card01">01 실습 범위</a>
+                        <a href="#card02">02 ML46→47</a>
+                        <a href="#card03">03 전체 흐름</a>
+                        <a href="#card04">04 Cell 지도</a>
+                        <a href="#card05">05 Library</a>
+                        <a href="#card06">06 Model Load</a>
+                        <a href="#card07">07 Validation</a>
+                        <a href="#card08">08 Box Metric</a>
+                        <a href="#card09">09 Validation 산출물</a>
+                        <a href="#card10">10 X / y</a>
+                        <a href="#card11">11 Shape</a>
+                        <a href="#card12">12 전처리</a>
+                        <a href="#card13">13 Model Summary</a>
+                        <a href="#card14">14 Loss·Optimizer</a>
+                        <a href="#card15">15 Predict</a>
+                        <a href="#card16">16 show_boxes</a>
+                        <a href="#card17">17 Predict 결과</a>
+                        <a href="#card18">18 Results.save</a>
+                        <a href="#card19">19 Box 재등장</a>
+                        <a href="#card20">20 Box 제거</a>
+                        <a href="#card21">21 BGR→RGB</a>
+                        <a href="#card22">22 PIL Shape</a>
+                        <a href="#card23">23 결과 표시</a>
+                        <a href="#card24">24 Metric 해석</a>
+                        <a href="#card25">25 Data Leakage</a>
+                        <a href="#card26">26 성능 진단</a>
+                        <a href="#card27">27 자주 하는 실수</a>
+                        <a href="#card28">28 오류 메시지</a>
+                        <a href="#card29">29 실무 연결</a>
+                        <a href="#card30">30 면접</a>
+                        <a href="#memory">암기 포인트</a>
+                        <a href="#next">다음 단원</a>
+
+                    </nav>
+
+                </header>
+
+
+                <!-- =====================================================
+             MAIN
+        ====================================================== -->
+                <main class="lesson-main" id="lessonMain" tabindex="-1">
+
+                    <!-- =================================================
+                 01. 실습 범위
+            ================================================== -->
+                    <section class="lesson-card" id="card01">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">01</span>
+
+                            <div>
+                                <p class="cp-kicker">실습 목표·범위</p>
+                                <h2>
+                                    학습된 Pose 모델을 실제 추론 프로그램에서 재사용한다
+                                </h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 1
+                        </p>
+
+
+                        <pre tabindex="0"><code>## 학습된 YOLO 모델 파일(best.pt)를 로드해서 이미지 Pose Detect하기</code></pre>
+
+
+                        <p>
+                            이번 단원에는 새로운
+                            <code>model.train()</code>이 없다.
+                            이미 학습된 Pose 모델 파일을 불러와
+                            검증하고 새 이미지에 Predict한다.
+                        </p>
+
+
+                        <div class="cp-grid">
+
+                            <article>
+
+                                <h3>이번 단원에서 하는 것</h3>
+
+                                <ul>
+                                    <li>best.pt 로드</li>
+                                    <li>Validation</li>
+                                    <li>Metric 조회</li>
+                                    <li>새 이미지 Predict</li>
+                                    <li>Results 저장</li>
+                                    <li>Rendering 옵션 변경</li>
+                                </ul>
+
+                            </article>
+
+
+                            <article>
+
+                                <h3>이번 단원에서 하지 않는 것</h3>
+
+                                <ul>
+                                    <li>새 Dataset 학습</li>
+                                    <li>Optimizer 업데이트</li>
+                                    <li>Backpropagation</li>
+                                    <li>Epoch 반복</li>
+                                    <li>새 best.pt 생성</li>
+                                </ul>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <caption>
+                                    원본 Notebook 구성
+                                </caption>
+
+                                <thead>
+                                    <tr>
+                                        <th>항목</th>
+                                        <th>내용</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <th>원본</th>
+                                        <td>
+                                            82_YOLO-New-Image-Pose-Detect-Trained47.ipynb
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Cell</th>
+                                        <td>
+                                            14개
+                                            · Markdown 2개
+                                            · Code 12개
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>저장 출력</th>
+                                        <td>8개</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>저장 그림</th>
+                                        <td>4개</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>학습 포인트</th>
+                                        <td>
+                                            학습된 Pose best.pt ·
+                                            새 이미지 Keypoint 추론 ·
+                                            결과 Rendering
+                                        </td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
                     </section>
 
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
+
+                    <!-- =================================================
+                 02. ML 46 → ML 47
+            ================================================== -->
+                    <section class="lesson-card" id="card02">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">02</span>
+
+                            <div>
+                                <p class="cp-kicker">이전 단원 연결</p>
+                                <h2>학습하는 Notebook에서 사용하는 Notebook으로 넘어간다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-compare-flow">
+
+                            <article>
+
+                                <span>ML 46</span>
+
+                                <h3>Pose Estimation</h3>
+
+                                <div class="cp-stack compact">
+
+                                    <div>yolo11s-pose.pt</div>
+                                    <span>↓</span>
+                                    <div>COCO8-Pose</div>
+                                    <span>↓</span>
+                                    <div>100 Epoch</div>
+                                    <span>↓</span>
+                                    <div>best.pt</div>
+
+                                </div>
+
+                            </article>
+
+
+                            <span class="cp-big-arrow">→</span>
+
+
+                            <article>
+
+                                <span>ML 47</span>
+
+                                <h3>Custom Pose</h3>
+
+                                <div class="cp-stack compact">
+
+                                    <div>best.pt Load</div>
+                                    <span>↓</span>
+                                    <div>model.val()</div>
+                                    <span>↓</span>
+                                    <div>pose_detect2.jpg</div>
+                                    <span>↓</span>
+                                    <div>Rendering / Save</div>
+
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note important">
+
+                            <strong>실무적으로 중요한 변화</strong>
+
+                            <p>
+                                Training 코드와 실제 추론 코드를
+                                별도의 프로그램으로 분리할 수 있다는 것을 보여 준다.
+                            </p>
+
+                        </div>
+
                     </section>
 
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
+
+                    <!-- =================================================
+                 03. 전체 흐름
+            ================================================== -->
+                    <section class="lesson-card" id="card03">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">03</span>
+
+                            <div>
+                                <p class="cp-kicker">그림처럼 이해</p>
+                                <h2>Model → Validation → Prediction → Rendering → Save</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-stack">
+
+                            <div>
+                                <strong>best.pt</strong>
+                                <small>학습 완료 Pose Weight</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>YOLO(best.pt)</strong>
+                                <small>Model Load</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>model.val()</strong>
+                                <small>Validation Metric</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>pose_detect2.jpg</strong>
+                                <small>새 Predict 이미지</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>model.predict()</strong>
+                                <small>2 persons</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>Results 객체</strong>
+                                <small>AI Prediction</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div class="cp-branch">
+
+                                <article>
+                                    <strong>Results.save()</strong>
+                                    <small>기본 Rendering</small>
+                                    <b>Box 포함</b>
+                                </article>
+
+                                <article>
+                                    <strong>plot(boxes=False)</strong>
+                                    <small>직접 Rendering</small>
+                                    <b>Box 제거</b>
+                                </article>
+
+                            </div>
+
+                        </div>
+
                     </section>
 
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
+
+                    <!-- =================================================
+                 04. Cell 지도
+            ================================================== -->
+                    <section class="lesson-card" id="card04">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">04</span>
+
+                            <div>
+                                <p class="cp-kicker">Notebook 구조</p>
+                                <h2>14개의 Cell을 작업 순서로 읽는다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>Cell</th>
+                                        <th>내용</th>
+                                        <th>핵심 역할</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <td>1</td>
+                                        <td>학습된 모델로 Pose Detect</td>
+                                        <td>목표</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>2</td>
+                                        <td>Library Import</td>
+                                        <td>환경</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>3</td>
+                                        <td>best.pt Load</td>
+                                        <td>Model</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>4</td>
+                                        <td>model.val()</td>
+                                        <td>Validation</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>5</td>
+                                        <td>metrics.box.*</td>
+                                        <td>Box Metric</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>6</td>
+                                        <td>Validation 파일 목록</td>
+                                        <td>산출물</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>7</td>
+                                        <td>pose_detect2.jpg Predict</td>
+                                        <td>Inference</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>8</td>
+                                        <td>Results.save()</td>
+                                        <td>결과 저장</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>9</td>
+                                        <td>저장 이미지 표시</td>
+                                        <td>Figure</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>10</td>
+                                        <td>Box 제거 방법</td>
+                                        <td>Markdown 설명</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>11</td>
+                                        <td>plot(boxes=False) 저장</td>
+                                        <td>직접 Rendering</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>12</td>
+                                        <td>PIL Image 확인</td>
+                                        <td>Image 객체</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>13</td>
+                                        <td>Box 없는 Figure</td>
+                                        <td>결과 비교</td>
+                                    </tr>
+
+                                    <tr>
+                                        <td>14</td>
+                                        <td>빈 Cell</td>
+                                        <td>종료</td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
                     </section>
 
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
+
+                    <!-- =================================================
+                 05. Library
+            ================================================== -->
+                    <section class="lesson-card" id="card05">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">05</span>
+
+                            <div>
+                                <p class="cp-kicker">Library</p>
+                                <h2>Validation·Predict·Rendering 도구를 준비한다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 2
+                        </p>
+
+
+                        <pre tabindex="0"><code>%matplotlib inline
+import cv2
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
+from ultralytics import YOLO</code></pre>
+
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>Library</th>
+                                        <th>역할</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <th>YOLO</th>
+                                        <td>Model Load · Validation · Predict</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>cv2</th>
+                                        <td>OpenCV 기반 이미지 처리</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>os</th>
+                                        <td>파일 경로 조합</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>NumPy</th>
+                                        <td>이미지 배열 개념</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Matplotlib</th>
+                                        <td>Figure 표시</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>PIL.Image</th>
+                                        <td>이미지 열기·배열→PIL 변환</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>%matplotlib inline</th>
+                                        <td>Jupyter 내부 Figure 표시</td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>NumPy Import</strong>
+
+                            <p>
+                                이번 활성 Cell에는 명시적인
+                                <code>np.xxx()</code> 호출이 없다.
+                                하지만 <code>plot()</code>이 이미지 배열을 반환하므로
+                                배열 Shape·Channel 개념은 중요하다.
+                            </p>
+
+                        </div>
+
                     </section>
 
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
+
+                    <!-- =================================================
+                 06. Model Load
+            ================================================== -->
+                    <section class="lesson-card" id="card06">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">06</span>
+
+                            <div>
+                                <p class="cp-kicker">Model Load</p>
+                                <h2>학습된 best.pt를 다시 Pose Model로 복원한다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 3
+                        </p>
+
+
+                        <pre tabindex="0"><code>#학습된 모델 로드 :
+#runs/pose/train/weights/best.pt모델을
+#./datasets/yolo_datasets/pose/best.pt로 복사
+
+model = YOLO(
+    'datasets/yolo_datasets/pose/best.pt'
+)</code></pre>
+
+
+                        <dl class="cp-guide">
+
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>이전에 학습한 Pose Weight를 다시 로드한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>Training과 실제 추론 프로그램을 분리한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>입력 Shape</dt>
+                                <dd>이미지가 아니라 Weight 파일 경로다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>출력</dt>
+                                <dd>YOLO Pose Model 객체.</dd>
+                            </div>
+
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>모델은 준비되지만 Weight 업데이트는 없다.</dd>
+                            </div>
+
+                        </dl>
+
                     </section>
 
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
+
+                    <!-- =================================================
+                 07. Validation
+            ================================================== -->
+                    <section class="lesson-card" id="card07">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">07</span>
+
+                            <div>
+                                <p class="cp-kicker">Validation</p>
+                                <h2>저장된 best.pt의 성능을 다시 확인한다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 4
+                        </p>
+
+
+                        <pre tabindex="0"><code>#모델 검증하기
+metrics=model.val()</code></pre>
+
+
+                        <dl class="cp-guide">
+
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>모델을 COCO8-Pose Validation Dataset에서 평가한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>불러온 Weight의 Box·Pose 성능을 확인한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>입력</dt>
+                                <dd>COCO8-Pose Validation Data.</dd>
+                            </div>
+
+                            <div>
+                                <dt>출력</dt>
+                                <dd>metrics 객체와 Validation 산출물.</dd>
+                            </div>
+
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Weight는 업데이트되지 않는다.</dd>
+                            </div>
+
+                        </dl>
+
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>Ultralytics 8.3.213
+Python-3.13.7
+torch-2.8.0+cpu
+
+YOLO11s-pose summary (fused):
+109 layers
+9,902,940 parameters
+0 gradients
+23.1 GFLOPs
+
+val:
+4 images
+0 backgrounds
+0 corrupt
+
+Class  Images  Instances
+all    4       14
+
+Box:
+P          0.959
+R          0.857
+mAP50      0.943
+mAP50-95   0.752
+
+Pose:
+P          0.912
+R          0.857
+mAP50      0.875
+mAP50-95   0.487
+
+Speed:
+1.2ms preprocess
+128.8ms inference
+0.0ms loss
+0.6ms postprocess
+
+Results saved to:
+runs/pose/val4</code></pre>
+
                     </section>
 
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
+
+                    <!-- =================================================
+                 08. Box Metric
+            ================================================== -->
+                    <section class="lesson-card" id="card08">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">08</span>
+
+                            <div>
+                                <p class="cp-kicker">Metric 객체</p>
+                                <h2>metrics.box에서 Box 성능을 직접 읽는다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 5
+                        </p>
+
+
+                        <pre tabindex="0"><code>print(
+    'map50-95:',
+    metrics.box.map
+)
+
+print(
+    'map50:',
+    metrics.box.map50
+)
+
+print(
+    'map75:',
+    metrics.box.map75
+)
+
+print(
+    '클래스 별 map50-95:',
+    metrics.box.maps
+)</code></pre>
+
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>map50-95: 0.7523272210743802
+map50: 0.9425000000000001
+map75: 0.8041818181818182
+클래스 별 map50-95: [0.75233]</code></pre>
+
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>Property</th>
+                                        <th>이번 값</th>
+                                        <th>의미</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <th>metrics.box.map</th>
+                                        <td>0.752327...</td>
+                                        <td>Box mAP50-95</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>metrics.box.map50</th>
+                                        <td>0.9425</td>
+                                        <td>Box mAP50</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>metrics.box.map75</th>
+                                        <td>0.80418...</td>
+                                        <td>IoU 0.75 기준 Box AP</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>metrics.box.maps</th>
+                                        <td>[0.75233]</td>
+                                        <td>Class별 Box mAP50-95</td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>Box Metric ≠ Pose Metric</strong>
+
+                            <p>
+                                <code>metrics.box.map</code>의 0.7523을
+                                Pose mAP라고 부르면 안 된다.
+                                Pose mAP50-95는 전체 Validation 표 기준 0.487이다.
+                            </p>
+
+                        </div>
+
                     </section>
 
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
+
+                    <!-- =================================================
+                 09. Validation 산출물
+            ================================================== -->
+                    <section class="lesson-card" id="card09">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">09</span>
+
+                            <div>
+                                <p class="cp-kicker">Validation 산출물</p>
+                                <h2>숫자뿐 아니라 Curve와 Prediction 이미지를 확인한다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 6
+                        </p>
+
+
+                        <pre tabindex="0"><code>#metrics.save_dir 아래에 파일(디렉토리) 목록 출력
+print(metrics.save_dir)
+
+for file in metrics.save_dir.iterdir():
+    print(file)</code></pre>
+
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>runs/pose/val4
+
+BoxF1_curve.png
+BoxPR_curve.png
+BoxP_curve.png
+BoxR_curve.png
+
+confusion_matrix.png
+confusion_matrix_normalized.png
+
+PoseF1_curve.png
+PosePR_curve.png
+PoseP_curve.png
+PoseR_curve.png
+
+val_batch0_labels.jpg
+val_batch0_pred.jpg</code></pre>
+
+
+                        <div class="cp-result-grid">
+
+                            <article>
+                                <strong>PR Curve</strong>
+                                <p>Precision과 Recall 관계.</p>
+                            </article>
+
+                            <article>
+                                <strong>F1 Curve</strong>
+                                <p>Precision·Recall 균형.</p>
+                            </article>
+
+                            <article>
+                                <strong>P / R Curve</strong>
+                                <p>Confidence 변화에 따른 성능.</p>
+                            </article>
+
+                            <article>
+                                <strong>Confusion Matrix</strong>
+                                <p>Class 예측 상태 확인.</p>
+                            </article>
+
+                            <article>
+                                <strong>Labels</strong>
+                                <p>Validation Ground Truth.</p>
+                            </article>
+
+                            <article>
+                                <strong>Pred</strong>
+                                <p>Validation Prediction.</p>
+                            </article>
+
+                        </div>
+
                     </section>
 
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
+
+                    <!-- =================================================
+                 10. X / y
+            ================================================== -->
+                    <section class="lesson-card" id="card10">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">10</span>
+
+                            <div>
+                                <p class="cp-kicker">X / y 구조</p>
+                                <h2>Validation과 Predict에서 데이터의 역할이 달라진다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-grid">
+
+                            <article>
+
+                                <h3>model.val()</h3>
+
+                                <p>
+                                    정답 Label이 있는 Validation Data를 사용한다.
+                                </p>
+
+                                <div class="cp-stack compact">
+                                    <div>X = Validation Image</div>
+                                    <span>+</span>
+                                    <div>y = Box + Class + 17 Keypoints</div>
+                                    <span>↓</span>
+                                    <div>Metric 계산</div>
+                                </div>
+
+                            </article>
+
+
+                            <article>
+
+                                <h3>model.predict()</h3>
+
+                                <p>
+                                    새 이미지에는 정답 y를 전달하지 않는다.
+                                </p>
+
+                                <div class="cp-stack compact">
+                                    <div>X = pose_detect2.jpg</div>
+                                    <span>↓</span>
+                                    <div>Prediction</div>
+                                    <span>↓</span>
+                                    <div>Results</div>
+                                </div>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note important">
+
+                            <strong>Validation ≠ Predict</strong>
+
+                            <p>
+                                Validation은 Prediction과 Ground Truth를 비교하지만,
+                                새 이미지 Predict는 정답과 비교하지 않는다.
+                            </p>
+
+                        </div>
+
                     </section>
 
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
+
+                    <!-- =================================================
+                 11. Shape
+            ================================================== -->
+                    <section class="lesson-card" id="card11">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">11</span>
+
+                            <div>
+                                <p class="cp-kicker">Shape 흐름</p>
+                                <h2>PIL·NumPy·Tensor의 축 순서를 분리해서 읽는다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-shape-flow">
+
+                            <div>
+                                <span>PIL Image Size</span>
+                                <strong>(275,183)</strong>
+                                <small>(W,H)</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <span>NumPy Image</span>
+                                <strong>(183,275,3)</strong>
+                                <small>(H,W,C) 개념적 표현</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <span>YOLO Preprocess</span>
+                                <strong>Resize / Padding</strong>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <span>Model Tensor</span>
+                                <strong>(1,3,448,640)</strong>
+                                <small>(B,C,H,W)</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <span>Prediction</span>
+                                <strong>2 persons</strong>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>이번 Notebook은 Keypoint Tensor Shape를 직접 출력하지 않는다.</strong>
+
+                            <p>
+                                ML 46의 모델 구조상
+                                <code>(N,17,3)</code>을 기대할 수 있지만,
+                                이번 ML 47에서 실제 <code>(2,17,3)</code>을 출력해 확인한 것은 아니다.
+                            </p>
+
+                        </div>
+
                     </section>
 
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
+
+                    <!-- =================================================
+                 12. 전처리
+            ================================================== -->
+                    <section class="lesson-card" id="card12">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">12</span>
+
+                            <div>
+                                <p class="cp-kicker">전처리·후처리</p>
+                                <h2>입력 전처리는 YOLO 내부, 출력 색상 변환은 직접 처리한다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-stack">
+
+                            <div>pose_detect2.jpg</div>
+                            <span>↓</span>
+                            <div>Ultralytics Image Loader</div>
+                            <span>↓</span>
+                            <div>Resize / Padding / Tensor</div>
+                            <span>↓</span>
+                            <div>Model Input (1,3,448,640)</div>
+                            <span>↓</span>
+                            <div>Results</div>
+                            <span>↓</span>
+                            <div>plot()</div>
+                            <span>↓</span>
+                            <div>BGR Image Array</div>
+                            <span>↓</span>
+                            <div>[:,:,::-1]</div>
+                            <span>↓</span>
+                            <div>RGB</div>
+                            <span>↓</span>
+                            <div>PIL Image</div>
+
+                        </div>
+
+
+                        <p>
+                            원본에는 직접적인
+                            <code>resize()</code>,
+                            <code>/255</code>,
+                            <code>astype()</code>가 없다.
+                            새 이미지 경로를 바로 YOLO에 전달한다.
+                        </p>
+
                     </section>
 
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
+
+                    <!-- =================================================
+                 13. Model Summary
+            ================================================== -->
+                    <section class="lesson-card" id="card13">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">13</span>
+
+                            <div>
+                                <p class="cp-kicker">Model Architecture</p>
+                                <h2>검증 시 Fused Pose Model의 Summary를 확인한다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>YOLO11s-pose summary (fused):
+
+109 layers
+9,902,940 parameters
+0 gradients
+23.1 GFLOPs</code></pre>
+
+
+                        <div class="cp-summary-grid">
+
+                            <article>
+                                <span>Layers</span>
+                                <strong>109</strong>
+                            </article>
+
+                            <article>
+                                <span>Parameters</span>
+                                <strong>9,902,940</strong>
+                            </article>
+
+                            <article>
+                                <span>Gradients</span>
+                                <strong>0</strong>
+                            </article>
+
+                            <article>
+                                <span>GFLOPs</span>
+                                <strong>23.1</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>0 gradients ≠ Gradient Vanishing</strong>
+
+                            <p>
+                                이번은 <code>model.val()</code>의 평가 상태다.
+                                학습 중 Gradient 소실이 발생했다는 뜻이 아니다.
+                            </p>
+
+                        </div>
+
                     </section>
 
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
+
+                    <!-- =================================================
+                 14. Loss·Optimizer
+            ================================================== -->
+                    <section class="lesson-card" id="card14">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">14</span>
+
+                            <div>
+                                <p class="cp-kicker">Loss·Optimizer·Learning Rate</p>
+                                <h2>이번 Notebook에는 새 학습이 없다</h2>
+                            </div>
+
                         </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                        <div class="cp-absent-grid">
+
+                            <article>
+                                <span>model.train()</span>
+                                <strong>없음</strong>
+                            </article>
+
+                            <article>
+                                <span>Optimizer</span>
+                                <strong>없음</strong>
+                            </article>
+
+                            <article>
+                                <span>Learning Rate</span>
+                                <strong>새 설정 없음</strong>
+                            </article>
+
+                            <article>
+                                <span>Epoch</span>
+                                <strong>없음</strong>
+                            </article>
+
+                            <article>
+                                <span>Backpropagation</span>
+                                <strong>없음</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>이전 ML 46의 AdamW를 가져오지 않는다.</strong>
+
+                            <p>
+                                <code>AdamW(lr=0.002)</code>는
+                                이 best.pt가 만들어질 당시의 Training 설정이다.
+                                ML 47의 Validation·Predict 실행 설정이 아니다.
+                            </p>
+
+                        </div>
+
+
+                        <p class="cp-tag stored">
+                            Validation Speed 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>Speed:
+1.2ms preprocess,
+128.8ms inference,
+0.0ms loss,
+0.6ms postprocess per image</code></pre>
+
+
+                        <div class="cp-note review">
+
+                            <strong>0.0ms loss ≠ Loss 값 0</strong>
+
+                            <p>
+                                단위가 ms다.
+                                손실값이 아니라 처리 단계의 시간 출력이다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 15. Predict
+            ================================================== -->
+                    <section class="lesson-card" id="card15">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">15</span>
+
+                            <div>
+                                <p class="cp-kicker">새 이미지 Predict</p>
+                                <h2>pose_detect2.jpg에서 두 사람의 Pose를 찾는다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 7
+                        </p>
+
+
+                        <pre tabindex="0"><code>#save =True시 show_boxes=False지정하면 predict폴더에 생성된 이미지에
+#boxes가 사라진다
+#단,results[0].save()와는 관계없다 즉,boxes가 표시된다
+#save()는 내부적으로 plot()을 호출하며 기본적으로 boxes=True로 설정되어 있다
+
+results=model.predict(
+    ['datasets/yolo/pose_detect2.jpg'],
+    show_boxes=False,
+    line_width=1
+)</code></pre>
+
+
+                        <dl class="cp-guide">
+
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>새 이미지에서 Person과 Pose를 Predict한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>학습된 Custom Pose Model을 실제 이미지에 적용한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>입력</dt>
+                                <dd>이미지 경로 List, 길이 1.</dd>
+                            </div>
+
+                            <div>
+                                <dt>출력</dt>
+                                <dd>Results 객체 List.</dd>
+                            </div>
+
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Weight 변화 없이 예측 결과가 생성된다.</dd>
+                            </div>
+
+                        </dl>
+
+
+                        <div class="cp-note review">
+
+                            <strong>활성 Predict에는 save=True가 없다.</strong>
+
+                            <p>
+                                주석에는 <code>save=True</code> 설명이 있지만
+                                실제 활성 호출에는 지정되어 있지 않다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 16. show_boxes
+            ================================================== -->
+                    <section class="lesson-card" id="card16">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">16</span>
+
+                            <div>
+                                <p class="cp-kicker">show_boxes=False</p>
+                                <h2>Box Detection이 아니라 Rendering 표시를 제어한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-flow">
+
+                            <div>Person Detection</div>
+                            <span>→</span>
+                            <div>Pose Keypoint</div>
+                            <span>→</span>
+                            <div>Results 생성</div>
+                            <span>→</span>
+                            <div>show_boxes=False</div>
+                            <span>→</span>
+                            <div>Box를 렌더링하지 않음</div>
+
+                        </div>
+
+
+                        <div class="cp-note important">
+
+                            <strong>Detection은 실제로 수행된다.</strong>
+
+                            <p>
+                                저장 출력에 <code>2 persons</code>가 있기 때문에
+                                사람 탐지 자체를 중지한 것이 아니다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 17. Predict 결과
+            ================================================== -->
+                    <section class="lesson-card" id="card17">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">17</span>
+
+                            <div>
+                                <p class="cp-kicker">Predict 출력 결과</p>
+                                <h2>입력 Shape와 처리 시간을 실제 로그에서 확인한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>0: 448x640 2 persons, 106.3ms
+
+Speed:
+1.9ms preprocess,
+106.3ms inference,
+0.8ms postprocess per image
+
+at shape
+(1, 3, 448, 640)</code></pre>
+
+
+                        <div class="cp-predict-grid">
+
+                            <article>
+                                <span>Image</span>
+                                <strong>1</strong>
+                            </article>
+
+                            <article>
+                                <span>Persons</span>
+                                <strong>2</strong>
+                            </article>
+
+                            <article>
+                                <span>Input</span>
+                                <strong>(1,3,448,640)</strong>
+                            </article>
+
+                            <article>
+                                <span>Preprocess</span>
+                                <strong>1.9ms</strong>
+                            </article>
+
+                            <article>
+                                <span>Inference</span>
+                                <strong>106.3ms</strong>
+                            </article>
+
+                            <article>
+                                <span>Postprocess</span>
+                                <strong>0.8ms</strong>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 18. Results.save
+            ================================================== -->
+                    <section class="lesson-card" id="card18">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">18</span>
+
+                            <div>
+                                <p class="cp-kicker">Results.save()</p>
+                                <h2>Prediction Result를 별도의 이미지 파일로 저장한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 8
+                        </p>
+
+
+                        <pre tabindex="0"><code>#이미지 저장 :results_파일명
+results[0].save(
+    'predict_pose_detect2.jpg'
+)</code></pre>
+
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>'predict_pose_detect2.jpg'</code></pre>
+
+
+                        <dl class="cp-guide">
+
+                            <div>
+                                <dt>무엇을 하는가?</dt>
+                                <dd>첫 Results를 이미지로 렌더링해 저장한다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>왜 필요한가?</dt>
+                                <dd>AI 결과를 파일로 사용하기 위해서다.</dd>
+                            </div>
+
+                            <div>
+                                <dt>입력</dt>
+                                <dd>Results 객체와 저장 파일명.</dd>
+                            </div>
+
+                            <div>
+                                <dt>출력</dt>
+                                <dd>JPEG 파일.</dd>
+                            </div>
+
+                            <div>
+                                <dt>실행 후 변화</dt>
+                                <dd>Model Weight는 바뀌지 않고 파일이 생성된다.</dd>
+                            </div>
+
+                        </dl>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 19. Box 재등장
+            ================================================== -->
+                    <section class="lesson-card" id="card19">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">19</span>
+
+                            <div>
+                                <p class="cp-kicker">Rendering 차이</p>
+                                <h2>Predict에서 숨긴 Box가 save()에서 다시 나타날 수 있다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-render-compare">
+
+                            <article>
+
+                                <p>Predict</p>
+
+                                <code>
+                            show_boxes=False
+                        </code>
+
+                                <span>↓</span>
+
+                                <strong>
+                                    Results 생성
+                                </strong>
+
+                            </article>
+
+
+                            <span class="cp-big-arrow">
+                                →
+                            </span>
+
+
+                            <article class="warning">
+
+                                <p>Results.save()</p>
+
+                                <code>
+                            기본 Rendering
+                        </code>
+
+                                <span>↓</span>
+
+                                <strong>
+                                    Box가 다시 표시될 수 있음
+                                </strong>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>
+                                이번 단원의 가장 중요한 원문 실험
+                            </strong>
+
+                            <p>
+                                Predict 당시의 Rendering 옵션과
+                                이후 Results 객체를 다시 Rendering할 때의 옵션을
+                                같은 상태라고 가정하면 안 된다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 20. Box 제거
+            ================================================== -->
+                    <section class="lesson-card" id="card20">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">20</span>
+
+                            <div>
+                                <p class="cp-kicker">Box 없는 이미지 저장</p>
+                                <h2>plot(boxes=False)를 직접 적용한 배열을 저장한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 10 Markdown
+                        </p>
+
+
+                        <div class="cp-stack">
+
+                            <div>
+                                <strong>Results.plot(boxes=False)</strong>
+                                <small>Bounding Box 제거</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>[:,:,::-1]</strong>
+                                <small>BGR → RGB</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>Image.fromarray()</strong>
+                                <small>NumPy Array → PIL Image</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>Image.save()</strong>
+                                <small>JPEG 저장</small>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 11
+                        </p>
+
+
+                        <pre tabindex="0"><code>Image.fromarray(
+    results[0]
+        .plot(boxes=False)[:, :, ::-1]
+).save(
+    'predict_pose_detect2_without_boxes.jpg'
+)</code></pre>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 21. BGR → RGB
+            ================================================== -->
+                    <section class="lesson-card" id="card21">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">21</span>
+
+                            <div>
+                                <p class="cp-kicker">Color Channel</p>
+                                <h2>[:,:,::-1]로 마지막 Channel 순서를 뒤집는다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-channel-visual">
+
+                            <article class="bgr">
+                                <span>B</span>
+                                <span>G</span>
+                                <span>R</span>
+                            </article>
+
+                            <strong>→</strong>
+
+                            <code>[:, :, ::-1]</code>
+
+                            <strong>→</strong>
+
+                            <article class="rgb">
+                                <span>R</span>
+                                <span>G</span>
+                                <span>B</span>
+                            </article>
+
+                        </div>
+
+
+                        <p>
+                            이미지가
+                            <code>(H,W,C)</code> 구조일 때
+                            마지막 축인 Channel 순서만 역순으로 바꾼다.
+                        </p>
+
+
+                        <div class="cp-note supplement">
+
+                            <strong>실무 포인트</strong>
+
+                            <p>
+                                OpenCV·일부 YOLO Rendering 배열과
+                                Pillow·Matplotlib의 색상 해석이 다를 수 있으므로
+                                BGR과 RGB를 구분해야 한다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 22. PIL Shape
+            ================================================== -->
+                    <section class="lesson-card" id="card22">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">22</span>
+
+                            <div>
+                                <p class="cp-kicker">Image.fromarray()</p>
+                                <h2>NumPy 배열을 PIL Image로 변환한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag original">
+                            교안 원문 · Cell 12
+                        </p>
+
+
+                        <pre tabindex="0"><code>Image.fromarray(
+    results[0]
+        .plot(boxes=False)[:, :, ::-1]
+)</code></pre>
+
+
+                        <p class="cp-tag stored">
+                            원본 저장 출력
+                        </p>
+
+
+                        <pre tabindex="0"><code>&lt;PIL.Image.Image
+ image mode=RGB
+ size=275x183&gt;</code></pre>
+
+
+                        <div class="cp-shape-compare">
+
+                            <article>
+
+                                <span>Pillow</span>
+
+                                <strong>
+                                    (275,183)
+                                </strong>
+
+                                <small>
+                                    (W,H)
+                                </small>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>NumPy</span>
+
+                                <strong>
+                                    (183,275,3)
+                                </strong>
+
+                                <small>
+                                    (H,W,C)
+                                </small>
+
+                            </article>
+
+
+                            <article>
+
+                                <span>YOLO Tensor</span>
+
+                                <strong>
+                                    (1,3,448,640)
+                                </strong>
+
+                                <small>
+                                    (B,C,H,W)
+                                </small>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note important">
+
+                            <strong>
+                                Shape 표기법 자체가 다르다.
+                            </strong>
+
+                            <p>
+                                같은 이미지라고 해도 사용하는 Library와 단계에 따라
+                                축의 위치가 달라질 수 있다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 23. 결과 표시
+            ================================================== -->
+                    <section class="lesson-card" id="card23">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">23</span>
+
+                            <div>
+                                <p class="cp-kicker">Figure·Rendering</p>
+                                <h2>같은 Prediction으로 서로 다른 화면을 만든다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-grid">
+
+                            <article>
+
+                                <h3>Box 포함 결과</h3>
+
+                                <p class="cp-tag original">
+                                    Cell 9
+                                </p>
+
+                                <pre tabindex="0"><code>pred_image = Image.open(
+    'predict_pose_detect2.jpg'
+)
+
+plt.figure(figsize=(10,10))
+plt.imshow(pred_image)
+plt.title("OBJECT DETECTION")
+plt.axis(False)
+plt.show()</code></pre>
+
+                            </article>
+
+
+                            <article>
+
+                                <h3>Box 제거 결과</h3>
+
+                                <p class="cp-tag original">
+                                    Cell 13
+                                </p>
+
+                                <pre tabindex="0"><code>plt.figure(figsize=(10,10))
+
+plt.imshow(
+    Image.fromarray(
+        results[0]
+            .plot(boxes=False)[:, :, ::-1]
+    )
+)
+
+plt.title(
+    "OBJECT DETECTION Without Boxes"
+)
+
+plt.axis(False)
+plt.show()</code></pre>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note review">
+
+                            <strong>
+                                Figure 제목 ≠ 실제 Task 이름
+                            </strong>
+
+                            <p>
+                                원문 Figure 제목은
+                                <code>OBJECT DETECTION</code>이라고 되어 있지만
+                                실제 사용 모델은 Pose Model이다.
+                                제목을 임의로 수정하지 않고 기능을 정확히 이해한다.
+                            </p>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 24. Metric
+            ================================================== -->
+                    <section class="lesson-card" id="card24">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">24</span>
+
+                            <div>
+                                <p class="cp-kicker">Metric 해석</p>
+                                <h2>Box와 Pose를 같은 하나의 정확도로 합치지 않는다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>Box</th>
+                                        <th>Pose</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <th>Precision</th>
+                                        <td>0.959</td>
+                                        <td>0.912</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Recall</th>
+                                        <td>0.857</td>
+                                        <td>0.857</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>mAP50</th>
+                                        <td>0.943</td>
+                                        <td>0.875</td>
+                                    </tr>
+
+                                    <tr class="cp-highlight-row">
+                                        <th>mAP50-95</th>
+                                        <td>0.752</td>
+                                        <td>0.487</td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <div class="cp-distinction">
+
+                            <div>
+                                <strong>Box mAP</strong>
+                                <span>≠</span>
+                                <strong>Pose mAP</strong>
+                            </div>
+
+                            <div>
+                                <strong>mAP</strong>
+                                <span>≠</span>
+                                <strong>Classification Accuracy</strong>
+                            </div>
+
+                            <div>
+                                <strong>Pose Metric</strong>
+                                <span>≠</span>
+                                <strong>R²</strong>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            Keypoint가 숫자 좌표라는 이유만으로
+                            일반 회귀 지표인 R²를 이번 Pose 평가에 사용하지 않는다.
+                        </p>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 25. Data Leakage
+            ================================================== -->
+                    <section class="lesson-card" id="card25">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">25</span>
+
+                            <div>
+                                <p class="cp-kicker">Data Leakage</p>
+                                <h2>이번 Notebook에서는 새 Split을 만들지 않는다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p>
+                            이번 ML 47은 이미 학습된 모델을 불러와
+                            Validation과 Predict를 수행한다.
+                            따라서 이 Notebook에서 새로운 Train / Validation 분할을 만들지 않는다.
+                        </p>
+
+
+                        <div class="cp-note supplement">
+
+                            <strong>하지만 이전 Dataset 품질은 계속 영향을 준다.</strong>
+
+                            <p>
+                                best.pt를 다른 Notebook으로 옮겼다고
+                                이전 학습 과정의 Data Leakage 가능성이 사라지는 것은 아니다.
+                            </p>
+
+                        </div>
+
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>이전 학습에서 확인할 것</th>
+                                        <th>질문</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <th>동일 이미지</th>
+                                        <td>Train·Val에 중복되었는가?</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>같은 사람</th>
+                                        <td>거의 같은 장면이 양쪽에 포함되었는가?</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>연속 영상 Frame</th>
+                                        <td>시간적으로 거의 동일한 Frame이 분리되었는가?</td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>증강본</th>
+                                        <td>원본과 변형본이 다른 Split에 들어갔는가?</td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 26. 성능 진단
+            ================================================== -->
+                    <section class="lesson-card" id="card26">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">26</span>
+
+                            <div>
+                                <p class="cp-kicker">
+                                    Overfitting · Underfitting · Learning Rate
+                                </p>
+
+                                <h2>
+                                    현재 단계와 Training 단계의 문제를 구분한다
+                                </h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-diagnosis-grid">
+
+                            <article>
+
+                                <h3>Overfitting</h3>
+
+                                <p>
+                                    이번에 새로 발생시키는 것은 아니지만,
+                                    ML 46에서 last.pt보다 best.pt가 훨씬 좋았던 결과와 연결된다.
+                                </p>
+
+                                <div class="cp-stack compact">
+                                    <div>Overfitting 위험</div>
+                                    <span>↓</span>
+                                    <div>best.pt 선택</div>
+                                    <span>↓</span>
+                                    <div>ML 47 실제 사용</div>
+                                </div>
+
+                            </article>
+
+
+                            <article>
+
+                                <h3>Underfitting</h3>
+
+                                <p>
+                                    이번 Notebook에는 Training Curve가 없으므로
+                                    Underfitting 여부를 새로 판단할 근거가 없다.
+                                </p>
+
+                            </article>
+
+
+                            <article>
+
+                                <h3>Learning Rate</h3>
+
+                                <p>
+                                    이번에는 Optimizer·Learning Rate가 없다.
+                                    Predict 성능 문제와 Training Hyperparameter 문제를 섞지 않는다.
+                                </p>
+
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-note important">
+
+                            <strong>실제 Predict가 마음에 들지 않을 때</strong>
+
+                            <div class="cp-mini-flow">
+                                <span>Weight 확인</span>
+                                <b>→</b>
+                                <span>입력 분포 확인</span>
+                                <b>→</b>
+                                <span>Pose Model 확인</span>
+                                <b>→</b>
+                                <span>Predict 설정 확인</span>
+                                <b>→</b>
+                                <span>필요하면 재학습</span>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 27. 자주 하는 실수
+            ================================================== -->
+                    <section class="lesson-card" id="card27">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">27</span>
+
+                            <div>
+                                <p class="cp-kicker">자주 하는 실수</p>
+                                <h2>Prediction과 Rendering을 같은 상태로 착각하지 않는다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-mistake-list">
+
+                            <article>
+                                <strong>ML 47도 다시 학습한다고 생각</strong>
+                                <p>이번에는 val()과 predict() 중심이다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Validation Dataset과 pose_detect2.jpg를 같은 자료로 생각</strong>
+                                <p>하나는 Metric 평가, 하나는 새 Predict 입력이다.</p>
+                            </article>
+
+                            <article>
+                                <strong>metrics.box.map을 Pose mAP라고 부름</strong>
+                                <p>0.7523은 Box mAP50-95다.</p>
+                            </article>
+
+                            <article>
+                                <strong>show_boxes=False = Detection OFF</strong>
+                                <p>렌더링에서 Box만 숨긴다.</p>
+                            </article>
+
+                            <article>
+                                <strong>show_boxes=False를 save()에도 자동 유지된다고 생각</strong>
+                                <p>Results.save()는 별도 Rendering이다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Predict에 save=True가 있다고 생각</strong>
+                                <p>활성 호출에는 없다.</p>
+                            </article>
+
+                            <article>
+                                <strong>Pillow·NumPy·Tensor Shape를 같은 순서로 읽음</strong>
+                                <p>(W,H), (H,W,C), (B,C,H,W)를 구분한다.</p>
+                            </article>
+
+                            <article>
+                                <strong>BGR / RGB를 무시</strong>
+                                <p>Channel 순서가 다르면 결과 색상이 달라질 수 있다.</p>
+                            </article>
+
+                            <article>
+                                <strong>0 gradients = Gradient Vanishing</strong>
+                                <p>이번은 Validation Summary다.</p>
+                            </article>
+
+                            <article>
+                                <strong>0.0ms loss = Loss 값 0</strong>
+                                <p>ms 단위 처리 시간이다.</p>
+                            </article>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 28. 오류
+            ================================================== -->
+                    <section class="lesson-card" id="card28">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">28</span>
+
+                            <div>
+                                <p class="cp-kicker">오류 메시지 읽는 법</p>
+                                <h2>파일·Dataset·Shape·Color 순서로 진단한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag supplement">
+                            재실습용 진단표 · 원본에서 발생한 오류 목록은 아님
+                        </p>
+
+
+                        <div class="cp-table">
+
+                            <table>
+
+                                <thead>
+                                    <tr>
+                                        <th>증상</th>
+                                        <th>먼저 확인할 것</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    <tr>
+                                        <th>best.pt File Error</th>
+                                        <td>
+                                            datasets/yolo_datasets/pose/best.pt 존재 여부
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Validation Dataset Error</th>
+                                        <td>
+                                            coco8-pose images/val·labels/val·datasets_dir
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Predict Image Error</th>
+                                        <td>
+                                            datasets/yolo/pose_detect2.jpg
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>results[0] Error</th>
+                                        <td>
+                                            Predict가 Results List를 정상 반환했는지 확인
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Shape Error</th>
+                                        <td>
+                                            PIL·NumPy·Tensor 축 순서 확인
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>Dimension Error</th>
+                                        <td>
+                                            예상 Keypoint 구조와 실제 결과 객체 확인
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>dtype Error</th>
+                                        <td>
+                                            uint8·float Tensor·PIL·NumPy 객체 구분
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <th>색상 이상</th>
+                                        <td>
+                                            BGR / RGB Channel 순서 확인
+                                        </td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 29. 실무
+            ================================================== -->
+                    <section class="lesson-card" id="card29">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">29</span>
+
+                            <div>
+                                <p class="cp-kicker">실무 연결</p>
+                                <h2>하나의 AI 결과를 여러 출력 방식으로 재사용한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-service-flow">
+
+                            <div>
+                                <strong>Pose Model</strong>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>Prediction Results</strong>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div class="cp-output-branch">
+
+                                <article>
+                                    <strong>개발자 화면</strong>
+                                    <p>Box + Label + Skeleton</p>
+                                </article>
+
+                                <article>
+                                    <strong>사용자 화면</strong>
+                                    <p>Skeleton만 표시</p>
+                                </article>
+
+                                <article>
+                                    <strong>분석 시스템</strong>
+                                    <p>Keypoint 좌표만 사용</p>
+                                </article>
+
+                                <article>
+                                    <strong>로그</strong>
+                                    <p>Confidence·Metric 저장</p>
+                                </article>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-note supplement">
+
+                            <strong>실무 설계 원칙</strong>
+
+                            <p>
+                                AI 추론 결과와 UI Rendering을 분리해 두면
+                                같은 모델 결과를 화면·파일·분석 시스템에서
+                                서로 다른 방식으로 사용할 수 있다.
+                            </p>
+
+                        </div>
+
+
+                        <h3>성능 개선이 필요하다면</h3>
+
+
+                        <div class="cp-mini-flow">
+                            <span>Dataset 확대</span>
+                            <b>→</b>
+                            <span>Split 재검토</span>
+                            <b>→</b>
+                            <span>Label 품질</span>
+                            <b>→</b>
+                            <span>Fine-tuning</span>
+                            <b>→</b>
+                            <span>best.pt 선택</span>
+                            <b>→</b>
+                            <span>새 Validation</span>
+                        </div>
+
+                    </section>
+
+
+                    <!-- =================================================
+                 30. 면접
+            ================================================== -->
+                    <section class="lesson-card" id="card30">
+
+                        <div class="cp-heading">
+
+                            <span class="cp-number">30</span>
+
+                            <div>
+                                <p class="cp-kicker">면접 포인트</p>
+                                <h2>25문답으로 핵심을 점검한다</h2>
+                            </div>
+
+                        </div>
+
+
+                        <div class="cp-qa">
+
+                            <details>
+                                <summary>Q1. ML 46과 ML 47의 차이는?</summary>
+                                <div>
+                                    ML 46은 Pose 모델을 Fine-tuning했고,
+                                    ML 47은 저장된 best.pt를 다시 로드해 Validation과 Predict를 수행한다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q2. 이번에 사용하는 Model 파일은?</summary>
+                                <div>
+                                    <code>datasets/yolo_datasets/pose/best.pt</code>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q3. 이번 Notebook에 model.train()이 있는가?</summary>
+                                <div>
+                                    없다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q4. model.val()의 역할은?</summary>
+                                <div>
+                                    저장된 모델을 Validation Dataset에서 평가해 Metric을 얻는다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q5. Validation 이미지와 Instance는?</summary>
+                                <div>
+                                    4 images, 14 person Instances다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q6. Box mAP50-95는?</summary>
+                                <div>
+                                    약 0.752다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q7. Pose mAP50-95는?</summary>
+                                <div>
+                                    약 0.487이다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q8. metrics.box.map은 Pose mAP인가?</summary>
+                                <div>
+                                    아니다. Box mAP50-95다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q9. metrics.box.map75는?</summary>
+                                <div>
+                                    IoU 0.75 기준 Box AP 관련 값이며 약 0.80418이다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q10. metrics.box.maps 값이 하나인 이유는?</summary>
+                                <div>
+                                    Class가 person 하나이기 때문이다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q11. Predict 이미지는?</summary>
+                                <div>
+                                    <code>datasets/yolo/pose_detect2.jpg</code>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q12. Predict 결과는 몇 명인가?</summary>
+                                <div>
+                                    2 persons다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q13. Model Input Shape는?</summary>
+                                <div>
+                                    <code>(1,3,448,640)</code>
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q14. show_boxes=False는?</summary>
+                                <div>
+                                    Prediction Result를 렌더링할 때 Box 표시를 숨기는 설정이다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q15. Person Detection도 꺼지는가?</summary>
+                                <div>
+                                    아니다. 실제 출력은 2 persons다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q16. 활성 Predict에 save=True가 있는가?</summary>
+                                <div>
+                                    없다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q17. 결과 이미지는 어떻게 저장하는가?</summary>
+                                <div>
+                                    뒤 Cell에서 <code>results[0].save()</code>를 별도로 호출한다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q18. 왜 save() 결과에 Box가 다시 나타날 수 있는가?</summary>
+                                <div>
+                                    Results.save()가 별도의 기본 Rendering을 수행하기 때문이다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q19. Box 없는 이미지를 어떻게 저장하는가?</summary>
+                                <div>
+                                    <code>plot(boxes=False)</code> 결과를 직접 PIL Image로 바꾸어 저장한다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q20. [:,:,::-1]의 목적은?</summary>
+                                <div>
+                                    BGR Channel 순서를 RGB로 바꾼다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q21. Image.fromarray()는?</summary>
+                                <div>
+                                    NumPy 이미지 배열을 PIL Image 객체로 변환한다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q22. PIL 결과 이미지 크기는?</summary>
+                                <div>
+                                    width 275, height 183이다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q23. Validation 결과 디렉터리에는 무엇이 있는가?</summary>
+                                <div>
+                                    Box·Pose PR/F1/P/R Curve, Confusion Matrix,
+                                    Validation Labels·Prediction 이미지 등이 있다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q24. 이번에 Optimizer와 Learning Rate가 있는가?</summary>
+                                <div>
+                                    새 Training이 없으므로 없다.
+                                </div>
+                            </details>
+
+                            <details>
+                                <summary>Q25. 다음 단원은?</summary>
+                                <div>
+                                    같은 best.pt를 영상 프레임마다 적용하는
+                                    Custom Pose 영상 추론이다.
+                                </div>
+                            </details>
+
+                        </div>
+
                     </section>
 
                 </main>
 
-                <aside class="side-note" aria-label="ML 47. Custom YOLO Pose 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
+
+                <!-- =====================================================
+             ASIDE
+        ====================================================== -->
+                <aside class="side-note" aria-label="ML 47 복습">
+
+                    <!-- =================================================
+                 MEMORY
+            ================================================== -->
+                    <section class="cp-side-card" id="memory">
+
+                        <p class="cp-kicker">
+                            Memory
+                        </p>
+
                         <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+
+                        <div class="cp-memory-grid">
+
+                            <article>
+                                <span>Model</span>
+                                <strong>pose/best.pt</strong>
+                            </article>
+
+                            <article>
+                                <span>Validation</span>
+                                <strong>4 images</strong>
+                            </article>
+
+                            <article>
+                                <span>Instances</span>
+                                <strong>14</strong>
+                            </article>
+
+                            <article>
+                                <span>Box mAP</span>
+                                <strong>0.752</strong>
+                            </article>
+
+                            <article>
+                                <span>Pose mAP</span>
+                                <strong>0.487</strong>
+                            </article>
+
+                            <article>
+                                <span>Predict</span>
+                                <strong>2 persons</strong>
+                            </article>
+
+                            <article>
+                                <span>Model Shape</span>
+                                <strong>(1,3,448,640)</strong>
+                            </article>
+
+                            <article>
+                                <span>PIL Size</span>
+                                <strong>275×183</strong>
+                            </article>
+
+                        </div>
+
+
+                        <div class="cp-stack compact">
+
+                            <div>best.pt</div>
+                            <span>↓</span>
+                            <div>model.val()</div>
+                            <span>↓</span>
+                            <div>Box + Pose Metric</div>
+                            <span>↓</span>
+                            <div>pose_detect2.jpg</div>
+                            <span>↓</span>
+                            <div>model.predict()</div>
+                            <span>↓</span>
+                            <div>Results</div>
+                            <span>↓</span>
+                            <div>Render</div>
+                            <span>↓</span>
+                            <div>Save</div>
+
+                        </div>
+
                     </section>
 
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
+
+                    <!-- =================================================
+                 DISTINCTION
+            ================================================== -->
+                    <section class="cp-side-card">
+
+                        <p class="cp-kicker">
+                            Distinction
+                        </p>
+
                         <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+
+                        <div class="cp-distinction">
+
+                            <div>
+                                <strong>Training</strong>
+                                <span>≠</span>
+                                <strong>Validation</strong>
+                            </div>
+
+                            <div>
+                                <strong>Validation</strong>
+                                <span>≠</span>
+                                <strong>Predict</strong>
+                            </div>
+
+                            <div>
+                                <strong>Validation</strong>
+                                <span>≠</span>
+                                <strong>Test</strong>
+                            </div>
+
+                            <div>
+                                <strong>Box Metric</strong>
+                                <span>≠</span>
+                                <strong>Pose Metric</strong>
+                            </div>
+
+                            <div>
+                                <strong>metrics.box.map</strong>
+                                <span>≠</span>
+                                <strong>Pose mAP</strong>
+                            </div>
+
+                            <div>
+                                <strong>show_boxes=False</strong>
+                                <span>≠</span>
+                                <strong>Detection OFF</strong>
+                            </div>
+
+                            <div>
+                                <strong>Predict 옵션</strong>
+                                <span>≠</span>
+                                <strong>save() Rendering</strong>
+                            </div>
+
+                            <div>
+                                <strong>BGR</strong>
+                                <span>≠</span>
+                                <strong>RGB</strong>
+                            </div>
+
+                            <div>
+                                <strong>PIL (W,H)</strong>
+                                <span>≠</span>
+                                <strong>Tensor (B,C,H,W)</strong>
+                            </div>
+
+                            <div>
+                                <strong>0.0ms loss</strong>
+                                <span>≠</span>
+                                <strong>Loss=0</strong>
+                            </div>
+
+                        </div>
+
                     </section>
 
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
+
+                    <!-- =================================================
+                 NEXT
+            ================================================== -->
+                    <section class="cp-side-card" id="next">
+
+                        <p class="cp-kicker">
+                            Next · ML 48
+                        </p>
+
+                        <h2>
+                            Custom Pose 영상 추론
+                        </h2>
+
+
+                        <p>
+                            다음 단원은 같은
+                            <code>pose/best.pt</code>를
+                            정지 이미지 한 장이 아니라
+                            동영상의 각 Frame에 반복 적용한다.
+                        </p>
+
+
+                        <div class="cp-stack compact">
+
+                            <div>
+                                <strong>ML 47</strong>
+                                <small>Image Pose</small>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>same best.pt</strong>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>VideoCapture</strong>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>Frame-by-Frame Pose</strong>
+                            </div>
+
+                            <span>↓</span>
+
+                            <div>
+                                <strong>Result Video</strong>
+                            </div>
+
+                        </div>
+
+
+                        <p class="cp-tag original">
+                            다음 단원 원문 발췌 · ML 47 코드 아님
+                        </p>
+
+
+                        <pre tabindex="0"><code>model = YOLO(
+    'datasets/yolo_datasets/pose/best.pt'
+)
+
+cap = cv2.VideoCapture(
+    'datasets/yolo/people_pixabay.mp4'
+)</code></pre>
+
+
+                        <div class="cp-note important">
+
+                            <strong>이번 단원에서 가져갈 것</strong>
+
+                            <p>
+                                best.pt 재사용,
+                                Results 객체,
+                                Rendering 옵션,
+                                BGR/RGB,
+                                출력 저장 개념이
+                                다음 영상 Frame 처리에서도 그대로 이어진다.
+                            </p>
+
+                        </div>
+
                     </section>
+
                 </aside>
+
+
+                <!-- =====================================================
+             FOOTER
+        ====================================================== -->
+                <footer class="lesson-footer">
+
+                    <p class="cp-closing">
+
+                        <strong>
+                            Model → Validation → Prediction → Results → Rendering → Save
+                        </strong>
+
+                        를 분리해서 이해하면,
+                        같은 AI 결과를 다양한 UI와 파일 형식으로 활용할 수 있다.
+
+                    </p>
+
+
+                    <a class="cp-back" href="#top">
+                        단원 처음으로 ↑
+                    </a>
+
+                </footer>
+
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./46_yolo_pose_estimation.html">
-                    <span>이전 단원</span>
-                    <strong>ML 46. YOLO Pose Estimation</strong>
-                </a>
-
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./48_custom_yolo_video_pose.html">
-                    <span>다음 단원</span>
-                    <strong>ML 48. Custom YOLO Video Pose</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+
+
+        <!-- =========================================================
+     공통 SIDE NAV SCRIPT
+========================================================= -->
+        <script src="../../js/00_nav.js" defer></script>
+
+    </body>
+
 </html>
