@@ -1,15 +1,2392 @@
 @charset "UTF-8";
 
-/*
- * AI & Machine Learning
- * Course: AI Machine Learning
- * Lesson: ML 52. TF-IDF 콘텐츠 기반 추천
- *
- * 공통 스타일:
- * - ../../css/00_nav.css
- * - ../../css/study-theme.css
- * - ../../css/AIMachineLearning/ai-machine-learning-common.css
- * - ../../css/AIMachineLearning/MachineLearning/machine-learning-common.css
- *
- * 이 파일(52_tfidf_content_recommendation.css)에는 이 단원에서만 필요한 스타일을 Step 3에서 추가한다.
- */
+/* AI Machine Learning · 단원별 독립 레이아웃
+   AI 개념 페이지의 청록/회청색 팔레트와 동일한 가독성 기준.
+   공통 메뉴의 생성·펼침 동작은 00_nav.js에서 관리합니다. */
+html:has(> body.tfidf-recommendation-page) {
+    min-width: 0;
+    overflow-x: visible;
+    background: #eef4f7;
+}
+
+body.tfidf-recommendation-page {
+    --layout-min-width: 0px;
+    --content-min-width: 0px;
+    --side-nav-width: 280px;
+    --theme-accent: #0f6875;
+    --theme-accent-dark: #075363;
+    --theme-soft: #e6f1f4;
+    --theme-bg: #eef4f7;
+    --theme-surface: #fff;
+    --theme-surface-soft: #f2f7f8;
+    --theme-border: #cadbe3;
+    --theme-text: #364656;
+    --theme-muted: #566573;
+    --theme-shadow: rgba(21, 50, 67, .06);
+    --theme-code-bg: #182f3c;
+    --theme-code-text: #edf4fa;
+    --study-code-font: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace;
+    min-width: 0;
+    overflow-x: visible;
+    margin: 0;
+    color: var(--theme-text);
+    background: var(--theme-bg);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    -webkit-text-size-adjust: 100%;
+}
+
+.tfidf-recommendation-page .layout,
+.tfidf-recommendation-page .layout *,
+.tfidf-recommendation-page .layout *::before,
+.tfidf-recommendation-page .layout *::after {
+    box-sizing: border-box;
+}
+
+.tfidf-recommendation-page .layout {
+    width: 100%;
+    max-width: 1920px;
+    min-width: 0;
+    margin: 0 auto;
+    padding: clamp(16px, 2vw, 32px);
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(20px, 2vw, 32px);
+}
+
+.tfidf-recommendation-page #sideNav {
+    top: 24px;
+    width: 100%;
+    min-width: 0;
+    max-height: calc(100vh - 48px);
+    padding: 20px;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    overflow-wrap: anywhere;
+}
+
+.tfidf-recommendation-page .page-content :where(main, section, aside, div, figure, dl, dd) { min-width: 0; }
+.tfidf-recommendation-page .page-content :where(h1, h2, h3, p, li, dt, dd, th, td, summary) { overflow-wrap: anywhere; }
+.tfidf-recommendation-page .page-content :is(img, svg, video, canvas) { max-width: 100%; }
+.tfidf-recommendation-page .page-content [id] { scroll-margin-top: 24px; }
+
+@media screen and (max-width: 1240px) {
+    .tfidf-recommendation-page .layout { grid-template-columns: minmax(0, 1fr); }
+    .tfidf-recommendation-page #sideNav { position: static; max-height: 300px; }
+}
+
+@media screen and (max-width: 700px) {
+    .tfidf-recommendation-page .layout { padding: 12px; gap: 18px; }
+    .tfidf-recommendation-page #sideNav { max-height: 240px; padding: 16px; border-radius: 16px; }
+}
+
+
+/* =========================================================
+   ML 52. TF-IDF 콘텐츠 추천
+   Page Scope : .tfidf-recommendation-page
+========================================================= */
+
+.tfidf-recommendation-page {
+    --tf-ink: #1f2933;
+    --tf-muted: #566573;
+    --tf-line: #cadbe3;
+
+    --tf-primary: #0f6875;
+    --tf-primary-dark: #075363;
+    --tf-primary-soft: #e6f1f4;
+
+    --tf-blue: #24678c;
+    --tf-blue-soft: #eaf5fc;
+
+    --tf-green: #17614b;
+    --tf-green-soft: #e8f6ef;
+
+    --tf-amber: #865816;
+    --tf-amber-soft: #fff3df;
+
+    --tf-red: #984545;
+    --tf-red-soft: #fff0f0;
+
+    --tf-purple: #71488b;
+    --tf-purple-soft: #f7effb;
+
+    --tf-teal: #176a65;
+    --tf-teal-soft: #e8f6f4;
+
+    --tf-paper: #ffffff;
+    --tf-bg: #eef4f7;
+
+    --tf-code-bg: #182f3c;
+    --tf-code-line: #34515e;
+
+    margin: 0;
+
+    color: var(--theme-text);
+
+    background: var(--tf-bg);
+
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+
+    line-height: 1.85;
+}
+
+/* =========================================================
+   BOX SIZING
+========================================================= */
+
+.tfidf-recommendation-page .page-content,
+.tfidf-recommendation-page .page-content *,
+.tfidf-recommendation-page .page-content *::before,
+.tfidf-recommendation-page .page-content *::after {
+    box-sizing: border-box;
+}
+
+/* =========================================================
+   PAGE STRUCTURE
+========================================================= */
+
+.tfidf-recommendation-page .page-content {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 0 0 48px;
+
+    word-break: keep-all;
+
+    overflow-wrap: anywhere;
+}
+
+.tfidf-recommendation-page :is(.lesson-hero, .lesson-main, .side-note, .lesson-footer) {
+    width: 100%;
+
+    max-width: 1500px;
+
+    min-width: 0;
+
+    margin-inline: auto;
+}
+
+.tfidf-recommendation-page :is(.lesson-hero, .lesson-card, .tf-side-card, .lesson-footer) {
+    min-width: 0;
+
+    padding: clamp(22px, 2.6vw, 38px);
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 20px;
+
+    background: var(--tf-paper);
+
+    box-shadow: 0 8px 24px var(--theme-shadow);
+}
+
+.tfidf-recommendation-page .lesson-hero {
+    margin-bottom: 24px;
+
+    border-top: 4px solid var(--tf-primary);
+
+    background: linear-gradient(125deg, #edf6f7, #fff 64%, #f2eff9);
+    position: relative;
+    isolation: isolate;
+    padding: clamp(24px, 3vw, 44px);
+    border-radius: 26px;
+    box-shadow: 0 12px 32px var(--theme-shadow);
+}
+
+.tfidf-recommendation-page .lesson-hero::before {
+    content: '52';
+    position: absolute;
+    top: 8px;
+    right: 24px;
+    z-index: -1;
+    color: #0f68750a;
+    font-size: clamp(7rem, 13vw, 13rem);
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.tfidf-recommendation-page :is(.lesson-main, .side-note) {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 24px;
+}
+
+.tfidf-recommendation-page .side-note {
+    background: transparent;
+    box-shadow: none;
+    position: static;
+
+    inset: auto;
+
+    margin-top: 24px;
+}
+
+.tfidf-recommendation-page .lesson-footer {
+    margin-top: 24px;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+========================================================= */
+
+.tfidf-recommendation-page .page-content :is(h1, h2, h3) {
+    color: var(--tf-ink);
+
+    line-height: 1.45;
+}
+
+.tfidf-recommendation-page .page-content h1 {
+    margin: 10px 0 16px;
+
+    font-size: clamp(2rem, 3.4vw, 3.35rem);
+
+    letter-spacing: -0.04em;
+}
+
+.tfidf-recommendation-page .page-content h2 {
+    margin: 0 0 14px;
+
+    font-size: clamp(1.4rem, 2vw, 1.9rem);
+
+    letter-spacing: -0.02em;
+}
+
+.tfidf-recommendation-page .page-content h3 {
+    margin: 22px 0 10px;
+
+    font-size: 1.08rem;
+}
+
+.tfidf-recommendation-page .page-content p {
+    margin: 11px 0;
+}
+
+.tfidf-recommendation-page .page-content .tf-kicker {
+    margin: 0 0 5px;
+
+    color: var(--tf-primary);
+
+    font-size: 0.78rem;
+
+    font-weight: 800;
+
+    letter-spacing: 0.03em;
+}
+
+.tfidf-recommendation-page .tf-lead {
+    max-width: 960px;
+
+    font-size: 1.15rem;
+
+    line-height: 1.9;
+}
+
+.tfidf-recommendation-page .tf-lead strong {
+    color: var(--tf-primary-dark);
+}
+
+.tfidf-recommendation-page small {
+    color: var(--tf-muted);
+}
+
+/* =========================================================
+   HERO BADGES / LEGEND / TOC
+========================================================= */
+
+.tfidf-recommendation-page :is(.tf-badges, .tf-legend, .tf-toc) {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+.tfidf-recommendation-page .tf-badges {
+    margin-bottom: 18px;
+}
+
+.tfidf-recommendation-page .tf-badges span,
+.tfidf-recommendation-page .tf-toc a {
+    padding: 6px 12px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 999px;
+
+    background: #ffffff;
+
+    font-size: 0.8rem;
+
+    font-weight: 750;
+}
+
+.tfidf-recommendation-page .tf-legend {
+    margin: 20px 0 12px;
+}
+
+.tfidf-recommendation-page .tf-toc {
+    margin-top: 22px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid var(--tf-line);
+}
+
+.tfidf-recommendation-page .tf-toc a {
+    color: var(--tf-primary-dark);
+
+    text-decoration: none;
+}
+
+.tfidf-recommendation-page .tf-toc a:hover {
+    background: var(--tf-primary-soft);
+}
+
+/* =========================================================
+   HERO FLOW
+========================================================= */
+
+.tfidf-recommendation-page .tf-hero-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 26px 0;
+}
+
+.tfidf-recommendation-page .tf-hero-flow > div {
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 116px;
+
+    padding: 13px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-hero-flow > div span {
+    color: var(--tf-muted);
+
+    font-size: 0.72rem;
+}
+
+.tfidf-recommendation-page .tf-hero-flow > div strong {
+    color: var(--tf-primary-dark);
+
+    font-size: 0.87rem;
+}
+
+.tfidf-recommendation-page .tf-hero-flow > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   HERO STATS
+========================================================= */
+
+.tfidf-recommendation-page .tf-stats {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-stats article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid #cadbe3;
+
+    border-radius: 12px;
+
+    background: var(--tf-primary-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-stats span {
+    color: var(--tf-muted);
+
+    font-size: 0.76rem;
+}
+
+.tfidf-recommendation-page .tf-stats strong {
+    color: var(--tf-primary-dark);
+
+    font-size: 1.03rem;
+
+    font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   GOALS
+========================================================= */
+
+.tfidf-recommendation-page .tf-goals {
+    margin: 24px 0;
+}
+
+.tfidf-recommendation-page .tf-goals ul {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 8px 28px;
+
+    padding-left: 22px;
+}
+
+/* =========================================================
+   TAGS
+========================================================= */
+
+.tfidf-recommendation-page .page-content .tf-tag {
+    display: inline-block;
+
+    max-width: 100%;
+
+    margin: 6px 0;
+
+    padding: 4px 10px;
+
+    border-radius: 7px;
+
+    font-size: 0.78rem;
+
+    font-weight: 800;
+}
+
+.tfidf-recommendation-page .tf-tag.original {
+    color: var(--tf-green);
+
+    background: var(--tf-green-soft);
+}
+
+.tfidf-recommendation-page .tf-tag.stored {
+    color: var(--tf-primary);
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page .tf-tag.supplement {
+    color: var(--tf-blue);
+
+    background: var(--tf-blue-soft);
+}
+
+.tfidf-recommendation-page .tf-tag.review {
+    color: var(--tf-amber);
+
+    background: var(--tf-amber-soft);
+}
+
+/* =========================================================
+   CARD HEADING
+========================================================= */
+
+.tfidf-recommendation-page .tf-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 14px;
+
+    margin-bottom: 20px;
+}
+
+.tfidf-recommendation-page .tf-heading > div {
+    min-width: 0;
+}
+
+.tfidf-recommendation-page .tf-heading h2 {
+    margin: 0;
+}
+
+.tfidf-recommendation-page .tf-number {
+    display: grid;
+
+    place-items: center;
+
+    flex: 0 0 42px;
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 12px;
+
+    color: #ffffff;
+
+    background: var(--tf-primary);
+
+    font-weight: 850;
+}
+
+/* =========================================================
+   NOTE
+========================================================= */
+
+.tfidf-recommendation-page .tf-note {
+    margin: 18px 0;
+
+    padding: 16px 18px;
+
+    border-left: 4px solid var(--tf-primary);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page .tf-note.important {
+    border-color: var(--tf-purple);
+
+    background: var(--tf-purple-soft);
+}
+
+.tfidf-recommendation-page .tf-note.supplement {
+    border-color: var(--tf-blue);
+
+    background: var(--tf-blue-soft);
+}
+
+.tfidf-recommendation-page .tf-note.review {
+    border-color: var(--tf-amber);
+
+    background: var(--tf-amber-soft);
+}
+
+/* =========================================================
+   CODE
+========================================================= */
+
+.tfidf-recommendation-page .page-content code {
+    font-family: var(--study-code-font);
+}
+
+.tfidf-recommendation-page .page-content :not(pre) > code {
+    display: inline-block;
+
+    margin: 1px 2px;
+
+    padding: 2px 6px;
+
+    border-radius: 5px;
+
+    color: var(--tf-primary-dark);
+
+    background: var(--tf-primary-soft);
+
+    font-size: 0.9em;
+}
+
+.tfidf-recommendation-page pre {
+    width: 100%;
+
+    max-width: 100%;
+
+    min-width: 0;
+
+    margin: 12px 0 20px;
+
+    padding: 18px;
+
+    overflow-x: auto;
+
+    border: 1px solid var(--tf-code-line);
+
+    border-radius: 12px;
+
+    color: #edf4fa;
+
+    background: var(--tf-code-bg);
+
+    font-size: 0.92rem;
+
+    line-height: 1.8;
+
+    white-space: pre;
+
+    word-break: normal;
+
+    overflow-wrap: normal;
+
+    tab-size: 4;
+}
+
+.tfidf-recommendation-page pre code {
+    margin: 0;
+    font-size: inherit;
+    padding: 0;
+
+    color: inherit;
+
+    background: transparent;
+
+    white-space: inherit;
+}
+
+/* =========================================================
+   GENERAL GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-grid article {
+    min-width: 0;
+
+    padding: 18px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 14px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-grid article h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   RECOMMEND GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-recommend-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-recommend-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-recommend-grid article.active {
+    border-color: #b9b0e9;
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page .tf-recommend-grid span {
+    color: var(--tf-primary);
+
+    font-size: 0.76rem;
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   STACK
+========================================================= */
+
+.tfidf-recommendation-page .tf-stack {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-stack > div {
+    width: min(100%, 680px);
+
+    padding: 13px 16px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: var(--tf-blue-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-stack > div strong,
+.tfidf-recommendation-page .tf-stack > div small {
+    display: block;
+}
+
+.tfidf-recommendation-page .tf-stack > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+.tfidf-recommendation-page .tf-stack.compact {
+    width: min(100%, 580px);
+
+    margin: 14px auto;
+}
+
+/* =========================================================
+   PHASE GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-phase-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-phase-grid article {
+    padding: 16px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-phase-grid span {
+    color: var(--tf-primary);
+
+    font-size: 0.75rem;
+
+    font-weight: 850;
+}
+
+.tfidf-recommendation-page .tf-phase-grid h3 {
+    margin: 7px 0;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.tfidf-recommendation-page .tf-table {
+    width: 100%;
+
+    max-width: 100%;
+
+    margin: 18px 0;
+
+    overflow-x: auto;
+}
+
+.tfidf-recommendation-page table {
+    width: 100%;
+
+    min-width: 560px;
+
+    border-collapse: collapse;
+
+    font-size: 0.95rem;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.tfidf-recommendation-page caption {
+    padding-bottom: 9px;
+
+    color: var(--tf-muted);
+
+    text-align: left;
+}
+
+.tfidf-recommendation-page .page-content :is(th, td) {
+    padding: 13px 16px;
+
+    border: 1px solid var(--tf-line);
+
+    text-align: left;
+
+    vertical-align: top;
+}
+
+.tfidf-recommendation-page thead th {
+    color: var(--tf-primary-dark);
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page tbody tr:nth-child(even) {
+    background: #f7fafb;
+}
+
+/* =========================================================
+   DATA GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-data-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-data-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 14px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: var(--tf-primary-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-data-grid span {
+    color: var(--tf-muted);
+
+    font-size: 0.75rem;
+}
+
+/* =========================================================
+   LARGE TEXT
+========================================================= */
+
+.tfidf-recommendation-page .tf-large-text {
+    display: block;
+
+    margin: 24px 0;
+
+    color: var(--tf-primary-dark);
+
+    font-size: 2rem;
+
+    text-align: center;
+}
+
+/* =========================================================
+   FLOW
+========================================================= */
+
+.tfidf-recommendation-page .tf-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-flow > div {
+    padding: 12px 14px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: var(--tf-blue-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-flow > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   CONCEPT GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-concept-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 18px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-concept-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 20px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 13px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-concept-grid article span {
+    color: var(--tf-primary);
+
+    font-size: 1.3rem;
+
+    font-weight: 900;
+}
+
+.tfidf-recommendation-page .tf-multiply {
+    color: var(--tf-primary);
+
+    font-size: 1.8rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   FORMULA
+========================================================= */
+
+.tfidf-recommendation-page .tf-formula {
+    margin: 18px 0;
+
+    padding: 17px;
+
+    border-radius: 12px;
+
+    color: var(--tf-primary-dark);
+
+    background: var(--tf-primary-soft);
+
+    text-align: center;
+
+    font-size: 1.05rem;
+
+    font-weight: 800;
+
+    line-height: 2;
+}
+
+/* =========================================================
+   STATE FLOW
+========================================================= */
+
+.tfidf-recommendation-page .tf-state-flow {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 16px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-state-flow article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 17px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-state-flow > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   PARAMETER GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-parameter-grid {
+    display: grid;
+
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    gap: 9px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-parameter-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 13px 8px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: var(--tf-primary-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-parameter-grid span {
+    color: var(--tf-muted);
+
+    font-size: 0.74rem;
+}
+
+/* =========================================================
+   FIT TRANSFORM
+========================================================= */
+
+.tfidf-recommendation-page .tf-fit-transform {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 18px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-fit-transform article {
+    padding: 18px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-fit-transform article span {
+    color: var(--tf-primary);
+
+    font-weight: 800;
+}
+
+.tfidf-recommendation-page .tf-fit-transform > span {
+    color: var(--tf-primary);
+
+    font-size: 1.5rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   DTM DEMO
+========================================================= */
+
+.tfidf-recommendation-page .tf-dtm-demo,
+.tfidf-recommendation-page .tf-sim-matrix {
+    margin: 20px 0;
+
+    overflow-x: auto;
+}
+
+.tfidf-recommendation-page .tf-dtm-demo table,
+.tfidf-recommendation-page .tf-sim-matrix table {
+    min-width: 650px;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-dtm-demo th,
+.tfidf-recommendation-page .tf-dtm-demo td,
+.tfidf-recommendation-page .tf-sim-matrix th,
+.tfidf-recommendation-page .tf-sim-matrix td {
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-sim-matrix .self {
+    color: var(--tf-green);
+
+    background: var(--tf-green-soft);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   SHAPE HIGHLIGHT
+========================================================= */
+
+.tfidf-recommendation-page .tf-shape-highlight {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 5px;
+
+    width: min(100%, 500px);
+
+    margin: 20px auto;
+
+    padding: 18px;
+
+    border: 1px solid #a8d3c0;
+
+    border-radius: 12px;
+
+    background: var(--tf-green-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-shape-highlight strong {
+    font-size: 1.5rem;
+}
+
+/* =========================================================
+   SPARSE STATS
+========================================================= */
+
+.tfidf-recommendation-page .tf-sparse-stats {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-sparse-stats article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: var(--tf-teal-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-sparse-stats span {
+    color: var(--tf-muted);
+
+    font-size: 0.75rem;
+}
+
+/* =========================================================
+   COMPARE
+========================================================= */
+
+.tfidf-recommendation-page .tf-compare,
+.tfidf-recommendation-page .tf-next-compare {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 18px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-compare article,
+.tfidf-recommendation-page .tf-next-compare article {
+    padding: 19px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 13px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-compare article.warning {
+    border-color: #ddbd8f;
+
+    background: var(--tf-amber-soft);
+}
+
+.tfidf-recommendation-page .tf-next-compare article.next {
+    border-color: #b9afe7;
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page .tf-big-arrow {
+    color: var(--tf-primary);
+
+    font-size: 1.5rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   SHAPE FLOW
+========================================================= */
+
+.tfidf-recommendation-page .tf-shape-flow {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-shape-flow > div {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    width: min(100%, 650px);
+
+    padding: 14px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: var(--tf-primary-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-shape-flow > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   DISTINCTION
+========================================================= */
+
+.tfidf-recommendation-page .tf-distinction {
+    display: grid;
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-distinction > div {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 12px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-distinction span {
+    color: var(--tf-red);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   MAPPING GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-mapping-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-mapping-grid article {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 7px;
+
+    padding: 18px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    background: var(--tf-blue-soft);
+
+    text-align: center;
+}
+
+/* =========================================================
+   SIMILARITY SCALE
+========================================================= */
+
+.tfidf-recommendation-page .tf-similarity-scale {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-similarity-scale article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 16px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-similarity-scale strong {
+    color: var(--tf-primary-dark);
+
+    font-size: 1.25rem;
+}
+
+/* =========================================================
+   RANKING
+========================================================= */
+
+.tfidf-recommendation-page .tf-ranking-list {
+    margin: 18px 0;
+
+    padding: 0;
+
+    list-style: none;
+
+    counter-reset: tf-rank;
+}
+
+.tfidf-recommendation-page .tf-ranking-list li {
+    counter-increment: tf-rank;
+
+    display: grid;
+
+    grid-template-columns: 42px minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin: 8px 0;
+
+    padding: 12px 15px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-ranking-list li::before {
+    content: counter(tf-rank);
+
+    display: grid;
+
+    place-items: center;
+
+    width: 32px;
+
+    height: 32px;
+
+    border-radius: 50%;
+
+    color: #ffffff;
+
+    background: var(--tf-primary);
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   RESULT HIGHLIGHT
+========================================================= */
+
+.tfidf-recommendation-page .tf-result-highlight {
+    display: grid;
+
+    grid-template-columns: auto minmax(0, 1fr);
+
+    gap: 8px 16px;
+
+    margin: 20px 0;
+
+    padding: 18px;
+
+    border: 1px solid #a5ceb9;
+
+    border-radius: 12px;
+
+    background: var(--tf-green-soft);
+}
+
+.tfidf-recommendation-page .tf-result-highlight span {
+    color: var(--tf-muted);
+}
+
+/* =========================================================
+   VECTOR COMPARE
+========================================================= */
+
+.tfidf-recommendation-page .tf-vector-compare {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-vector-compare article {
+    padding: 18px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 13px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-vector-compare article.active {
+    border-color: #b8d6dc;
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page .tf-vector-compare article > span {
+    color: var(--tf-primary);
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   RESULT COMPARE
+========================================================= */
+
+.tfidf-recommendation-page .tf-result-compare {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-result-compare article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-result-compare > span {
+    color: var(--tf-red);
+
+    font-size: 1.4rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   REVIEW LIST
+========================================================= */
+
+.tfidf-recommendation-page .tf-review-list {
+    display: grid;
+
+    gap: 11px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-review-list article {
+    padding: 15px 17px;
+
+    border: 1px solid var(--tf-line);
+
+    border-left: 4px solid var(--tf-amber);
+
+    border-radius: 12px;
+
+    background: var(--tf-amber-soft);
+}
+
+/* =========================================================
+   ABSENT GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-absent-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-absent-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 13px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-absent-grid span {
+    color: var(--tf-muted);
+
+    font-size: 0.75rem;
+}
+
+/* =========================================================
+   DIAGNOSIS
+========================================================= */
+
+.tfidf-recommendation-page .tf-diagnosis-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-diagnosis-grid article {
+    padding: 16px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-diagnosis-grid h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   MISTAKE LIST
+========================================================= */
+
+.tfidf-recommendation-page .tf-mistake-list {
+    display: grid;
+
+    gap: 11px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-mistake-list article {
+    padding: 15px 17px;
+
+    border: 1px solid var(--tf-line);
+
+    border-left: 4px solid var(--tf-amber);
+
+    border-radius: 12px;
+
+    background: #fbfcfe;
+}
+
+.tfidf-recommendation-page .tf-mistake-list p {
+    margin: 5px 0 0;
+}
+
+/* =========================================================
+   IMPROVE FLOW
+========================================================= */
+
+.tfidf-recommendation-page .tf-improve-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-improve-flow > div {
+    padding: 10px 12px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 9px;
+
+    background: var(--tf-primary-soft);
+
+    font-size: 0.89rem;
+
+    font-weight: 700;
+}
+
+.tfidf-recommendation-page .tf-improve-flow > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   IMPROVE GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-improve-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.tfidf-recommendation-page .tf-improve-grid article {
+    padding: 16px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-improve-grid h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   SERVICE FLOW
+========================================================= */
+
+.tfidf-recommendation-page .tf-service-flow {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.tfidf-recommendation-page .tf-service-flow > div {
+    width: min(100%, 640px);
+
+    padding: 13px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: var(--tf-blue-soft);
+
+    text-align: center;
+
+    font-weight: 700;
+}
+
+.tfidf-recommendation-page .tf-service-flow > span {
+    color: var(--tf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   PRACTICAL GRID
+========================================================= */
+
+.tfidf-recommendation-page .tf-practical-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-practical-grid article {
+    padding: 15px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.tfidf-recommendation-page .tf-practical-grid p {
+    margin-bottom: 0;
+}
+
+/* =========================================================
+   Q&A
+========================================================= */
+
+.tfidf-recommendation-page .tf-qa {
+    display: grid;
+
+    gap: 10px;
+}
+
+.tfidf-recommendation-page .tf-qa details {
+    border: 1px solid var(--tf-line);
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+}
+
+.tfidf-recommendation-page .tf-qa summary {
+    padding: 14px 16px;
+
+    cursor: pointer;
+
+    font-weight: 750;
+}
+
+.tfidf-recommendation-page .tf-qa details[open] summary {
+    color: var(--tf-primary-dark);
+
+    background: var(--tf-primary-soft);
+}
+
+.tfidf-recommendation-page .tf-qa details > div {
+    padding: 14px 16px;
+
+    border-top: 1px solid var(--tf-line);
+}
+
+/* =========================================================
+   MEMORY
+========================================================= */
+
+.tfidf-recommendation-page .tf-memory-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-memory-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 13px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 10px;
+
+    background: var(--tf-primary-soft);
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-memory-grid span {
+    color: var(--tf-muted);
+
+    font-size: 0.76rem;
+}
+
+/* =========================================================
+   MINI COMPARE
+========================================================= */
+
+.tfidf-recommendation-page .tf-mini-compare {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 14px;
+
+    margin: 18px 0;
+}
+
+.tfidf-recommendation-page .tf-mini-compare article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 16px;
+
+    border: 1px solid var(--tf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.tfidf-recommendation-page .tf-mini-compare > span {
+    color: var(--tf-red);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.tfidf-recommendation-page .tf-closing {
+    font-size: 1.13rem;
+
+    line-height: 1.9;
+}
+
+.tfidf-recommendation-page .tf-back {
+    display: inline-block;
+
+    margin-top: 12px;
+
+    padding: 8px 0;
+
+    color: var(--tf-primary);
+
+    font-weight: 750;
+
+    text-decoration: none;
+}
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+.tfidf-recommendation-page :is(.lesson-card, .tf-side-card, #lessonMain) {
+    scroll-margin-top: 20px;
+}
+
+.tfidf-recommendation-page .page-content :is(a, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--tf-primary);
+
+    outline-offset: 4px;
+}
+
+.tfidf-recommendation-page .tf-skip {
+    position: fixed;
+
+    z-index: 9999;
+
+    top: 12px;
+
+    left: 12px;
+
+    padding: 10px 16px;
+
+    border: 2px solid var(--tf-primary);
+
+    border-radius: 8px;
+
+    color: var(--tf-primary-dark);
+
+    background: #ffffff;
+
+    font-weight: 750;
+}
+
+.tfidf-recommendation-page .tf-skip:not(:focus) {
+    position: absolute;
+
+    width: 1px;
+
+    height: 1px;
+
+    margin: -1px;
+
+    padding: 0;
+
+    border: 0;
+
+    overflow: hidden;
+
+    clip-path: inset(50%);
+
+    white-space: nowrap;
+}
+
+/* =========================================================
+   RESPONSIVE : 1050
+========================================================= */
+
+@media (max-width: 1050px) {
+    .tfidf-recommendation-page .tf-parameter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .tfidf-recommendation-page .tf-practical-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE : 850
+========================================================= */
+
+@media (max-width: 850px) {
+    .tfidf-recommendation-page .tf-stats,
+    .tfidf-recommendation-page .tf-memory-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tfidf-recommendation-page .tf-goals ul {
+        grid-template-columns: 1fr;
+    }
+
+    .tfidf-recommendation-page .tf-data-grid,
+    .tfidf-recommendation-page .tf-sparse-stats,
+    .tfidf-recommendation-page .tf-absent-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE : 680
+========================================================= */
+
+@media (max-width: 680px) {
+    .tfidf-recommendation-page .tf-grid,
+    .tfidf-recommendation-page .tf-recommend-grid,
+    .tfidf-recommendation-page .tf-vector-compare,
+    .tfidf-recommendation-page .tf-diagnosis-grid,
+    .tfidf-recommendation-page .tf-improve-grid,
+    .tfidf-recommendation-page .tf-practical-grid,
+    .tfidf-recommendation-page .tf-similarity-scale {
+        grid-template-columns: 1fr;
+    }
+
+    .tfidf-recommendation-page .tf-concept-grid,
+    .tfidf-recommendation-page .tf-state-flow,
+    .tfidf-recommendation-page .tf-fit-transform,
+    .tfidf-recommendation-page .tf-compare,
+    .tfidf-recommendation-page .tf-result-compare,
+    .tfidf-recommendation-page .tf-next-compare,
+    .tfidf-recommendation-page .tf-mini-compare {
+        grid-template-columns: 1fr;
+    }
+
+    .tfidf-recommendation-page .tf-big-arrow,
+    .tfidf-recommendation-page .tf-concept-grid > .tf-multiply,
+    .tfidf-recommendation-page .tf-state-flow > span,
+    .tfidf-recommendation-page .tf-fit-transform > span,
+    .tfidf-recommendation-page .tf-result-compare > span,
+    .tfidf-recommendation-page .tf-mini-compare > span {
+        transform: rotate(90deg);
+
+        text-align: center;
+    }
+
+    .tfidf-recommendation-page .tf-flow,
+    .tfidf-recommendation-page .tf-hero-flow,
+    .tfidf-recommendation-page .tf-improve-flow {
+        flex-direction: column;
+    }
+
+    .tfidf-recommendation-page .tf-flow > div,
+    .tfidf-recommendation-page .tf-hero-flow > div,
+    .tfidf-recommendation-page .tf-improve-flow > div {
+        width: 100%;
+    }
+
+    .tfidf-recommendation-page .tf-flow > span,
+    .tfidf-recommendation-page .tf-hero-flow > span,
+    .tfidf-recommendation-page .tf-improve-flow > span {
+        transform: rotate(90deg);
+    }
+
+    .tfidf-recommendation-page .tf-phase-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE : 540
+========================================================= */
+
+@media (max-width: 540px) {
+    .tfidf-recommendation-page .page-content {
+        padding: 0 0 48px;
+    }
+
+    .tfidf-recommendation-page :is(.lesson-hero, .lesson-card, .tf-side-card, .lesson-footer) {
+        padding: 24px 19px;
+
+        border-radius: 15px;
+    }
+
+    .tfidf-recommendation-page .tf-heading {
+        gap: 10px;
+    }
+
+    .tfidf-recommendation-page .tf-number {
+        flex-basis: 34px;
+
+        width: 34px;
+
+        height: 34px;
+
+        border-radius: 9px;
+
+        font-size: 0.8rem;
+    }
+
+    .tfidf-recommendation-page pre {
+        padding: 14px;
+
+        font-size: 0.92rem;
+    }
+
+    .tfidf-recommendation-page .tf-stats,
+    .tfidf-recommendation-page .tf-data-grid,
+    .tfidf-recommendation-page .tf-parameter-grid,
+    .tfidf-recommendation-page .tf-sparse-stats,
+    .tfidf-recommendation-page .tf-absent-grid,
+    .tfidf-recommendation-page .tf-memory-grid,
+    .tfidf-recommendation-page .tf-phase-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tfidf-recommendation-page .tf-distinction > div {
+        grid-template-columns: 1fr;
+
+        gap: 4px;
+    }
+
+    .tfidf-recommendation-page .tf-result-highlight {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* AI Machine Learning · 공통 읽기 경험과 키보드 접근성 */
+.tfidf-recommendation-page .page-content :where(article, nav, ul, ol, li) { min-width: 0; }
+.tfidf-recommendation-page .page-content a { color: var(--tf-primary); text-underline-offset: 4px; }
+.tfidf-recommendation-page :focus-visible { outline: 3px solid var(--tf-primary); outline-offset: 4px; }
+.tfidf-recommendation-page .tf-badges span { display: inline-flex; align-items: center; min-height: 36px; color: var(--tf-primary-dark); background: #fff; }
+.tfidf-recommendation-page .tf-heading { padding-bottom: 18px; border-bottom: 1px solid #e2ebef; }
+.tfidf-recommendation-page .tf-goals { padding: 22px; border: 1px solid var(--tf-line); border-radius: 16px; background: var(--tf-primary-soft); }
+.tfidf-recommendation-page .tf-goals h2 { margin-top: 0; font-size: 1.2rem; color: #075363; }
+.tfidf-recommendation-page .tf-goals ul { padding-left: 0; margin: 0; gap: 10px; list-style: none; }
+.tfidf-recommendation-page .tf-goals li { padding: 12px; margin: 0; border: 1px solid #d6e5e9; border-radius: 11px; background: #ffffffc9; font-size: .94rem; }
+.tfidf-recommendation-page .tf-toc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tfidf-recommendation-page .tf-toc a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border-radius: 10px; font-size: .875rem; line-height: 1.6; }
+.tfidf-recommendation-page .tf-toc a:hover { border-color: var(--tf-primary); background: var(--tf-primary-soft); }
+.tfidf-recommendation-page #memory { background: var(--tf-primary-soft); }
+.tfidf-recommendation-page #next { background: #f2eff9; border-color: #ddd5ec; }
+.tfidf-recommendation-page .tf-back { min-height: 44px; }
+.tfidf-recommendation-page :is(.tf-table, .tf-dtm-demo, .tf-sim-matrix) { border-radius: 12px; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.tfidf-recommendation-page caption { padding: 12px 0; }
+.tfidf-recommendation-page pre { scrollbar-width: thin; overscroll-behavior-x: contain; }
+.tfidf-recommendation-page .tf-qa summary { min-height: 48px; }
+.tfidf-recommendation-page .tf-qa summary:hover { color: var(--tf-primary-dark); background: var(--tf-primary-soft); }
+.tfidf-recommendation-page .page-content :not(pre) > code { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
+/* 화살표가 다음 줄로 떨어지지 않도록 단계와 연결선을 한 행으로 배치합니다. */
+.tfidf-recommendation-page .tf-hero-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr) auto) minmax(0, 1fr); }
+.tfidf-recommendation-page .tf-hero-flow > div { min-width: 0; }
+.tfidf-recommendation-page .tf-flow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr) auto) minmax(0, 1fr); }
+.tfidf-recommendation-page .tf-improve-flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr) auto) minmax(0, 1fr); }
+.tfidf-recommendation-page :is(.tf-hero-flow, .tf-flow, .tf-improve-flow) > div { max-width: 100%; }
+
+@media screen and (max-width: 1050px) {
+    .tfidf-recommendation-page .tf-improve-flow { grid-template-columns: minmax(0, 1fr); }
+    .tfidf-recommendation-page .tf-improve-flow > span { transform: rotate(90deg); text-align: center; }
+}
+
+@media screen and (max-width: 900px) {
+    .tfidf-recommendation-page .tf-hero-flow { grid-template-columns: minmax(0, 1fr); }
+    .tfidf-recommendation-page .tf-hero-flow > span { transform: rotate(90deg); text-align: center; }
+}
+
+@media screen and (max-width: 720px) {
+    .tfidf-recommendation-page :is(.lesson-hero, .lesson-card, .tf-side-card, .lesson-footer) { padding: 24px 19px; border-radius: 16px; }
+    .tfidf-recommendation-page .tf-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tfidf-recommendation-page .tf-goals { padding: 16px; }
+}
+
+@media screen and (max-width: 680px) {
+    .tfidf-recommendation-page .tf-flow { grid-template-columns: minmax(0, 1fr); }
+    .tfidf-recommendation-page .tf-flow > span { text-align: center; }
+}
+
+@media screen and (max-width: 440px) {
+    .tfidf-recommendation-page :is(.lesson-hero, .lesson-card, .tf-side-card, .lesson-footer) { padding: 21px 15px; }
+    .tfidf-recommendation-page .page-content h1 { font-size: 1.85rem; }
+    .tfidf-recommendation-page .tf-toc { grid-template-columns: minmax(0, 1fr); }
+    .tfidf-recommendation-page .tf-lead { font-size: 1.03rem; }
+}
+
+.tfidf-recommendation-page .page-content .tf-qa summary:focus-visible { outline-offset: -4px; }
+
+@media (prefers-reduced-motion: reduce) {
+    html:has(> body.tfidf-recommendation-page) { scroll-behavior: auto; }
+    body.tfidf-recommendation-page *, body.tfidf-recommendation-page *::before, body.tfidf-recommendation-page *::after { animation: none; transition: none; scroll-behavior: auto; }
+}
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+    html:has(> body.tfidf-recommendation-page), body.tfidf-recommendation-page { min-width: 0; background: #fff; color: #111; }
+    body.tfidf-recommendation-page { font-size: 10pt; }
+    .tfidf-recommendation-page .lesson-hero::before { display: none; }
+    .tfidf-recommendation-page .tf-qa details::details-content { display: block; content-visibility: visible; }
+    .tfidf-recommendation-page pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .tfidf-recommendation-page :is(.lesson-hero, #memory, #next) { background: #fff; }
+    .tfidf-recommendation-page .tf-number { background: #eee; color: #111; }
+    .tfidf-recommendation-page :is(.tf-dtm-demo, .tf-sim-matrix) table { min-width: 0; }
+
+    .tfidf-recommendation-page {
+        color: #000000;
+
+        background: #ffffff;
+
+        font-size: 10pt;
+    }
+
+    .tfidf-recommendation-page :is(.side-nav, .tf-toc, .tf-skip, .tf-back) {
+        display: none !important;
+    }
+
+    .tfidf-recommendation-page .layout {
+        display: block !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+    }
+
+    .tfidf-recommendation-page .page-content {
+        width: 100% !important;
+
+        max-width: none !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+    }
+
+    .tfidf-recommendation-page :is(.lesson-hero, .lesson-card, .tf-side-card, .lesson-footer) {
+        padding: 14px;
+
+        border-radius: 0;
+
+        box-shadow: none;
+    }
+
+    .tfidf-recommendation-page :is(.lesson-main, .side-note) {
+        display: block;
+    }
+
+    .tfidf-recommendation-page :is(.lesson-card, .tf-side-card) {
+        margin-bottom: 16px;
+    }
+
+    .tfidf-recommendation-page pre {
+        color: #111111;
+
+        background: #f4f4f4;
+
+        border-color: #aaaaaa;
+
+        white-space: pre-wrap;
+
+        overflow-wrap: anywhere;
+
+        font-size: 8.5pt;
+    }
+
+    .tfidf-recommendation-page :is(.tf-table, .tf-dtm-demo, .tf-sim-matrix) {
+        overflow: visible;
+    }
+
+    .tfidf-recommendation-page table {
+        min-width: 0;
+
+        font-size: 9pt;
+    }
+
+    .tfidf-recommendation-page tr {
+        break-inside: avoid;
+    }
+
+    .tfidf-recommendation-page :is(h1, h2, h3, .tf-heading) {
+        break-after: avoid;
+    }
+
+    .tfidf-recommendation-page .tf-qa details {
+        break-inside: avoid;
+    }
+}

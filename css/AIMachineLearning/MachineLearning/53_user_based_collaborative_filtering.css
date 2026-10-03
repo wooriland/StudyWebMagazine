@@ -1,15 +1,2263 @@
 @charset "UTF-8";
 
-/*
- * AI & Machine Learning
- * Course: AI Machine Learning
- * Lesson: ML 53. 사용자 기반 협업 필터링
- *
- * 공통 스타일:
- * - ../../css/00_nav.css
- * - ../../css/study-theme.css
- * - ../../css/AIMachineLearning/ai-machine-learning-common.css
- * - ../../css/AIMachineLearning/MachineLearning/machine-learning-common.css
- *
- * 이 파일(53_user_based_collaborative_filtering.css)에는 이 단원에서만 필요한 스타일을 Step 3에서 추가한다.
- */
+/* AI Machine Learning · 단원별 독립 레이아웃
+   AI 개념 페이지의 청록/회청색 팔레트와 동일한 가독성 기준.
+   공통 메뉴의 생성·펼침 동작은 00_nav.js에서 관리합니다. */
+html:has(> body.user-cf-page) {
+    min-width: 0;
+    overflow-x: visible;
+    background: #eef4f7;
+}
+
+body.user-cf-page {
+    --layout-min-width: 0px;
+    --content-min-width: 0px;
+    --side-nav-width: 280px;
+    --theme-accent: #0f6875;
+    --theme-accent-dark: #075363;
+    --theme-soft: #e6f1f4;
+    --theme-bg: #eef4f7;
+    --theme-surface: #fff;
+    --theme-surface-soft: #f2f7f8;
+    --theme-border: #cadbe3;
+    --theme-text: #364656;
+    --theme-muted: #566573;
+    --theme-shadow: rgba(21, 50, 67, .06);
+    --theme-code-bg: #182f3c;
+    --theme-code-text: #edf4fa;
+    --study-code-font: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace;
+    min-width: 0;
+    overflow-x: visible;
+    margin: 0;
+    color: var(--theme-text);
+    background: var(--theme-bg);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    -webkit-text-size-adjust: 100%;
+}
+
+.user-cf-page .layout,
+.user-cf-page .layout *,
+.user-cf-page .layout *::before,
+.user-cf-page .layout *::after {
+    box-sizing: border-box;
+}
+
+.user-cf-page .layout {
+    width: 100%;
+    max-width: 1920px;
+    min-width: 0;
+    margin: 0 auto;
+    padding: clamp(16px, 2vw, 32px);
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(20px, 2vw, 32px);
+}
+
+.user-cf-page #sideNav {
+    top: 24px;
+    width: 100%;
+    min-width: 0;
+    max-height: calc(100vh - 48px);
+    padding: 20px;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    overflow-wrap: anywhere;
+}
+
+.user-cf-page .page-content :where(main, section, aside, div, figure, dl, dd) { min-width: 0; }
+.user-cf-page .page-content :where(h1, h2, h3, p, li, dt, dd, th, td, summary) { overflow-wrap: anywhere; }
+.user-cf-page .page-content :is(img, svg, video, canvas) { max-width: 100%; }
+.user-cf-page .page-content [id] { scroll-margin-top: 24px; }
+
+@media screen and (max-width: 1240px) {
+    .user-cf-page .layout { grid-template-columns: minmax(0, 1fr); }
+    .user-cf-page #sideNav { position: static; max-height: 300px; }
+}
+
+@media screen and (max-width: 700px) {
+    .user-cf-page .layout { padding: 12px; gap: 18px; }
+    .user-cf-page #sideNav { max-height: 240px; padding: 16px; border-radius: 16px; }
+}
+
+/* =========================================================
+   ML 53. User-Based Collaborative Filtering
+   Page Scope : .user-cf-page
+========================================================= */
+
+.user-cf-page {
+    --ucf-ink: #1f2933;
+    --ucf-muted: #566573;
+    --ucf-line: #cadbe3;
+
+    --ucf-primary: #0f6875;
+    --ucf-primary-dark: #075363;
+    --ucf-primary-soft: #e6f1f4;
+
+    --ucf-blue: #24678c;
+    --ucf-blue-soft: #eaf5fc;
+
+    --ucf-green: #17614b;
+    --ucf-green-soft: #e8f6ef;
+
+    --ucf-amber: #865816;
+    --ucf-amber-soft: #fff3df;
+
+    --ucf-red: #984545;
+    --ucf-red-soft: #fff0f0;
+
+    --ucf-purple: #71488b;
+    --ucf-purple-soft: #f7effb;
+
+    --ucf-teal: #176a65;
+    --ucf-teal-soft: #e8f6f4;
+
+    --ucf-paper: #ffffff;
+    --ucf-bg: #eef4f7;
+
+    --ucf-code-bg: #182f3c;
+    --ucf-code-line: #34515e;
+
+    margin: 0;
+
+    color: var(--theme-text);
+
+    background: var(--ucf-bg);
+
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+
+    line-height: 1.85;
+}
+
+/* =========================================================
+   BOX SIZING
+========================================================= */
+
+.user-cf-page .page-content,
+.user-cf-page .page-content *,
+.user-cf-page .page-content *::before,
+.user-cf-page .page-content *::after {
+    box-sizing: border-box;
+}
+
+/* =========================================================
+   PAGE STRUCTURE
+========================================================= */
+
+.user-cf-page .page-content {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 0 0 48px;
+
+    word-break: keep-all;
+
+    overflow-wrap: anywhere;
+}
+
+.user-cf-page :is(.lesson-hero, .lesson-main, .side-note, .lesson-footer) {
+    width: 100%;
+
+    max-width: 1500px;
+
+    min-width: 0;
+
+    margin-inline: auto;
+}
+
+.user-cf-page :is(.lesson-hero, .lesson-card, .ucf-side-card, .lesson-footer) {
+    min-width: 0;
+
+    padding: clamp(22px, 2.6vw, 38px);
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 20px;
+
+    background: var(--ucf-paper);
+
+    box-shadow: 0 8px 26px var(--theme-shadow);
+}
+
+.user-cf-page .lesson-hero {
+    position: relative;
+    isolation: isolate;
+    margin-bottom: 28px;
+    padding: clamp(24px, 3vw, 44px);
+    border-top: 4px solid var(--ucf-primary);
+    border-radius: 26px;
+    background: linear-gradient(125deg, #edf6f7, #fff 64%, #f2eff9);
+    box-shadow: 0 12px 32px var(--theme-shadow);
+}
+
+.user-cf-page .lesson-hero::before {
+    content: '53';
+    position: absolute;
+    top: 8px;
+    right: 24px;
+    z-index: -1;
+    color: #0f68750a;
+    font-size: clamp(7rem, 13vw, 13rem);
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.user-cf-page :is(.lesson-main, .side-note) {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 24px;
+}
+
+.user-cf-page .side-note {
+    position: static;
+
+    inset: auto;
+
+    margin-top: 24px;
+}
+
+.user-cf-page .lesson-footer {
+    margin-top: 24px;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+========================================================= */
+
+.user-cf-page .page-content :is(h1, h2, h3) {
+    color: var(--ucf-ink);
+
+    line-height: 1.45;
+}
+
+.user-cf-page .page-content h1 {
+    margin: 10px 0 16px;
+
+    font-size: clamp(2rem, 3.3vw, 3.5rem);
+
+    letter-spacing: -0.04em;
+}
+
+.user-cf-page .page-content h2 {
+    margin: 0 0 14px;
+
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+
+    letter-spacing: -0.02em;
+}
+
+.user-cf-page .page-content h3 {
+    margin: 22px 0 10px;
+
+    font-size: 1.08rem;
+}
+
+.user-cf-page .page-content p {
+    margin: 11px 0;
+}
+
+.user-cf-page .page-content .ucf-kicker {
+    margin: 0 0 5px;
+
+    color: var(--ucf-primary);
+
+    font-size: 0.78rem;
+
+    font-weight: 800;
+
+    letter-spacing: 0.03em;
+}
+
+.user-cf-page .ucf-lead {
+    max-width: 960px;
+
+    font-size: 1.15rem;
+
+    line-height: 1.9;
+}
+
+.user-cf-page .ucf-lead strong {
+    color: var(--ucf-primary-dark);
+}
+
+.user-cf-page small {
+    color: var(--ucf-muted);
+}
+
+/* =========================================================
+   HERO BADGES / LEGEND / TOC
+========================================================= */
+
+.user-cf-page :is(.ucf-badges, .ucf-legend, .ucf-toc) {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+.user-cf-page .ucf-badges {
+    margin-bottom: 18px;
+}
+
+.user-cf-page .ucf-badges span,
+.user-cf-page .ucf-toc a {
+    padding: 6px 12px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 999px;
+
+    background: #ffffff;
+
+    font-size: 0.8rem;
+
+    font-weight: 750;
+}
+
+.user-cf-page .ucf-legend {
+    margin: 20px 0 12px;
+}
+
+.user-cf-page .ucf-toc {
+    margin-top: 22px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid var(--ucf-line);
+}
+
+.user-cf-page .ucf-toc a {
+    color: var(--ucf-primary-dark);
+
+    text-decoration: none;
+}
+
+.user-cf-page .ucf-toc a:hover {
+    background: var(--ucf-primary-soft);
+}
+
+/* =========================================================
+   HERO FLOW
+========================================================= */
+
+.user-cf-page .ucf-hero-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 26px 0;
+}
+
+.user-cf-page .ucf-hero-flow > div {
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 112px;
+
+    padding: 13px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-hero-flow > div span {
+    color: var(--ucf-muted);
+
+    font-size: 0.72rem;
+}
+
+.user-cf-page .ucf-hero-flow > div strong {
+    color: var(--ucf-primary-dark);
+
+    font-size: 0.86rem;
+}
+
+.user-cf-page .ucf-hero-flow > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   HERO STATS
+========================================================= */
+
+.user-cf-page .ucf-stats {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-stats article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid #dad6ef;
+
+    border-radius: 12px;
+
+    background: var(--ucf-primary-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-stats span {
+    color: var(--ucf-muted);
+
+    font-size: 0.76rem;
+}
+
+.user-cf-page .ucf-stats strong {
+    color: var(--ucf-primary-dark);
+
+    font-size: 1.03rem;
+
+    font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   GOALS
+========================================================= */
+
+.user-cf-page .ucf-goals {
+    margin: 24px 0;
+}
+
+.user-cf-page .ucf-goals ul {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 8px 28px;
+
+    padding-left: 22px;
+}
+
+/* =========================================================
+   TAGS
+========================================================= */
+
+.user-cf-page .page-content .ucf-tag {
+    display: inline-block;
+
+    max-width: 100%;
+
+    margin: 6px 0;
+
+    padding: 4px 10px;
+
+    border-radius: 7px;
+
+    font-size: 0.78rem;
+
+    font-weight: 800;
+}
+
+.user-cf-page .ucf-tag.original {
+    color: var(--ucf-green);
+
+    background: var(--ucf-green-soft);
+}
+
+.user-cf-page .ucf-tag.stored {
+    color: var(--ucf-primary);
+
+    background: var(--ucf-primary-soft);
+}
+
+.user-cf-page .ucf-tag.official {
+    color: #67450e;
+
+    background: #fff0c7;
+}
+
+.user-cf-page .ucf-tag.review {
+    color: var(--ucf-amber);
+
+    background: var(--ucf-amber-soft);
+}
+
+.user-cf-page .ucf-tag.supplement {
+    color: var(--ucf-blue);
+
+    background: var(--ucf-blue-soft);
+}
+
+/* =========================================================
+   CARD HEADING
+========================================================= */
+
+.user-cf-page .ucf-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 14px;
+
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2ebef;
+}
+
+.user-cf-page .ucf-heading > div {
+    min-width: 0;
+}
+
+.user-cf-page .ucf-heading h2 {
+    margin: 0;
+}
+
+.user-cf-page .ucf-number {
+    display: grid;
+
+    place-items: center;
+
+    flex: 0 0 42px;
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 12px;
+
+    color: #ffffff;
+
+    background: var(--ucf-primary);
+
+    font-weight: 850;
+}
+
+/* =========================================================
+   NOTE
+========================================================= */
+
+.user-cf-page .ucf-note {
+    margin: 18px 0;
+
+    padding: 16px 18px;
+
+    border-left: 4px solid var(--ucf-primary);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--ucf-primary-soft);
+}
+
+.user-cf-page .ucf-note.important {
+    border-color: var(--ucf-purple);
+
+    background: var(--ucf-purple-soft);
+}
+
+.user-cf-page .ucf-note.supplement {
+    border-color: var(--ucf-blue);
+
+    background: var(--ucf-blue-soft);
+}
+
+.user-cf-page .ucf-note.review {
+    border-color: var(--ucf-amber);
+
+    background: var(--ucf-amber-soft);
+}
+
+.user-cf-page .ucf-note.official {
+    border-color: #ad741a;
+
+    background: #fff6df;
+}
+
+/* =========================================================
+   CODE
+========================================================= */
+
+.user-cf-page .page-content code {
+    font-family: var(--study-code-font);
+}
+
+.user-cf-page .page-content :not(pre) > code {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+
+    margin: 1px 2px;
+
+    padding: 2px 6px;
+
+    border-radius: 5px;
+
+    color: var(--ucf-primary-dark);
+
+    background: var(--ucf-primary-soft);
+
+    font-size: 0.9em;
+}
+
+.user-cf-page pre {
+    width: 100%;
+
+    max-width: 100%;
+
+    min-width: 0;
+
+    margin: 12px 0 20px;
+
+    padding: 18px;
+
+    overflow-x: auto;
+
+    border: 1px solid var(--ucf-code-line);
+
+    border-radius: 12px;
+
+    color: #edf4fa;
+
+    background: var(--ucf-code-bg);
+
+    font-size: .92rem;
+
+    line-height: 1.8;
+
+    white-space: pre;
+
+    word-break: normal;
+
+    overflow-wrap: normal;
+
+    tab-size: 4;
+}
+
+.user-cf-page pre code {
+    font-size: inherit;
+    padding: 0;
+
+    color: inherit;
+
+    background: transparent;
+
+    white-space: inherit;
+}
+
+/* =========================================================
+   GENERAL GRID
+========================================================= */
+
+.user-cf-page .ucf-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-grid article {
+    min-width: 0;
+
+    padding: 18px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 14px;
+
+    background: #f2f7f8;
+}
+
+.user-cf-page .ucf-grid article h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   RECOMMEND GRID
+========================================================= */
+
+.user-cf-page .ucf-recommend-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-recommend-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-recommend-grid article.active {
+    border-color: #b9b0e9;
+
+    background: var(--ucf-primary-soft);
+}
+
+.user-cf-page .ucf-recommend-grid span {
+    color: var(--ucf-primary);
+
+    font-size: 0.76rem;
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   DISTINCTION
+========================================================= */
+
+.user-cf-page .ucf-distinction {
+    display: grid;
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-distinction > div {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 12px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-distinction span {
+    color: var(--ucf-red);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   STACK
+========================================================= */
+
+.user-cf-page .ucf-stack {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-stack > div {
+    width: min(100%, 680px);
+
+    padding: 13px 16px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: var(--ucf-blue-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-stack > div strong,
+.user-cf-page .ucf-stack > div small {
+    display: block;
+}
+
+.user-cf-page .ucf-stack > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+.user-cf-page .ucf-stack.compact {
+    width: min(100%, 580px);
+
+    margin: 14px auto;
+}
+
+/* =========================================================
+   PHASE GRID
+========================================================= */
+
+.user-cf-page .ucf-phase-grid {
+    display: grid;
+
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-phase-grid article {
+    padding: 15px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.user-cf-page .ucf-phase-grid span {
+    color: var(--ucf-primary);
+
+    font-size: 0.74rem;
+
+    font-weight: 850;
+}
+
+.user-cf-page .ucf-phase-grid h3 {
+    margin: 6px 0;
+}
+
+/* =========================================================
+   PATH COMPARE
+========================================================= */
+
+.user-cf-page .ucf-path-compare,
+.user-cf-page .ucf-index-compare,
+.user-cf-page .ucf-source-compare,
+.user-cf-page .ucf-next-compare {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 18px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page :is(.ucf-path-compare, .ucf-index-compare, .ucf-source-compare, .ucf-next-compare) article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-path-compare article.warning,
+.user-cf-page .ucf-index-compare article.warning,
+.user-cf-page .ucf-source-compare article.warning {
+    border-color: #dfbe8f;
+
+    background: var(--ucf-amber-soft);
+}
+
+.user-cf-page .ucf-next-compare article.next {
+    border-color: #b9afe8;
+
+    background: var(--ucf-primary-soft);
+}
+
+.user-cf-page :is(.ucf-path-compare, .ucf-index-compare, .ucf-source-compare) > span {
+    color: var(--ucf-red);
+
+    font-size: 1.35rem;
+
+    font-weight: 900;
+}
+
+.user-cf-page .ucf-big-arrow {
+    color: var(--ucf-primary);
+
+    font-size: 1.5rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   DATA GRID
+========================================================= */
+
+.user-cf-page .ucf-data-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-data-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 14px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: var(--ucf-primary-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-data-grid span {
+    color: var(--ucf-muted);
+
+    font-size: 0.75rem;
+}
+
+/* =========================================================
+   FLOW
+========================================================= */
+
+.user-cf-page .ucf-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-flow > div {
+    padding: 12px 14px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: var(--ucf-blue-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-flow > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   RATED GRID
+========================================================= */
+
+.user-cf-page .ucf-rated-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-rated-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 16px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.user-cf-page .ucf-rated-grid article.active {
+    border-color: #a7d1bd;
+
+    background: var(--ucf-green-soft);
+}
+
+.user-cf-page .ucf-rated-grid article.cold {
+    border-color: #dfbe8e;
+
+    background: var(--ucf-amber-soft);
+}
+
+.user-cf-page .ucf-rated-grid > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   LARGE TEXT
+========================================================= */
+
+.user-cf-page .ucf-large-text {
+    display: block;
+
+    margin: 24px 0;
+
+    color: var(--ucf-primary-dark);
+
+    font-size: 2rem;
+
+    text-align: center;
+}
+
+/* =========================================================
+   MATRIX DEMO
+========================================================= */
+
+.user-cf-page .ucf-matrix-demo,
+.user-cf-page .ucf-user-sim-demo {
+    margin: 20px 0;
+
+    overflow-x: auto;
+}
+
+.user-cf-page .ucf-matrix-demo table,
+.user-cf-page .ucf-user-sim-demo table {
+    min-width: 650px;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-matrix-demo th,
+.user-cf-page .ucf-matrix-demo td,
+.user-cf-page .ucf-user-sim-demo th,
+.user-cf-page .ucf-user-sim-demo td {
+    text-align: center;
+}
+
+.user-cf-page .ucf-user-sim-demo .self {
+    color: var(--ucf-green);
+
+    background: var(--ucf-green-soft);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.user-cf-page .ucf-table {
+    width: 100%;
+
+    max-width: 100%;
+
+    margin: 18px 0;
+
+    overflow-x: auto;
+}
+
+.user-cf-page table {
+    width: 100%;
+
+    min-width: 560px;
+
+    border-collapse: collapse;
+
+    font-size: .95rem;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.user-cf-page caption {
+    padding-bottom: 9px;
+
+    color: var(--ucf-muted);
+
+    text-align: left;
+}
+
+.user-cf-page .page-content :is(th, td) {
+    padding: 13px 16px;
+
+    border: 1px solid var(--ucf-line);
+
+    text-align: left;
+
+    vertical-align: top;
+}
+
+.user-cf-page thead th {
+    color: var(--ucf-primary-dark);
+
+    background: var(--ucf-primary-soft);
+}
+
+.user-cf-page tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+/* =========================================================
+   RATING SCALE
+========================================================= */
+
+.user-cf-page .ucf-rating-scale {
+    display: grid;
+
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+
+    gap: 8px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-rating-scale article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 14px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: var(--ucf-green-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-rating-scale article.zero {
+    border-color: #dfbd8d;
+
+    background: var(--ucf-amber-soft);
+}
+
+.user-cf-page .ucf-rating-scale strong {
+    font-size: 1.4rem;
+}
+
+/* =========================================================
+   SHAPE FLOW
+========================================================= */
+
+.user-cf-page .ucf-shape-flow {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-shape-flow > div {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    width: min(100%, 650px);
+
+    padding: 14px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: var(--ucf-primary-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-shape-flow > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   SPARSE GRID
+========================================================= */
+
+.user-cf-page .ucf-sparse-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-sparse-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: var(--ucf-teal-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-sparse-grid span {
+    color: var(--ucf-muted);
+
+    font-size: 0.75rem;
+}
+
+/* =========================================================
+   FORMULA
+========================================================= */
+
+.user-cf-page .ucf-formula {
+    margin: 18px 0;
+
+    padding: 17px;
+
+    border-radius: 12px;
+
+    color: var(--ucf-primary-dark);
+
+    background: var(--ucf-primary-soft);
+
+    text-align: center;
+
+    font-size: 1.05rem;
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   VECTOR EXAMPLE
+========================================================= */
+
+.user-cf-page .ucf-vector-example {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-vector-example article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+/* =========================================================
+   USER 1 STATS
+========================================================= */
+
+.user-cf-page .ucf-user1-stats {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-user1-stats article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 16px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: var(--ucf-blue-soft);
+
+    text-align: center;
+}
+
+/* =========================================================
+   SHAPE HIGHLIGHT
+========================================================= */
+
+.user-cf-page .ucf-shape-highlight {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 5px;
+
+    width: min(100%, 500px);
+
+    margin: 20px auto;
+
+    padding: 18px;
+
+    border: 1px solid #a8d3c0;
+
+    border-radius: 12px;
+
+    background: var(--ucf-green-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-shape-highlight strong {
+    font-size: 1.5rem;
+}
+
+/* =========================================================
+   DIRECTION COMPARE
+========================================================= */
+
+.user-cf-page .ucf-direction-compare {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 16px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-direction-compare article {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 7px;
+
+    padding: 20px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 13px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-direction-compare article.source {
+    border-color: #dfbe8f;
+
+    background: var(--ucf-amber-soft);
+}
+
+.user-cf-page .ucf-direction-compare > span {
+    color: var(--ucf-red);
+
+    font-size: 1.4rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   RANKING
+========================================================= */
+
+.user-cf-page .ucf-ranking-list {
+    margin: 18px 0;
+
+    padding: 0;
+
+    list-style: none;
+
+    counter-reset: ucf-rank;
+}
+
+.user-cf-page .ucf-ranking-list li {
+    counter-increment: ucf-rank;
+
+    display: grid;
+
+    grid-template-columns: 42px minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin: 8px 0;
+
+    padding: 12px 15px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+}
+
+.user-cf-page .ucf-ranking-list li::before {
+    content: counter(ucf-rank);
+
+    display: grid;
+
+    place-items: center;
+
+    width: 32px;
+
+    height: 32px;
+
+    border-radius: 50%;
+
+    color: #ffffff;
+
+    background: var(--ucf-primary);
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   RESULT HIGHLIGHT
+========================================================= */
+
+.user-cf-page .ucf-result-highlight {
+    display: grid;
+
+    grid-template-columns: auto minmax(0, 1fr);
+
+    gap: 8px 16px;
+
+    margin: 20px 0;
+
+    padding: 18px;
+
+    border: 1px solid #a4ceb8;
+
+    border-radius: 12px;
+
+    background: var(--ucf-green-soft);
+}
+
+.user-cf-page .ucf-result-highlight span {
+    color: var(--ucf-muted);
+}
+
+/* =========================================================
+   REVIEW LIST
+========================================================= */
+
+.user-cf-page .ucf-review-list {
+    display: grid;
+
+    gap: 12px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-review-list article {
+    padding: 16px 18px;
+
+    border: 1px solid #dfbe8f;
+
+    border-left: 5px solid var(--ucf-amber);
+
+    border-radius: 12px;
+
+    background: var(--ucf-amber-soft);
+}
+
+/* =========================================================
+   ABSENT GRID
+========================================================= */
+
+.user-cf-page .ucf-absent-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-absent-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 13px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-absent-grid span {
+    color: var(--ucf-muted);
+
+    font-size: 0.75rem;
+}
+
+/* =========================================================
+   DIAGNOSIS
+========================================================= */
+
+.user-cf-page .ucf-diagnosis-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-diagnosis-grid article {
+    padding: 16px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+}
+
+.user-cf-page .ucf-diagnosis-grid h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   MISTAKE LIST
+========================================================= */
+
+.user-cf-page .ucf-mistake-list {
+    display: grid;
+
+    gap: 11px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-mistake-list article {
+    padding: 15px 17px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-left: 4px solid var(--ucf-amber);
+
+    border-radius: 12px;
+
+    background: #fbfcfe;
+}
+
+.user-cf-page .ucf-mistake-list p {
+    margin: 5px 0 0;
+}
+
+/* =========================================================
+   IMPROVE FLOW
+========================================================= */
+
+.user-cf-page .ucf-improve-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-improve-flow > div {
+    padding: 10px 12px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 9px;
+
+    background: var(--ucf-primary-soft);
+
+    font-size: 0.89rem;
+
+    font-weight: 700;
+}
+
+.user-cf-page .ucf-improve-flow > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   IMPROVE GRID
+========================================================= */
+
+.user-cf-page .ucf-improve-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.user-cf-page .ucf-improve-grid article {
+    padding: 16px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.user-cf-page .ucf-improve-grid h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   SERVICE FLOW
+========================================================= */
+
+.user-cf-page .ucf-service-flow {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.user-cf-page .ucf-service-flow > div {
+    width: min(100%, 640px);
+
+    padding: 13px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: var(--ucf-blue-soft);
+
+    text-align: center;
+
+    font-weight: 700;
+}
+
+.user-cf-page .ucf-service-flow > span {
+    color: var(--ucf-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   QA
+========================================================= */
+
+.user-cf-page .ucf-qa {
+    display: grid;
+
+    gap: 10px;
+}
+
+.user-cf-page .ucf-qa details {
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+}
+
+.user-cf-page .ucf-qa summary {
+    padding: 14px 16px;
+
+    cursor: pointer;
+
+    font-weight: 750;
+}
+
+.user-cf-page .ucf-qa details[open] summary {
+    color: var(--ucf-primary-dark);
+
+    background: var(--ucf-primary-soft);
+}
+
+.user-cf-page .ucf-qa details > div {
+    padding: 14px 16px;
+
+    border-top: 1px solid var(--ucf-line);
+}
+
+/* =========================================================
+   MEMORY
+========================================================= */
+
+.user-cf-page .ucf-memory-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-memory-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 13px;
+
+    border: 1px solid var(--ucf-line);
+
+    border-radius: 10px;
+
+    background: var(--ucf-primary-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-memory-grid span {
+    color: var(--ucf-muted);
+
+    font-size: 0.76rem;
+}
+
+/* =========================================================
+   REVIEW SUMMARY
+========================================================= */
+
+.user-cf-page .ucf-review-summary {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 18px 0;
+}
+
+.user-cf-page .ucf-review-summary article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid #dfbe8f;
+
+    border-radius: 11px;
+
+    background: var(--ucf-amber-soft);
+
+    text-align: center;
+}
+
+.user-cf-page .ucf-review-summary span {
+    color: var(--ucf-amber);
+
+    font-size: 0.75rem;
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.user-cf-page .ucf-closing {
+    font-size: 1.13rem;
+
+    line-height: 1.9;
+}
+
+.user-cf-page .ucf-back {
+    display: inline-block;
+
+    margin-top: 12px;
+
+    padding: 8px 0;
+
+    color: var(--ucf-primary);
+
+    font-weight: 750;
+
+    text-decoration: none;
+}
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+.user-cf-page :is(.lesson-card, .ucf-side-card, #lessonMain) {
+    scroll-margin-top: 20px;
+}
+
+.user-cf-page .page-content :is(a, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--ucf-primary);
+
+    outline-offset: 4px;
+}
+
+.user-cf-page .ucf-skip {
+    position: fixed;
+
+    z-index: 9999;
+
+    top: 12px;
+
+    left: 12px;
+
+    padding: 10px 16px;
+
+    border: 2px solid var(--ucf-primary);
+
+    border-radius: 8px;
+
+    color: var(--ucf-primary-dark);
+
+    background: #ffffff;
+
+    font-weight: 750;
+}
+
+.user-cf-page .ucf-skip:not(:focus) {
+    position: absolute;
+
+    width: 1px;
+
+    height: 1px;
+
+    margin: -1px;
+
+    padding: 0;
+
+    border: 0;
+
+    overflow: hidden;
+
+    clip-path: inset(50%);
+
+    white-space: nowrap;
+}
+
+/* =========================================================
+   RESPONSIVE : 1050
+========================================================= */
+
+@media screen and (max-width: 1050px) {
+    .user-cf-page .ucf-phase-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .user-cf-page .ucf-rating-scale {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE : 850
+========================================================= */
+
+@media screen and (max-width: 850px) {
+    .user-cf-page .ucf-stats,
+    .user-cf-page .ucf-memory-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .user-cf-page .ucf-goals ul {
+        grid-template-columns: 1fr;
+    }
+
+    .user-cf-page .ucf-data-grid,
+    .user-cf-page .ucf-sparse-grid,
+    .user-cf-page .ucf-absent-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .user-cf-page .ucf-rated-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .user-cf-page .ucf-rated-grid > span {
+        transform: rotate(90deg);
+    }
+}
+
+/* =========================================================
+   RESPONSIVE : 680
+========================================================= */
+
+@media screen and (max-width: 680px) {
+    .user-cf-page .ucf-grid,
+    .user-cf-page .ucf-recommend-grid,
+    .user-cf-page .ucf-vector-example,
+    .user-cf-page .ucf-diagnosis-grid,
+    .user-cf-page .ucf-improve-grid,
+    .user-cf-page .ucf-review-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .user-cf-page .ucf-path-compare,
+    .user-cf-page .ucf-index-compare,
+    .user-cf-page .ucf-source-compare,
+    .user-cf-page .ucf-direction-compare,
+    .user-cf-page .ucf-next-compare {
+        grid-template-columns: 1fr;
+    }
+
+    .user-cf-page
+        :is(.ucf-path-compare, .ucf-index-compare, .ucf-source-compare, .ucf-direction-compare, .ucf-next-compare)
+        > span {
+        transform: rotate(90deg);
+
+        text-align: center;
+    }
+
+    .user-cf-page .ucf-flow,
+    .user-cf-page .ucf-hero-flow,
+    .user-cf-page .ucf-improve-flow {
+        flex-direction: column;
+    }
+
+    .user-cf-page .ucf-flow > div,
+    .user-cf-page .ucf-hero-flow > div,
+    .user-cf-page .ucf-improve-flow > div {
+        width: 100%;
+    }
+
+    .user-cf-page .ucf-flow > span,
+    .user-cf-page .ucf-hero-flow > span,
+    .user-cf-page .ucf-improve-flow > span {
+        transform: rotate(90deg);
+    }
+
+    .user-cf-page .ucf-phase-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE : 540
+========================================================= */
+
+@media screen and (max-width: 540px) {
+    .user-cf-page .page-content {
+        padding: 0 0 48px;
+    }
+
+    .user-cf-page :is(.lesson-hero, .lesson-card, .ucf-side-card, .lesson-footer) {
+        padding: 18px 15px;
+
+        border-radius: 15px;
+    }
+
+    .user-cf-page .ucf-heading {
+        gap: 10px;
+    }
+
+    .user-cf-page .ucf-number {
+        flex-basis: 34px;
+
+        width: 34px;
+
+        height: 34px;
+
+        border-radius: 9px;
+
+        font-size: 0.8rem;
+    }
+
+    .user-cf-page pre {
+        padding: 14px;
+
+        font-size: .92rem;
+    }
+
+    .user-cf-page .ucf-stats,
+    .user-cf-page .ucf-data-grid,
+    .user-cf-page .ucf-rating-scale,
+    .user-cf-page .ucf-sparse-grid,
+    .user-cf-page .ucf-user1-stats,
+    .user-cf-page .ucf-absent-grid,
+    .user-cf-page .ucf-memory-grid,
+    .user-cf-page .ucf-phase-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .user-cf-page .ucf-distinction > div {
+        grid-template-columns: 1fr;
+
+        gap: 4px;
+    }
+
+    .user-cf-page .ucf-result-highlight {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Consistent lesson surfaces, touch targets and reading rhythm. */
+.user-cf-page .page-content :where(article, nav, ul, ol, li) { min-width: 0; }
+.user-cf-page .page-content a { color: var(--ucf-primary); text-underline-offset: 4px; }
+.user-cf-page :focus-visible { outline: 3px solid var(--ucf-primary); outline-offset: 4px; }
+.user-cf-page .ucf-badges span { display: inline-flex; align-items: center; min-height: 36px; color: var(--ucf-primary-dark); background: #fff; }
+.user-cf-page .ucf-goals { padding: 22px; border: 1px solid var(--ucf-line); border-radius: 16px; background: var(--ucf-primary-soft); }
+.user-cf-page .ucf-goals h2 { margin-top: 0; font-size: 1.2rem; color: var(--ucf-primary-dark); }
+.user-cf-page .ucf-goals ul { padding-left: 0; margin: 0; gap: 10px; list-style: none; }
+.user-cf-page .ucf-goals li { padding: 12px; margin: 0; border: 1px solid #d6e5e9; border-radius: 11px; background: #ffffffc9; font-size: .94rem; }
+.user-cf-page .ucf-toc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.user-cf-page .ucf-toc a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border-radius: 10px; font-size: .875rem; line-height: 1.6; }
+.user-cf-page .ucf-toc a:hover { border-color: var(--ucf-primary); background: var(--ucf-primary-soft); }
+.user-cf-page #memory { background: var(--ucf-primary-soft); }
+.user-cf-page #next { background: #f2eff9; border-color: #ddd5ec; }
+.user-cf-page .ucf-back { min-height: 44px; }
+.user-cf-page :is(.ucf-table, .ucf-matrix-demo, .ucf-user-sim-demo) { border-radius: 12px; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.user-cf-page .ucf-table caption { padding: 12px 0; }
+.user-cf-page pre { scrollbar-width: thin; overscroll-behavior-x: contain; }
+.user-cf-page .ucf-qa summary { min-height: 48px; }
+.user-cf-page .ucf-qa summary:hover { color: var(--ucf-primary-dark); background: var(--ucf-primary-soft); }
+
+/* Keep connectors beside their steps, then stack the entire flow together. */
+.user-cf-page :is(.ucf-hero-flow, .ucf-improve-flow) {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr) 14px) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+.user-cf-page :is(.ucf-hero-flow, .ucf-improve-flow) > div { min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.user-cf-page :is(.ucf-hero-flow, .ucf-improve-flow) > span { text-align: center; }
+.user-cf-page .ucf-hero-flow { grid-template-columns: repeat(6, minmax(0, 1fr) 14px) minmax(140px, 1.25fr); gap: 6px; }
+.user-cf-page .ucf-hero-flow > div { padding: 13px 8px; }
+.user-cf-page .page-content .ucf-qa summary:focus-visible { outline-offset: -4px; }
+.user-cf-page .ucf-flow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr) auto) minmax(0, 1fr); }
+.user-cf-page .ucf-flow:has(> div:nth-of-type(4)) { grid-template-columns: repeat(3, minmax(0, 1fr) auto) minmax(0, 1fr); }
+.user-cf-page .ucf-flow > span { text-align: center; }
+
+@media screen and (max-width: 1050px), screen and (min-width: 1241px) and (max-width: 1399px) {
+    .user-cf-page :is(.ucf-hero-flow, .ucf-improve-flow, .ucf-flow),
+    .user-cf-page .ucf-flow:has(> div:nth-of-type(4)) { grid-template-columns: minmax(0, 1fr); }
+    .user-cf-page :is(.ucf-hero-flow, .ucf-improve-flow, .ucf-flow) > span { transform: rotate(90deg); text-align: center; }
+}
+@media screen and (max-width: 720px) {
+    .user-cf-page :is(.lesson-hero, .lesson-card, .ucf-side-card, .lesson-footer) { padding: 24px 19px; border-radius: 16px; }
+    .user-cf-page .ucf-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .user-cf-page .ucf-goals { padding: 16px; }
+}
+@media screen and (max-width: 440px) {
+    .user-cf-page :is(.lesson-hero, .lesson-card, .ucf-side-card, .lesson-footer) { padding: 21px 15px; }
+    .user-cf-page .page-content h1 { font-size: 1.85rem; }
+    .user-cf-page .ucf-toc { grid-template-columns: minmax(0, 1fr); }
+    .user-cf-page .ucf-lead { font-size: 1.03rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html:has(> body.user-cf-page) { scroll-behavior: auto; }
+    .user-cf-page *, .user-cf-page *::before, .user-cf-page *::after { animation: none; transition: none; scroll-behavior: auto; }
+}
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+    html:has(> body.user-cf-page), body.user-cf-page { min-width: 0; background: #fff; color: #111; }
+    body.user-cf-page { font-size: 10pt; }
+    .user-cf-page .lesson-hero::before { display: none; }
+    .user-cf-page :is(.lesson-hero, #memory, #next) { background: #fff; }
+    .user-cf-page details::details-content { display: block; content-visibility: visible; }
+    .user-cf-page pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .user-cf-page .ucf-number { background: #eee; color: #111; }
+    .user-cf-page :is(.ucf-matrix-demo, .ucf-user-sim-demo) table { min-width: 0; }
+    .user-cf-page {
+        color: #000000;
+
+        background: #ffffff;
+
+        font-size: 10pt;
+    }
+
+    .user-cf-page :is(.side-nav, .ucf-toc, .ucf-skip, .ucf-back) {
+        display: none !important;
+    }
+
+    .user-cf-page .layout {
+        display: block !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+    }
+
+    .user-cf-page .page-content {
+        width: 100% !important;
+
+        max-width: none !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+    }
+
+    .user-cf-page :is(.lesson-hero, .lesson-card, .ucf-side-card, .lesson-footer) {
+        padding: 14px;
+
+        border-radius: 0;
+
+        box-shadow: none;
+    }
+
+    .user-cf-page :is(.lesson-main, .side-note) {
+        display: block;
+    }
+
+    .user-cf-page :is(.lesson-card, .ucf-side-card) {
+        margin-bottom: 16px;
+    }
+
+    .user-cf-page pre {
+        color: #111111;
+
+        background: #f4f4f4;
+
+        border-color: #aaaaaa;
+
+        white-space: pre-wrap;
+
+        overflow-wrap: anywhere;
+
+        font-size: 8.5pt;
+    }
+
+    .user-cf-page :is(.ucf-table, .ucf-matrix-demo, .ucf-user-sim-demo) {
+        overflow: visible;
+    }
+
+    .user-cf-page table {
+        min-width: 0;
+
+        font-size: 9pt;
+    }
+
+    .user-cf-page tr {
+        break-inside: avoid;
+    }
+
+    .user-cf-page :is(h1, h2, h3, .ucf-heading) {
+        break-after: avoid;
+    }
+
+    .user-cf-page .ucf-qa details {
+        break-inside: avoid;
+    }
+}
