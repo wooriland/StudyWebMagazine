@@ -1,15 +1,2071 @@
 @charset "UTF-8";
 
-/*
- * AI & Machine Learning
- * Course: AI Machine Learning
- * Lesson: ML 57. Bi-LSTM 주가 예측
- *
- * 공통 스타일:
- * - ../../css/00_nav.css
- * - ../../css/study-theme.css
- * - ../../css/AIMachineLearning/ai-machine-learning-common.css
- * - ../../css/AIMachineLearning/MachineLearning/machine-learning-common.css
- *
- * 이 파일(57_bilstm_stock_prediction.css)에는 이 단원에서만 필요한 스타일을 Step 3에서 추가한다.
- */
+/* AI Machine Learning · 단원별 독립 레이아웃
+   AI 개념 페이지의 청록/회청색 팔레트와 동일한 가독성 기준.
+   공통 메뉴의 생성·펼침 동작은 00_nav.js에서 관리합니다. */
+html:has(> body.bilstm-stock-page) {
+    min-width: 0;
+    overflow-x: visible;
+    background: #eef4f7;
+}
+
+body.bilstm-stock-page {
+    --layout-min-width: 0px;
+    --content-min-width: 0px;
+    --side-nav-width: 280px;
+    --theme-accent: #0f6875;
+    --theme-accent-dark: #075363;
+    --theme-soft: #e6f1f4;
+    --theme-bg: #eef4f7;
+    --theme-surface: #fff;
+    --theme-surface-soft: #f2f7f8;
+    --theme-border: #cadbe3;
+    --theme-text: #364656;
+    --theme-muted: #566573;
+    --theme-shadow: rgba(21, 50, 67, .06);
+    --theme-code-bg: #182f3c;
+    --theme-code-text: #edf4fa;
+    --study-code-font: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace;
+    min-width: 0;
+    overflow-x: visible;
+    margin: 0;
+    color: var(--theme-text);
+    background: var(--theme-bg);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    -webkit-text-size-adjust: 100%;
+}
+
+.bilstm-stock-page .layout,
+.bilstm-stock-page .layout *,
+.bilstm-stock-page .layout *::before,
+.bilstm-stock-page .layout *::after {
+    box-sizing: border-box;
+}
+
+.bilstm-stock-page .layout {
+    width: 100%;
+    max-width: 1920px;
+    min-width: 0;
+    margin: 0 auto;
+    padding: clamp(16px, 2vw, 32px);
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(20px, 2vw, 32px);
+}
+
+.bilstm-stock-page #sideNav {
+    top: 24px;
+    width: 100%;
+    min-width: 0;
+    max-height: calc(100vh - 48px);
+    padding: 20px;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    overflow-wrap: anywhere;
+}
+
+.bilstm-stock-page .page-content :where(main, section, aside, div, figure, dl, dd) { min-width: 0; }
+.bilstm-stock-page .page-content :where(h1, h2, h3, p, li, dt, dd, th, td, summary) { overflow-wrap: anywhere; }
+.bilstm-stock-page .page-content :is(img, svg, video, canvas) { max-width: 100%; }
+.bilstm-stock-page .page-content [id] { scroll-margin-top: 24px; }
+
+@media screen and (max-width: 1240px) {
+    .bilstm-stock-page .layout { grid-template-columns: minmax(0, 1fr); }
+    .bilstm-stock-page #sideNav { position: static; max-height: 300px; }
+}
+
+@media screen and (max-width: 700px) {
+    .bilstm-stock-page .layout { padding: 12px; gap: 18px; }
+    .bilstm-stock-page #sideNav { max-height: 240px; padding: 16px; border-radius: 16px; }
+}
+
+/* =========================================================
+   ML 57. Bi-LSTM 주가 예측
+   Page Scope : .bilstm-stock-page
+========================================================= */
+
+.bilstm-stock-page {
+    --stock-ink: #1f2933;
+    --stock-muted: #566573;
+    --stock-line: #cadbe3;
+
+    --stock-primary: #0f6875;
+    --stock-primary-dark: #075363;
+    --stock-primary-soft: #e6f1f4;
+
+    --stock-blue: #24678c;
+    --stock-blue-soft: #eaf5fc;
+
+    --stock-green: #17614b;
+    --stock-green-soft: #e8f6ef;
+
+    --stock-amber: #865816;
+    --stock-amber-soft: #fff3df;
+
+    --stock-red: #984545;
+    --stock-red-soft: #fff0f0;
+
+    --stock-teal: #176a65;
+    --stock-teal-soft: #e8f6f4;
+
+    --stock-paper: #ffffff;
+    --stock-bg: #eef4f7;
+
+    --stock-code-bg: #182f3c;
+    --stock-code-line: #34515e;
+    --stock-violet: #554696;
+    --stock-violet-soft: #f2eff9;
+
+    margin: 0;
+
+    color: var(--theme-text);
+
+    background: var(--stock-bg);
+
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+
+    line-height: 1.85;
+}
+
+/* =========================================================
+   BOX SIZING
+========================================================= */
+
+.bilstm-stock-page .page-content,
+.bilstm-stock-page .page-content *,
+.bilstm-stock-page .page-content *::before,
+.bilstm-stock-page .page-content *::after {
+    box-sizing: border-box;
+}
+
+/* =========================================================
+   PAGE STRUCTURE
+========================================================= */
+
+.bilstm-stock-page .page-content {
+    flex: 1;
+
+    min-width: 0;
+
+    padding: 0 0 48px;
+
+    word-break: keep-all;
+
+    overflow-wrap: anywhere;
+}
+
+.bilstm-stock-page :is(.lesson-hero, .lesson-main, .side-note, .lesson-footer) {
+    width: 100%;
+
+    max-width: 1500px;
+
+    min-width: 0;
+
+    margin-inline: auto;
+}
+
+.bilstm-stock-page :is(.lesson-hero, .lesson-card, .stock-side-card, .lesson-footer) {
+    min-width: 0;
+
+    padding: clamp(22px, 2.6vw, 38px);
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 20px;
+
+    background: var(--stock-paper);
+
+    box-shadow: 0 8px 24px var(--theme-shadow);
+}
+
+.bilstm-stock-page .lesson-hero {
+    position: relative;
+    isolation: isolate;
+    margin-bottom: 24px;
+    padding: clamp(24px, 3vw, 44px);
+    border-top: 4px solid var(--stock-primary);
+    border-radius: 26px;
+    background: linear-gradient(125deg, #edf6f7, #fff 64%, #f2eff9);
+}
+
+.bilstm-stock-page .lesson-hero::before {
+    content: '57';
+    position: absolute;
+    top: 8px;
+    right: 24px;
+    z-index: -1;
+    color: #0f68750a;
+    font-size: clamp(7rem, 13vw, 13rem);
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.bilstm-stock-page :is(.lesson-main, .side-note) {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 24px;
+}
+
+.bilstm-stock-page .side-note {
+    position: static;
+
+    inset: auto;
+
+    margin-top: 24px;
+}
+
+.bilstm-stock-page .lesson-footer {
+    margin-top: 24px;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+========================================================= */
+
+.bilstm-stock-page .page-content :is(h1, h2, h3) {
+    color: var(--stock-ink);
+
+    line-height: 1.45;
+}
+
+.bilstm-stock-page .page-content h1 {
+    margin: 10px 0 16px;
+
+    font-size: clamp(2rem, 3.3vw, 3.5rem);
+    line-height: 1.35;
+
+    letter-spacing: -0.04em;
+}
+
+.bilstm-stock-page .page-content h2 {
+    margin: 0 0 14px;
+
+    font-size: clamp(1.4rem, 2vw, 1.85rem);
+
+    letter-spacing: -0.02em;
+}
+
+.bilstm-stock-page .page-content h3 {
+    margin: 22px 0 10px;
+
+    font-size: 1.08rem;
+}
+
+.bilstm-stock-page .page-content p {
+    margin: 11px 0;
+}
+
+.bilstm-stock-page .page-content .stock-kicker {
+    margin: 0 0 5px;
+
+    color: var(--stock-primary);
+
+    font-size: 0.78rem;
+
+    font-weight: 800;
+
+    letter-spacing: 0.03em;
+}
+
+.bilstm-stock-page .stock-lead {
+    max-width: 960px;
+
+    font-size: 1.1rem;
+
+    line-height: 1.9;
+}
+
+.bilstm-stock-page .stock-lead strong {
+    color: var(--stock-primary-dark);
+}
+
+.bilstm-stock-page small {
+    color: var(--stock-muted);
+}
+
+/* =========================================================
+   BADGES / LEGEND / TOC
+========================================================= */
+
+.bilstm-stock-page :is(.stock-badges, .stock-legend, .stock-toc) {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+.bilstm-stock-page .stock-badges {
+    margin-bottom: 18px;
+}
+
+.bilstm-stock-page .stock-badges span,
+.bilstm-stock-page .stock-toc a {
+    padding: 6px 12px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 999px;
+
+    background: #ffffff;
+
+    font-size: 0.8rem;
+
+    font-weight: 750;
+}
+
+.bilstm-stock-page .stock-toc {
+    margin-top: 22px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid var(--stock-line);
+}
+
+.bilstm-stock-page .stock-toc a {
+    color: var(--stock-primary-dark);
+
+    text-decoration: none;
+}
+
+.bilstm-stock-page .stock-toc a:hover {
+    background: var(--stock-primary-soft);
+}
+
+/* =========================================================
+   HERO FLOW
+========================================================= */
+
+.bilstm-stock-page .stock-hero-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 26px 0;
+}
+
+.bilstm-stock-page .stock-hero-flow > div {
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 115px;
+
+    padding: 13px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-hero-flow > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+.bilstm-stock-page .stock-hero-flow > div span {
+    color: var(--stock-muted);
+
+    font-size: 0.73rem;
+}
+
+/* =========================================================
+   STATS
+========================================================= */
+
+.bilstm-stock-page .stock-stats {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 22px 0;
+}
+
+.bilstm-stock-page .stock-stats article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid #cadbe3;
+
+    border-radius: 12px;
+
+    background: var(--stock-primary-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-stats span {
+    color: var(--stock-muted);
+
+    font-size: 0.76rem;
+}
+
+/* =========================================================
+   HERO SHAPE
+========================================================= */
+
+.bilstm-stock-page .stock-shape-hero {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 12px;
+
+    margin: 22px 0;
+
+    padding: 18px;
+
+    border: 1px solid #add6c3;
+
+    border-radius: 13px;
+
+    background: var(--stock-green-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-shape-hero > div {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 8px;
+}
+
+.bilstm-stock-page .stock-shape-hero span {
+    color: var(--stock-green);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   GOALS
+========================================================= */
+
+.bilstm-stock-page .stock-goals {
+    margin: 24px 0;
+}
+
+.bilstm-stock-page .stock-goals ul {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 8px 28px;
+
+    padding-left: 22px;
+}
+
+/* =========================================================
+   TAGS
+========================================================= */
+
+.bilstm-stock-page .page-content .stock-tag {
+    display: inline-block;
+
+    margin: 6px 0;
+
+    padding: 4px 10px;
+
+    border-radius: 7px;
+
+    font-size: 0.78rem;
+
+    font-weight: 800;
+}
+
+.bilstm-stock-page .stock-tag.original {
+    color: var(--stock-green);
+
+    background: var(--stock-green-soft);
+}
+
+.bilstm-stock-page .stock-tag.stored {
+    color: var(--stock-primary);
+
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page .stock-tag.official {
+    color: #67450e;
+
+    background: #fff0c7;
+}
+
+.bilstm-stock-page .stock-tag.review {
+    color: var(--stock-amber);
+
+    background: var(--stock-amber-soft);
+}
+
+.bilstm-stock-page .stock-tag.supplement {
+    color: var(--stock-blue);
+
+    background: var(--stock-blue-soft);
+}
+
+/* =========================================================
+   HEADING
+========================================================= */
+
+.bilstm-stock-page .stock-heading {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 14px;
+
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #deebf0;
+}
+
+.bilstm-stock-page .stock-heading > div {
+    min-width: 0;
+}
+
+.bilstm-stock-page .stock-heading h2 {
+    margin: 0;
+}
+
+.bilstm-stock-page .stock-number {
+    display: grid;
+
+    place-items: center;
+
+    flex: 0 0 42px;
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 12px;
+
+    color: #ffffff;
+
+    background: var(--stock-primary);
+
+    font-weight: 850;
+}
+
+/* =========================================================
+   NOTES
+========================================================= */
+
+.bilstm-stock-page .stock-note {
+    margin: 18px 0;
+
+    padding: 16px 18px;
+
+    border-left: 4px solid var(--stock-primary);
+
+    border-radius: 0 12px 12px 0;
+
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page .stock-note.important {
+    border-color: var(--stock-primary);
+
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page .stock-note.supplement {
+    border-color: var(--stock-blue);
+
+    background: var(--stock-blue-soft);
+}
+
+.bilstm-stock-page .stock-note.review {
+    border-color: var(--stock-amber);
+
+    background: var(--stock-amber-soft);
+}
+
+.bilstm-stock-page .stock-note.official {
+    border-color: #ad741a;
+
+    background: #fff6df;
+}
+
+/* =========================================================
+   CODE
+========================================================= */
+
+.bilstm-stock-page .page-content code {
+    font-family: var(--study-code-font);
+}
+
+.bilstm-stock-page .page-content :not(pre) > code {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+
+    margin: 1px 2px;
+
+    padding: 2px 6px;
+
+    border-radius: 5px;
+
+    color: var(--stock-primary-dark);
+
+    background: var(--stock-primary-soft);
+
+    font-size: 0.9em;
+}
+
+.bilstm-stock-page pre {
+    width: 100%;
+
+    max-width: 100%;
+
+    min-width: 0;
+
+    margin: 12px 0 20px;
+
+    padding: 18px;
+
+    overflow-x: auto;
+
+    border: 1px solid var(--stock-code-line);
+
+    border-radius: 12px;
+
+    color: #edf4fa;
+
+    background: var(--stock-code-bg);
+
+    font-size: .92rem;
+
+    line-height: 1.8;
+
+    white-space: pre;
+
+    word-break: normal;
+
+    overflow-wrap: normal;
+}
+
+/* =========================================================
+   GENERAL GRID
+========================================================= */
+
+.bilstm-stock-page .stock-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-grid article {
+    padding: 17px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+}
+
+/* =========================================================
+   PROBLEM
+========================================================= */
+
+.bilstm-stock-page .stock-problem {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 0.8fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 14px;
+
+    margin: 22px 0;
+}
+
+.bilstm-stock-page .stock-problem > div {
+    padding: 18px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-problem .input {
+    background: var(--stock-blue-soft);
+}
+
+.bilstm-stock-page .stock-problem .model {
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page .stock-problem .target {
+    background: var(--stock-green-soft);
+}
+
+/* =========================================================
+   STACK
+========================================================= */
+
+.bilstm-stock-page .stock-stack {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 22px 0;
+}
+
+.bilstm-stock-page .stock-stack > div {
+    width: min(100%, 680px);
+
+    padding: 13px 16px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-stack > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+.bilstm-stock-page .stock-stack.compact {
+    width: min(100%, 580px);
+
+    margin: 14px auto;
+}
+
+/* =========================================================
+   DATA GRID
+========================================================= */
+
+.bilstm-stock-page .stock-data-grid,
+.bilstm-stock-page .stock-training-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 18px 0;
+}
+
+.bilstm-stock-page :is(.stock-data-grid, .stock-training-grid) article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 14px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: var(--stock-primary-soft);
+
+    text-align: center;
+}
+
+/* =========================================================
+   PHASE
+========================================================= */
+
+.bilstm-stock-page .stock-phase-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-phase-grid article {
+    padding: 15px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.bilstm-stock-page .stock-phase-grid span {
+    color: var(--stock-primary);
+
+    font-size: 0.75rem;
+
+    font-weight: 850;
+}
+
+/* =========================================================
+   XY
+========================================================= */
+
+.bilstm-stock-page .stock-xy-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-xy-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-xy-grid article.target {
+    background: var(--stock-green-soft);
+}
+
+/* =========================================================
+   SHAPE FLOW
+========================================================= */
+
+.bilstm-stock-page .stock-shape-flow,
+.bilstm-stock-page .stock-shape-map {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page :is(.stock-shape-flow, .stock-shape-map) > div,
+.bilstm-stock-page .stock-shape-map > article {
+    padding: 14px 18px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: var(--stock-primary-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-shape-map > article {
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 190px;
+}
+
+.bilstm-stock-page :is(.stock-shape-flow, .stock-shape-map) > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   LEAKAGE
+========================================================= */
+
+.bilstm-stock-page .stock-leakage {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-leakage > div {
+    width: min(100%, 650px);
+
+    padding: 13px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-leakage > div.danger {
+    color: var(--stock-red);
+
+    background: var(--stock-red-soft);
+
+    border-color: #dfaaaa;
+
+    font-weight: 850;
+}
+
+.bilstm-stock-page .stock-leakage > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+.bilstm-stock-page .stock-leakage.compact > div {
+    width: min(100%, 500px);
+}
+
+/* =========================================================
+   COMPARE
+========================================================= */
+
+.bilstm-stock-page .stock-compare {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 18px;
+
+    margin: 22px 0;
+}
+
+.bilstm-stock-page .stock-compare article {
+    padding: 18px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-compare article.warning {
+    background: var(--stock-amber-soft);
+}
+
+/* =========================================================
+   WINDOW
+========================================================= */
+
+.bilstm-stock-page .stock-window {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-window article {
+    display: grid;
+
+    gap: 6px;
+
+    padding: 16px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    background: #f2f7f8;
+}
+
+.bilstm-stock-page .stock-window article > span {
+    padding: 5px 8px;
+
+    border-radius: 6px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-window small {
+    margin-top: 5px;
+
+    text-align: center;
+
+    font-weight: 750;
+}
+
+/* =========================================================
+   BTD
+========================================================= */
+
+.bilstm-stock-page .stock-btd {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-btd article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 15px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: var(--stock-green-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-btd span {
+    color: var(--stock-green);
+
+    font-size: 1.3rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   SPLIT
+========================================================= */
+
+.bilstm-stock-page .stock-split {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-split article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-split .train {
+    background: var(--stock-blue-soft);
+}
+
+.bilstm-stock-page .stock-split .test {
+    background: var(--stock-green-soft);
+}
+
+/* =========================================================
+   MODEL
+========================================================= */
+
+.bilstm-stock-page .stock-model {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 9px;
+
+    margin: 24px 0;
+}
+
+.bilstm-stock-page .stock-model > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+.bilstm-stock-page .stock-model-node {
+    width: min(100%, 580px);
+
+    padding: 15px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+
+    font-weight: 800;
+}
+
+.bilstm-stock-page .stock-model-node small {
+    display: block;
+}
+
+.bilstm-stock-page .stock-model-node.input {
+    background: var(--stock-blue-soft);
+}
+
+.bilstm-stock-page .stock-model-node.recurrent {
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page .stock-model-node.output {
+    background: var(--stock-green-soft);
+}
+
+/* =========================================================
+   DIRECTION
+========================================================= */
+
+.bilstm-stock-page .stock-direction {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin: 22px 0;
+}
+
+.bilstm-stock-page .stock-direction article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 17px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-direction article.result {
+    background: var(--stock-green-soft);
+}
+
+.bilstm-stock-page .stock-direction > span {
+    color: var(--stock-primary);
+
+    font-size: 1.3rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   FORMULA
+========================================================= */
+
+.bilstm-stock-page .stock-formula {
+    padding: 17px;
+
+    border: 1px solid #cadbe3;
+
+    border-radius: 11px;
+
+    color: var(--stock-primary-dark);
+
+    background: var(--stock-primary-soft);
+
+    text-align: center;
+
+    font-family: var(--study-code-font);
+
+    font-weight: 800;
+}
+
+/* =========================================================
+   COMPILE / METRIC
+========================================================= */
+
+.bilstm-stock-page .stock-compile {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-compile article,
+.bilstm-stock-page .stock-metric-grid article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 17px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-metric-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-metric-grid article {
+    background: var(--stock-green-soft);
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.bilstm-stock-page .stock-table {
+    width: 100%;
+
+    overflow-x: auto;
+
+    margin: 18px 0;
+}
+
+.bilstm-stock-page table {
+    width: 100%;
+
+    min-width: 630px;
+
+    border-collapse: collapse;
+
+    font-size: .95rem;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.bilstm-stock-page :is(th, td) {
+    padding: 13px 16px;
+
+    border: 1px solid var(--stock-line);
+
+    text-align: left;
+
+    vertical-align: top;
+}
+
+.bilstm-stock-page thead th {
+    color: var(--stock-primary-dark);
+
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page tr.total {
+    background: var(--stock-green-soft);
+
+    font-weight: 850;
+}
+
+/* =========================================================
+   SHAPE HIGHLIGHT
+========================================================= */
+
+.bilstm-stock-page .stock-shape-highlight {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 4px;
+
+    width: min(100%, 520px);
+
+    margin: 20px auto;
+
+    padding: 18px;
+
+    border: 1px solid #a7d0bb;
+
+    border-radius: 12px;
+
+    background: var(--stock-green-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-shape-highlight strong {
+    font-size: 1.45rem;
+}
+
+/* =========================================================
+   DATE / SCALE FLOW
+========================================================= */
+
+.bilstm-stock-page .stock-date-flow,
+.bilstm-stock-page .stock-scale-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 9px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page :is(.stock-date-flow, .stock-scale-flow) > div {
+    padding: 13px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page :is(.stock-date-flow, .stock-scale-flow) > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   DISTINCTION
+========================================================= */
+
+.bilstm-stock-page .stock-distinction {
+    display: grid;
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.bilstm-stock-page .stock-distinction > div {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 12px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: #f2f7f8;
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-distinction span {
+    color: var(--stock-red);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   DIAGNOSIS
+========================================================= */
+
+.bilstm-stock-page .stock-diagnosis {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-diagnosis article {
+    padding: 16px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 11px;
+
+    background: #f2f7f8;
+}
+
+.bilstm-stock-page .stock-diagnosis h3 {
+    margin-top: 0;
+}
+
+/* =========================================================
+   MISTAKES
+========================================================= */
+
+.bilstm-stock-page .stock-mistakes {
+    display: grid;
+
+    gap: 10px;
+
+    margin: 18px 0;
+}
+
+.bilstm-stock-page .stock-mistakes article {
+    padding: 15px 17px;
+
+    border: 1px solid var(--stock-line);
+
+    border-left: 4px solid var(--stock-amber);
+
+    border-radius: 11px;
+
+    background: #fbfcfe;
+}
+
+.bilstm-stock-page .stock-mistakes p {
+    margin: 4px 0 0;
+}
+
+/* =========================================================
+   IMPROVEMENT
+========================================================= */
+
+.bilstm-stock-page .stock-improve-flow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-improve-flow > div {
+    padding: 13px 16px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 9px;
+
+    background: var(--stock-primary-soft);
+
+    text-align: center;
+}
+
+.bilstm-stock-page .stock-improve-flow > div.priority {
+    color: var(--stock-red);
+
+    border-color: #e1abab;
+
+    background: var(--stock-red-soft);
+
+    font-weight: 850;
+}
+
+.bilstm-stock-page .stock-improve-flow > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   SERVICE FLOW
+========================================================= */
+
+.bilstm-stock-page .stock-service-flow {
+    display: grid;
+
+    justify-items: center;
+
+    gap: 8px;
+
+    margin: 20px 0;
+}
+
+.bilstm-stock-page .stock-service-flow > div {
+    width: min(100%, 640px);
+
+    padding: 13px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: var(--stock-blue-soft);
+
+    text-align: center;
+
+    font-weight: 750;
+}
+
+.bilstm-stock-page .stock-service-flow > span {
+    color: var(--stock-primary);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   Q&A
+========================================================= */
+
+.bilstm-stock-page .stock-qa {
+    display: grid;
+
+    gap: 10px;
+}
+
+.bilstm-stock-page .stock-qa details {
+    border: 1px solid var(--stock-line);
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+}
+
+.bilstm-stock-page .stock-qa summary {
+    padding: 14px 16px;
+
+    cursor: pointer;
+
+    font-weight: 750;
+}
+
+.bilstm-stock-page .stock-qa details[open] summary {
+    color: var(--stock-primary-dark);
+
+    background: var(--stock-primary-soft);
+}
+
+.bilstm-stock-page .stock-qa details > div {
+    padding: 14px 16px;
+
+    border-top: 1px solid var(--stock-line);
+}
+
+/* =========================================================
+   MEMORY
+========================================================= */
+
+.bilstm-stock-page .stock-memory {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 9px;
+
+    margin: 18px 0;
+}
+
+.bilstm-stock-page .stock-memory article {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    padding: 13px;
+
+    border: 1px solid var(--stock-line);
+
+    border-radius: 10px;
+
+    background: var(--stock-primary-soft);
+
+    text-align: center;
+}
+
+/* =========================================================
+   BIG ARROW
+========================================================= */
+
+.bilstm-stock-page .stock-big-arrow {
+    color: var(--stock-primary);
+
+    font-size: 1.4rem;
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.bilstm-stock-page .stock-closing {
+    font-size: 1.13rem;
+
+    line-height: 1.9;
+}
+
+.bilstm-stock-page .stock-back {
+    display: inline-block;
+
+    margin-top: 12px;
+
+    color: var(--stock-primary);
+
+    font-weight: 750;
+
+    text-decoration: none;
+}
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+.bilstm-stock-page :is(.lesson-card, .stock-side-card, #lessonMain) {
+    scroll-margin-top: 20px;
+}
+
+.bilstm-stock-page .page-content :is(a, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--stock-primary);
+
+    outline-offset: 4px;
+}
+
+.bilstm-stock-page .stock-skip {
+    position: fixed;
+
+    z-index: 9999;
+
+    top: 12px;
+
+    left: 12px;
+
+    padding: 10px 16px;
+
+    border: 2px solid var(--stock-primary);
+
+    border-radius: 8px;
+
+    color: var(--stock-primary-dark);
+
+    background: #ffffff;
+
+    font-weight: 750;
+}
+
+.bilstm-stock-page .stock-skip:not(:focus) {
+    position: absolute;
+
+    width: 1px;
+
+    height: 1px;
+
+    margin: -1px;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    clip-path: inset(50%);
+
+    white-space: nowrap;
+}
+
+/* =========================================================
+   RESPONSIVE 1000
+========================================================= */
+
+@media screen and (max-width: 1000px) {
+    .bilstm-stock-page .stock-problem,
+    .bilstm-stock-page .stock-direction {
+        grid-template-columns: 1fr;
+    }
+
+    .bilstm-stock-page :is(.stock-problem, .stock-direction) > span {
+        transform: rotate(90deg);
+
+        text-align: center;
+    }
+}
+
+/* =========================================================
+   RESPONSIVE 850
+========================================================= */
+
+@media screen and (max-width: 850px) {
+    .bilstm-stock-page .stock-stats,
+    .bilstm-stock-page .stock-memory {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bilstm-stock-page .stock-goals ul {
+        grid-template-columns: 1fr;
+    }
+
+    .bilstm-stock-page .stock-data-grid,
+    .bilstm-stock-page .stock-training-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bilstm-stock-page .stock-phase-grid,
+    .bilstm-stock-page .stock-window {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================
+   RESPONSIVE 680
+========================================================= */
+
+@media screen and (max-width: 680px) {
+    .bilstm-stock-page :is(.stock-grid, .stock-xy-grid, .stock-split, .stock-metric-grid, .stock-diagnosis) {
+        grid-template-columns: 1fr;
+    }
+
+    .bilstm-stock-page .stock-compare {
+        grid-template-columns: 1fr;
+    }
+
+    .bilstm-stock-page .stock-compare > span {
+        transform: rotate(90deg);
+
+        text-align: center;
+    }
+
+    .bilstm-stock-page
+        :is(
+            .stock-hero-flow,
+            .stock-shape-flow,
+            .stock-shape-map,
+            .stock-date-flow,
+            .stock-scale-flow,
+            .stock-improve-flow
+        ) {
+        flex-direction: column;
+    }
+
+    .bilstm-stock-page .stock-compile,
+    .bilstm-stock-page .stock-btd {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================
+   RESPONSIVE 540
+========================================================= */
+
+@media screen and (max-width: 540px) {
+    .bilstm-stock-page .page-content {
+        padding: 0 0 48px;
+    }
+
+    .bilstm-stock-page :is(.lesson-hero, .lesson-card, .stock-side-card, .lesson-footer) {
+        padding: 18px 15px;
+
+        border-radius: 15px;
+    }
+
+    .bilstm-stock-page .stock-heading {
+        gap: 10px;
+    }
+
+    .bilstm-stock-page .stock-number {
+        flex-basis: 34px;
+
+        width: 34px;
+
+        height: 34px;
+
+        border-radius: 9px;
+
+        font-size: 0.8rem;
+    }
+
+    .bilstm-stock-page pre {
+        padding: 14px;
+
+        font-size: .92rem;
+    }
+
+    .bilstm-stock-page :is(.stock-stats, .stock-data-grid, .stock-training-grid, .stock-memory) {
+        grid-template-columns: 1fr;
+    }
+
+    .bilstm-stock-page .stock-distinction > div {
+        grid-template-columns: 1fr;
+
+        gap: 4px;
+    }
+}
+
+/* Shared reading surfaces, output roles and keyboard access. */
+.bilstm-stock-page .page-content :where(article, nav, ul, ol, li) { min-width: 0; }
+.bilstm-stock-page .page-content a { color: var(--stock-primary); text-underline-offset: 4px; }
+.bilstm-stock-page :focus-visible { outline: 3px solid var(--stock-primary); outline-offset: 4px; }
+.bilstm-stock-page .stock-badges span { display: inline-flex; align-items: center; min-height: 36px; color: var(--stock-primary-dark); background: #fff; font-size: .81rem; }
+.bilstm-stock-page .stock-goals { padding: 22px; border: 1px solid var(--stock-line); border-radius: 16px; background: var(--stock-primary-soft); }
+.bilstm-stock-page .stock-goals h2 { margin-top: 0; font-size: 1.2rem; color: var(--stock-primary-dark); }
+.bilstm-stock-page .stock-goals ul { padding-left: 0; margin: 0; gap: 10px; list-style: none; }
+.bilstm-stock-page .stock-goals li { padding: 12px; margin: 0; border: 1px solid #d6e5e9; border-radius: 11px; background: #ffffffc9; font-size: .94rem; }
+.bilstm-stock-page .stock-toc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bilstm-stock-page .stock-toc a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; border-radius: 10px; font-size: .875rem; line-height: 1.6; }
+.bilstm-stock-page .stock-toc a:hover { border-color: var(--stock-primary); background: var(--stock-primary-soft); }
+.bilstm-stock-page :is(.stock-hero-flow, .stock-stats) strong { color: var(--stock-primary-dark); font-variant-numeric: tabular-nums; }
+.bilstm-stock-page .stock-stats strong { font-size: 1.05rem; }
+.bilstm-stock-page .stock-tag.stored { color: var(--stock-violet); background: var(--stock-violet-soft); }
+.bilstm-stock-page pre { border-radius: 14px; font-family: var(--study-code-font); tab-size: 4; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.bilstm-stock-page .page-content pre > code { display: block; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font-family: inherit; font-size: inherit; line-height: inherit; white-space: inherit; overflow-wrap: inherit; word-break: inherit; }
+.bilstm-stock-page .stock-tag.stored + pre { color: var(--stock-violet); background: var(--stock-violet-soft); border-color: #dcd5ed; border-left-width: 3px; }
+.bilstm-stock-page .stock-table { min-width: 0; max-width: 100%; border-radius: 12px; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.bilstm-stock-page caption { padding: 12px 0; text-align: left; color: var(--stock-muted); }
+.bilstm-stock-page .stock-qa summary { min-height: 48px; }
+.bilstm-stock-page .stock-qa summary:hover { color: var(--stock-primary-dark); background: var(--stock-primary-soft); }
+.bilstm-stock-page .page-content .stock-qa summary:focus-visible { outline-offset: -4px; }
+.bilstm-stock-page .stock-back { display: inline-flex; align-items: center; min-height: 44px; }
+.bilstm-stock-page #memory { background: var(--stock-primary-soft); }
+.bilstm-stock-page #next { background: var(--stock-violet-soft); }
+.bilstm-stock-page .stock-stack > div { background: var(--stock-primary-soft); }
+.bilstm-stock-page .stock-stack > div:first-of-type { background: var(--stock-blue-soft); color: var(--stock-blue); }
+.bilstm-stock-page .stock-stack > div:last-of-type { background: var(--stock-violet-soft); color: var(--stock-violet); border-color: #dcd5ed; }
+.bilstm-stock-page .stock-formula { font-size: 1rem; line-height: 1.9; }
+
+/* Keep each timeline connector on the same row as its neighbouring steps. */
+.bilstm-stock-page .stock-hero-flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr) auto) minmax(0, 1fr); align-items: stretch; gap: 8px; }
+.bilstm-stock-page .stock-hero-flow > div { min-width: 0; justify-content: center; }
+.bilstm-stock-page .stock-hero-flow > span { align-self: center; }
+.bilstm-stock-page :is(.stock-shape-flow, .stock-shape-map, .stock-date-flow, .stock-scale-flow, .stock-improve-flow) { flex-wrap: nowrap; }
+.bilstm-stock-page :is(.stock-shape-flow, .stock-date-flow, .stock-scale-flow, .stock-improve-flow) > div,
+.bilstm-stock-page .stock-shape-map > article { flex: 1 1 0; min-width: 0; }
+.bilstm-stock-page :is(.stock-shape-flow, .stock-shape-map, .stock-date-flow, .stock-scale-flow, .stock-improve-flow) > span { flex: 0 0 auto; }
+
+@media (hover: hover) and (pointer: fine) {
+    .bilstm-stock-page tbody tr:hover { background: var(--theme-surface-soft); }
+}
+@media screen and (max-width: 1050px) {
+    .bilstm-stock-page .stock-improve-flow { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .bilstm-stock-page .stock-improve-flow > span { transform: rotate(90deg); justify-self: center; }
+}
+@media screen and (max-width: 1000px) {
+    .bilstm-stock-page .stock-direction > span { transform: none; }
+}
+@media screen and (max-width: 900px) {
+    .bilstm-stock-page .stock-hero-flow { grid-template-columns: minmax(0, 1fr); }
+    .bilstm-stock-page .stock-hero-flow > span { transform: rotate(90deg); justify-self: center; }
+}
+@media screen and (max-width: 720px) {
+    .bilstm-stock-page :is(.lesson-hero, .lesson-card, .stock-side-card, .lesson-footer) { padding: 24px 19px; border-radius: 16px; }
+    .bilstm-stock-page .stock-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bilstm-stock-page .stock-goals { padding: 16px; }
+    .bilstm-stock-page .stock-shape-hero > div { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; }
+    .bilstm-stock-page .stock-shape-hero > div > span { transform: rotate(90deg); }
+}
+@media screen and (max-width: 680px) {
+    .bilstm-stock-page :is(.stock-shape-flow, .stock-shape-map, .stock-date-flow, .stock-scale-flow) { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
+    .bilstm-stock-page :is(.stock-shape-flow, .stock-shape-map, .stock-date-flow, .stock-scale-flow) > span { justify-self: center; }
+    .bilstm-stock-page .stock-shape-flow:not(:has(> div:nth-of-type(3))) > span,
+    .bilstm-stock-page .stock-shape-flow:has(> div:nth-of-type(3)) > span:last-of-type,
+    .bilstm-stock-page .stock-date-flow > span:nth-of-type(odd),
+    .bilstm-stock-page .stock-scale-flow > span { transform: rotate(90deg); }
+}
+@media screen and (max-width: 440px) {
+    .bilstm-stock-page :is(.lesson-hero, .lesson-card, .stock-side-card, .lesson-footer) { padding: 21px 15px; }
+    .bilstm-stock-page .page-content h1 { font-size: 1.85rem; }
+    .bilstm-stock-page .stock-toc { grid-template-columns: minmax(0, 1fr); }
+    .bilstm-stock-page .stock-lead { font-size: 1.03rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html:has(> body.bilstm-stock-page) { scroll-behavior: auto; }
+    .bilstm-stock-page *, .bilstm-stock-page *::before, .bilstm-stock-page *::after { animation: none; transition: none; scroll-behavior: auto; }
+}
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+    html:has(> body.bilstm-stock-page), body.bilstm-stock-page { min-width: 0; background: #fff; color: #111; }
+    body.bilstm-stock-page { font-size: 10pt; }
+    .bilstm-stock-page .lesson-hero::before { display: none; }
+    .bilstm-stock-page :is(.lesson-hero, #memory, #next) { background: #fff; }
+    .bilstm-stock-page details::details-content { display: block; content-visibility: visible; }
+    .bilstm-stock-page .page-content pre > code { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .bilstm-stock-page .stock-tag.stored + pre { color: #111; background: #f5f5f5; border-color: #aaa; }
+    .bilstm-stock-page .stock-number { background: #eee; color: #111; }
+    .bilstm-stock-page {
+        color: #000000;
+
+        background: #ffffff;
+
+        font-size: 10pt;
+    }
+
+    .bilstm-stock-page :is(.side-nav, .stock-toc, .stock-skip, .stock-back) {
+        display: none !important;
+    }
+
+    .bilstm-stock-page .layout {
+        display: block !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+    }
+
+    .bilstm-stock-page .page-content {
+        width: 100% !important;
+
+        max-width: none !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+    }
+
+    .bilstm-stock-page :is(.lesson-hero, .lesson-card, .stock-side-card, .lesson-footer) {
+        padding: 14px;
+
+        border-radius: 0;
+
+        box-shadow: none;
+    }
+
+    .bilstm-stock-page :is(.lesson-main, .side-note) {
+        display: block;
+    }
+
+    .bilstm-stock-page :is(.lesson-card, .stock-side-card) {
+        margin-bottom: 16px;
+    }
+
+    .bilstm-stock-page pre {
+        color: #111111;
+
+        background: #f4f4f4;
+
+        border-color: #aaaaaa;
+
+        white-space: pre-wrap;
+
+        overflow-wrap: anywhere;
+
+        overflow: visible;
+
+        font-size: 8.5pt;
+    }
+
+    .bilstm-stock-page .stock-table {
+        overflow: visible;
+    }
+
+    .bilstm-stock-page table {
+        min-width: 0;
+
+        font-size: 9pt;
+    }
+
+    .bilstm-stock-page thead {
+        display: table-header-group;
+    }
+
+    .bilstm-stock-page tr {
+        break-inside: avoid;
+    }
+
+    .bilstm-stock-page :is(h1, h2, h3, .stock-heading) {
+        break-after: avoid;
+    }
+
+    .bilstm-stock-page .stock-qa details {
+        break-inside: avoid;
+    }
+}
