@@ -1,266 +1,4252 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 60. Attention Seq2Seq 기계번역 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 60. Attention Seq2Seq 기계번역 | AI Machine Learning | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/60_attention_seq2seq_translation.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="60"
-      data-step="0"
-      data-status="skeleton" data-part="part-7-rnn-transformer">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="ML 60. Attention Seq2Seq 기계번역. 영어-한국어 병렬 말뭉치, Encoder-Decoder LSTM, Query Key Value, Attention Score, Context Vector, Tensor Shape, Teacher Forcing, 학습과 추론을 공부하는 AI Machine Learning 학습 매거진.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>
+            ML 60. Attention Seq2Seq 기계번역 |
+            AI Machine Learning
+        </title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <!-- 공통 스타일 -->
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 7. RNN &#183; Attention &#183; Transformer · ML 60</p>
-                        <h1>ML 60. Attention Seq2Seq 기계번역</h1>
+        <!-- ML 60 전용 스타일 -->
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/60_attention_seq2seq_translation.css">
+
+        <!-- 공통 네비게이션 -->
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page ml60-page"
+        data-nav-category="ai-machine-learning" data-course="machine-learning" data-lesson="60" data-step="3"
+        data-status="complete" data-part="part-7-rnn-transformer">
+
+        <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션">
+            </nav>
+
+            <div class="page-content">
+
+                <!-- ==============================================
+             HEADER — 단원 제목 / 핵심 요약 / 학습 목표
+        =============================================== -->
+                <header class="ai-ml-hero lesson-hero">
+
+                    <div class="header-topline">
+                        <p class="series-label">
+                            AI &amp; MACHINE LEARNING · COURSE 02
+                        </p>
+
+                        <p class="reading-time">
+                            PART 7 · Notebook 95 · Step 3
+                        </p>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <div class="hero-copy">
+                        <div>
+                            <p class="eyebrow">
+                                AI Machine Learning · NLP ·
+                                RNN / Attention / Transformer · ML 60
+                            </p>
+
+                            <h1>ML 60. Attention Seq2Seq 기계번역</h1>
+
+                            <p class="hero-subtitle">
+                                Encoder의 모든 시점 정보를 활용하여
+                                Decoder가 필요한 단어에 집중하는 번역 모델
+                            </p>
+                        </div>
+
+                        <div class="lesson-status">Step 3 완성</div>
+                    </div>
+
+                    <p class="hero-summary">
+                        기본 Seq2Seq는 입력 문장 전체의 정보를
+                        Encoder의 마지막 Hidden State와 Cell State에
+                        압축하여 Decoder에 전달합니다.
+
+                        이번 단원에서는
+                        <strong>Attention 메커니즘</strong>을 추가하여
+                        Decoder가 각 단어를 생성할 때
+                        Encoder의 모든 timestep 출력을 참고하도록 구현합니다.
+
+                        <strong>Query, Key, Value → Attention Score →
+                            Softmax Weight → Context Vector → Concatenate →
+                            다음 단어 예측</strong>의 흐름을
+                        실제 Keras 코드와 Tensor Shape으로 이해합니다.
+                    </p>
+
+                    <div class="hero-keywords">
+                        <span>Seq2Seq</span>
+                        <span>LSTM</span>
+                        <span>Attention</span>
+                        <span>Query / Key / Value</span>
+                        <span>Context Vector</span>
+                        <span>Teacher Forcing</span>
+                        <span>Autoregressive</span>
+                        <span>Greedy Decoding</span>
+                    </div>
+
+                    <section class="learning-goals" aria-labelledby="goals-machine-learning-60">
+
+                        <h2 id="goals-machine-learning-60">
+                            이번 단원의 학습 목표
+                        </h2>
+
+                        <ol class="goal-list">
+                            <li>
+                                <span>01</span>
+                                <p>
+                                    기본 Seq2Seq의 정보 병목과
+                                    Attention이 필요한 이유를 설명한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>02</span>
+                                <p>
+                                    영어-한국어 병렬 Dataset과
+                                    Encoder Input, Decoder Input,
+                                    Decoder Target을 구분한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>03</span>
+                                <p>
+                                    Encoder의 return_sequences=True가
+                                    추가된 이유를 이해한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>04</span>
+                                <p>
+                                    Query, Key, Value와
+                                    Attention Score 및 Weight를 설명한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>05</span>
+                                <p>
+                                    Attention Context Vector가
+                                    생성되는 과정을 이해한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>06</span>
+                                <p>
+                                    tf.concat() 전후 Shape과
+                                    Dense 출력 Shape을 추적한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>07</span>
+                                <p>
+                                    Teacher Forcing 학습과
+                                    Autoregressive 추론을 구분한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>08</span>
+                                <p>
+                                    Loss, Accuracy, Padding Mask,
+                                    데이터 누수와 성능 개선 방향을 해석한다.
+                                </p>
+                            </li>
+                        </ol>
+                    </section>
+
+                    <div class="source-notice">
+                        <strong>원본 학습 자료</strong>
+
+                        <p>
+                            통합 교안: AI_MachineLearning_통합교안_36-100.pdf<br>
+                            PDF 범위: 649~664페이지<br>
+                            Notebook 95:
+                            95_케라스_Seq2Seq_어텐션_기계번역60.ipynb<br>
+                            구성: Markdown 18셀 / Code 33셀 / 저장 출력 19개
+                        </p>
+
+                        <p>
+                            원본 Notebook의 코드와 저장 결과를 기준으로 정리합니다.
+                            설명용 예제와 성능 개선 코드는 별도로 구분하며,
+                            이 페이지를 위해 모델을 새로 학습한 것은 아닙니다.
+                        </p>
+                    </div>
+                </header>
+
+                <!-- ==============================================
+             학습 목차
+        =============================================== -->
+                <nav class="ml60-toc" aria-label="ML 60 학습 목차">
+
+                    <h2>학습 목차</h2>
+
+                    <div class="toc-links">
+                        <a href="#goal">01. 실습 목표</a>
+                        <a href="#concept">02. 핵심 개념</a>
+                        <a href="#visual">03. 그림처럼 이해</a>
+                        <a href="#dataset">04. Dataset</a>
+                        <a href="#shape">05. X / y와 Shape</a>
+                        <a href="#preprocess">06. 전처리</a>
+                        <a href="#split">07. 데이터 분할</a>
+                        <a href="#model">08. Model Architecture</a>
+                        <a href="#attention">09. Attention 계산</a>
+                        <a href="#code">10. 주요 코드</a>
+                        <a href="#flow">11. 학습·추론 흐름</a>
+                        <a href="#result">12. 실행 결과</a>
+                        <a href="#metric">13. Metric 해석</a>
+                        <a href="#mistake">14. 자주 하는 실수</a>
+                        <a href="#error">15. 오류 메시지</a>
+                        <a href="#performance">16. 성능 개선</a>
+                        <a href="#practice">17. 실무 연결</a>
+                        <a href="#interview">18. 면접 포인트</a>
+                    </div>
+                </nav>
+
+                <div class="content-layout">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <!-- ======================================
+                     01. 실습 목표
+                ======================================= -->
+                        <section id="goal" class="lesson-card goal-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    01 · PROBLEM DEFINITION
+                                </p>
+
+                                <h2>실습 목표와 문제 정의</h2>
+                            </div>
+
+                            <p class="lead">
+                                이번 실습은 기본 Seq2Seq에 Attention을 추가하여
+                                <strong>Decoder가 영어 원문의 여러 위치에 있는 정보를
+                                    선택적으로 활용하면서 한국어 문장을 생성하도록
+                                    구현하는 것</strong>이 목표입니다.
+                            </p>
+
+                            <h3>왜 Attention을 배우는가?</h3>
+
+                            <p>
+                                기본 Seq2Seq 모델에서는 Encoder가 문장 전체를 읽고
+                                마지막 상태를 Decoder에 전달합니다.
+                                문장이 짧다면 충분할 수 있지만,
+                                길고 복잡해질수록 모든 정보를 고정 크기 상태에
+                                압축하는 데 한계가 있습니다.
+                            </p>
+
+                            <div class="comparison-grid">
+
+                                <div class="mini-panel">
+                                    <p class="panel-kicker">ML 59</p>
+                                    <h3>기본 Seq2Seq</h3>
+
+                                    <div class="vertical-flow">
+                                        <div>영어 입력 문장</div>
+                                        <span>↓</span>
+                                        <div>Encoder LSTM</div>
+                                        <span>↓</span>
+                                        <div>최종 h, c</div>
+                                        <span>↓</span>
+                                        <div>Decoder LSTM</div>
+                                        <span>↓</span>
+                                        <div>한국어 출력</div>
+                                    </div>
+
+                                    <p>
+                                        Encoder의 마지막 상태를 중심으로
+                                        문장 전체의 정보를 전달합니다.
+                                    </p>
+                                </div>
+
+                                <div class="mini-panel emphasis">
+                                    <p class="panel-kicker">ML 60</p>
+                                    <h3>Attention Seq2Seq</h3>
+
+                                    <div class="vertical-flow">
+                                        <div>영어 입력 문장</div>
+                                        <span>↓</span>
+                                        <div>Encoder 전체 출력 + h, c</div>
+                                        <span>↓</span>
+                                        <div>Attention</div>
+                                        <span>↓</span>
+                                        <div>Context + Decoder 출력</div>
+                                        <span>↓</span>
+                                        <div>한국어 출력</div>
+                                    </div>
+
+                                    <p>
+                                        현재 번역에 필요한 원문 정보를
+                                        Attention으로 선택적으로 결합합니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <h3>이 실습의 핵심 질문</h3>
+
+                            <div class="concept-highlight">
+                                Encoder의 마지막 상태만 전달하던 구조에서
+                                모든 timestep의 출력을 제공하도록 바꾸면,
+                                Decoder는 그 정보를 어떻게 활용하여
+                                다음 한국어 단어를 예측할 수 있을까?
+                            </div>
+
+                            <h3>완성해야 할 학습 흐름</h3>
+
+                            <div class="pipeline-strip">
+                                <span>Dataset</span>
+                                <b>→</b>
+                                <span>Preprocess</span>
+                                <b>→</b>
+                                <span>Encoder</span>
+                                <b>→</b>
+                                <span>Attention</span>
+                                <b>→</b>
+                                <span>Decoder</span>
+                                <b>→</b>
+                                <span>Prediction</span>
+                            </div>
+
+                            <p class="source-label original">
+                                원본 Notebook Cell 001 / 학습 포인트
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     02. 핵심 개념
+                ======================================= -->
+                        <section id="concept" class="lesson-card concept-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    02 · CORE CONCEPTS
+                                </p>
+
+                                <h2>핵심 개념 — Seq2Seq와 Attention</h2>
+                            </div>
+
+                            <h3>Sequence-to-Sequence</h3>
+
+                            <p>
+                                Seq2Seq는 하나의 Sequence를 입력받아
+                                새로운 Sequence를 생성하는 구조입니다.
+                                번역에서는 영어 문장이 입력 Sequence이고
+                                한국어 문장이 출력 Sequence입니다.
+                            </p>
+
+                            <div class="formula-card">
+                                <strong>기계번역 문제</strong>
+                                <code>X = (x₁, x₂, ..., xₙ)</code>
+                                <code>Y = (y₁, y₂, ..., yₘ)</code>
+
+                                <p>
+                                    영어 문장의 길이 n과
+                                    한국어 문장의 길이 m은
+                                    서로 달라도 됩니다.
+                                </p>
+                            </div>
+
+                            <h3>Encoder–Decoder</h3>
+
+                            <div class="definition-grid">
+                                <div class="definition-item">
+                                    <h4>Encoder</h4>
+
+                                    <p>
+                                        입력 문장을 읽어 시점별 출력과
+                                        최종 Hidden State, Cell State를 생성합니다.
+                                    </p>
+                                </div>
+
+                                <div class="definition-item">
+                                    <h4>Decoder</h4>
+
+                                    <p>
+                                        Encoder 정보를 활용하고
+                                        이전 출력 단어를 참고하여
+                                        다음 단어의 확률을 계산합니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <h3>Hidden State와 Cell State</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>구분</th>
+                                            <th>의미</th>
+                                            <th>Shape</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Hidden State h</td>
+                                            <td>현재 시점의 전달 상태</td>
+                                            <td>(B, 256)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Cell State c</td>
+                                            <td>장기 정보를 유지하는 LSTM 상태</td>
+                                            <td>(B, 256)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Encoder Outputs</td>
+                                            <td>모든 timestep의 LSTM 출력</td>
+                                            <td>(B, 10, 256)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>Attention을 이해하기 위한 네 가지 용어</h3>
+
+                            <div class="concept-grid">
+
+                                <article class="concept-tile">
+                                    <span>Q</span>
+                                    <h4>Query</h4>
+
+                                    <p>
+                                        지금 Decoder가 어떤 정보를
+                                        필요로 하는지 나타냅니다.
+                                    </p>
+                                </article>
+
+                                <article class="concept-tile">
+                                    <span>K</span>
+                                    <h4>Key</h4>
+
+                                    <p>
+                                        Encoder 각 위치의 관련도를
+                                        계산하는 기준 정보입니다.
+                                    </p>
+                                </article>
+
+                                <article class="concept-tile">
+                                    <span>V</span>
+                                    <h4>Value</h4>
+
+                                    <p>
+                                        Attention Weight를 적용해
+                                        실제로 가중합할 정보입니다.
+                                    </p>
+                                </article>
+
+                                <article class="concept-tile">
+                                    <span>C</span>
+                                    <h4>Context</h4>
+
+                                    <p>
+                                        Value들을 가중합하여 얻는
+                                        현재 시점의 문맥 벡터입니다.
+                                    </p>
+                                </article>
+
+                            </div>
+
+                            <h3>이번 Notebook에서 Q, K, V는 무엇인가?</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>역할</th>
+                                            <th>Tensor</th>
+                                            <th>설명</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Query</td>
+                                            <td><code>x</code></td>
+                                            <td>Decoder LSTM 출력</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Key</td>
+                                            <td><code>encoder_outputs</code></td>
+                                            <td>Encoder 전체 시점 출력</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Value</td>
+                                            <td><code>encoder_outputs</code></td>
+                                            <td>Encoder 전체 시점 출력</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="code-example">
+                                <div class="code-head">
+                                    <strong>원본 Attention 핵심 코드</strong>
+                                    <span>Cell 038</span>
+                                </div>
+
+                                <pre tabindex="0"><code>attention_vector = self.attention(
+    [x, encoder_outputs]
+)</code></pre>
+                            </div>
+
+                            <p>
+                                위 코드는 Keras의 기본 Dot-Product Attention을
+                                사용하는 형태입니다.
+                                Decoder 출력이 Query가 되고,
+                                Encoder 전체 출력이 Key와 Value에 사용됩니다.
+                            </p>
+
+                            <div class="notice neutral">
+                                <strong>기본 Attention과 Transformer의 차이</strong>
+
+                                <p>
+                                    이번 원본의 keras.layers.Attention()은
+                                    기본적으로 Dot-Product 방식입니다.
+                                    Transformer에서 흔히 배우는
+                                    Scaled Dot-Product Attention과
+                                    완전히 같은 구현이라고 생각하면 안 됩니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     03. 그림처럼 이해
+                ======================================= -->
+                        <section id="visual" class="lesson-card visual-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    03 · VISUAL LEARNING
+                                </p>
+
+                                <h2>그림처럼 이해 — 현재 단어에 집중하기</h2>
+                            </div>
+
+                            <p>
+                                "Tom bought a horse"라는 영어 문장을
+                                한국어로 번역하는 상황을 생각해 보겠습니다.
+                            </p>
+
+                            <div class="sentence-panel">
+
+                                <p class="figure-title">Source Sequence</p>
+
+                                <div class="token-line">
+                                    <span>Tom</span>
+                                    <span>bought</span>
+                                    <span>a</span>
+                                    <span>horse</span>
+                                </div>
+
+                                <div class="diagram-arrow">↓</div>
+
+                                <div class="diagram-box">
+                                    Encoder LSTM
+                                    <small>
+                                        영어 단어별 출력 벡터 생성
+                                    </small>
+                                </div>
+
+                                <div class="diagram-arrow">↓</div>
+
+                                <div class="diagram-box emphasis">
+                                    Attention
+                                    <small>
+                                        현재 필요한 Encoder 위치 계산
+                                    </small>
+                                </div>
+
+                                <div class="diagram-arrow">↓</div>
+
+                                <div class="diagram-box">
+                                    Decoder
+                                    <small>
+                                        한국어 단어 생성
+                                    </small>
+                                </div>
+
+                                <div class="diagram-arrow">↓</div>
+
+                                <div class="token-line korean">
+                                    <span>톰</span>
+                                    <span>은</span>
+                                    <span>말</span>
+                                    <span>을</span>
+                                    <span>샀어</span>
+                                </div>
+                            </div>
+
+                            <h3>Attention Weight는 어떻게 이해하는가?</h3>
+
+                            <p>
+                                Decoder가 "말"에 대응하는 단어를 생성할 때
+                                영어 문장 중 "horse"에 높은 가중치를
+                                줄 수 있다고 생각해 볼 수 있습니다.
+                            </p>
+
+                            <div class="attention-demo">
+                                <div class="demo-heading">
+                                    <strong>
+                                        Decoder 현재 출력: "말"
+                                    </strong>
+
+                                    <span>
+                                        설명용 가상 Attention Weight
+                                    </span>
+                                </div>
+
+                                <div class="weight-row">
+                                    <span class="weight-label">Tom</span>
+                                    <div class="weight-track">
+                                        <div class="weight-fill" style="width:10%"></div>
+                                    </div>
+                                    <strong>0.10</strong>
+                                </div>
+
+                                <div class="weight-row">
+                                    <span class="weight-label">bought</span>
+                                    <div class="weight-track">
+                                        <div class="weight-fill" style="width:12%"></div>
+                                    </div>
+                                    <strong>0.12</strong>
+                                </div>
+
+                                <div class="weight-row">
+                                    <span class="weight-label">a</span>
+                                    <div class="weight-track">
+                                        <div class="weight-fill" style="width:8%"></div>
+                                    </div>
+                                    <strong>0.08</strong>
+                                </div>
+
+                                <div class="weight-row">
+                                    <span class="weight-label">horse</span>
+                                    <div class="weight-track">
+                                        <div class="weight-fill strong" style="width:70%"></div>
+                                    </div>
+                                    <strong>0.70</strong>
+                                </div>
+                            </div>
+
+                            <p class="figure-caption">
+                                위 0.10, 0.12, 0.08, 0.70은 개념 이해를 위해
+                                임의로 설정한 수치입니다.
+                                원본 Notebook에서 Attention Weight를
+                                직접 출력한 결과는 아닙니다.
+                            </p>
+
+                            <h3>한 문장 안에서 중요한 위치가 달라진다</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>생성하려는 한국어 단어</th>
+                                            <th>관련될 수 있는 영어 위치</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>톰</td>
+                                            <td>Tom</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>말</td>
+                                            <td>horse</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>샀어</td>
+                                            <td>bought</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="figure-caption">
+                                이 표는 단어 정렬을 이해하기 위한 설명입니다.
+                                실제 모델의 Attention Weight가 반드시
+                                동일한 정렬을 나타낸다는 뜻은 아닙니다.
+                            </p>
+
+                            <div class="concept-highlight">
+                                Attention의 핵심은
+                                "항상 똑같은 원문 정보를 전달하는 것"이 아니라
+                                "현재 출력 시점에서 필요한 원문 정보를
+                                새롭게 계산하는 것"입니다.
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     04. Dataset
+                ======================================= -->
+                        <section id="dataset" class="lesson-card dataset-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    04 · PARALLEL CORPUS
+                                </p>
+
+                                <h2>Dataset — 영어·한국어 병렬 말뭉치</h2>
+                            </div>
+
+                            <p>
+                                원본은 ML 59와 동일한
+                                <code>kor.txt</code> 병렬 말뭉치를 사용합니다.
+                                영어 원문과 한국어 번역 정답이
+                                하나의 행으로 연결되어 있습니다.
+                            </p>
+
+                            <div class="metric-row">
+
+                                <div class="metric-tile">
+                                    <span>원본 Dataset</span>
+                                    <strong>3,640쌍</strong>
+                                </div>
+
+                                <div class="metric-tile">
+                                    <span>실제 실습</span>
+                                    <strong>1,000쌍</strong>
+                                </div>
+
+                                <div class="metric-tile">
+                                    <span>번역 방향</span>
+                                    <strong>EN → KO</strong>
+                                </div>
+                            </div>
+
+                            <h3>원본 Dataset 예제</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Index</th>
+                                            <th>English</th>
+                                            <th>Korean</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>0</td>
+                                            <td>Go.</td>
+                                            <td>가.</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>1</td>
+                                            <td>Hi.</td>
+                                            <td>안녕.</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>2</td>
+                                            <td>Run!</td>
+                                            <td>뛰어!</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>3</td>
+                                            <td>Run.</td>
+                                            <td>뛰어.</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>4</td>
+                                            <td>Who?</td>
+                                            <td>누구?</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>원본 컬럼 구조</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>컬럼</th>
+                                            <th>의미</th>
+                                            <th>학습 활용</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>eng</td>
+                                            <td>영어 문장</td>
+                                            <td>Encoder 입력</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>kor</td>
+                                            <td>한국어 번역</td>
+                                            <td>Decoder 입력·정답</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>author</td>
+                                            <td>문장 출처 정보</td>
+                                            <td>삭제</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>데이터 로딩 코드</h3>
+
+                            <div class="code-example">
+                                <div class="code-head">
+                                    <strong>원본 코드</strong>
+                                    <span>Cell 010~013</span>
+                                </div>
+
+                                <pre tabindex="0"><code>corpus = pd.read_table(
+    './kor.txt',
+    names=['eng', 'kor', 'author'],
+    sep='\t'
+)
+
+print(corpus.head())
+corpus.info()
+
+del corpus['author']
+
+# 실행 시간을 줄이기 위해 앞의 1000개 사용
+corpus = corpus[0:1000]
+
+X_train = corpus['eng']
+y_train = corpus['kor']</code></pre>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>
+                                    X_train, y_train이라는 이름에 주의
+                                </strong>
+
+                                <p>
+                                    원본은 변수명에 train을 사용하지만
+                                    실제 Train/Validation/Test 분할은 수행하지 않습니다.
+                                    이 점을 나중에 Metric 해석과 연결해야 합니다.
+                                </p>
+                            </div>
+
+                            <p class="source-label original">
+                                원본 Notebook Cell 008~013
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     05. X/y 및 Shape
+                ======================================= -->
+                        <section id="shape" class="lesson-card shape-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    05 · X / y / TENSOR SHAPE
+                                </p>
+
+                                <h2>X / y와 전체 Shape 흐름</h2>
+                            </div>
+
+                            <p>
+                                Seq2Seq 학습에는 Encoder Input,
+                                Decoder Input, Decoder Target의 세 배열이 필요합니다.
+                                Attention을 추가하더라도 이 학습 데이터 구성은 같습니다.
+                            </p>
+
+                            <div class="triple-grid">
+
+                                <div class="mini-panel">
+                                    <h3>Encoder Input</h3>
+                                    <code>encoder_in_pad</code>
+                                    <strong>(1000, 10)</strong>
+                                    <small>영어 정수 토큰</small>
+                                </div>
+
+                                <div class="mini-panel">
+                                    <h3>Decoder Input</h3>
+                                    <code>decoder_in_pad</code>
+                                    <strong>(1000, 10)</strong>
+                                    <small>SOS + 이전 정답</small>
+                                </div>
+
+                                <div class="mini-panel">
+                                    <h3>Decoder Target</h3>
+                                    <code>decoder_out_pad</code>
+                                    <strong>(1000, 10)</strong>
+                                    <small>다음 정답 + EOS</small>
+                                </div>
+                            </div>
+
+                            <h3>Teacher Forcing용 Shift</h3>
+
+                            <div class="shift-diagram">
+                                <div>
+                                    <strong>전체 한국어 문장</strong>
+                                    <code>
+                                &lt;SOS&gt; 나는 학생이다 &lt;EOS&gt;
+                            </code>
+                                </div>
+
+                                <div>
+                                    <strong>Decoder Input</strong>
+                                    <code>
+                                &lt;SOS&gt; 나는 학생이다
+                            </code>
+                                </div>
+
+                                <div>
+                                    <strong>Decoder Target</strong>
+                                    <code>
+                                나는 학생이다 &lt;EOS&gt;
+                            </code>
+                                </div>
+                            </div>
+
+                            <p class="figure-caption">
+                                설명용 예제입니다.
+                                실제 첫 번째 데이터의 Decoder Input은
+                                &lt;SOS&gt; 가,
+                                Target은 가 &lt;EOS&gt;입니다.
+                            </p>
+
+                            <h3>Encoder에서 Decoder까지 Shape 추적</h3>
+
+                            <div class="shape-flow">
+
+                                <div class="shape-node">
+                                    <span>Encoder 정수 입력</span>
+                                    <strong>(B, 10)</strong>
+                                    <small>문장별 10개 Token ID</small>
+                                </div>
+
+                                <div class="shape-arrow">↓</div>
+
+                                <div class="shape-node">
+                                    <span>Encoder Embedding</span>
+                                    <strong>(B, 10, 128)</strong>
+                                    <small>단어당 128차원</small>
+                                </div>
+
+                                <div class="shape-arrow">↓</div>
+
+                                <div class="shape-node">
+                                    <span>Encoder LSTM 전체 출력</span>
+                                    <strong>(B, 10, 256)</strong>
+                                    <small>10개 시점의 256차원 출력</small>
+                                </div>
+
+                                <div class="shape-arrow">↓</div>
+
+                                <div class="shape-node secondary-node">
+                                    <span>Attention Score</span>
+                                    <strong>(B, 10, 10)</strong>
+                                    <small>Decoder 시점 × Encoder 시점</small>
+                                </div>
+
+                                <div class="shape-arrow">↓</div>
+
+                                <div class="shape-node secondary-node">
+                                    <span>Attention Context</span>
+                                    <strong>(B, 10, 256)</strong>
+                                    <small>Encoder 출력의 가중합</small>
+                                </div>
+
+                                <div class="shape-arrow">↓</div>
+
+                                <div class="shape-node emphasis-node">
+                                    <span>Decoder LSTM + Context</span>
+                                    <strong>(B, 10, 512)</strong>
+                                    <small>256 + 256 Concatenate</small>
+                                </div>
+
+                                <div class="shape-arrow">↓</div>
+
+                                <div class="shape-node">
+                                    <span>Dense + Softmax</span>
+                                    <strong>(B, 10, 1947)</strong>
+                                    <small>시점별 단어 확률</small>
+                                </div>
+
+                            </div>
+
+                            <h3>Shape 전체 비교표</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Tensor</th>
+                                            <th>Shape</th>
+                                            <th>의미</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Encoder Input</td>
+                                            <td>(B,10)</td>
+                                            <td>영어 정수 시퀀스</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Encoder Embedding</td>
+                                            <td>(B,10,128)</td>
+                                            <td>영어 임베딩 벡터</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Encoder Outputs</td>
+                                            <td>(B,10,256)</td>
+                                            <td>모든 시점의 출력</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Encoder h</td>
+                                            <td>(B,256)</td>
+                                            <td>최종 Hidden State</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Encoder c</td>
+                                            <td>(B,256)</td>
+                                            <td>최종 Cell State</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Decoder Input</td>
+                                            <td>(B,10)</td>
+                                            <td>한국어 정수 시퀀스</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Decoder LSTM</td>
+                                            <td>(B,10,256)</td>
+                                            <td>Decoder Query</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Attention Scores</td>
+                                            <td>(B,10,10)</td>
+                                            <td>Query-Key 유사도</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Attention Context</td>
+                                            <td>(B,10,256)</td>
+                                            <td>가중합 결과</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Concatenate</td>
+                                            <td>(B,10,512)</td>
+                                            <td>Decoder + Context</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Softmax Output</td>
+                                            <td>(B,10,1947)</td>
+                                            <td>단어별 예측 확률</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Target</td>
+                                            <td>(B,10)</td>
+                                            <td>정답 Token ID</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>가장 중요한 Shape 변화</strong>
+
+                                <p>
+                                    Encoder의 return_sequences=True로
+                                    (B,10,256) 전체 출력이 추가됩니다.
+                                    Decoder 출력 (B,10,256)과
+                                    Attention Context (B,10,256)를 결합하면
+                                    (B,10,512)가 됩니다.
+                                </p>
+                            </div>
+
+                            <p class="fine-print">
+                                B는 배치 크기입니다.
+                                원본의 Batch Size는 32이지만,
+                                마지막 배치는 8개입니다.
+                                중간 계층 Shape은 원본 계층 정의로부터 계산한 값입니다.
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     06. 전처리
+                ======================================= -->
+                        <section id="preprocess" class="lesson-card preprocess-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    06 · PREPROCESSING
+                                </p>
+
+                                <h2>전처리 — 원문에서 Tensor까지</h2>
+                            </div>
+
+                            <p>
+                                Attention을 사용해도 문장을 정수 시퀀스로 바꾸는
+                                기본적인 NLP 전처리 흐름은 유지됩니다.
+                            </p>
+
+                            <div class="step-list">
+
+                                <div class="step-item">
+                                    <span>1</span>
+
+                                    <div>
+                                        <h3>한국어 문장 정제</h3>
+
+                                        <p>
+                                            WordTokenizer의 preprocess_korean()을 사용합니다.
+                                            번역에는 조사와 문장 구조가 중요하므로
+                                            불용어를 함부로 제거하지 않습니다.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="step-item">
+                                    <span>2</span>
+
+                                    <div>
+                                        <h3>SOS와 EOS 추가</h3>
+
+                                        <p>
+                                            생성 시작과 종료를 모델이 구분할 수 있도록
+                                            한국어 문장의 양 끝에 특수 토큰을 추가합니다.
+                                        </p>
+
+                                        <code>
+                                    &lt;SOS&gt; 가 &lt;EOS&gt;
+                                </code>
+                                    </div>
+                                </div>
+
+                                <div class="step-item">
+                                    <span>3</span>
+
+                                    <div>
+                                        <h3>Decoder Input과 Target 분리</h3>
+
+                                        <p>
+                                            한 칸 이동한 두 시퀀스를 만들어
+                                            Teacher Forcing 학습에 사용합니다.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="step-item">
+                                    <span>4</span>
+
+                                    <div>
+                                        <h3>영어 구두점 제거</h3>
+
+                                        <p>
+                                            정규식을 사용하여 영어 입력의
+                                            구두점과 일부 특수 문자를 제거합니다.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="step-item">
+                                    <span>5</span>
+
+                                    <div>
+                                        <h3>Vocabulary 구축</h3>
+
+                                        <p>
+                                            영어 원문과 Decoder Input/Target을 합쳐
+                                            공통 단어 사전을 만듭니다.
+                                            저장된 Vocabulary Size는 1947입니다.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="step-item">
+                                    <span>6</span>
+
+                                    <div>
+                                        <h3>Integer Encoding / Padding</h3>
+
+                                        <p>
+                                            단어를 정수 Token ID로 변환하고
+                                            최대 길이 10에 맞춰 Padding합니다.
+                                        </p>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <h3>원본 전처리 주요 코드</h3>
+
+                            <div class="code-example">
+                                <div class="code-head">
+                                    <strong>원본 Cell 015~031 발췌</strong>
+                                    <span>Original Notebook</span>
+                                </div>
+
+                                <pre tabindex="0"><code>tokenizer = keras.preprocessing.text.Tokenizer(
+    filters='',
+    lower=False
+)
+
+word_tokenizer = WordTokenizer(tokenizer)
+
+sentences = word_tokenizer.preprocess_korean(
+    np.array(y_train)
+)
+
+sentences = word_tokenizer.make_decoder_inout_for_teacher_forcing(
+    sentences
+)
+
+decoder_in = [
+    ' '.join(x.split()[:-1])
+    for x in sentences
+]
+
+decoder_out = [
+    ' '.join(x.split()[1:])
+    for x in sentences
+]
+
+encoder_in = [
+    re.sub(r'[^\w\s]', '', sentence)
+    for sentence in X_train
+]
+
+all_sentences = encoder_in + decoder_in + decoder_out
+
+word_tokenizer.make_word_dictionary(
+    all_sentences
+)
+
+encoder_in_pad = word_tokenizer.make_integer_encoding(
+    encoder_in
+)
+
+decoder_in_pad = word_tokenizer.make_integer_encoding(
+    decoder_in
+)
+
+decoder_out_pad = word_tokenizer.make_integer_encoding(
+    decoder_out
+)</code></pre>
+                            </div>
+
+                            <h3>실제 저장된 정수 인코딩 결과</h3>
+
+                            <div class="token-demo">
+                                <span class="token-word">Go</span>
+                                <b>→</b>
+                                <span class="token-id">333</span>
+                                <b>→</b>
+
+                                <code>
+                            [333,0,0,0,0,0,0,0,0,0]
+                        </code>
+                            </div>
+
+                            <h3>토큰의 종류</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>토큰</th>
+                                            <th>역할</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>&lt;SOS&gt;</td>
+                                            <td>Decoder 생성 시작</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>&lt;EOS&gt;</td>
+                                            <td>Decoder 생성 종료</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>0 (PAD)</td>
+                                            <td>시퀀스 길이 맞추기</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>Attention에서는 Padding Mask가 중요합니다.</strong>
+
+                                <p>
+                                    Padding이 의미 있는 단어처럼 Attention 계산에
+                                    반영되면 원문의 잘못된 위치에 가중치를
+                                    배분할 수 있습니다.
+
+                                    원본의 Embedding에는 mask_zero=True가 없고,
+                                    Attention에도 Padding Mask를 명시적으로 전달하지 않습니다.
+                                    이것은 통합 교안에서 지적한 검토 사항입니다.
+                                </p>
+                            </div>
+
+                            <p class="source-label original">
+                                원본 Notebook Cell 015~032
+                            </p>
+
+                            <p class="source-label review">
+                                통합 교안 검토 메모 · Padding Mask
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     07. Train / Validation / Test
+                ======================================= -->
+                        <section id="split" class="lesson-card split-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    07 · DATA SPLIT / LEAKAGE
+                                </p>
+
+                                <h2>Train / Validation / Test</h2>
+                            </div>
+
+                            <p>
+                                원본 Notebook은 1,000개의 병렬 문장 쌍으로
+                                모델을 학습합니다.
+
+                                독립적인 Validation과 Test 데이터는
+                                별도로 구성하지 않습니다.
+                            </p>
+
+                            <div class="comparison-grid">
+
+                                <div class="mini-panel">
+                                    <h3>원본 Notebook</h3>
+
+                                    <div class="vertical-flow">
+                                        <div>앞의 문장 1000쌍</div>
+                                        <span>↓</span>
+                                        <div>전체로 단어 사전 생성</div>
+                                        <span>↓</span>
+                                        <div>모델 학습</div>
+                                        <span>↓</span>
+                                        <div>Training Loss / Accuracy</div>
+                                    </div>
+                                </div>
+
+                                <div class="mini-panel emphasis">
+                                    <h3>일반적인 개선 흐름</h3>
+
+                                    <div class="vertical-flow">
+                                        <div>병렬 데이터 준비</div>
+                                        <span>↓</span>
+                                        <div>Train / Validation / Test 분할</div>
+                                        <span>↓</span>
+                                        <div>Train으로 사전 학습</div>
+                                        <span>↓</span>
+                                        <div>Train 학습 / Val 선택</div>
+                                        <span>↓</span>
+                                        <div>Test 최종 평가</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3>추가 학습용 분할 예시</h3>
+
+                            <div class="dataset-split">
+                                <span class="split-train">Train 80%</span>
+                                <span class="split-val">Val 10%</span>
+                                <span class="split-test">Test 10%</span>
+                            </div>
+
+                            <p class="figure-caption">
+                                80:10:10은 설명용 예시이며
+                                원본 Notebook의 실제 분할 비율이 아닙니다.
+                            </p>
+
+                            <div class="code-example added-code">
+                                <div class="code-head">
+                                    <strong>추가 개선 예제 — Data Split</strong>
+                                    <span>원본에 없음</span>
+                                </div>
+
+                                <pre tabindex="0"><code>from sklearn.model_selection import train_test_split
+
+train_df, temp_df = train_test_split(
+    corpus,
+    test_size=0.2,
+    random_state=42
+)
+
+val_df, test_df = train_test_split(
+    temp_df,
+    test_size=0.5,
+    random_state=42
+)
+
+# 이후 단어 사전은 Train 문장으로만 학습
+# Validation/Test에는 동일한 전처리 규칙 적용
+# OOV와 중복 문장 문제도 별도로 검증</code></pre>
+                            </div>
+
+                            <h3>Data Leakage는 언제 발생하는가?</h3>
+
+                            <ul class="compact-list">
+                                <li>
+                                    전체 데이터를 사용해 단어 사전을 만든 뒤
+                                    Train/Test로 분리하는 경우
+                                </li>
+
+                                <li>
+                                    Validation/Test에만 있는 정보를
+                                    학습 전처리에 반영하는 경우
+                                </li>
+
+                                <li>
+                                    같은 문장이나 중복 문장 쌍이
+                                    Train과 Test에 동시에 포함되는 경우
+                                </li>
+
+                                <li>
+                                    Test 결과를 반복 확인하면서
+                                    모델을 계속 조정하는 경우
+                                </li>
+                            </ul>
+
+                            <div class="notice important">
+                                <strong>원본의 상황을 정확하게 이해하기</strong>
+
+                                <p>
+                                    원본에는 독립적인 Test 데이터가 없으므로
+                                    검증 데이터 누수가 발생했다고 단정하기보다는
+                                    먼저 독립적인 일반화 성능 평가가
+                                    존재하지 않는다는 점을 이해해야 합니다.
+                                </p>
+                            </div>
+
+                            <p class="source-label added">
+                                추가 학습·개선 예제 · 원본의 분할 단계 아님
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     08. Model Architecture
+                ======================================= -->
+                        <section id="model" class="lesson-card model-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    08 · MODEL ARCHITECTURE
+                                </p>
+
+                                <h2>Model Architecture — Encoder와 Decoder</h2>
+                            </div>
+
+                            <p>
+                                원본은 Keras Model Subclassing 방식으로
+                                Encoder, Decoder, Seq2Seq 클래스를 작성합니다.
+
+                                ML 59의 기본 구조를 유지하면서
+                                Attention에 필요한 연결이 추가됩니다.
+                            </p>
+
+                            <div class="architecture">
+
+                                <div class="architecture-column">
+                                    <h3>ENCODER</h3>
+
+                                    <div class="arch-node">
+                                        English Token IDs
+                                        <small>(B,10)</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node">
+                                        Embedding
+                                        <small>(B,10,128)</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node">
+                                        Dropout 0.2
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node focus">
+                                        LSTM 256
+                                        <small>
+                                            return_sequences=True
+                                        </small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node state">
+                                        Encoder Outputs
+                                        <small>(B,10,256)</small>
+                                    </div>
+
+                                    <div class="arch-arrow">+</div>
+
+                                    <div class="arch-node state">
+                                        h / c
+                                        <small>각각 (B,256)</small>
+                                    </div>
+                                </div>
+
+                                <div class="architecture-column">
+                                    <h3>DECODER</h3>
+
+                                    <div class="arch-node">
+                                        Decoder Token IDs
+                                        <small>(B,10)</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node">
+                                        Embedding
+                                        <small>(B,10,128)</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node">
+                                        LSTM 256
+                                        <small>initial_state=[h,c]</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node attention-node">
+                                        Keras Attention
+                                        <small>Query / Key / Value</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node focus">
+                                        Concatenate
+                                        <small>(B,10,512)</small>
+                                    </div>
+
+                                    <div class="arch-arrow">↓</div>
+
+                                    <div class="arch-node state">
+                                        Dense + Softmax
+                                        <small>(B,10,1947)</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="context-bridge">
+                                <span>Encoder Outputs → Attention</span>
+                                <b>+</b>
+                                <span>Encoder h,c → Decoder 초기 상태</span>
+                            </div>
+
+                            <h3>Encoder의 핵심 변화</h3>
+
+                            <div class="comparison-grid">
+
+                                <div class="mini-panel">
+                                    <h3>ML 59</h3>
+
+                                    <code>
+                                return_state=True
+                            </code>
+
+                                    <p>
+                                        최종 h,c를 Decoder에 전달합니다.
+                                    </p>
+                                </div>
+
+                                <div class="mini-panel emphasis">
+                                    <h3>ML 60</h3>
+
+                                    <code>
+                                return_state=True
+                            </code>
+
+                                    <code>
+                                return_sequences=True
+                            </code>
+
+                                    <p>
+                                        최종 h,c뿐 아니라
+                                        모든 timestep 출력을 반환합니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <h3>Encoder 출력의 역할</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>반환값</th>
+                                            <th>용도</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>encoder_outputs</td>
+                                            <td>Attention의 Key 및 Value</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>hidden_state</td>
+                                            <td>Decoder 초기 Hidden State</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>cell_state</td>
+                                            <td>Decoder 초기 Cell State</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>Decoder의 출력 결합</h3>
+
+                            <div class="concat-diagram">
+
+                                <div class="concat-input">
+                                    <strong>Decoder Output</strong>
+                                    <span>256차원</span>
+                                </div>
+
+                                <div class="concat-plus">+</div>
+
+                                <div class="concat-input">
+                                    <strong>Attention Context</strong>
+                                    <span>256차원</span>
+                                </div>
+
+                                <div class="concat-arrow">↓</div>
+
+                                <div class="concat-result">
+                                    tf.concat(axis=-1)
+                                    <strong>512차원</strong>
+                                </div>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>원본 주석과 실제 Tensor Shape을 구분합니다.</strong>
+
+                                <p>
+                                    tf.concat() 이후 마지막 차원은
+                                    256 + 256 = 512입니다.
+                                    원본 주석의 일부 표현만 보고
+                                    결합 결과를 256차원으로 해석하면 안 됩니다.
+                                </p>
+                            </div>
+
+                            <p class="source-label original">
+                                원본 Notebook Cell 036, 038, 040
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     09. Attention 계산
+                ======================================= -->
+                        <section id="attention" class="lesson-card attention-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    09 · ATTENTION MECHANISM
+                                </p>
+
+                                <h2>Attention Score → Weight → Context</h2>
+                            </div>
+
+                            <p>
+                                이번 실습에서 가장 중요한 부분입니다.
+                                Decoder는 Query를 사용하여
+                                Encoder의 각 위치와 관련도를 계산하고
+                                그 결과를 가중합하여 Context Vector를 생성합니다.
+                            </p>
+
+                            <h3>Step A. Query와 Key의 내적</h3>
+
+                            <div class="formula-card">
+                                <strong>Attention Score</strong>
+
+                                <code>
+                            score(t,s) = qₜ · kₛ
+                        </code>
+
+                                <p>
+                                    qₜ는 Decoder의 t번째 Query,
+                                    kₛ는 Encoder의 s번째 Key입니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                이번 Notebook에서 Q와 K의 Feature 차원은
+                                모두 256입니다.
+
+                                따라서 Dot Product 계산이 가능합니다.
+                            </p>
+
+                            <div class="tensor-product">
+                                <div>(B,10,256)</div>
+                                <b>×</b>
+                                <div>(B,256,10)</div>
+                                <b>=</b>
+                                <div class="highlight">(B,10,10)</div>
+                            </div>
+
+                            <p class="figure-caption">
+                                Attention Score Shape은
+                                (batch, decoder timestep, encoder timestep)입니다.
+                            </p>
+
+                            <h3>Step B. Softmax로 가중치 계산</h3>
+
+                            <div class="formula-card">
+                                <strong>Attention Weight</strong>
+
+                                <code>
+                            αₜ,ₛ = exp(scoreₜ,ₛ)
+                            / Σⱼ exp(scoreₜ,ⱼ)
+                        </code>
+                            </div>
+
+                            <p>
+                                Softmax를 적용하면
+                                각 Decoder 시점에 대한 Encoder 위치별
+                                가중치의 합이 1이 됩니다.
+                            </p>
+
+                            <h3>Step C. Value의 가중합</h3>
+
+                            <div class="formula-card">
+                                <strong>Attention Context</strong>
+
+                                <code>
+                            contextₜ = Σₛ αₜ,ₛ × valueₛ
+                        </code>
+                            </div>
+
+                            <p>
+                                이 결과가 현재 번역 시점에서
+                                Decoder가 참고하는 문맥 벡터입니다.
+                            </p>
+
+                            <h3>Step D. Decoder 출력과 결합</h3>
+
+                            <div class="code-example">
+                                <div class="code-head">
+                                    <strong>원본 Decoder의 Attention 처리</strong>
+                                    <span>Cell 038</span>
+                                </div>
+
+                                <pre tabindex="0"><code>attention_vector = self.attention(
+    [x, encoder_outputs]
+)
+
+x = tf.concat(
+    [x, attention_vector],
+    axis=-1
+)
+
+x = self.dense(x)</code></pre>
+                            </div>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>단계</th>
+                                            <th>입력/출력 Shape</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Decoder Query</td>
+                                            <td>(B,10,256)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Encoder Key/Value</td>
+                                            <td>(B,10,256)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Attention Score</td>
+                                            <td>(B,10,10)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Attention Context</td>
+                                            <td>(B,10,256)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Concatenated Features</td>
+                                            <td>(B,10,512)</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Final Prediction</td>
+                                            <td>(B,10,1947)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="notice neutral">
+                                <strong>Keras Attention의 기본 방식</strong>
+
+                                <p>
+                                    keras.layers.Attention()의 기본 score_mode는
+                                    dot입니다. 이번 Notebook은 별도의 Query/Key
+                                    투영 Dense 계층을 추가하지 않습니다.
+
+                                    Transformer에서 사용하는
+                                    Multi-Head Attention과는
+                                    구조와 설정이 다릅니다.
+                                </p>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>원본에서 Padding Mask를 전달하지 않습니다.</strong>
+
+                                <p>
+                                    입력 시퀀스에는 Padding이 포함되어 있지만
+                                    원본의 Attention 호출에는
+                                    Mask가 명시되어 있지 않습니다.
+
+                                    Padding 위치에 가중치를 부여할 가능성이 있으므로
+                                    재실습 단계에서 반드시 검토해야 합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     10. 주요 코드
+                ======================================= -->
+                        <section id="code" class="lesson-card code-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    10 · NOTEBOOK CODE
+                                </p>
+
+                                <h2>주요 코드 — 원본 Notebook 해설</h2>
+                            </div>
+
+                            <p>
+                                아래 코드는 원본 Notebook 95에서
+                                핵심 부분을 발췌한 것입니다.
+                                줄바꿈과 들여쓰기는 읽기 쉽게 정리했으며,
+                                원본의 동작을 다른 알고리즘으로 교체하지 않았습니다.
+
+                                코드 블록마다 해당 Cell을 표시했습니다.
+                            </p>
+
+                            <!-- CODE 1 -->
+                            <details class="code-disclosure" open>
+                                <summary>
+                                    ① Import와 학습 환경
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 006</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code>import tensorflow as tf
+from tensorflow import keras
+
+import numpy as np
+import pandas as pd
+import re
+
+from util.word_dictionary import WordTokenizer
+from urllib.request import urlretrieve</code></pre>
+                                </div>
+
+                                <div class="code-explain">
+                                    <strong>역할:</strong>
+                                    모델 학습, 데이터 처리, 문자열 정제,
+                                    사용자 정의 Tokenizer 준비
+                                    <br>
+
+                                    <strong>주의:</strong>
+                                    util.word_dictionary는
+                                    Notebook 외부의 Python 모듈입니다.
+                                </div>
+                            </details>
+
+                            <!-- CODE 2 -->
+                            <details class="code-disclosure" open>
+                                <summary>
+                                    ② TensorFlow Dataset
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 034</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code>BATCH_SIZE = 32
+BUFFER_SIZE = 10000
+
+dataset = tf.data.Dataset.from_tensor_slices(
+    (
+        {
+            'enc_inputs': encoder_in_pad,
+            'dec_inputs': decoder_in_pad
+        },
+        decoder_out_pad
+    )
+)
+
+dataset = dataset.cache()
+dataset = dataset.shuffle(BUFFER_SIZE)
+dataset = dataset.batch(BATCH_SIZE)
+dataset = dataset.prefetch(
+    tf.data.experimental.AUTOTUNE
+)</code></pre>
+                                </div>
+
+                                <div class="code-explain">
+                                    <strong>입력:</strong>
+                                    세 개의 (1000,10) 배열
+                                    <br>
+
+                                    <strong>Batch:</strong>
+                                    입력 (B,10), 정답 (B,10)
+                                    <br>
+
+                                    <strong>변화:</strong>
+                                    cache → shuffle → batch → prefetch
+                                </div>
+                            </details>
+
+                            <!-- CODE 3 -->
+                            <details class="code-disclosure" open>
+                                <summary>
+                                    ③ Encoder 클래스
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 036</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code>class Encoder(tf.keras.Model):
+
+    def __init__(self, units, vocab_size, embedding_dim):
+        super(Encoder, self).__init__()
+
+        self.embedding = keras.layers.Embedding(
+            vocab_size,
+            embedding_dim
+        )
+
+        self.dropout = keras.layers.Dropout(0.2)
+
+        self.lstm = keras.layers.LSTM(
+            units,
+            return_state=True,
+            return_sequences=True
+        )
+
+    def call(self, inputs, training):
+
+        x = self.embedding(inputs)
+
+        x = self.dropout(
+            x,
+            training=training
+        )
+
+        encoder_outputs, hidden_state, cell_state = self.lstm(
+            x
+        )
+
+        return encoder_outputs, [
+            hidden_state,
+            cell_state
+        ]</code></pre>
+                                </div>
+
+                                <div class="code-explain">
+                                    <strong>입력:</strong> (B,10)
+                                    <br>
+
+                                    <strong>Embedding:</strong> (B,10,128)
+                                    <br>
+
+                                    <strong>전체 출력:</strong> (B,10,256)
+                                    <br>
+
+                                    <strong>마지막 h,c:</strong> 각각 (B,256)
+                                    <br>
+
+                                    <strong>핵심:</strong>
+                                    return_sequences=True가
+                                    ML 59와 비교할 때 중요한 변화입니다.
+                                </div>
+                            </details>
+
+                            <!-- CODE 4 -->
+                            <details class="code-disclosure" open>
+                                <summary>
+                                    ④ Decoder 클래스와 Attention
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 038</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code>class Decoder(tf.keras.Model):
+
+    def __init__(self, units, vocab_size, embedding_dim):
+        super(Decoder, self).__init__()
+
+        self.embedding = keras.layers.Embedding(
+            vocab_size,
+            embedding_dim
+        )
+
+        self.dropout = keras.layers.Dropout(0.2)
+
+        self.lstm = keras.layers.LSTM(
+            units,
+            return_sequences=True,
+            return_state=True
+        )
+
+        self.attention = keras.layers.Attention()
+
+        self.dense = keras.layers.Dense(
+            vocab_size,
+            activation='softmax'
+        )
+
+    def call(self, inputs, initial_state, training=None):
+
+        encoder_outputs, decoder_inputs = inputs
+
+        x = self.embedding(decoder_inputs)
+
+        x = self.dropout(
+            x,
+            training=training
+        )
+
+        x, hidden_state, cell_state = self.lstm(
+            x,
+            initial_state=initial_state
+        )
+
+        attention_vector = self.attention(
+            [x, encoder_outputs]
+        )
+
+        x = tf.concat(
+            [x, attention_vector],
+            axis=-1
+        )
+
+        x = self.dense(x)
+
+        print(
+            '디코더의 현재 타임 스텝의 분류층을 통과한 출력값:',
+            x
+        )
+
+        return x, hidden_state, cell_state</code></pre>
+                                </div>
+
+                                <div class="code-explain">
+                                    <strong>Decoder LSTM:</strong>
+                                    (B,10,256)
+                                    <br>
+
+                                    <strong>Attention Context:</strong>
+                                    (B,10,256)
+                                    <br>
+
+                                    <strong>Concat:</strong>
+                                    (B,10,512)
+                                    <br>
+
+                                    <strong>Dense:</strong>
+                                    (B,10,1947)
+                                    <br>
+
+                                    <strong>실행 후 변화:</strong>
+                                    현재 Decoder 출력에 필요한 Encoder 문맥을
+                                    결합하여 다음 단어의 확률을 계산합니다.
+                                </div>
+                            </details>
+
+                            <!-- CODE 5 -->
+                            <details class="code-disclosure" open>
+                                <summary>
+                                    ⑤ Seq2Seq 클래스 — 학습 분기
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 040 발췌</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code># Seq2Seq.call() 내부의 학습 분기
+
+if training:
+
+    encoder_outputs, context_vector = self.encoder(
+        inputs['enc_inputs']
+    )
+
+    decoder_outputs, _, _ = self.decoder(
+        [
+            encoder_outputs,
+            inputs['dec_inputs']
+        ],
+        initial_state=context_vector
+    )
+
+    return decoder_outputs</code></pre>
+                                </div>
+
+                                <div class="code-explain">
+                                    <strong>입력:</strong>
+                                    enc_inputs와 dec_inputs가 있는 Dictionary
+                                    <br>
+
+                                    <strong>출력:</strong>
+                                    (B,10,1947) 확률 Tensor
+                                    <br>
+
+                                    <strong>학습:</strong>
+                                    Teacher Forcing
+                                    <br>
+
+                                    <strong>Attention:</strong>
+                                    Encoder 전체 출력을 Decoder로 전달
+                                </div>
+                            </details>
+
+                            <!-- CODE 6 -->
+                            <details class="code-disclosure">
+                                <summary>
+                                    ⑥ Seq2Seq 클래스 — 추론 분기
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 040 발췌</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code># Seq2Seq.call() 내부의 추론 분기
+
+x = inputs
+
+encoder_outputs, context_vector = self.encoder(x)
+
+target_seq = np.array(
+    [[self.start_token]],
+    dtype=np.float32
+)
+
+results = []
+
+for i in range(self.time_steps):
+
+    decoder_output, decoder_hidden, decoder_cell = self.decoder(
+        (encoder_outputs, target_seq),
+        initial_state=context_vector
+    )
+
+    decoder_output = np.argmax(
+        decoder_output,
+        axis=-1
+    ).astype(np.int32)
+
+    results.append(decoder_output)
+
+    if decoder_output == self.end_token:
+        break
+
+    target_seq = decoder_output
+
+    context_vector = [
+        decoder_hidden,
+        decoder_cell
+    ]
+
+return np.array(results).reshape(
+    (1, len(results), 1)
+)</code></pre>
+                                </div>
+
+                                <div class="code-explain">
+                                    <strong>첫 입력:</strong>
+                                    SOS Token
+                                    <br>
+
+                                    <strong>반복 입력:</strong>
+                                    이전에 예측한 단어
+                                    <br>
+
+                                    <strong>Attention:</strong>
+                                    매 시점 Encoder Outputs 참조
+                                    <br>
+
+                                    <strong>종료:</strong>
+                                    EOS 또는 최대 Timestep
+                                    <br>
+
+                                    <strong>반환:</strong>
+                                    (1, 생성길이, 1)
+                                </div>
+
+                                <div class="notice important">
+                                    <strong>코드 검토 사항</strong>
+
+                                    <p>
+                                        시작 Token ID를 float32로 생성합니다.
+                                        또한 종료 조건이 한 문장의 예측값을 가정하며,
+                                        NumPy 연산을 추론 분기에서 사용합니다.
+                                        여러 문장 동시 추론이나 Graph 실행으로
+                                        확장할 때 주의해야 합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <!-- CODE 7 -->
+                            <details class="code-disclosure">
+                                <summary>
+                                    ⑦ Checkpoint / Compile / Fit
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 042~046 핵심 코드</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code>checkpoint_path = './seqtoseq/seq2seq-translation-no-attention-checkpoint.weights.h5'
+
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_path,
+    save_weights_only=True,
+    save_best_only=True,
+    monitor='loss',
+    verbose=1
+)
+
+earlystopping = tf.keras.callbacks.EarlyStopping(
+    monitor='loss',
+    patience=5,
+    verbose=1
+)
+
+SOS_TOKEN = tokenizer.word_index['&lt;SOS&gt;']
+EOS_TOKEN = tokenizer.word_index['&lt;EOS&gt;']
+
+UNITS = 256
+VOCABULARY_SIZE = word_tokenizer.voca_size
+EMBEDDING_DIM = 128
+TIME_STEPS = word_tokenizer.time_steps
+EPOCHS = 100
+
+seq2seq = Seq2Seq(
+    UNITS,
+    VOCABULARY_SIZE,
+    EMBEDDING_DIM,
+    TIME_STEPS,
+    SOS_TOKEN,
+    EOS_TOKEN
+)
+
+seq2seq.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['acc']
+)
+
+seq2seq.fit(
+    dataset,
+    epochs=EPOCHS,
+    callbacks=[checkpoint, earlystopping]
+)</code></pre>
+                                </div>
+
+                                <div class="notice important">
+                                    <strong>체크포인트 파일명을 확인하세요.</strong>
+
+                                    <p>
+                                        원본 Attention 모델의 저장 경로에도
+                                        no-attention이라는 이름이 사용됩니다.
+                                        ML 59의 체크포인트와 충돌할 위험이 있으므로
+                                        재실습 시 모델별 파일 경로 분리를 검토해야 합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <!-- CODE 8 -->
+                            <details class="code-disclosure">
+                                <summary>
+                                    ⑧ Predict — 한국어 번역문 생성
+                                </summary>
+
+                                <div class="code-example">
+                                    <div class="code-head">
+                                        <strong>원본 Cell 048~050 발췌</strong>
+                                    </div>
+
+                                    <pre tabindex="0"><code>def predict_preprocessing(
+    sentence,
+    is_will_delete_stopword=False
+):
+
+    if not is_will_delete_stopword:
+        sentence = word_tokenizer.preprocess_korean(
+            sentence,
+            is_will_delete_stopword
+        )
+
+    encoding_vector = word_tokenizer.make_integer_encoding(
+        sentence
+    )
+
+    return encoding_vector
+
+
+def predict(model, question_inputs):
+
+    results = model(
+        inputs=question_inputs,
+        training=False
+    )
+
+    return results.flatten()
+
+
+def translation(question):
+
+    question_inputs = predict_preprocessing(
+        [question]
+    )
+
+    results = predict(
+        seq2seq,
+        question_inputs
+    )
+
+    results = index_to_word(
+        results,
+        EOS_TOKEN,
+        tokenizer
+    )
+
+    return results</code></pre>
+                                </div>
+
+                                <p class="code-explain">
+                                    새 영어 문장을 전처리하고,
+                                    Seq2Seq 추론을 수행한 뒤
+                                    정수 Token ID를 한국어 단어로 복원합니다.
+                                </p>
+
+                                <p class="fine-print">
+                                    index_to_word()는 원본 Cell 047에서
+                                    Token ID를 단어로 변환하는 함수입니다.
+                                    여기서는 연결 흐름을 설명하기 위해
+                                    해당 함수의 호출 부분을 발췌했습니다.
+                                </p>
+                            </details>
+
+                            <div class="notice neutral">
+                                <strong>코드를 읽을 때 반드시 확인할 다섯 가지</strong>
+
+                                <p>
+                                    무엇을 하는 코드인가?<br>
+                                    왜 필요한가?<br>
+                                    입력 Shape은 무엇인가?<br>
+                                    출력 Shape은 무엇인가?<br>
+                                    실행 후 어떤 상태나 파라미터가 바뀌는가?
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     11. 학습·추론 흐름
+                ======================================= -->
+                        <section id="flow" class="lesson-card flow-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    11 · TRAINING / INFERENCE
+                                </p>
+
+                                <h2>실행 환경과 학습·추론 흐름</h2>
+                            </div>
+
+                            <h3>실행 환경</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>도구</th>
+                                            <th>사용 목적</th>
+                                            <th>확인 사항</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Jupyter Notebook</td>
+                                            <td>셀 단위 실행</td>
+                                            <td>Kernel 상태·셀 순서</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>TensorFlow / Keras</td>
+                                            <td>모델 작성·학습</td>
+                                            <td>버전 호환</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>NumPy</td>
+                                            <td>배열·추론</td>
+                                            <td>Shape·dtype</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>pandas</td>
+                                            <td>병렬 말뭉치 로딩</td>
+                                            <td>파일 경로</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>WordTokenizer</td>
+                                            <td>전처리·사전 구축</td>
+                                            <td>외부 util 모듈</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>필요한 외부 파일</h3>
+
+                            <div class="code-example neutral-code">
+                                <pre tabindex="0"><code>실습 작업 디렉터리/
+├── 95_케라스_Seq2Seq_어텐션_기계번역60.ipynb
+├── kor.txt
+├── util/
+│   └── word_dictionary.py
+└── seqtoseq/
+    └── 학습 가중치 파일</code></pre>
+                            </div>
+
+                            <p class="figure-caption">
+                                원본 상대 경로와 외부 의존성을 이해하기 위한
+                                설명용 디렉터리 구조입니다.
+                                모든 파일이 첨부 Notebook 안에 포함되어 있다는 뜻은 아닙니다.
+                            </p>
+
+                            <h3>Training과 Inference 비교</h3>
+
+                            <div class="training-lanes">
+
+                                <div class="lane">
+                                    <h3>Training</h3>
+                                    <p class="lane-subtitle">Teacher Forcing</p>
+
+                                    <ol>
+                                        <li>영어 입력 정수 인코딩</li>
+                                        <li>Encoder 전체 출력과 h,c 계산</li>
+                                        <li>Decoder에 정답 Shift 시퀀스 전달</li>
+                                        <li>Decoder LSTM 출력 계산</li>
+                                        <li>Attention Context 계산</li>
+                                        <li>Concat + Softmax</li>
+                                        <li>Crossentropy Loss 계산</li>
+                                        <li>Adam으로 가중치 업데이트</li>
+                                    </ol>
+                                </div>
+
+                                <div class="lane">
+                                    <h3>Inference</h3>
+                                    <p class="lane-subtitle">Autoregressive</p>
+
+                                    <ol>
+                                        <li>새 영어 문장 정수 인코딩</li>
+                                        <li>Encoder 전체 출력과 h,c 계산</li>
+                                        <li>SOS부터 Decoder 시작</li>
+                                        <li>현재 Decoder 출력으로 Attention 계산</li>
+                                        <li>Softmax에서 argmax 선택</li>
+                                        <li>예측 토큰을 다음 입력으로 사용</li>
+                                        <li>Hidden/Cell State 업데이트</li>
+                                        <li>EOS 또는 최대 길이에서 종료</li>
+                                    </ol>
+                                </div>
+                            </div>
+
+                            <h3>학습 하이퍼파라미터</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>항목</th>
+                                            <th>원본 값</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Batch Size</td>
+                                            <td>32</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Shuffle Buffer</td>
+                                            <td>10000</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Vocabulary Size</td>
+                                            <td>1947</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Time Steps</td>
+                                            <td>10</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Embedding Dimension</td>
+                                            <td>128</td>
+                                        </tr>
+                                        <tr>
+                                            <td>LSTM Units</td>
+                                            <td>256</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Dropout</td>
+                                            <td>0.2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Optimizer</td>
+                                            <td>Adam</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Loss</td>
+                                            <td>Sparse Categorical Crossentropy</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Epochs</td>
+                                            <td>100</td>
+                                        </tr>
+                                        <tr>
+                                            <td>EarlyStopping</td>
+                                            <td>loss / patience=5</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Checkpoint</td>
+                                            <td>Training loss 기준</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="notice neutral">
+                                <strong>Attention과 Teacher Forcing은 다른 역할</strong>
+
+                                <p>
+                                    Teacher Forcing은 학습할 때
+                                    Decoder에 어떤 단어를 입력할지 결정합니다.
+
+                                    Attention은 다음 단어를 예측할 때
+                                    Encoder의 어떤 정보를 활용할지 계산합니다.
+
+                                    두 방법은 서로 대체하는 기술이 아닙니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     12. 실행 결과
+                ======================================= -->
+                        <section id="result" class="lesson-card result-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    12 · SAVED NOTEBOOK OUTPUT
+                                </p>
+
+                                <h2>실행 결과 읽기</h2>
+                            </div>
+
+                            <p>
+                                다음 수치는 원본 Notebook의
+                                저장된 학습 로그에서 확인한 값입니다.
+                            </p>
+
+                            <div class="metric-row">
+
+                                <div class="metric-tile">
+                                    <span>마지막 Training Loss</span>
+                                    <strong>0.0826</strong>
+                                </div>
+
+                                <div class="metric-tile">
+                                    <span>마지막 Training Accuracy</span>
+                                    <strong>97.35%</strong>
+                                </div>
+
+                                <div class="metric-tile">
+                                    <span>최종 Epoch</span>
+                                    <strong>100</strong>
+                                </div>
+                            </div>
+
+                            <h3>대표 Epoch 로그</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Epoch</th>
+                                            <th>Loss</th>
+                                            <th>Accuracy</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>3.9708</td>
+                                            <td>54.53%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>10</td>
+                                            <td>1.7336</td>
+                                            <td>69.39%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>20</td>
+                                            <td>1.2733</td>
+                                            <td>73.71%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>50</td>
+                                            <td>0.4425</td>
+                                            <td>89.26%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>80</td>
+                                            <td>0.1473</td>
+                                            <td>95.85%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>90</td>
+                                            <td>0.1018</td>
+                                            <td>97.06%</td>
+                                        </tr>
+
+                                        <tr class="best-row">
+                                            <td>96</td>
+                                            <td>0.0799</td>
+                                            <td>97.59%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>100</td>
+                                            <td>0.0826</td>
+                                            <td>97.35%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="figure-caption">
+                                원본 저장 로그에서 발췌한 값입니다.
+                                모든 Epoch를 새로 실행하여 측정한 결과는 아닙니다.
+                            </p>
+
+                            <h3>Checkpoint와 마지막 Epoch 차이</h3>
+
+                            <div class="comparison-grid">
+
+                                <div class="mini-panel emphasis">
+                                    <h3>Epoch 96</h3>
+
+                                    <div class="large-number">0.0799</div>
+
+                                    <p>
+                                        Training Loss 기준
+                                        가장 낮은 값으로 체크포인트 저장
+                                    </p>
+                                </div>
+
+                                <div class="mini-panel">
+                                    <h3>Epoch 100</h3>
+
+                                    <div class="large-number">0.0826</div>
+
+                                    <p>
+                                        마지막 학습 로그의 Loss.
+                                        원본에서는 학습 후 최적 체크포인트를
+                                        다시 로드하는 단계가 없습니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <h3>실제 저장된 번역 결과</h3>
+
+                            <div class="translation-example">
+
+                                <div>
+                                    <span>English Input</span>
+                                    <strong>Go</strong>
+                                </div>
+
+                                <b>↓</b>
+
+                                <div class="translation-output">
+                                    <span>Korean Output</span>
+                                    <strong>가</strong>
+                                </div>
+                            </div>
+
+                            <div class="translation-example">
+
+                                <div>
+                                    <span>English Input</span>
+                                    <strong>Tom bought a horse</strong>
+                                </div>
+
+                                <b>↓</b>
+
+                                <div class="translation-output">
+                                    <span>Korean Output</span>
+                                    <strong>톰 은 말 을 샀어</strong>
+                                </div>
+                            </div>
+
+                            <h3>실제 추론 Tensor Shape</h3>
+
+                            <div class="code-example terminal">
+                                <div class="code-head">
+                                    <strong>원본 추론 출력 형식</strong>
+                                    <span>Cell 050</span>
+                                </div>
+
+                                <pre tabindex="0"><code>tf.Tensor(
+    [[[...]]],
+    shape=(1, 1, 1947),
+    dtype=float32
+)</code></pre>
+                            </div>
+
+                            <p>
+                                이는 Decoder가 한 번의 추론 시점에서
+                                1,947개 단어에 대한 확률을 계산했다는 의미입니다.
+
+                                위의 <code>[...]</code> 표시는 긴 확률 배열을
+                                생략한 설명용 발췌 형식입니다.
+                            </p>
+
+                            <div class="notice important">
+                                <strong>번역 정확도가 97.35%라는 뜻은 아닙니다.</strong>
+
+                                <p>
+                                    이 수치는 Training Accuracy입니다.
+                                    독립적인 Test Dataset의 번역 점수가 아니며
+                                    실제 문장의 의미 정확도를 보장하지 않습니다.
+
+                                    Padding 위치가 Accuracy에 포함되는지도
+                                    반드시 검토해야 합니다.
+                                </p>
+                            </div>
+
+                            <p class="source-label original">
+                                원본 Notebook Cell 046, 050의 저장 출력
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     13. Metric 해석
+                ======================================= -->
+                        <section id="metric" class="lesson-card metric-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    13 · LOSS / METRICS
+                                </p>
+
+                                <h2>Metric 해석 — 학습 성능과 번역 품질</h2>
+                            </div>
+
+                            <h3>Loss는 무엇인가?</h3>
+
+                            <p>
+                                Decoder는 각 timestep에서 Vocabulary 전체에 대한
+                                확률 분포를 계산합니다.
+
+                                실제 정답 단어에 부여한 확률이 높을수록
+                                Crossentropy Loss는 작아집니다.
+                            </p>
+
+                            <div class="formula-card">
+                                <strong>한 timestep의 Crossentropy</strong>
+
+                                <code>
+                            L = -log(P(정답 단어))
+                        </code>
+                            </div>
+
+                            <h3>Sparse Categorical Crossentropy</h3>
+
+                            <div class="comparison-grid">
+
+                                <div class="mini-panel">
+                                    <h3>정답 Token</h3>
+
+                                    <code>333</code>
+
+                                    <p>
+                                        정수 ID 한 개로 표현합니다.
+                                    </p>
+                                </div>
+
+                                <div class="mini-panel emphasis">
+                                    <h3>예측 확률</h3>
+
+                                    <code>(..., 1947)</code>
+
+                                    <p>
+                                        1,947개 단어에 대한 Softmax 결과입니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <h3>Accuracy의 의미</h3>
+
+                            <p>
+                                Training Accuracy는 각 시점의 예측 Token ID와
+                                정답 Token ID가 같은지를 기준으로 계산됩니다.
+
+                                하지만 실제 번역 품질에는 다음과 같은 요소도 중요합니다.
+                            </p>
+
+                            <ul class="compact-list">
+                                <li>문장 전체의 의미를 정확하게 전달하는가?</li>
+                                <li>영어 원문의 중요한 단어를 누락하지 않았는가?</li>
+                                <li>한국어 조사와 어순이 자연스러운가?</li>
+                                <li>EOS로 적절한 시점에 문장 생성을 끝내는가?</li>
+                                <li>학습에서 보지 못한 문장도 번역할 수 있는가?</li>
+                            </ul>
+
+                            <h3>원본에서 구현되지 않은 평가</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>역할</th>
+                                            <th>원본</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Training Loss</td>
+                                            <td>학습 손실</td>
+                                            <td>있음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Training Accuracy</td>
+                                            <td>학습 중 Token 일치율</td>
+                                            <td>있음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Validation Loss</td>
+                                            <td>미학습 데이터의 손실</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Test Accuracy</td>
+                                            <td>독립 테스트 성능</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>BLEU</td>
+                                            <td>참조 번역과 n-gram 일치 평가</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>chrF</td>
+                                            <td>문자 n-gram 기반 번역 평가</td>
+                                            <td>없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>Padding이 Metric에 미치는 영향</h3>
+
+                            <p>
+                                실제 문장이 한 단어여도 입력 길이를 10으로 맞춥니다.
+                                원본은 Padding 위치를 제외하도록
+                                Mask나 sample_weight를 명시적으로 설정하지 않았습니다.
+                            </p>
+
+                            <div class="code-example added-code">
+                                <div class="code-head">
+                                    <strong>추가 진단 — Padding 비율</strong>
+                                    <span>원본에 없음</span>
+                                </div>
+
+                                <pre tabindex="0"><code>pad_count = np.sum(decoder_out_pad == 0)
+
+total_count = decoder_out_pad.size
+
+pad_ratio = pad_count / total_count
+
+print("Padding 개수:", pad_count)
+print("전체 정답 위치:", total_count)
+print("Padding 비율:", pad_ratio)</code></pre>
+                            </div>
+
+                            <h3>ML 59와 ML 60 학습 결과 비교</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>항목</th>
+                                            <th>ML 59</th>
+                                            <th>ML 60</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>모델</td>
+                                            <td>Seq2Seq</td>
+                                            <td>Attention Seq2Seq</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>마지막 Training Loss</td>
+                                            <td>0.4139</td>
+                                            <td>0.0826</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>마지막 Training Accuracy</td>
+                                            <td>88.77%</td>
+                                            <td>97.35%</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>별도 Test 평가</td>
+                                            <td>없음</td>
+                                            <td>없음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>Attention 덕분에 성능이 좋아졌다고 단정할 수 있을까?</strong>
+
+                                <p>
+                                    저장된 Training Loss와 Accuracy는
+                                    ML 60이 더 좋게 나타났습니다.
+
+                                    하지만 학습 호출 방식, 무작위 초기화,
+                                    데이터 구성과 평가 조건을 통제한
+                                    독립적인 비교 실험이 아닙니다.
+
+                                    따라서 전체 차이를 Attention의 효과라고
+                                    단정해서는 안 됩니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     14. 자주 하는 실수
+                ======================================= -->
+                        <section id="mistake" class="lesson-card mistake-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    14 · COMMON MISTAKES
+                                </p>
+
+                                <h2>자주 하는 실수와 주의사항</h2>
+                            </div>
+
+                            <div class="issue-list">
+
+                                <details open>
+                                    <summary>
+                                        01. Encoder의 마지막 상태와 전체 출력을 혼동한다.
+                                    </summary>
+
+                                    <p>
+                                        마지막 Hidden/Cell State는 각각 (B,256)입니다.
+                                        Encoder의 전체 출력은 (B,10,256)입니다.
+                                        Attention에는 전체 출력이 필요합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        02. return_sequences=True를 누락한다.
+                                    </summary>
+
+                                    <p>
+                                        이 옵션이 없으면 Encoder의 전체 시점 출력을
+                                        반환하지 않습니다.
+                                        따라서 Attention에 필요한
+                                        시퀀스 형태의 정보가 사라집니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        03. Query, Key, Value를 혼동한다.
+                                    </summary>
+
+                                    <p>
+                                        이번 실습에서 Decoder LSTM 출력이 Query,
+                                        Encoder 전체 출력이 Key와 Value입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        04. Attention Score와 Context Vector를 혼동한다.
+                                    </summary>
+
+                                    <p>
+                                        Score는 Query-Key 유사도입니다.
+                                        Context는 Attention Weight로
+                                        Value를 가중합한 결과입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        05. tf.concat() 후 Shape을 잘못 해석한다.
+                                    </summary>
+
+                                    <p>
+                                        (B,10,256)과 (B,10,256)을
+                                        axis=-1로 결합하면
+                                        (B,10,512)가 됩니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        06. PAD와 EOS를 같은 것으로 생각한다.
+                                    </summary>
+
+                                    <p>
+                                        PAD는 길이를 맞추는 값이고
+                                        EOS는 문장 생성을 종료하는 특수 토큰입니다.
+                                        두 역할은 완전히 다릅니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        07. Attention에 Padding Mask를 적용하지 않는다.
+                                    </summary>
+
+                                    <p>
+                                        원본에서는 Mask를 명시적으로 전달하지 않습니다.
+                                        Padding 위치에 Attention이 분산될 수 있으므로
+                                        개선 시 Mask 처리를 검토해야 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        08. Token ID를 실수형으로 전달한다.
+                                    </summary>
+
+                                    <p>
+                                        원본 추론 시작 Token은 float32로 생성됩니다.
+                                        정수 Token ID는 일반적으로 int32 또는
+                                        int64를 사용하는 것이 적절합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        09. 영어 입력에 한국어 전처리를 적용한다.
+                                    </summary>
+
+                                    <p>
+                                        원본의 추론 전처리 함수는
+                                        preprocess_korean()을 호출합니다.
+                                        영어 학습 전처리와 같은 규칙이 적용되는지
+                                        확인해야 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        10. 학습 Accuracy를 번역 정확도로 해석한다.
+                                    </summary>
+
+                                    <p>
+                                        97.35%는 Training Accuracy입니다.
+                                        Padding과 Teacher Forcing의 영향이 있을 수 있으며,
+                                        독립적인 문장 번역 평가가 아닙니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        11. Checkpoint 경로를 이전 모델과 같이 사용한다.
+                                    </summary>
+
+                                    <p>
+                                        이번 모델의 체크포인트 파일명에는
+                                        no-attention이 들어 있습니다.
+                                        다른 모델 가중치를 덮어쓰지 않도록
+                                        경로를 분리해야 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        12. evaluate()를 그대로 호출하면 된다고 생각한다.
+                                    </summary>
+
+                                    <p>
+                                        원본 Seq2Seq.call()은 학습 시 확률 Tensor를,
+                                        추론 시 Token ID를 반환합니다.
+                                        일반적인 Keras 평가 API를 추가할 때
+                                        입력과 출력 형식을 먼저 분리해야 합니다.
+                                    </p>
+                                </details>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     15. 오류 메시지
+                ======================================= -->
+                        <section id="error" class="lesson-card error-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    15 · ERROR READING
+                                </p>
+
+                                <h2>오류 메시지 읽는 법</h2>
+                            </div>
+
+                            <p>
+                                아래 오류들은 원본에서 모두 발생한 오류가 아니라
+                                같은 실습을 재실행하거나 수정할 때
+                                발생할 수 있는 대표적인 오류 유형입니다.
+
+                                정확한 메시지는 Python과 Keras 버전에 따라 달라집니다.
+                            </p>
+
+                            <div class="error-list">
+
+                                <article class="error-entry">
+                                    <h3>01. FileNotFoundError</h3>
+
+                                    <pre tabindex="0"><code>FileNotFoundError:
+No such file or directory: './kor.txt'</code></pre>
+
+                                    <p>
+                                        원인: Dataset 파일을 찾지 못함.
+                                    </p>
+
+                                    <p>
+                                        확인: 현재 작업 디렉터리와 kor.txt의 위치.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>02. ModuleNotFoundError</h3>
+
+                                    <pre tabindex="0"><code>ModuleNotFoundError:
+No module named 'util'</code></pre>
+
+                                    <p>
+                                        원인: 사용자 정의 WordTokenizer 모듈을 찾지 못함.
+                                    </p>
+
+                                    <p>
+                                        확인: util/word_dictionary.py와 Python 검색 경로.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>03. Keras API 관련 AttributeError</h3>
+
+                                    <pre tabindex="0"><code>AttributeError:
+module 'keras.preprocessing'
+has no attribute 'text'</code></pre>
+
+                                    <p>
+                                        원인: 현재 Keras와 레거시 Tokenizer API의
+                                        호환성 문제 가능성.
+                                    </p>
+
+                                    <p>
+                                        확인: TensorFlow/Keras 버전과 API 경로.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>04. Shape 불일치</h3>
+
+                                    <pre tabindex="0"><code>ValueError:
+Incompatible shapes</code></pre>
+
+                                    <p>
+                                        원인: Attention의 Query/Key Feature 차원,
+                                        Encoder/Decoder 초기 상태,
+                                        Target과 Prediction Shape 등이 다를 수 있음.
+                                    </p>
+
+                                    <p>
+                                        확인: (B,T,256), (B,T,512), (B,T,1947).
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>05. Embedding Index 오류</h3>
+
+                                    <pre tabindex="0"><code>InvalidArgumentError:
+indices[...] is not in [0, vocabulary_size)</code></pre>
+
+                                    <p>
+                                        원인: Token ID가 Vocabulary 범위를 벗어남.
+                                    </p>
+
+                                    <p>
+                                        확인: 최대 Token ID와 Embedding input_dim.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>06. dtype 불일치</h3>
+
+                                    <pre tabindex="0"><code>TypeError:
+Input has incompatible dtype</code></pre>
+
+                                    <p>
+                                        원인: Embedding에 전달하는 Token ID의
+                                        자료형이 적절하지 않음.
+                                    </p>
+
+                                    <p>
+                                        확인: int32/int64 및 Tensor 변환 규칙.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>07. Graph / NumPy 연산 문제</h3>
+
+                                    <pre tabindex="0"><code>TypeError / NotImplementedError:
+Cannot convert a symbolic Tensor
+to a NumPy array</code></pre>
+
+                                    <p>
+                                        원인: Graph 실행 중 NumPy 연산 사용.
+                                    </p>
+
+                                    <p>
+                                        확인: Eager/Graph 실행 구분과
+                                        TensorFlow 연산 사용 여부.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>08. GPU 메모리 부족</h3>
+
+                                    <pre tabindex="0"><code>ResourceExhaustedError:
+OOM when allocating tensor</code></pre>
+
+                                    <p>
+                                        원인: Batch나 모델의 메모리 사용량이
+                                        사용 가능한 자원을 초과함.
+                                    </p>
+
+                                    <p>
+                                        확인: Batch Size, Units, Vocabulary,
+                                        Timestep 및 GPU 메모리.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>09. NaN Loss</h3>
+
+                                    <pre tabindex="0"><code>loss: nan</code></pre>
+
+                                    <p>
+                                        원인: 유효하지 않은 입력값,
+                                        학습률 문제 또는 수치 불안정 가능성.
+                                    </p>
+
+                                    <p>
+                                        확인: NaN/Inf, Loss 설정,
+                                        Learning Rate, 데이터 정합성.
+                                    </p>
+                                </article>
+
+                                <article class="error-entry">
+                                    <h3>10. Checkpoint 저장 실패</h3>
+
+                                    <pre tabindex="0"><code>OSError / FileNotFoundError:
+Unable to save weights</code></pre>
+
+                                    <p>
+                                        원인: 디렉터리 부재, 권한 문제,
+                                        파일 형식 또는 버전 호환 문제 가능성.
+                                    </p>
+
+                                    <p>
+                                        확인: 저장 경로와 기존 가중치 파일 충돌.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <h3>Shape / dtype 점검 코드</h3>
+
+                            <div class="code-example added-code">
+                                <div class="code-head">
+                                    <strong>추가 진단 코드</strong>
+                                    <span>원본에 없음</span>
+                                </div>
+
+                                <pre tabindex="0"><code>print("Encoder:", encoder_in_pad.shape)
+print("Decoder Input:", decoder_in_pad.shape)
+print("Decoder Target:", decoder_out_pad.shape)
+
+print("Encoder dtype:", encoder_in_pad.dtype)
+print("Decoder dtype:", decoder_in_pad.dtype)
+print("Target dtype:", decoder_out_pad.dtype)
+
+print("Vocabulary:", word_tokenizer.voca_size)
+print("Timestep:", word_tokenizer.time_steps)
+
+assert encoder_in_pad.shape == decoder_in_pad.shape
+assert decoder_in_pad.shape == decoder_out_pad.shape
+
+for inputs, target in dataset.take(1):
+    print(inputs['enc_inputs'].shape)
+    print(inputs['dec_inputs'].shape)
+    print(target.shape)</code></pre>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     16. 성능 개선
+                ======================================= -->
+                        <section id="performance" class="lesson-card performance-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    16 · PERFORMANCE IMPROVEMENT
+                                </p>
+
+                                <h2>성능 개선 — 무엇부터 확인할까?</h2>
+                            </div>
+
+                            <p>
+                                Training Accuracy가 높다고 해서
+                                모델이 일반화 성능을 확보한 것은 아닙니다.
+
+                                재실습에서는 모델 크기를 늘리기 전에
+                                데이터와 전처리, Attention Mask,
+                                평가 방법을 먼저 확인해야 합니다.
+                            </p>
+
+                            <div class="priority-list">
+
+                                <div>
+                                    <b>P0</b>
+
+                                    <section>
+                                        <h3>원본 환경 재현</h3>
+
+                                        <p>
+                                            TensorFlow/Keras 버전,
+                                            kor.txt, WordTokenizer,
+                                            Checkpoint 경로를 확인합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P1</b>
+
+                                    <section>
+                                        <h3>전처리 일관성 검증</h3>
+
+                                        <p>
+                                            학습할 때 영어 문장에 적용한 전처리를
+                                            추론에서도 동일하게 적용하는지 확인합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P2</b>
+
+                                    <section>
+                                        <h3>Padding Mask 적용 검토</h3>
+
+                                        <p>
+                                            Encoder LSTM과 Attention이 Padding을
+                                            유효한 단어처럼 처리하지 않도록 개선합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P3</b>
+
+                                    <section>
+                                        <h3>Train / Validation / Test 분할</h3>
+
+                                        <p>
+                                            Tokenizer를 Train 데이터로만 학습하고
+                                            독립 Test에서 일반화 성능을 확인합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P4</b>
+
+                                    <section>
+                                        <h3>Loss와 Accuracy 마스킹</h3>
+
+                                        <p>
+                                            의미 있는 Token 위치만으로
+                                            손실과 정확도를 평가할 수 있도록
+                                            Padding 처리 방식을 점검합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P5</b>
+
+                                    <section>
+                                        <h3>학습 제어 개선</h3>
+
+                                        <p>
+                                            Validation Loss 기준 EarlyStopping,
+                                            Learning Rate,
+                                            Checkpoint 복원 여부를 검토합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P6</b>
+
+                                    <section>
+                                        <h3>번역 품질 평가</h3>
+
+                                        <p>
+                                            BLEU, chrF, 실제 예제 문장 비교와
+                                            미학습 문장 검증을 추가합니다.
+                                        </p>
+                                    </section>
+                                </div>
+
+                                <div>
+                                    <b>P7</b>
+
+                                    <section>
+                                        <h3>Attention 시각화</h3>
+
+                                        <p>
+                                            Attention Weight를 별도로 추출해
+                                            Decoder 시점과 Encoder 위치의 관계를
+                                            Heatmap으로 분석합니다.
+                                        </p>
+                                    </section>
+                                </div>
+                            </div>
+
+                            <h3>Overfitting / Underfitting</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>문제</th>
+                                            <th>Train Loss</th>
+                                            <th>Validation Loss</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>정상적인 일반화</td>
+                                            <td>감소</td>
+                                            <td>감소</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Overfitting</td>
+                                            <td>감소</td>
+                                            <td>증가 가능</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Underfitting</td>
+                                            <td>높음</td>
+                                            <td>높음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>학습 불안정</td>
+                                            <td>요동 또는 발산</td>
+                                            <td>불안정</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="notice important">
+                                <strong>원본 결과만으로 Overfitting을 확정할 수 없습니다.</strong>
+
+                                <p>
+                                    원본에는 Validation Loss가 없으므로
+                                    Training Loss 감소만으로 과적합 여부를
+                                    판단할 수 없습니다.
+
+                                    독립 평가 데이터를 추가한 뒤
+                                    Train과 Validation의 차이를 확인해야 합니다.
+                                </p>
+                            </div>
+
+                            <p class="source-label added">
+                                추가 학습·성능 개선 방향
+                            </p>
+                        </section>
+
+                        <!-- ======================================
+                     17. 실무 연결
+                ======================================= -->
+                        <section id="practice" class="lesson-card practice-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    17 · REAL-WORLD APPLICATION
+                                </p>
+
+                                <h2>실무 연결 — Attention 기반 자연어 생성</h2>
+                            </div>
+
+                            <p>
+                                이번 모델은 자연어를 입력받아
+                                다른 자연어 시퀀스를 생성하는 기술과 연결됩니다.
+
+                                원본 실습은 작은 LSTM 기반 번역 모델이지만,
+                                Attention의 원리는 이후 Transformer를 이해할 때도
+                                중요한 기초가 됩니다.
+                            </p>
+
+                            <h3>적용 가능한 분야</h3>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>서비스</th>
+                                            <th>입력</th>
+                                            <th>출력</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>기계번역</td>
+                                            <td>영어 문장</td>
+                                            <td>한국어 문장</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>챗봇</td>
+                                            <td>사용자 질문</td>
+                                            <td>응답 문장</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>문서 요약</td>
+                                            <td>긴 텍스트</td>
+                                            <td>요약 텍스트</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>음성 인식</td>
+                                            <td>음성 특징 시퀀스</td>
+                                            <td>문자열</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>시퀀스 변환</td>
+                                            <td>순서 있는 데이터</td>
+                                            <td>다른 시퀀스</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>웹 서비스에 적용하는 흐름</h3>
+
+                            <div class="service-flow">
+                                <div>React / HTML 사용자 입력</div>
+                                <span>↓</span>
+                                <div>Backend API</div>
+                                <span>↓</span>
+                                <div>Python 영어 전처리</div>
+                                <span>↓</span>
+                                <div>Tokenizer / Integer Encoding</div>
+                                <span>↓</span>
+                                <div>Encoder LSTM</div>
+                                <span>↓</span>
+                                <div>Attention Decoder 생성</div>
+                                <span>↓</span>
+                                <div>Token ID → 한국어 문자열</div>
+                                <span>↓</span>
+                                <div>번역 결과 응답</div>
+                            </div>
+
+                            <h3>실제 배포에서 함께 저장해야 할 정보</h3>
+
+                            <ul class="compact-list">
+                                <li>모델 구조와 학습 가중치</li>
+                                <li>Tokenizer 단어 사전 및 Index</li>
+                                <li>영어·한국어 전처리 규칙</li>
+                                <li>SOS와 EOS Token ID</li>
+                                <li>Padding과 OOV 처리 규칙</li>
+                                <li>최대 Timestep</li>
+                                <li>TensorFlow/Keras 버전</li>
+                                <li>평가 결과 및 모델 버전</li>
+                            </ul>
+
+                            <div class="notice neutral">
+                                <strong>학습 모델과 API 활용 모델을 구분합니다.</strong>
+
+                                <p>
+                                    외부 번역 API를 호출하는 것은
+                                    이미 만들어진 모델을 활용하는 과정입니다.
+
+                                    이번 머신러닝 실습은
+                                    데이터 전처리부터 Encoder/Decoder,
+                                    Attention, Loss, Optimizer,
+                                    단어 생성까지의 내부 구조를
+                                    이해하는 것을 목표로 합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ======================================
+                     18. 면접 포인트
+                ======================================= -->
+                        <section id="interview" class="lesson-card interview-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    18 · INTERVIEW / REVIEW
+                                </p>
+
+                                <h2>면접 포인트와 복습 질문</h2>
+                            </div>
+
+                            <p>
+                                질문을 먼저 읽고 스스로 답해 보세요.
+                                각 질문을 펼치면 핵심 답변을 확인할 수 있습니다.
+                            </p>
+
+                            <div class="qa-list">
+
+                                <details>
+                                    <summary>
+                                        Q01. Seq2Seq에 Attention을 추가하는 이유는 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        기본 Seq2Seq는 입력 문장 전체의 정보를
+                                        고정 크기 마지막 상태에 압축해야 합니다.
+                                        Attention은 Decoder가 각 시점에서
+                                        필요한 Encoder 출력 정보를 선택적으로
+                                        참고할 수 있게 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q02. Encoder의 return_sequences=True는 왜 필요합니까?
+                                    </summary>
+
+                                    <p>
+                                        Attention이 Encoder의 모든 시점 출력을
+                                        참고해야 하므로 LSTM의 전체 출력 시퀀스를
+                                        반환하기 위해 사용합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q03. Hidden State와 Encoder Outputs는 어떻게 다릅니까?
+                                    </summary>
+
+                                    <p>
+                                        마지막 Hidden State는 (B,256)이고,
+                                        Encoder Outputs는 모든 시점의 출력인
+                                        (B,10,256)입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q04. 이번 Notebook의 Query는 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        Decoder LSTM의 출력입니다.
+                                        현재 Decoder 시점이 필요한 원문 정보를
+                                        나타내는 역할을 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q05. 이번 Notebook의 Key와 Value는 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        Encoder의 모든 timestep 출력입니다.
+                                        Key는 관련도 계산에,
+                                        Value는 Context 가중합에 사용됩니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q06. Dot-Product Attention이란 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        Query와 Key의 내적을 사용하여
+                                        Attention Score를 계산하는 방법입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q07. Attention Score와 Weight의 차이는 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        Score는 Query-Key 관련도 값이고,
+                                        Weight는 Score에 Softmax를 적용하여
+                                        얻는 위치별 가중치입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q08. Context Vector는 어떻게 계산합니까?
+                                    </summary>
+
+                                    <p>
+                                        Encoder Value 벡터들에 Attention Weight를
+                                        곱한 뒤 모두 합산하여 계산합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q09. Attention Score의 Shape은 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        일반적으로
+                                        (batch, target_length, source_length)입니다.
+                                        이번 학습 배열에서는 (B,10,10)입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q10. tf.concat(axis=-1)을 사용하는 이유는 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        Decoder 출력 256차원과
+                                        Attention Context 256차원을
+                                        마지막 Feature 축으로 결합해
+                                        512차원 벡터를 만들기 위해서입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q11. Attention을 사용하면 Teacher Forcing이 필요 없습니까?
+                                    </summary>
+
+                                    <p>
+                                        아닙니다. Teacher Forcing은
+                                        Decoder 학습 입력을 구성하는 방법이고,
+                                        Attention은 원문 정보를 활용하는 방법입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q12. 학습과 추론은 무엇이 다릅니까?
+                                    </summary>
+
+                                    <p>
+                                        학습에서는 이전 정답 단어를 입력하고,
+                                        추론에서는 이전 예측 단어를 입력합니다.
+                                        추론은 EOS가 나올 때까지 반복합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q13. Attention에 Padding Mask가 중요한 이유는 무엇입니까?
+                                    </summary>
+
+                                    <p>
+                                        의미 없는 Padding 위치에
+                                        Attention Weight가 부여되는 문제를
+                                        방지하기 위해서입니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q14. Accuracy 97.35%는 번역 정확도입니까?
+                                    </summary>
+
+                                    <p>
+                                        아닙니다. 원본의 Training Accuracy입니다.
+                                        독립 Test와 문장 단위 번역 평가가 없으므로
+                                        실제 번역 정확도라고 해석할 수 없습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q15. Data Leakage를 어떻게 방지합니까?
+                                    </summary>
+
+                                    <p>
+                                        Train/Validation/Test를 먼저 분리하고
+                                        Tokenizer 등 학습 가능한 전처리는
+                                        Train 데이터만으로 학습해야 합니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q16. Overfitting은 어떻게 판단합니까?
+                                    </summary>
+
+                                    <p>
+                                        Training Loss와 Validation Loss를
+                                        비교해야 합니다.
+                                        원본에는 Validation Loss가 없으므로
+                                        과적합 여부를 확정하기 어렵습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q17. 가장 좋은 Checkpoint는 마지막 Epoch와 같습니까?
+                                    </summary>
+
+                                    <p>
+                                        반드시 그렇지는 않습니다.
+                                        원본에서는 Epoch 96의 Training Loss가
+                                        마지막 Epoch 100보다 낮아
+                                        해당 체크포인트가 저장되었습니다.
+                                    </p>
+                                </details>
+
+                                <details>
+                                    <summary>
+                                        Q18. 다음 단원에서 Attention 챗봇으로 어떻게 확장합니까?
+                                    </summary>
+
+                                    <p>
+                                        영어-한국어 번역 문장 쌍 대신
+                                        질문-답변 데이터 쌍을 학습합니다.
+                                        Encoder는 질문을 처리하고
+                                        Decoder는 Attention을 활용해
+                                        응답 문장을 생성합니다.
+                                    </p>
+                                </details>
+                            </div>
+
+                            <div class="notice soft">
+                                <strong>Step 1·2 복습 완료 기준</strong>
+
+                                <p>
+                                    Query, Key, Value의 역할과
+                                    Attention Score → Weight → Context의 계산,
+                                    Encoder/Decoder Shape,
+                                    Teacher Forcing과 Autoregressive 차이,
+                                    Padding Mask 및 Metric의 한계를
+                                    설명할 수 있다면 다음 단원으로 넘어갈 준비가 된 것입니다.
+                                </p>
+                            </div>
+                        </section>
+
+                    </main>
+
+                    <!-- ==========================================
+                 ASIDE — 오늘의 암기 / 혼동 / 다음 단원
+            =========================================== -->
+                    <aside class="side-note" aria-label="ML 60. Attention Seq2Seq 보충 노트">
+
+                        <!-- MEMORY -->
+                        <section class="note-card memory-note">
+
+                            <p class="note-number">MEMORY</p>
+
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <ul class="note-list">
+                                <li>
+                                    <strong>문제 유형</strong>
+                                    <span>Many-to-Many</span>
+                                </li>
+
+                                <li>
+                                    <strong>Dataset</strong>
+                                    <span>kor.txt · 1000쌍 학습</span>
+                                </li>
+
+                                <li>
+                                    <strong>Vocabulary</strong>
+                                    <span>1947</span>
+                                </li>
+
+                                <li>
+                                    <strong>Timestep</strong>
+                                    <span>10</span>
+                                </li>
+
+                                <li>
+                                    <strong>Embedding</strong>
+                                    <span>128차원</span>
+                                </li>
+
+                                <li>
+                                    <strong>LSTM Units</strong>
+                                    <span>256</span>
+                                </li>
+
+                                <li>
+                                    <strong>Encoder Outputs</strong>
+                                    <span>(B,10,256)</span>
+                                </li>
+
+                                <li>
+                                    <strong>Encoder h,c</strong>
+                                    <span>각각 (B,256)</span>
+                                </li>
+
+                                <li>
+                                    <strong>Attention Score</strong>
+                                    <span>(B,10,10)</span>
+                                </li>
+
+                                <li>
+                                    <strong>Attention Context</strong>
+                                    <span>(B,10,256)</span>
+                                </li>
+
+                                <li>
+                                    <strong>Concat</strong>
+                                    <span>(B,10,512)</span>
+                                </li>
+
+                                <li>
+                                    <strong>Softmax</strong>
+                                    <span>(B,10,1947)</span>
+                                </li>
+
+                                <li>
+                                    <strong>Optimizer</strong>
+                                    <span>Adam</span>
+                                </li>
+
+                                <li>
+                                    <strong>Loss</strong>
+                                    <span>Sparse Categorical CE</span>
+                                </li>
+
+                                <li>
+                                    <strong>Training</strong>
+                                    <span>Teacher Forcing</span>
+                                </li>
+
+                                <li>
+                                    <strong>Inference</strong>
+                                    <span>Autoregressive</span>
+                                </li>
+                            </ul>
+
+                            <div class="memory-formula">
+                                <strong>핵심 계산 순서</strong>
+
+                                <code>
+                            Q · K → Score
+                            <br>
+                            Score → Softmax
+                            <br>
+                            Weight × V → Context
+                            <br>
+                            Context + Decoder → Prediction
+                        </code>
+                            </div>
+                        </section>
+
+                        <!-- CONFUSION -->
+                        <section class="note-card confusion-note">
+
+                            <p class="note-number">CONFUSION</p>
+
+                            <h2>헷갈리기 쉬운 개념</h2>
+
+                            <dl class="confusion-list">
+
+                                <dt>Hidden State vs Encoder Outputs</dt>
+                                <dd>
+                                    최종 상태와 모든 timestep 출력.
+                                </dd>
+
+                                <dt>Query vs Key</dt>
+                                <dd>
+                                    필요한 정보의 질의와 관련도 비교 기준.
+                                </dd>
+
+                                <dt>Key vs Value</dt>
+                                <dd>
+                                    관련도를 구하는 정보와
+                                    가중합에 사용하는 정보.
+                                </dd>
+
+                                <dt>Score vs Weight</dt>
+                                <dd>
+                                    내적 결과와 Softmax 가중치.
+                                </dd>
+
+                                <dt>Attention Context vs LSTM State</dt>
+                                <dd>
+                                    현재 시점 가중합과
+                                    LSTM Hidden/Cell State.
+                                </dd>
+
+                                <dt>Concat vs Add</dt>
+                                <dd>
+                                    Feature 연결과 원소별 덧셈.
+                                </dd>
+
+                                <dt>EOS vs Padding</dt>
+                                <dd>
+                                    문장 종료와 길이 맞추기.
+                                </dd>
+
+                                <dt>Training Accuracy vs 번역 품질</dt>
+                                <dd>
+                                    Token 일치율과 문장 의미의 정확성.
+                                </dd>
+                            </dl>
+                        </section>
+
+                        <!-- NEXT -->
+                        <section class="note-card next-note">
+
+                            <p class="note-number">NEXT</p>
+
+                            <h2>다음 단원 연결</h2>
+
+                            <p class="next-title">
+                                ML 61. Attention Seq2Seq 챗봇
+                            </p>
+
+                            <p>
+                                다음 단원에서는 영어-한국어 번역 말뭉치 대신
+                                질문-답변 Dataset을 사용합니다.
+
+                                Encoder가 질문을 이해하고
+                                Decoder가 Attention을 활용하여
+                                답변 문장을 생성하도록 확장합니다.
+                            </p>
+
+                            <div class="mini-next-flow">
+                                <span>Attention 기계번역</span>
+                                <b>↓</b>
+                                <span>질문-답변 데이터</span>
+                                <b>↓</b>
+                                <span>Attention Encoder–Decoder</span>
+                                <b>↓</b>
+                                <strong>챗봇 응답 생성</strong>
+                            </div>
+
+                            <!-- 실제 프로젝트 파일명이 다르면 href 수정 -->
+                            <a class="note-next-link" href="./61_attention_seq2seq_chatbot.html">
+                                다음 단원으로 이동 →
+                            </a>
+                        </section>
+
+                        <!-- SOURCE GUIDE -->
+                        <section class="note-card source-note">
+
+                            <p class="note-number">SOURCE GUIDE</p>
+
+                            <h2>내용의 출처 구분</h2>
+
+                            <p>
+                                <span class="source-label original">
+                                    원본 Notebook
+                                </span>
+                                실제 코드와 저장된 출력
+                            </p>
+
+                            <p>
+                                <span class="source-label review">
+                                    교안 검토 메모
+                                </span>
+                                통합 PDF에 명시된 주의사항
+                            </p>
+
+                            <p>
+                                <span class="source-label added">
+                                    추가 학습·개선
+                                </span>
+                                원리 설명과 별도 확장 예제
+                            </p>
+                        </section>
+
+                    </aside>
+
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <!-- ==========================================
+             이전 / 다음 단원
+        =========================================== -->
+                <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 7. RNN &#183; Attention &#183; Transformer</span>
-                    <span>ML 60</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a class="lesson-prev" href="./59_seq2seq_translation.html">
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-60">
-                    <h2 id="goals-machine-learning-60">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
+                        <span>이전 단원</span>
 
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
-                        </div>
+                        <strong>
+                            ML 59. Seq2Seq 기계번역
+                        </strong>
+                    </a>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <a class="lesson-course-index" href="#nav-machine-learning">
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
-                        </div>
+                        <span>과목 목차</span>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <strong>
+                            AI Machine Learning 목차
+                        </strong>
+                    </a>
 
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
-                        </div>
+                    <!-- 다음 단원 경로는 실제 생성한 파일명에 맞춰 확인 -->
+                    <a class="lesson-next" href="./61_attention_seq2seq_chatbot.html">
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                        <span>다음 단원</span>
 
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
-                        </div>
+                        <strong>
+                            ML 61. Attention Seq2Seq 챗봇
+                        </strong>
+                    </a>
+                </nav>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                <footer class="ml60-footer">
+                    <p>
+                        AI Machine Learning · PART 7 · ML 60
+                        | Attention Seq2Seq 기계번역 학습 매거진
+                    </p>
+                </footer>
 
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="ML 60. Attention Seq2Seq 기계번역 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./59_seq2seq_translation.html">
-                    <span>이전 단원</span>
-                    <strong>ML 59. Seq2Seq 기계번역</strong>
-                </a>
-
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./61_attention_seq2seq_chatbot.html">
-                    <span>다음 단원</span>
-                    <strong>ML 61. Attention Seq2Seq 챗봇</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+
+    </body>
+
 </html>
