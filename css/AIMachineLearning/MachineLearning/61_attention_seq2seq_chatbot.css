@@ -1,15 +1,1440 @@
 @charset "UTF-8";
 
-/*
- * AI & Machine Learning
- * Course: AI Machine Learning
- * Lesson: ML 61. Attention Seq2Seq 챗봇
- *
- * 공통 스타일:
- * - ../../css/00_nav.css
- * - ../../css/study-theme.css
- * - ../../css/AIMachineLearning/ai-machine-learning-common.css
- * - ../../css/AIMachineLearning/MachineLearning/machine-learning-common.css
- *
- * 이 파일(61_attention_seq2seq_chatbot.css)에는 이 단원에서만 필요한 스타일을 Step 3에서 추가한다.
- */
+/* AI Machine Learning · 단원별 독립 레이아웃
+   AI 개념 페이지의 청록/회청색 팔레트와 동일한 가독성 기준.
+   공통 메뉴의 생성·펼침 동작은 00_nav.js에서 관리합니다. */
+html:has(> body.ml61-page) {
+    min-width: 0;
+    overflow-x: visible;
+    background: #eef4f7;
+}
+
+body.ml61-page {
+    --layout-min-width: 0px;
+    --content-min-width: 0px;
+    --side-nav-width: 280px;
+    --theme-accent: #0f6875;
+    --theme-accent-dark: #075363;
+    --theme-soft: #e6f1f4;
+    --theme-bg: #eef4f7;
+    --theme-surface: #fff;
+    --theme-surface-soft: #f2f7f8;
+    --theme-border: #cadbe3;
+    --theme-text: #364656;
+    --theme-muted: #566573;
+    --theme-shadow: rgba(21, 50, 67, .06);
+    --theme-code-bg: #182f3c;
+    --theme-code-text: #edf4fa;
+    --study-code-font: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace;
+    min-width: 0;
+    overflow-x: visible;
+    margin: 0;
+    color: var(--theme-text);
+    background: var(--theme-bg);
+    font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.85;
+    -webkit-text-size-adjust: 100%;
+}
+
+.ml61-page .layout,
+.ml61-page .layout *,
+.ml61-page .layout *::before,
+.ml61-page .layout *::after {
+    box-sizing: border-box;
+}
+
+.ml61-page .layout {
+    width: 100%;
+    max-width: 1920px;
+    min-width: 0;
+    margin: 0 auto;
+    padding: clamp(16px, 2vw, 32px);
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(20px, 2vw, 32px);
+}
+
+.ml61-page #sideNav {
+    top: 24px;
+    width: 100%;
+    min-width: 0;
+    max-height: calc(100vh - 48px);
+    padding: 20px;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .page-content :where(main, section, aside, div, figure, dl, dd) { min-width: 0; }
+.ml61-page .page-content :where(h1, h2, h3, p, li, dt, dd, th, td, summary) { overflow-wrap: anywhere; }
+.ml61-page .page-content :is(img, svg, video, canvas) { max-width: 100%; }
+.ml61-page .page-content [id] { scroll-margin-top: 24px; }
+
+@media screen and (max-width: 1240px) {
+    .ml61-page .layout { grid-template-columns: minmax(0, 1fr); }
+    .ml61-page #sideNav { position: static; max-height: 300px; }
+}
+
+@media screen and (max-width: 700px) {
+    .ml61-page .layout { padding: 12px; gap: 18px; }
+    .ml61-page #sideNav { max-height: 240px; padding: 16px; border-radius: 16px; }
+}
+
+
+
+
+
+
+
+/* ==========================================================
+   AI Machine Learning · PART 7
+   ML 61. Attention 챗봇
+
+   공통 파일:
+   - ../../css/00_nav.css
+   - ../../css/study-theme.css
+
+   ML 61의 레이아웃과 본문을 단원 범위 안에서 구성합니다.
+   전체 side-nav의 생성·펼침 동작은 공통 JS에서 관리합니다.
+========================================================== */
+
+/* 01. 색상과 기본 설정 */
+body.ml61-page {
+    --ml61-ink: #1f2933;
+    --ml61-text: #364656;
+    --ml61-accent-dark: #075363;
+    --ml61-muted: #566573;
+    --ml61-line: #cadbe3;
+    --ml61-paper: #ffffff;
+    --ml61-soft: #f2f7f8;
+
+    --ml61-blue: #0f6875;
+    --ml61-blue-soft: #e6f1f4;
+
+    --ml61-teal: #08766c;
+    --ml61-teal-soft: #eaf8f3;
+
+    --ml61-amber: #92520d;
+    --ml61-amber-soft: #fff5e7;
+
+    --ml61-purple: #554696;
+    --ml61-purple-soft: #f2eff9;
+
+    --ml61-code-bg: #182f3c;
+    --ml61-code-ink: #edf4fa;
+
+    --ml61-radius: 20px;
+    --ml61-small-radius: 11px;
+    --ml61-shadow: 0 8px 24px rgba(21, 50, 67, .06);
+}
+
+.ml61-page .page-content,
+.ml61-page .page-content *,
+.ml61-page .page-content *::before,
+.ml61-page .page-content *::after {
+    box-sizing: border-box;
+}
+
+.ml61-page .page-content {
+    min-width: 0;
+    container-type: inline-size;
+    color: var(--ml61-text);
+    line-height: 1.85;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 0 48px;
+    container-name: ml61-content;
+}
+
+.ml61-page .page-content > *,
+.ml61-page .content-layout > * {
+    min-width: 0;
+}
+
+.ml61-page .page-content p {
+    margin: 0 0 14px;
+    line-height: 1.9;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .page-content h1,
+.ml61-page .page-content h2,
+.ml61-page .page-content h3,
+.ml61-page .page-content h4 {
+    line-height: 1.45;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .page-content a {
+    color: var(--ml61-blue);
+    text-underline-offset: 4px;
+}
+
+.ml61-page .page-content :is(a, summary, pre, .table-wrap):focus-visible,
+.ml61-page .skip-link:focus-visible {
+    outline: 3px solid #0f6875;
+    outline-offset: 4px;
+    border-radius: 5px;
+}
+
+.ml61-page .page-content :is(section, dt)[id] {
+    scroll-margin-top: 24px;
+}
+
+.ml61-page .skip-link {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 10000;
+    padding: 12px 18px;
+    border-radius: 10px;
+    color: #ffffff;
+    background: #075363;
+    transform: translateY(calc(-100% - 24px));
+    text-decoration: none;
+    font-weight: 750;
+}
+
+.ml61-page .skip-link:focus {
+    transform: translateY(0);
+}
+
+.ml61-page code,
+.ml61-page pre {
+    font-family: var(--study-code-font);
+}
+
+.ml61-page .page-content :not(pre) > code {
+    padding: 2px 5px;
+    color: #075363;
+    background: #e6f1f4;
+    border: 1px solid #d6e5e9;
+    border-radius: 5px;
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.ml61-page .lead {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.ml61-page .small,
+.ml61-page .caption,
+.ml61-page figcaption {
+    color: var(--ml61-muted);
+    font-size: 0.83rem;
+    line-height: 1.8;
+}
+
+.ml61-page .page-content strong {
+    font-weight: 800;
+}
+
+/* 02. Hero */
+.ml61-page .lesson-hero {
+    position: relative;
+    isolation: isolate;
+    margin-bottom: 24px;
+    padding: clamp(24px, 3vw, 44px);
+    border: 1px solid var(--ml61-line);
+    border-top: 4px solid var(--ml61-blue);
+    border-radius: 26px;
+    color: var(--ml61-text);
+    background: linear-gradient(125deg, #edf6f7, #fff 64%, #f2eff9);
+    box-shadow: var(--ml61-shadow);
+}
+.ml61-page .lesson-hero::before {
+    content: '61';
+    position: absolute;
+    top: 8px;
+    right: 24px;
+    z-index: -1;
+    color: #0f68750a;
+    font-size: clamp(7rem, 13vw, 13rem);
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+}
+.ml61-page .header-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 25px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--ml61-line);
+}
+.ml61-page .series-label { margin: 0; color: var(--ml61-accent-dark); letter-spacing: .09em; font-size: .78rem; font-weight: 850; }
+.ml61-page .reading-time { margin: 0; font-size: .78rem; color: var(--ml61-muted); }
+.ml61-page .hero-copy { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+.ml61-page .hero-copy > div { min-width: 0; }
+.ml61-page .eyebrow { margin-bottom: 12px; font-size: .8rem; font-weight: 800; color: var(--ml61-blue); }
+.ml61-page .lesson-hero h1 { margin: 0 0 15px; color: var(--ml61-ink); font-size: clamp(2rem, 3.3vw, 3.5rem); font-weight: 850; letter-spacing: -.04em; line-height: 1.35; }
+.ml61-page .hero-subtitle { margin: 0; color: var(--ml61-muted); font-size: 1rem; }
+.ml61-page .lesson-status { flex-shrink: 0; padding: 8px 13px; border-radius: 100px; color: var(--ml61-accent-dark); background: var(--ml61-blue-soft); border: 1px solid #bdd7dc; font-size: .8rem; font-weight: 800; white-space: nowrap; }
+.ml61-page .hero-summary { max-width: 1000px; font-size: 1.1rem; line-height: 1.9; color: var(--ml61-text); }
+.ml61-page .hero-summary strong { color: var(--ml61-accent-dark); }
+.ml61-page .hero-keywords { display: flex; flex-wrap: wrap; gap: 8px; margin: 23px 0; }
+.ml61-page .hero-keywords span { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 12px; border-radius: 100px; border: 1px solid var(--ml61-line); background: #fff; color: var(--ml61-accent-dark); font-size: .81rem; font-weight: 750; }
+.ml61-page .learning-goals { margin-top: 28px; padding: 22px; border-radius: 16px; background: var(--ml61-blue-soft); border: 1px solid var(--ml61-line); }
+.ml61-page .learning-goals h2 { color: var(--ml61-accent-dark); margin: 0 0 16px; font-size: 1.2rem; }
+.ml61-page .goal-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 0; list-style: none; }
+.ml61-page .goal-list li { display: flex; align-items: flex-start; gap: 10px; min-width: 0; padding: 12px; border: 1px solid #d6e5e9; border-radius: 11px; background: #ffffffc9; }
+.ml61-page .goal-list li > span { display: grid; place-items: center; flex: 0 0 30px; height: 30px; color: var(--ml61-accent-dark); background: var(--ml61-blue-soft); border-radius: 50%; font-size: .78rem; font-weight: 850; }
+.ml61-page .goal-list p { color: var(--ml61-text); font-size: .94rem; margin: 0; line-height: 1.8; }
+.ml61-page .hero-source { margin-top: 20px; padding: 16px 18px; border-radius: 12px; background: #ffffffc9; border: 1px solid var(--ml61-line); }
+.ml61-page .hero-source > strong { display: block; color: var(--ml61-accent-dark); font-size: .9rem; margin-bottom: 6px; }
+.ml61-page .hero-source p { color: var(--ml61-muted); font-size: .85rem; margin: 0; line-height: 1.8; }
+
+/* 03. 목차와 본문 배치 */
+.ml61-page .lesson-toc {
+    margin: 22px 0;
+    padding: 20px 23px;
+    border-radius: var(--ml61-radius);
+    background: var(--ml61-paper);
+    border: 1px solid var(--ml61-line);
+    box-shadow: var(--ml61-shadow);
+}
+
+.ml61-page .lesson-toc h2 {
+    margin: 0 0 13px;
+    color: #075363;
+    font-size: 0.95rem;
+    font-weight: 850;
+}
+
+.ml61-page .toc-links {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.ml61-page .toc-links a {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #075363;
+    font-size: .875rem;
+    font-weight: 750;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #cadbe3;
+    border-radius: 8px;
+    background: #f2f7f8;
+    transition: 0.15s ease;
+}
+
+.ml61-page .toc-links a:hover {
+    color: var(--ml61-blue);
+    background: var(--ml61-blue-soft);
+    border-color: #0f6875;
+}
+
+/* Full-width content and supplementary notes. */
+
+.ml61-page .content-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+}
+
+.ml61-page .lesson-main {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+.ml61-page .side-note {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: static;
+    gap: 24px;
+    background: transparent;
+    box-shadow: none;
+    min-width: 0;
+}
+
+/* 04. 카드 */
+.ml61-page .lesson-card {
+    min-width: 0;
+    padding: clamp(22px, 2.6vw, 38px);
+    border: 1px solid var(--ml61-line);
+    border-radius: var(--ml61-radius);
+    background: var(--ml61-paper);
+    box-shadow: var(--ml61-shadow);
+}
+
+.ml61-page .section-heading {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--ml61-line);
+    border-color: #deebf0;
+}
+
+.ml61-page .section-heading .section-kicker {
+    margin: 0 0 7px;
+    color: var(--ml61-blue);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 1px;
+}
+
+.ml61-page .section-heading h2 {
+    margin: 0;
+    color: #1f2933;
+    font-size: clamp(1.4rem, 2vw, 1.85rem);
+    font-weight: 850;
+    letter-spacing: -0.45px;
+}
+
+.ml61-page .lesson-card h3 {
+    margin: 27px 0 12px;
+    color: #1f2933;
+    font-size: 1.08rem;
+    font-weight: 800;
+}
+
+.ml61-page .grid-two,
+.ml61-page .grid-three {
+    display: grid;
+    gap: 14px;
+    margin: 19px 0;
+}
+
+.ml61-page .grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ml61-page .grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ml61-page .mini-card {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #cadbe3;
+    border-radius: var(--ml61-small-radius);
+    background: #f2f7f8;
+}
+
+.ml61-page .mini-card.accent {
+    border-color: #c8e5dc;
+    background: var(--ml61-teal-soft);
+}
+
+.ml61-page .mini-card h3 {
+    margin: 0 0 11px;
+    font-size: 0.95rem;
+}
+
+.ml61-page .mini-card p {
+    font-size: .94rem;
+}
+
+.ml61-page .mini-card p:last-child {
+    margin-bottom: 0;
+}
+
+.ml61-page .mini-card .mini-kicker {
+    margin: 0 0 6px;
+    color: var(--ml61-blue);
+    font-size: 0.75rem;
+    font-weight: 850;
+}
+
+.ml61-page .mini-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 13px 10px;
+    margin: 13px 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    font-size: 0.87rem;
+}
+
+.ml61-page .mini-flow > strong {
+    color: var(--ml61-teal);
+}
+
+.ml61-page .mini-flow [aria-hidden] {
+    color: var(--ml61-blue);
+}
+
+/* 05. 출처 배지와 안내문 */
+.ml61-page .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.71rem;
+    font-weight: 800;
+    line-height: 1.7;
+    vertical-align: middle;
+}
+
+.ml61-page .badge.original {
+    color: #075363;
+    background: #e6f1f4;
+}
+
+.ml61-page .badge.review {
+    color: #8c500c;
+    background: #fff0d8;
+}
+
+.ml61-page .badge.analysis {
+    color: #624394;
+    background: #f0eafb;
+}
+
+.ml61-page .badge.added {
+    color: #086d60;
+    background: #e2f5ec;
+}
+
+.ml61-page .source {
+    margin-top: 19px;
+    color: var(--ml61-muted);
+    font-size: 0.77rem;
+}
+
+.ml61-page .source .badge {
+    margin-right: 5px;
+}
+
+.ml61-page .callout {
+    margin: 19px 0;
+    padding: 17px 19px;
+    border: 1px solid #cadbe3;
+    border-left: 4px solid var(--ml61-blue);
+    border-radius: 11px;
+    background: var(--ml61-blue-soft);
+}
+
+.ml61-page .callout > strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #075363;
+    font-size: 0.93rem;
+}
+
+.ml61-page .callout p {
+    margin: 0;
+    font-size: 0.87rem;
+}
+
+.ml61-page .callout.important,
+.ml61-page .callout.review {
+    border-color: #ecd4b1;
+    border-left-color: #b97522;
+    background: var(--ml61-amber-soft);
+}
+
+.ml61-page .callout.important > strong,
+.ml61-page .callout.review > strong {
+    color: var(--ml61-amber);
+}
+
+.ml61-page .callout.success {
+    border-color: #c8e5d9;
+    border-left-color: var(--ml61-teal);
+    background: var(--ml61-teal-soft);
+}
+
+.ml61-page .callout.success > strong {
+    color: var(--ml61-teal);
+}
+
+/* 06. 표와 정의 */
+.ml61-page .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 17px 0 22px;
+    border: 1px solid var(--ml61-line);
+    border-radius: 11px;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+}
+
+.ml61-page .table-wrap table {
+    width: 100%;
+    min-width: 460px;
+    border-collapse: collapse;
+    color: var(--ml61-text);
+    font-size: .95rem;
+    line-height: 1.8;
+}
+
+.ml61-page .table-wrap caption {
+    padding: 11px 13px;
+    color: var(--ml61-muted);
+    background: #f2f7f8;
+    font-size: 0.77rem;
+    font-weight: 600;
+    text-align: left;
+}
+
+.ml61-page .table-wrap thead th {
+    padding: 13px 16px;
+    color: #075363;
+    background: #e6f1f4;
+    border-bottom: 1px solid var(--ml61-line);
+    font-weight: 800;
+    text-align: left;
+    vertical-align: top;
+}
+
+.ml61-page .table-wrap tbody :is(td, th) {
+    padding: 13px 16px;
+    border-bottom: 1px solid #e2ebef;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .table-wrap tbody th {
+    color: #364656;
+    font-weight: 750;
+}
+
+.ml61-page .table-wrap tbody tr:nth-child(even) {
+    background: #f5f9fa;
+}
+
+.ml61-page .table-wrap tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+.ml61-page .error-table td:first-child {
+    color: #9a3e3e;
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 0.78rem;
+}
+
+.ml61-page .definition-list {
+    margin: 16px 0;
+}
+
+.ml61-page .definition-list dt {
+    margin-top: 15px;
+    color: #075363;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.ml61-page .definition-list dd {
+    margin: 5px 0 0;
+    color: #566573;
+    font-size: 0.87rem;
+    line-height: 1.9;
+}
+
+/* 07. 숫자와 수식 */
+.ml61-page .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 19px 0;
+}
+
+.ml61-page .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 19px 11px;
+    border: 1px solid #cadbe3;
+    border-radius: 12px;
+    background: #e6f1f4;
+    text-align: center;
+}
+
+.ml61-page .stat span {
+    color: #566573;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.ml61-page .stat strong {
+    color: #075363;
+    font-size: clamp(1.22rem, 2vw, 1.7rem);
+    font-variant-numeric: tabular-nums;
+}
+
+.ml61-page .number-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 21px 0;
+}
+
+.ml61-page .number-strip > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px 8px;
+    border: 1px solid #cadbe3;
+    border-radius: 10px;
+    text-align: center;
+    background: #f2f7f8;
+}
+
+.ml61-page .number-strip strong {
+    color: var(--ml61-teal);
+    font-size: 1.3rem;
+}
+
+.ml61-page .number-strip span {
+    color: var(--ml61-muted);
+    font-size: 0.72rem;
+}
+
+.ml61-page .formula {
+    margin: 17px 0;
+    padding: 17px;
+    border: 1px solid #cadbe3;
+    border-radius: 11px;
+    background: #e6f1f4;
+}
+
+.ml61-page .formula > span {
+    display: block;
+    margin-bottom: 10px;
+    color: #075363;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.ml61-page .formula > code {
+    display: block;
+    margin: 7px 0;
+    padding: 11px 12px;
+    border: 1px solid #cadbe3;
+    border-radius: 7px;
+    color: #075363;
+    background: #ffffff;
+    font-size: 0.87rem;
+    line-height: 1.9;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .formula small {
+    display: block;
+    margin-top: 8px;
+    color: #566573;
+    font-size: 0.78rem;
+}
+
+/* 08. 질문·응답과 Shift */
+.ml61-page .example-pair {
+    margin: 19px 0;
+    padding: 16px;
+    border: 1px solid #cadbe3;
+    border-radius: 11px;
+    background: #f2f7f8;
+}
+
+.ml61-page .example-pair p {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 13px;
+    margin: 7px 0;
+    font-size: 0.91rem;
+}
+
+.ml61-page .example-pair span {
+    min-width: 100px;
+    color: #075363;
+    font-size: 0.77rem;
+    font-weight: 800;
+}
+
+.ml61-page .shift-box {
+    margin: 18px 0;
+    padding: 16px;
+    border: 1px solid #cadbe3;
+    border-radius: 11px;
+    background: #f2f7f8;
+}
+
+.ml61-page .shift-box p {
+    display: grid;
+    grid-template-columns: 125px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    margin: 9px 0;
+}
+
+.ml61-page .shift-box strong {
+    font-size: 0.78rem;
+    color: #566573;
+}
+
+.ml61-page .shift-box p > code {
+    padding: 9px 11px;
+    background: #ffffff;
+}
+
+.ml61-page .chat-record {
+    margin: 17px 0;
+    padding: 17px;
+    border: 1px solid #cadbe3;
+    border-radius: 13px;
+    background: #f2f7f8;
+}
+
+.ml61-page .chat-record .record-label {
+    color: var(--ml61-muted);
+    font-size: 0.73rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.ml61-page .chat-record :is(.chat-user, .chat-bot) {
+    padding: 13px 15px;
+    margin: 10px 0;
+    border-radius: 11px;
+    border: 1px solid #cadbe3;
+    background: #ffffff;
+    font-size: 0.95rem;
+}
+
+.ml61-page .chat-record .chat-bot {
+    border-color: #cde6dc;
+    background: #eaf8f2;
+}
+
+.ml61-page .chat-record strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #566573;
+    font-size: 0.74rem;
+}
+
+.ml61-page .chat-bot strong {
+    color: #086f63;
+}
+
+/* 09. 시각적 모델 구조 */
+.ml61-page .architecture {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #cadbe3;
+    border-radius: 14px;
+    background: #f2f7f8;
+}
+
+.ml61-page .architecture-start {
+    padding: 17px;
+    border-radius: 11px;
+    color: #ffffff;
+    background: #236789;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.ml61-page .architecture-start small {
+    display: block;
+    margin-top: 5px;
+    color: #edf4fa;
+    font-size: 0.76rem;
+    font-weight: 500;
+}
+
+.ml61-page .architecture-branches {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 18px 0;
+}
+
+.ml61-page .architecture-branch {
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #cadbe3;
+    border-radius: 11px;
+    background: #ffffff;
+}
+
+.ml61-page .architecture-branch .branch-label {
+    margin-bottom: 12px;
+    color: #566573;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.ml61-page .node {
+    padding: 12px 9px;
+    border: 1px solid #dce5f6;
+    border-radius: 9px;
+    color: #355889;
+    background: #f2f6ff;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 750;
+}
+
+.ml61-page .node small {
+    display: block;
+    margin-top: 5px;
+    color: #526f94;
+    font-size: 0.74rem;
+    font-weight: 500;
+}
+
+.ml61-page .node.teal {
+    color: #0c6d62;
+    border-color: #cee7df;
+    background: #edf9f4;
+}
+
+.ml61-page .arrow {
+    display: block;
+    padding: 5px 0;
+    color: var(--ml61-blue);
+    text-align: center;
+    font-size: 1.15rem;
+}
+
+.ml61-page .architecture-end {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding: 17px;
+    border: 1px solid #cec3e8;
+    border-radius: 11px;
+    color: #5c4389;
+    background: #f3eefb;
+    font-size: 0.88rem;
+    font-weight: 750;
+    text-align: center;
+}
+
+.ml61-page .architecture figcaption {
+    margin-top: 14px;
+}
+
+/* 10. 코드와 코드 계약 */
+.ml61-page .code-box {
+    min-width: 0;
+    margin: 18px 0;
+    border: 1px solid #294959;
+    border-radius: 14px;
+    background: var(--ml61-code-bg);
+    overflow: hidden;
+}
+
+.ml61-page .code-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 11px 14px;
+    border-bottom: 1px solid #426575;
+    color: #edf4fa;
+    background: #244653;
+}
+
+.ml61-page .code-title > strong {
+    font-size: 0.8rem;
+}
+
+.ml61-page .code-box pre {
+    display: block;
+    max-width: 100%;
+    margin: 0;
+    padding: 18px;
+    overflow-x: auto;
+    border: 0;
+    border-radius: 0;
+    color: var(--ml61-code-ink);
+    background: var(--ml61-code-bg);
+    font-size: .92rem;
+    line-height: 1.8;
+    tab-size: 4;
+    white-space: pre;
+    scrollbar-width: thin;
+    scrollbar-color: #799aaa var(--ml61-code-bg);
+}
+
+.ml61-page .code-box pre > code {
+    display: block;
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    white-space: pre;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.ml61-page .code-box.added {
+    border-color: #21786f;
+}
+
+.ml61-page .code-box.added .code-title {
+    border-color: #368b82;
+    background: #165e5d;
+}
+
+.ml61-page .code-box.output .code-title {
+    background: #e8e2f4;
+}
+
+.ml61-page .code-contract {
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 8px 13px;
+    padding: 16px;
+    margin: 15px 0 21px;
+    border: 1px solid #cadbe3;
+    border-radius: 10px;
+    background: #e6f1f4;
+    font-size: 0.83rem;
+    line-height: 1.8;
+}
+
+.ml61-page .code-contract dt {
+    color: #075363;
+    font-weight: 800;
+}
+
+.ml61-page .code-contract dd {
+    margin: 0;
+    min-width: 0;
+    color: #364656;
+    overflow-wrap: anywhere;
+}
+
+/* 11. 접기·펼치기 */
+.ml61-page .lesson-details {
+    min-width: 0;
+    margin: 16px 0;
+    border: 1px solid #cadbe3;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.ml61-page .lesson-details > summary {
+    padding: 15px 17px;
+    border-radius: 11px;
+    color: #075363;
+    background: #f2f7f8;
+    font-size: 0.92rem;
+    font-weight: 800;
+    line-height: 1.7;
+    cursor: pointer;
+}
+
+.ml61-page .lesson-details[open] > summary {
+    border-bottom: 1px solid #cadbe3;
+    border-radius: 11px 11px 0 0;
+}
+
+.ml61-page .details-body {
+    padding: 17px;
+    min-width: 0;
+}
+
+.ml61-page .details-body > :first-child {
+    margin-top: 0;
+}
+
+.ml61-page .details-body > :last-child {
+    margin-bottom: 0;
+}
+
+.ml61-page .qa-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.ml61-page .qa-list details {
+    border: 1px solid #cadbe3;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.ml61-page .qa-list summary {
+    padding: 14px 16px;
+    border-radius: 9px;
+    color: #075363;
+    background: #f2f7f8;
+    font-size: 0.88rem;
+    font-weight: 800;
+    line-height: 1.75;
+    cursor: pointer;
+}
+
+.ml61-page .qa-list details[open] summary {
+    border-bottom: 1px solid #cadbe3;
+    border-radius: 9px 9px 0 0;
+}
+
+.ml61-page .qa-list details p {
+    margin: 0;
+    padding: 14px 17px;
+    color: #364656;
+    font-size: 0.86rem;
+}
+
+/* 12. 단계와 개선 순서 */
+.ml61-page .step-flow,
+.ml61-page .priority-list {
+    display: grid;
+    gap: 11px;
+    margin: 20px 0;
+    padding: 0;
+    counter-reset: lesson-step;
+    list-style: none;
+}
+
+.ml61-page .step-flow li,
+.ml61-page .priority-list li {
+    position: relative;
+    min-width: 0;
+    padding: 15px 16px 15px 61px;
+    border: 1px solid #cadbe3;
+    border-radius: 11px;
+    background: #f2f7f8;
+    counter-increment: lesson-step;
+}
+
+.ml61-page .step-flow li::before,
+.ml61-page .priority-list li::before {
+    content: counter(lesson-step, decimal-leading-zero);
+    position: absolute;
+    top: 16px;
+    left: 15px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: #ffffff;
+    background: var(--ml61-blue);
+    font-size: 0.77rem;
+    font-weight: 850;
+}
+
+.ml61-page .priority-list li::before {
+    background: var(--ml61-teal);
+}
+
+.ml61-page .step-flow strong,
+.ml61-page .priority-list strong {
+    display: block;
+    color: #1f2933;
+    font-size: 0.91rem;
+}
+
+.ml61-page .step-flow span,
+.ml61-page .priority-list span {
+    display: block;
+    margin-top: 5px;
+    color: #566573;
+    font-size: 0.85rem;
+    line-height: 1.8;
+}
+
+/* 13. Side Note */
+.ml61-page .note-card {
+    min-width: 0;
+    padding: clamp(22px, 2.6vw, 38px);
+    border: 1px solid var(--ml61-line);
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: var(--ml61-shadow);
+}
+
+.ml61-page .note-card.memory-note {
+    border-top: 4px solid var(--ml61-blue);
+    background: var(--ml61-blue-soft);
+}
+
+.ml61-page .note-card.confusion-note {
+    border-top: 4px solid #b17726;
+}
+
+.ml61-page .note-card.next-note {
+    border-top: 4px solid var(--ml61-purple);
+    background: var(--ml61-purple-soft);
+}
+
+.ml61-page .note-card .note-number {
+    margin: 0 0 7px;
+    color: var(--ml61-blue);
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 1.3px;
+}
+
+.ml61-page .note-card h2 {
+    margin: 0 0 15px;
+    color: #1f2933;
+    font-size: 1.2rem;
+}
+
+.ml61-page .note-card p {
+    font-size: .94rem;
+}
+
+.ml61-page .memory-list {
+    margin: 0;
+}
+
+.ml61-page .memory-list dt {
+    margin-top: 11px;
+    color: #566573;
+    font-size: 0.76rem;
+}
+
+.ml61-page .memory-list dd {
+    margin: 4px 0 0;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #cadbe3;
+    color: #364656;
+    font-size: 0.85rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .memory-list dd:last-child {
+    border-bottom: 0;
+}
+
+.ml61-page .note-emphasis {
+    margin: 19px 0;
+    padding: 15px;
+    border: 1px solid #cadbe3;
+    border-radius: 10px;
+    color: #075363;
+    background: #e6f1f4;
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1.9;
+}
+
+.ml61-page .next-note .note-emphasis {
+    color: #096e62;
+    border-color: #cbe6dc;
+    background: #edf9f3;
+}
+
+.ml61-page .note-card .definition-list dt {
+    font-size: 0.81rem;
+}
+
+.ml61-page .note-card .definition-list dd {
+    font-size: 0.8rem;
+}
+
+.ml61-page .note-card .next-title {
+    color: var(--ml61-teal);
+    font-weight: 850;
+}
+
+.ml61-page .page-content .next-link {
+    display: block;
+    margin-top: 17px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    color: #ffffff;
+    background: var(--ml61-teal);
+    text-align: center;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.ml61-page .next-link:hover {
+    background: #085d57;
+}
+
+.ml61-page .source-note .badge {
+    margin-right: 5px;
+}
+
+.ml61-page .note-card .small {
+    font-size: 0.77rem;
+}
+
+/* 14. 출처와 단원 이동 */
+.ml61-page .reference-list {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 11px 16px;
+    margin: 17px 0 0;
+    font-size: 0.85rem;
+}
+
+.ml61-page .reference-list dt {
+    color: #075363;
+    font-weight: 800;
+}
+
+.ml61-page .reference-list dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.ml61-page .lesson-pagination {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 13px;
+    margin: 25px 0;
+}
+
+.ml61-page .lesson-pagination a {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    gap: 7px;
+    padding: 19px;
+    border: 1px solid var(--ml61-line);
+    border-radius: 13px;
+    background: #ffffff;
+    text-decoration: none;
+    transition: background-color 150ms ease, border-color 150ms ease;
+    min-height: 88px;
+}
+
+.ml61-page .lesson-pagination a:hover {
+    border-color: #9bbec8;
+    background: #f2f6ff;
+}
+
+.ml61-page .lesson-pagination span {
+    color: var(--ml61-muted);
+    font-size: 0.74rem;
+}
+
+.ml61-page .lesson-pagination strong {
+    color: #075363;
+    font-size: 0.87rem;
+    line-height: 1.7;
+}
+
+.ml61-page .lesson-footer {
+    padding: 17px 0 30px;
+    color: var(--ml61-muted);
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.ml61-page .lesson-footer p {
+    margin-bottom: 9px;
+}
+
+/* Shared chapter rhythm and keyboard focus. */
+.ml61-page .page-content > :is(.lesson-hero, .lesson-toc, .content-layout, .lesson-pagination, .lesson-footer) { width: 100%; max-width: 1500px; margin-inline: auto; }
+.ml61-page .page-content :where(article, nav, ul, ol, li) { min-width: 0; }
+.ml61-page .page-content :is(a, summary, [tabindex]):focus-visible { outline: 3px solid var(--ml61-blue); outline-offset: 4px; }
+.ml61-page .page-content :is(.lesson-details, .qa-list) summary:focus-visible { outline-offset: -4px; }
+.ml61-page .page-content :is(.lesson-details, .qa-list) summary { min-height: 48px; }
+.ml61-page .page-content :is(pre, .table-wrap):focus-visible { outline-offset: -4px; }
+.ml61-page .toc-links a { border-radius: 10px; line-height: 1.6; }
+.ml61-page .lesson-toc h2 { font-size: 1.2rem; }
+.ml61-page .hero-source p + p { margin-top: 8px; }
+.ml61-page .code-box.output { border-color: #dcd5ed; border-left-width: 3px; background: var(--ml61-purple-soft); }
+.ml61-page .code-box.output .code-title { color: var(--ml61-purple); background: #e8e2f4; border-bottom-color: #dcd5ed; }
+.ml61-page .code-box.output pre { color: var(--ml61-purple); background: var(--ml61-purple-soft); scrollbar-color: #b7aacf #f2eff9; }
+
+/* Tablet and mobile. Diagram arrows already point down and retain their direction. */
+@media screen and (max-width: 850px) {
+    .ml61-page .hero-copy { flex-direction: column; }
+    .ml61-page :is(.goal-list, .grid-two, .grid-three, .architecture-branches, .lesson-pagination) { grid-template-columns: minmax(0, 1fr); }
+}
+@media screen and (max-width: 720px) {
+    .ml61-page :is(.lesson-hero, .lesson-card, .lesson-toc, .note-card) { padding: 24px 19px; border-radius: 16px; }
+    .ml61-page .toc-links { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .ml61-page .learning-goals { padding: 16px; }
+    .ml61-page .side-note { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .ml61-page .hero-summary { font-size: 1.03rem; }
+    .ml61-page .reference-list { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .ml61-page .reference-list dt { margin-top: 12px; }
+    .ml61-page .number-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media screen and (max-width: 600px) {
+    .ml61-page .header-topline { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .ml61-page .hero-copy { gap: 12px; }
+    .ml61-page .lesson-hero h1 { font-size: 2rem; }
+    .ml61-page .hero-source { padding: 16px; }
+    .ml61-page :is(.stat-grid, .shift-box p, .code-contract) { grid-template-columns: minmax(0, 1fr); }
+    .ml61-page :is(.shift-box p, .code-contract) { gap: 5px; }
+    .ml61-page .code-contract dt:not(:first-child) { margin-top: 8px; }
+    .ml61-page .stat { padding: 14px; }
+    .ml61-page .code-box pre { padding: 14px; }
+    .ml61-page .code-title { padding: 10px 12px; }
+    .ml61-page .details-body { padding: 12px; }
+    .ml61-page .architecture { padding: 14px; }
+    .ml61-page .callout { padding: 15px; }
+}
+@media screen and (max-width: 440px) {
+    .ml61-page :is(.lesson-hero, .lesson-card, .lesson-toc, .note-card) { padding: 21px 15px; }
+    .ml61-page .lesson-hero h1 { font-size: 1.85rem; }
+    .ml61-page .toc-links { grid-template-columns: minmax(0, 1fr); }
+}
+/* Container queries handle a narrow reading area independently of the viewport. */
+@container ml61-content (max-width: 680px) {
+    .ml61-page :is(.goal-list, .grid-two, .grid-three, .architecture-branches, .lesson-pagination) { grid-template-columns: minmax(0, 1fr); }
+    .ml61-page .hero-copy { flex-direction: column; }
+}
+@container ml61-content (max-width: 500px) {
+    .ml61-page :is(.side-note, .stat-grid, .reference-list, .shift-box p, .code-contract) { grid-template-columns: minmax(0, 1fr); }
+    .ml61-page .number-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    html:has(> body.ml61-page) { scroll-behavior: auto; }
+    .ml61-page *, .ml61-page *::before, .ml61-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Print every explanation and complete code block, including closed disclosures. */
+@media print {
+    html:has(> body.ml61-page), body.ml61-page { min-width: 0; background: #fff; color: #111; }
+    body.ml61-page { font-size: 10pt; }
+    .ml61-page :is(#sideNav, .skip-link, .lesson-toc, .lesson-pagination, .next-link, .lesson-footer > a) { display: none !important; }
+    .ml61-page .lesson-hero::before { display: none; }
+    .ml61-page .layout { display: block; min-width: 0; max-width: none; margin: 0; padding: 0; }
+    .ml61-page .page-content { container-type: normal; width: 100%; max-width: none; margin: 0; padding: 0; }
+    .ml61-page :is(.content-layout, .lesson-main, .side-note) { display: block; }
+    .ml61-page :is(.lesson-hero, .lesson-card, .note-card) { margin-bottom: 16px; padding: 14px; border-radius: 0; background: #fff; color: #111; box-shadow: none; break-inside: auto; }
+    .ml61-page details::details-content { display: block; content-visibility: visible; }
+    .ml61-page :is(.lesson-details, .details-body, .code-box, .qa-list details) { overflow: visible; break-inside: auto; }
+    .ml61-page .page-content .code-box pre { width: auto; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; color: #111; background: #f5f5f5; font-size: 8.5pt; }
+    .ml61-page .code-box pre > code { width: auto; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
+    .ml61-page .code-title, .ml61-page .code-box.output .code-title, .ml61-page .code-box.added .code-title { color: #111; background: #eee; border-color: #ccc; }
+    .ml61-page .table-wrap { overflow: visible; border-radius: 0; }
+    .ml61-page .table-wrap table { min-width: 0; font-size: 9pt; }
+    .ml61-page .table-wrap th { white-space: normal; }
+    .ml61-page thead { display: table-header-group; }
+    .ml61-page tr { break-inside: avoid; }
+    .ml61-page :is(h1, h2, h3, h4, .section-heading, summary) { break-after: avoid; }
+}
