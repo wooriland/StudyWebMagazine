@@ -1,266 +1,3661 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 62. Transformer 기계번역 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 62. Transformer 기계번역 | AI Machine Learning | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/62_transformer_translation.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="62"
-      data-step="0"
-      data-status="skeleton" data-part="part-7-rnn-transformer">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="ML 62. Transformer 번역. 영어·한국어 병렬 데이터, 위치 인코딩, Multi-Head Attention, FFN, Padding·Causal Mask, Tensor Shape, 학습·검증·번역 생성과 오류 진단을 정리한 AI Machine Learning 학습 매거진.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>ML 62. Transformer 번역 | AI Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <!-- 기존 공통 스타일 -->
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 7. RNN &#183; Attention &#183; Transformer · ML 62</p>
-                        <h1>ML 62. Transformer 기계번역</h1>
+        <!-- ML 62 전용 스타일 -->
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/62_transformer_translation.css">
+
+        <!-- 기존 공통 네비게이션 -->
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page ml62-page"
+        data-nav-category="ai-machine-learning" data-course="machine-learning" data-lesson="62" data-step="3"
+        data-status="complete" data-part="part-7-rnn-transformer">
+
+        <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션">
+            </nav>
+
+            <div class="page-content">
+
+                <!-- ==================================================
+             HEADER
+        =================================================== -->
+                <header class="ai-ml-hero lesson-hero">
+
+                    <div class="header-topline">
+                        <p class="series-label">
+                            AI &amp; MACHINE LEARNING · COURSE 02
+                        </p>
+                        <p class="reading-time">
+                            PART 7 · NOTEBOOK 97 · STEP 3
+                        </p>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <div class="hero-copy">
+                        <div>
+                            <p class="eyebrow">
+                                AI Machine Learning · NLP · RNN / Attention / Transformer
+                            </p>
+
+                            <h1>ML 62. Transformer 번역</h1>
+
+                            <p class="hero-subtitle">
+                                LSTM 없이 위치와 문맥을 표현하고,
+                                미래 정답을 가린 상태에서 다음 한국어 토큰 예측하기
+                            </p>
+                        </div>
+
+                        <span class="lesson-status">Step 3 학습 자료</span>
+                    </div>
+
+                    <p class="hero-summary">
+                        이번 단원은 영어 문장을 한국어로 번역하는
+                        Encoder–Decoder를 Transformer로 구현합니다.
+                        <strong>Token Embedding과 위치 인코딩</strong>으로 입력을 표현하고,
+                        <strong>Self-Attention, Cross-Attention, FFN,
+                            잔차 연결, LayerNormalization</strong>을 반복합니다.
+                        Teacher Forcing과 미래 차단 Mask를 함께 사용하며,
+                        데이터·Shape·학습·평가·생성의 관계를 원본 코드로 공부합니다.
+                    </p>
+
+                    <div class="hero-keywords" aria-label="핵심 키워드">
+                        <span>Positional Encoding</span>
+                        <span>Multi-Head Attention</span>
+                        <span>Self / Cross Attention</span>
+                        <span>FFN</span>
+                        <span>Add &amp; Norm</span>
+                        <span>Padding Mask</span>
+                        <span>Causal Mask</span>
+                        <span>Teacher Forcing</span>
+                    </div>
+
+                    <section class="learning-goals" aria-labelledby="goals-ml62">
+                        <h2 id="goals-ml62">이번 단원의 학습 목표</h2>
+
+                        <ol class="goal-list">
+                            <li>
+                                <span>01</span>
+                                <p>LSTM 기반 Seq2Seq와 Transformer의 처리 구조를 비교한다.</p>
+                            </li>
+                            <li>
+                                <span>02</span>
+                                <p>영어·한국어 데이터의 전처리, Shift, 학습·검증 분할을 설명한다.</p>
+                            </li>
+                            <li>
+                                <span>03</span>
+                                <p>사인·코사인 위치 인코딩과 Token Embedding의 결합을 이해한다.</p>
+                            </li>
+                            <li>
+                                <span>04</span>
+                                <p>Head 수, Head별 key_dim, 블록 수, FFN 차원을 구분한다.</p>
+                            </li>
+                            <li>
+                                <span>05</span>
+                                <p>세 종류의 Attention과 Padding·Causal Mask의 역할을 설명한다.</p>
+                            </li>
+                            <li>
+                                <span>06</span>
+                                <p>Encoder·Decoder·최종 Softmax의 Shape을 추적한다.</p>
+                            </li>
+                            <li>
+                                <span>07</span>
+                                <p>Loss, Accuracy, val_loss, 독립 평가와 자유 생성을 구분한다.</p>
+                            </li>
+                            <li>
+                                <span>08</span>
+                                <p>원본 주석, 실행문, 저장 출력, 추가 진단 결과를 구분한다.</p>
+                            </li>
+                        </ol>
+                    </section>
+
+                    <div class="hero-source">
+                        <strong>학습 자료 기준</strong>
+                        <p>
+                            원본:
+                            <code>97_케라스_Seq2Seq_트랜스포머_기계번역62.ipynb</code><br>
+                            통합 교안: 681~694페이지<br>
+                            총 54개 셀 · Markdown 22개 / Code 32개 · 저장 출력 11개
+                        </p>
+                    </div>
+
+                    <div class="hero-alert">
+                        <strong>저장된 실행 결과의 범위</strong>
+                        <p>
+                            학습 출력은 첫 번째 Epoch의 <code>3/29</code> 단계까지만 남아 있습니다.
+                            완료된 학습 로그, Validation 지표, 실제 번역문은 저장되어 있지 않습니다.
+                            이 페이지의 완성 상태는 학습 자료의 작성 상태이며,
+                            모델의 학습 완료를 의미하지 않습니다.
+                        </p>
+                    </div>
+
+                </header>
+
+                <!-- ==================================================
+             CONTENTS
+        =================================================== -->
+                <nav class="lesson-toc" aria-label="ML 62 학습 목차">
+                    <h2>학습 목차</h2>
+
+                    <div class="toc-links">
+                        <a href="#goal">01. 실습 목표</a>
+                        <a href="#concept">02. 핵심 개념</a>
+                        <a href="#environment">03. 실행 환경</a>
+                        <a href="#dataset">04. Dataset</a>
+                        <a href="#preprocess">05. 전처리</a>
+                        <a href="#shape">06. X / y와 Shape</a>
+                        <a href="#split">07. 데이터 분할</a>
+                        <a href="#position">08. 위치 인코딩</a>
+                        <a href="#attention">09. Attention / FFN</a>
+                        <a href="#mask">10. Mask</a>
+                        <a href="#model">11. 모델 구조·코드</a>
+                        <a href="#flow">12. 학습 흐름</a>
+                        <a href="#result">13. 저장 출력</a>
+                        <a href="#metric">14. Metric 해석</a>
+                        <a href="#evaluate">15. 평가 진단</a>
+                        <a href="#predict">16. 번역 생성</a>
+                        <a href="#mistake">17. 자주 하는 실수</a>
+                        <a href="#error">18. 오류 메시지</a>
+                        <a href="#performance">19. 성능 개선</a>
+                        <a href="#practice">20. 실무 연결</a>
+                        <a href="#interview">21. 면접 포인트</a>
+                        <a href="#references">22. 출처 안내</a>
+                    </div>
+                </nav>
+
+                <div class="content-layout">
+
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+                        <!-- ==================================================
+                     01. 실습 목표
+                =================================================== -->
+                        <section id="goal" class="lesson-card goal-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">01 · PROBLEM DEFINITION</p>
+                                <h2>실습 목표 — 번역 문제는 같고 계산 구조가 바뀐다</h2>
+                            </div>
+
+                            <p class="lead">
+                                이번 문제는 <strong>영어 입력 시퀀스 → 한국어 번역 시퀀스</strong>입니다.
+                                내부 모델을 LSTM에서 Transformer로 바꾸어도
+                                Sequence-to-Sequence라는 입력·출력 관계는 유지됩니다.
+                            </p>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <p class="mini-kicker">이전 방식</p>
+                                    <h3>LSTM 기반 Attention Seq2Seq</h3>
+                                    <div class="mini-flow">
+                                        <span>입력 토큰</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Encoder LSTM</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>전체 출력 + 마지막 h, c</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <strong>Attention Decoder LSTM</strong>
+                                    </div>
+                                </article>
+
+                                <article class="mini-card accent">
+                                    <p class="mini-kicker">이번 방식</p>
+                                    <h3>Transformer Encoder–Decoder</h3>
+                                    <div class="mini-flow">
+                                        <span>입력 토큰 + 위치 정보</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Transformer Encoder</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>최종 시퀀스 표현</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <strong>Transformer Decoder</strong>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="concept-highlight">
+                                LSTM의 마지막 h, c를 전달하는 대신,
+                                위치 정보가 포함된 토큰 벡터를 여러 Transformer 블록으로 처리합니다.
+                            </div>
+
+                            <h3>이번에 답해야 하는 핵심 질문</h3>
+                            <p>
+                                토큰의 위치는 어떻게 표현할까?
+                                Encoder와 Decoder는 각각 무엇을 Attention할까?
+                                미래 한국어 정답을 어떻게 가릴까?
+                                최종 확률을 어떻게 번역문으로 바꿀까?
+                            </p>
+
+                            <p>
+                                원본은 사전 학습된 번역 모델을 불러오는 코드가 아닙니다.
+                                Embedding과 Transformer 블록을 생성하고,
+                                준비한 말뭉치로 직접 학습하도록 작성되어 있습니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">원본</span>
+                                Cell 014, 045, 047 · PDF 683, 691~693페이지
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     02. 핵심 개념
+                =================================================== -->
+                        <section id="concept" class="lesson-card concept-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">02 · CORE CONCEPTS</p>
+                                <h2>핵심 개념 — Attention 중심의 시퀀스 처리</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Transformer 핵심 개념 표">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구성 요소</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Token Embedding</th>
+                                            <td>정수 토큰을 학습 가능한 실수 벡터로 변환</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Positional Encoding</th>
+                                            <td>토큰의 위치 정보를 벡터에 추가</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Self-Attention</th>
+                                            <td>같은 시퀀스 안의 토큰 관계 계산</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Cross-Attention</th>
+                                            <td>Decoder가 Encoder의 원문 정보를 참고</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Multi-Head Attention</th>
+                                            <td>여러 Head의 투영 공간에서 Attention 수행</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">FFN</th>
+                                            <td>각 토큰의 Feature를 비선형 변환</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Residual Connection</th>
+                                            <td>기존 표현과 새 계산 결과를 원소별로 더함</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">LayerNormalization</th>
+                                            <td>원본에서는 각 토큰의 마지막 Feature 축 정규화</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Padding Mask</th>
+                                            <td>의미 없는 PAD 위치의 참조 제어</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Causal Mask</th>
+                                            <td>Decoder가 미래 위치의 정답을 미리 보지 못하게 제어</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>병렬 학습과 순차 생성은 다르다</h3>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>학습</h3>
+                                    <p>
+                                        이전 정답을 담은 Decoder 입력 전체가 준비되어 있습니다.
+                                        Mask를 적용하여 여러 위치의 출력을 함께 계산합니다.
+                                    </p>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>생성</h3>
+                                    <p>
+                                        아직 다음 토큰을 모릅니다.
+                                        직전에 생성한 토큰을 입력에 추가하며
+                                        다음 토큰을 순서대로 선택합니다.
+                                    </p>
+                                </article>
+                            </div>
+
+                            <div class="formula">
+                                <span>입력·출력 관계</span>
+                                <code>P(한국어 문장 | 영어 문장)</code>
+                                <small>
+                                    학습의 위치별 계산을 병렬화할 수 있다는 것과
+                                    번역문 전체를 한 번에 선택한다는 것은 다릅니다.
+                                </small>
+                            </div>
+
+                            <h3>학습 개념을 섞지 않기</h3>
+
+                            <dl class="definition-list">
+                                <dt>Teacher Forcing</dt>
+                                <dd>이전 정답 토큰을 현재 Decoder 입력으로 제공합니다.</dd>
+
+                                <dt>Causal Mask</dt>
+                                <dd>현재 위치에서 미래 입력 위치를 보지 못하게 제한합니다.</dd>
+
+                                <dt>Greedy Decoding</dt>
+                                <dd>생성 시 매 위치에서 가장 높은 확률의 토큰 하나를 고릅니다.</dd>
+
+                                <dt>Training / Eager</dt>
+                                <dd>학습·추론 동작과 Tensor 실행 방식은 별개의 개념입니다.</dd>
+                            </dl>
+
+                            <p class="source">
+                                <span class="badge analysis">Step 1·2 보충 해설</span>
+                                <a href="#ref-training">Keras 실행·학습 API</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     03. 실행 환경
+                =================================================== -->
+                        <section id="environment" class="lesson-card environment-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">03 · DEVELOPMENT ENVIRONMENT</p>
+                                <h2>실행 환경과 Notebook 읽는 순서</h2>
+                            </div>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>주요 Import</strong>
+                                    <span class="badge original">Cell 007</span>
+                                </div>
+                                <pre tabindex="0"><code>import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+import numpy as np
+import pandas as pd
+import re
+
+from util.word_dictionary import WordTokenizer
+from urllib.request import urlretrieve</code></pre>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="실습 도구와 의존성">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">도구·파일</th>
+                                            <th scope="col">역할·주의사항</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Python / Jupyter</th>
+                                            <td>셀 실행 순서와 Kernel 상태를 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">TensorFlow / Keras</th>
+                                            <td>모델, Mask, 학습 API와 버전 호환 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">NumPy</th>
+                                            <td>위치 인코딩, 배열, 추론의 argmax</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">pandas</th>
+                                            <td>영어·한국어 TSV 로딩</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">scikit-learn</th>
+                                            <td>학습·검증 배열 분할</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">WordTokenizer</th>
+                                            <td>외부 사용자 정의 모듈. 내부 전체 구현은 Notebook에 없음</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">kor.txt</th>
+                                            <td>병렬 말뭉치</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">seqtoseq 폴더</th>
+                                            <td>가중치 저장 위치</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="code-box neutral">
+                                <div class="code-title">
+                                    <strong>상대 경로를 이해하기 위한 폴더 구조</strong>
+                                    <span class="badge analysis">설명용</span>
+                                </div>
+                                <pre tabindex="0"><code>실습 폴더/
+├── 97_케라스_Seq2Seq_트랜스포머_기계번역62.ipynb
+├── kor.txt
+├── util/
+│   └── word_dictionary.py
+└── seqtoseq/
+    └── seq2seq-translation-transformer-checkpoint.weights.h5</code></pre>
+                            </div>
+
+                            <p>
+                                체크포인트는 학습 중 생성하도록 설정된 파일입니다.
+                                처음부터 학습할 때 기존 체크포인트가 반드시 필요한 것은 아닙니다.
+                                반대로 현재 저장 로그만으로 이 파일이 실제 생성되었다고 확인할 수도 없습니다.
+                            </p>
+
+                            <details class="lesson-details" open>
+                                <summary>보충 진단 · 환경과 외부 파일 확인</summary>
+                                <div class="details-body">
+                                    <div class="code-box added">
+                                        <pre tabindex="0"><code>import sys
+from pathlib import Path
+import tensorflow as tf
+
+print("Python:", sys.version)
+print("TensorFlow:", tf.__version__)
+print("현재 작업 폴더:", Path.cwd())
+
+print("kor.txt:", Path("kor.txt").is_file())
+print(
+    "WordTokenizer 모듈:",
+    Path("util/word_dictionary.py").is_file()
+)</code></pre>
+                                    </div>
+                                    <p>
+                                        원본에 없는 환경 진단 예제입니다.
+                                        전처리 모듈의 형태소 분석기, OOV 정책,
+                                        Padding·Truncation 규칙은 외부 구현을 확인해야 합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <div class="callout">
+                                <strong>레거시 전처리 API</strong>
+                                <p>
+                                    원본의 keras.preprocessing.text.Tokenizer는
+                                    TensorFlow 공식 문서에서 Deprecated로 안내됩니다.
+                                    원본을 이해하는 작업과 새로운 API로 이식하는 작업을 구분합니다.
+                                    <a href="#ref-tokenizer">공식 문서</a>
+                                </p>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Notebook 셀 실행 지도">
+                                <table>
+                                    <caption>원본 Notebook의 실행 지도</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">셀</th>
+                                            <th scope="col">단계</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>001~009</td>
+                                            <td>개념, 환경, 말뭉치 준비</td>
+                                        </tr>
+                                        <tr>
+                                            <td>011~014</td>
+                                            <td>데이터 로딩·컬럼·샘플 선택</td>
+                                        </tr>
+                                        <tr>
+                                            <td>016~031</td>
+                                            <td>전처리·사전·정수 인코딩</td>
+                                        </tr>
+                                        <tr>
+                                            <td>033~035</td>
+                                            <td>Train/Validation 분할·Dataset</td>
+                                        </tr>
+                                        <tr>
+                                            <td>037~039</td>
+                                            <td>위치 인코딩 함수·결합 계층</td>
+                                        </tr>
+                                        <tr>
+                                            <td>041~045</td>
+                                            <td>Encoder·Decoder·전체 모델·Mask</td>
+                                        </tr>
+                                        <tr>
+                                            <td>047~050</td>
+                                            <td>모델 생성·Compile·Callback·Fit</td>
+                                        </tr>
+                                        <tr>
+                                            <td>051~053</td>
+                                            <td>문자열 복원·전처리·번역 생성 코드</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="source">
+                                <span class="badge original">원본</span>
+                                Cell 004~007 및 전체 셀 순서
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     04. Dataset
+                =================================================== -->
+                        <section id="dataset" class="lesson-card dataset-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">04 · PARALLEL CORPUS</p>
+                                <h2>Dataset — kor.txt 영어·한국어 병렬 말뭉치</h2>
+                            </div>
+
+                            <div class="stat-grid">
+                                <div class="stat"><span>원본 저장 문장 쌍</span><strong>3,640</strong></div>
+                                <div class="stat"><span>실습에서 선택</span><strong>1,000</strong></div>
+                                <div class="stat"><span>작업</span><strong>EN → KO</strong></div>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="영어 한국어 원본 데이터">
+                                <table>
+                                    <caption>원본에 저장된 첫 다섯 문장 쌍</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">eng</th>
+                                            <th scope="col">kor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Go.</td>
+                                            <td>가.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Hi.</td>
+                                            <td>안녕.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Run!</td>
+                                            <td>뛰어!</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Run.</td>
+                                            <td>뛰어.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Who?</td>
+                                            <td>누구?</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                이 표의 한국어는 Dataset의 정답입니다.
+                                이번 Transformer가 생성한 번역 결과가 아닙니다.
+                                저장된 DataFrame 정보에서는 eng, kor, author 세 컬럼 모두
+                                3,640개의 Non-Null 값을 가지고 있습니다.
+                            </p>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>데이터 로딩과 X/y 선택</strong>
+                                    <span class="badge original">Cell 011~014 실행문 발췌</span>
+                                </div>
+                                <pre tabindex="0"><code>corpus = pd.read_table(
+    './kor.txt',
+    names=['eng', 'kor', 'author'],
+    sep='\t'
+)
+
+print(corpus.head())
+print(corpus.info())
+
+corpus = corpus.drop('author', axis=1)
+corpus = corpus[0:1000]
+
+X_train = corpus['eng']
+y_train = corpus['kor']</code></pre>
+                            </div>
+
+                            <dl class="code-contract">
+                                <dt>무엇을 하는가?</dt>
+                                <dd>TSV를 읽고 번역 입력·정답 컬럼을 선택합니다.</dd>
+                                <dt>왜 필요한가?</dt>
+                                <dd>같은 행의 영어와 한국어를 학습 쌍으로 유지합니다.</dd>
+                                <dt>입력 → 출력</dt>
+                                <dd>(3640,3) → (1000,2), X/y 각각 (1000,)</dd>
+                                <dt>실행 후 변화</dt>
+                                <dd>문자열 데이터가 준비됩니다. 가중치 학습은 아직 아닙니다.</dd>
+                            </dl>
+
+                            <div class="callout important">
+                                <strong>무작위 1,000개가 아니라 앞의 1,000개입니다.</strong>
+                                <p>
+                                    원본 주석은 실행 시간과 RAM 부담을 이유로 듭니다.
+                                    선택한 데이터가 전체 말뭉치의 문장 길이와 난이도를
+                                    고르게 대표한다고 가정하지 않습니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                print(corpus.info()) 뒤에 나타나는 None은
+                                info()의 반환값을 바깥 print()가 출력한 것입니다.
+                                데이터 오류를 뜻하지 않습니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">저장 출력</span>
+                                Cell 011~014 · PDF 682~683페이지
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     05. 전처리
+                =================================================== -->
+                        <section id="preprocess" class="lesson-card preprocess-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">05 · PREPROCESSING</p>
+                                <h2>전처리 — 번역문을 한 칸 이동한 학습 데이터로 만들기</h2>
+                            </div>
+
+                            <ol class="step-flow">
+                                <li><strong>한국어 응답 정제</strong><span>외부 WordTokenizer의 한국어 전처리 사용</span></li>
+                                <li><strong>SOS / EOS 추가</strong><span>시작과 종료를 모델이 구분하도록 표시</span></li>
+                                <li><strong>Decoder Input / Target 분리</strong><span>한 시점 이동한 관계 생성</span></li>
+                                <li><strong>영어 원문 정제</strong><span>re.sub()로 구두점 등을 제거</span></li>
+                                <li><strong>공통 사전 구축</strong><span>영어·Decoder 입력·Target을 합쳐 사전 생성</span></li>
+                                <li><strong>정수 인코딩과 Padding</strong><span>세 종류의 (1000,10) 배열 준비</span></li>
+                            </ol>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>전처리·사전·정수 인코딩</strong>
+                                    <span class="badge original">Cell 016~031 실행문 발췌</span>
+                                </div>
+                                <pre tabindex="0"><code>tokenizer = keras.preprocessing.text.Tokenizer(
+    filters='',
+    lower=False
+)
+word_tokenizer = WordTokenizer(tokenizer)
+
+sentences = word_tokenizer.preprocess_korean(
+    np.array(y_train)
+)
+
+sentences = word_tokenizer.make_decoder_inout_for_teacher_forcing(
+    sentences
+)
+
+decoder_in = [
+    ' '.join(x.split()[:-1])
+    for x in sentences
+]
+
+decoder_out = [
+    ' '.join(x.split()[1:])
+    for x in sentences
+]
+
+encoder_in = [
+    re.sub(r'[^\w\s]', '', sentence)
+    for sentence in X_train
+]
+
+all_sentences = encoder_in + decoder_in + decoder_out
+word_tokenizer.make_word_dictionary(all_sentences)
+
+voca_size = word_tokenizer.voca_size
+time_steps = word_tokenizer.time_steps
+
+encoder_in_pad = word_tokenizer.make_integer_encoding(encoder_in)
+decoder_in_pad = word_tokenizer.make_integer_encoding(decoder_in)
+decoder_out_pad = word_tokenizer.make_integer_encoding(decoder_out)</code></pre>
+                            </div>
+
+                            <dl class="code-contract">
+                                <dt>무엇·왜?</dt>
+                                <dd>Embedding과 Teacher Forcing에 필요한 숫자 시퀀스를 준비합니다.</dd>
+                                <dt>입력</dt>
+                                <dd>영어·한국어 문자열 1,000개씩</dd>
+                                <dt>출력</dt>
+                                <dd>공통 사전과 세 종류의 정수 배열</dd>
+                                <dt>실행 후 변화</dt>
+                                <dd>토큰·ID 대응 관계가 생기고 문장이 정수 배열로 바뀝니다.</dd>
+                            </dl>
+
+                            <h3>원본 첫 문장의 실제 결과</h3>
+
+                            <div class="shift-box">
+                                <p><strong>Encoder Input</strong><code>Go</code></p>
+                                <p><strong>Decoder Input</strong><code>&lt;SOS&gt; 가</code></p>
+                                <p><strong>Decoder Target</strong><code>가 &lt;EOS&gt;</code></p>
+                            </div>
+
+                            <h3>Shift와 미래 차단을 함께 이해하기</h3>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="설명용 Teacher Forcing 예제">
+                                <table>
+                                    <caption>설명용 문장 · 실제 번역 출력이 아님</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">시점</th>
+                                            <th scope="col">입력</th>
+                                            <th scope="col">맞힐 정답</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>0</td>
+                                            <td>&lt;SOS&gt;</td>
+                                            <td>나는</td>
+                                        </tr>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>나는</td>
+                                            <td>학생이다</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>학생이다</td>
+                                            <td>&lt;EOS&gt;</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                시점 0에서 입력의 위치 1을 볼 수 있으면
+                                이미 현재 정답인 “나는”을 보게 됩니다.
+                                Shift된 입력을 사용하더라도 Causal Mask가 필요한 이유입니다.
+                            </p>
+
+                            <dl class="definition-list">
+                                <dt>filters=''</dt>
+                                <dd>원본은 SOS/EOS의 꺾쇠괄호를 보존하기 위해 빈 필터를 사용합니다.</dd>
+                                <dt>lower=False</dt>
+                                <dd>대소문자를 일괄 소문자화하지 않습니다.</dd>
+                                <dt>3,000개 문자열</dt>
+                                <dd>1,000개 번역 쌍에서 세 종류의 문자열을 만든 수입니다. 독립 번역 쌍이 3,000개가 된 것이 아닙니다.</dd>
+                                <dt>Vocabulary 1,947</dt>
+                                <dd>한국어만의 어휘 수가 아니라 영어·한국어를 함께 사용한 원본의 어휘 공간입니다.</dd>
+                                <dt>SOS / EOS / PAD</dt>
+                                <dd>시작 입력, 종료 정답, 길이 맞춤 값은 서로 다른 역할입니다.</dd>
+                            </dl>
+
+                            <p class="source">
+                                <span class="badge original">원본</span>
+                                Cell 016~031 · PDF 683~685페이지
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     06. Shape
+                =================================================== -->
+                        <section id="shape" class="lesson-card shape-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">06 · X / y / TENSOR SHAPE</p>
+                                <h2>X / y와 전체 Shape 흐름</h2>
+                            </div>
+
+                            <div class="grid-three">
+                                <article class="mini-card">
+                                    <h3>Encoder Input</h3>
+                                    <code>encoder_in_pad</code>
+                                    <p><strong>(1000,10)</strong><br>영어 입력 Token ID</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>Decoder Input</h3>
+                                    <code>decoder_in_pad</code>
+                                    <p><strong>(1000,10)</strong><br>SOS + 이전 정답</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>Decoder Target</h3>
+                                    <code>decoder_out_pad</code>
+                                    <p><strong>(1000,10)</strong><br>다음 정답 + EOS</p>
+                                </article>
+                            </div>
+
+                            <div class="number-strip">
+                                <div><strong>10</strong><span>시퀀스 길이</span></div>
+                                <div><strong>512</strong><span>기본 표현 차원</span></div>
+                                <div><strong>2,048</strong><span>FFN 중간 차원</span></div>
+                                <div><strong>1,947</strong><span>어휘 공간</span></div>
+                            </div>
+
+                            <p>
+                                B는 배치 크기, S는 영어 길이, T는 한국어 Decoder 길이입니다.
+                                원본은 S=T=10으로 준비하지만,
+                                Encoder–Decoder에서 두 언어의 길이가 같아야 하는 것은 아닙니다.
+                                이 원본의 위치 인코딩 구현은 고정 길이 입력을 전제로 읽습니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Transformer 전체 Shape">
+                                <table>
+                                    <caption>저장 배열과 계층 정의로 계산한 중간 Shape</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">단계</th>
+                                            <th scope="col">Shape</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">전체 정수 입력</th>
+                                            <td>(1000,10)</td>
+                                            <td>저장 출력으로 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">학습 입력</th>
+                                            <td>(900,10)</td>
+                                            <td>10% 검증 분할에서 계산</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">검증 입력</th>
+                                            <td>(100,10)</td>
+                                            <td>10% 검증 분할에서 계산</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">배치 입력</th>
+                                            <td>(B,10)</td>
+                                            <td>정수 Token ID</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Token Embedding</th>
+                                            <td>(B,10,512)</td>
+                                            <td>실수 벡터</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">위치 인코딩</th>
+                                            <td>(1,10,512)</td>
+                                            <td>배치 축으로 Broadcasting</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Encoder 각 블록</th>
+                                            <td>(B,10,512)</td>
+                                            <td>6개 블록에서 기본 차원 유지</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Decoder 각 블록</th>
+                                            <td>(B,10,512)</td>
+                                            <td>6개 블록에서 기본 차원 유지</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">FFN 중간</th>
+                                            <td>(B,10,2048)</td>
+                                            <td>토큰별 Feature 확장</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">최종 Softmax</th>
+                                            <td>(B,10,1947)</td>
+                                            <td>위치별 다음 토큰 확률</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Target</th>
+                                            <td>(B,10)</td>
+                                            <td>위치별 정답 ID</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="callout important">
+                                <strong>원본 주석의 길이 설명과 실제 축 의미를 구분합니다.</strong>
+                                <p>
+                                    (1000,10)의 10은 토큰 위치의 수입니다.
+                                    “한 단어를 10개의 실수로 구성한다”는 원본 주석을
+                                    실제 정수 배열의 의미로 사용하지 않습니다.
+                                    이번 Embedding 차원은 512입니다.
+                                </p>
+                            </div>
+
+                            <h3>Attention Weight를 꺼낸다고 가정할 때</h3>
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Attention Weight의 개념 Shape">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Attention</th>
+                                            <th scope="col">Weight Shape</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Encoder Self</td>
+                                            <td>(B,8,S,S)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Decoder Self</td>
+                                            <td>(B,8,T,T)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Decoder Cross</td>
+                                            <td>(B,8,T,S)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p class="caption">
+                                Head 축을 포함한 개념적 Shape입니다.
+                                원본은 이 Weight를 별도로 출력하거나 저장하지 않습니다.
+                                최종 어휘 확률 (B,T,1947)과 혼동하지 않습니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">저장 배열</span> Cell 029, 031
+                                <span class="badge analysis">Shape 계산</span> Cell 039~047
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     07. 분할
+                =================================================== -->
+                        <section id="split" class="lesson-card split-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">07 · TRAIN / VALIDATION / TEST</p>
+                                <h2>데이터 분할 — 이번에는 Validation이 있다</h2>
+                            </div>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>세 배열을 같은 샘플 기준으로 분할</strong>
+                                    <span class="badge original">Cell 033</span>
+                                </div>
+                                <pre tabindex="0"><code>from sklearn.model_selection import train_test_split
+
+enc_train, enc_val, dec_in_train, dec_in_val, dec_out_train, dec_out_val = train_test_split(
+    encoder_in_pad,
+    decoder_in_pad,
+    decoder_out_pad,
+    test_size=0.1,
+    random_state=42
+)</code></pre>
+                            </div>
+
+                            <dl class="code-contract">
+                                <dt>무엇을 하는가?</dt>
+                                <dd>영어·Decoder 입력·Target을 같은 행 기준으로 나눕니다.</dd>
+                                <dt>왜 필요한가?</dt>
+                                <dd>학습에 사용하지 않을 검증 샘플로 진행 중 성능을 확인하기 위해서입니다.</dd>
+                                <dt>입력 → 출력</dt>
+                                <dd>각 (1000,10) → Train 각 (900,10), Validation 각 (100,10)</dd>
+                                <dt>실행 후 변화</dt>
+                                <dd>학습·검증 배열이 나뉩니다. 별도 Test는 만들지 않습니다.</dd>
+                            </dl>
+
+                            <div class="stat-grid">
+                                <div class="stat"><span>Train</span><strong>900쌍</strong></div>
+                                <div class="stat"><span>Validation</span><strong>100쌍</strong></div>
+                                <div class="stat muted"><span>독립 Test</span><strong>없음</strong></div>
+                            </div>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>원본 순서</h3>
+                                    <p>전체 1,000개로 사전 구축 → 정수 인코딩 → Train/Validation 분할</p>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>보충 개선 방향</h3>
+                                    <p>원문 분할 → Train만으로 사전 구축 → 같은 사전으로 Validation/Test 변환</p>
+                                </article>
+                            </div>
+
+                            <div class="callout important">
+                                <strong>Validation이 있다고 전처리 누수까지 해결된 것은 아닙니다.</strong>
+                                <p>
+                                    원본에서는 검증에만 들어갈 어휘의 존재나 빈도 정보가
+                                    사전 구축에 반영될 수 있습니다.
+                                    검증 데이터로 모델 가중치를 직접 학습한 것과는 다른 문제지만,
+                                    평가 정보가 전처리에 들어가는 점을 검토해야 합니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                원본에는 “I do not fear death.”처럼 같은 영어 원문에
+                                다른 한국어 번역이 대응하는 행이 있습니다.
+                                행 단위 분할에서는 같은 원문이 두 분할에 나타날 가능성도 확인합니다.
+                                현재 자료로 해당 행들의 실제 분할 위치까지 확인한 것은 아닙니다.
+                            </p>
+
+                            <p>
+                                개선 순서로 다시 실험할 때는 사전과 모델도 그 분할에 맞게 다시 준비합니다.
+                                전체 데이터로 이미 학습한 모델을 두고 나중에 행만 나누어도
+                                독립 Test가 만들어지는 것은 아닙니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">원본</span> Cell 013, 027~033
+                                <span class="badge analysis">보충 분석</span>
+                                <a href="#ref-leakage">데이터 누수 관련 공식 지침</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     08. 위치 인코딩
+                =================================================== -->
+                        <section id="position" class="lesson-card position-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">08 · POSITIONAL ENCODING</p>
+                                <h2>위치 인코딩 — 같은 단어도 위치를 구분하기</h2>
+                            </div>
+
+                            <p>
+                                원본은 사인·코사인 함수를 사용한 고정 위치 인코딩을 만듭니다.
+                                Token Embedding은 학습되지만,
+                                위치 정보는 별도의 학습 가능한 위치 테이블이 아니라
+                                함수로 계산한 Tensor입니다.
+                            </p>
+
+                            <div class="formula">
+                                <span>위치 pos와 짝·홀수 Feature</span>
+                                <code>PE(pos, 2i) = sin(pos / 10000^(2i / D))</code>
+                                <code>PE(pos, 2i+1) = cos(pos / 10000^(2i / D))</code>
+                                <small>원본의 D는 512입니다. 위치 0에서는 [0,1,0,1,...] 패턴이 됩니다.</small>
+                            </div>
+
+                            <details class="lesson-details" open>
+                                <summary>원본 코드 · get_position_encoding()</summary>
+                                <div class="details-body">
+                                    <div class="code-box">
+                                        <div class="code-title">
+                                            <strong>사인·코사인 위치 Tensor</strong>
+                                            <span class="badge original">Cell 037 실행문 발췌</span>
+                                        </div>
+                                        <pre tabindex="0"><code>def get_position_encoding(time_steps, emb_dim):
+    depth = emb_dim / 2
+
+    positions = np.arange(time_steps)[:, np.newaxis]
+    depths = np.arange(depth)[np.newaxis, :]
+
+    angle_rates = 1 / (10000**(2 * depths / emb_dim))
+    angle_rads = positions * angle_rates
+
+    pos_encoding = np.zeros((time_steps, emb_dim))
+
+    pos_encoding[:, 0::2] = np.sin(angle_rads)
+    pos_encoding[:, 1::2] = np.cos(angle_rads)
+
+    return tf.cast(
+        pos_encoding[np.newaxis, ...],
+        dtype=tf.float32
+    )</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>무엇·왜?</dt>
+                                        <dd>순환 계산 없이 토큰 위치를 표현할 벡터를 계산합니다.</dd>
+                                        <dt>입력</dt>
+                                        <dd>time_steps=10, emb_dim=512라는 설정값</dd>
+                                        <dt>출력</dt>
+                                        <dd>(1,10,512) float32 Tensor</dd>
+                                        <dt>실행 후 변화</dt>
+                                        <dd>학습 결과가 아닌 고정 위치 정보가 생성됩니다.</dd>
+                                    </dl>
+
+                                    <div class="shape-path">
+                                        <span>positions (10,1)</span>
+                                        <b aria-hidden="true">×</b>
+                                        <span>angle_rates (1,256)</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>angle_rads (10,256)</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <strong>sin/cos 배치 → (1,10,512)</strong>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <details class="lesson-details" open>
+                                <summary>원본 코드 · PositionalEmbedding</summary>
+                                <div class="details-body">
+                                    <div class="code-box">
+                                        <div class="code-title">
+                                            <strong>Token Embedding + 위치 정보</strong>
+                                            <span class="badge original">Cell 039 실행문 발췌</span>
+                                        </div>
+                                        <pre tabindex="0"><code>class PositionalEmbedding(layers.Layer):
+
+    def __init__(self, time_steps, input_dim, output_dim, **kwargs):
+        super().__init__(**kwargs)
+
+        self.supports_masking = True
+
+        self.token_embeddings = layers.Embedding(
+            input_dim=input_dim,
+            output_dim=output_dim,
+            mask_zero=True
+        )
+
+        self.position_encoding = get_position_encoding(
+            time_steps,
+            output_dim
+        )
+
+        self.time_steps = time_steps
+        self.emd_dim = output_dim
+
+    def call(self, inputs):
+        inputs = self.token_embeddings(inputs)
+
+        inputs *= tf.math.sqrt(
+            tf.cast(self.emd_dim, tf.float32)
+        )
+
+        inputs = inputs + self.position_encoding[:, :self.time_steps, :]
+
+        return inputs
+
+    def compute_mask(self, *args, **kwargs):
+        return self.token_embeddings.compute_mask(*args, **kwargs)</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>무엇·왜?</dt>
+                                        <dd>토큰 표현과 위치 정보를 합쳐 Transformer 입력을 준비합니다.</dd>
+                                        <dt>입력 → 출력</dt>
+                                        <dd>(B,10) 정수 ID → (B,10,512) 실수 표현</dd>
+                                        <dt>실행 후 변화</dt>
+                                        <dd>위치가 포함된 입력과 별도의 PAD Mask 정보가 계산됩니다.</dd>
+                                    </dl>
+                                </div>
+                            </details>
+
+                            <h3>곱하는 스케일과 나누는 스케일</h3>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>Embedding 단계</h3>
+                                    <code>Embedding × √512</code>
+                                    <p>위치 정보를 더하기 전에 토큰 벡터의 크기를 조정합니다.</p>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>Attention 단계</h3>
+                                    <code>QKᵀ / √d_k</code>
+                                    <p>Query·Key 내적 Score의 크기를 조정합니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="callout important">
+                                <strong>원본의 고정 길이와 dtype 조건</strong>
+                                <p>
+                                    위치 Tensor는 실제 입력 길이가 아니라 self.time_steps까지 Slice합니다.
+                                    원본은 길이 10 입력을 전제로 읽어야 합니다.
+                                    임베딩 차원을 홀수로 바꾸면 sin/cos Slice 크기도 점검해야 합니다.
+                                    혼합 정밀도로 확장하면 고정 float32 위치 Tensor와 계산 dtype도 확인합니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                원본 주석에 “크기가 커지는 것을 방지”한다는 표현이 있지만
+                                실행문은 제곱근을 곱합니다.
+                                또한 mask_zero=True는 PAD 표현이 반드시 전부 0이 된다는 뜻이 아닙니다.
+                                벡터 값과 Mask는 별도 정보입니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">원본</span> Cell 037~039 · PDF 686~687페이지
+                                <span class="badge analysis">보충</span>
+                                <a href="#ref-embedding">Embedding과 Mask</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     09. Attention / FFN
+                =================================================== -->
+                        <section id="attention" class="lesson-card attention-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">09 · ATTENTION / FFN / ADD &amp; NORM</p>
+                                <h2>Multi-Head Attention과 블록 내부 계산</h2>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="세 종류의 Attention">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">위치</th>
+                                            <th scope="col">Query 입력 출처</th>
+                                            <th scope="col">Key / Value 입력 출처</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Encoder Self</th>
+                                            <td>영어 표현</td>
+                                            <td>같은 영어 표현</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Decoder Self</th>
+                                            <td>한국어 입력 표현</td>
+                                            <td>같은 한국어 입력 표현</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Decoder Cross</th>
+                                            <td>Decoder 중간 표현</td>
+                                            <td>Encoder 최종 출력</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                Self-Attention에 같은 Tensor를 전달해도,
+                                내부에서는 Query·Key·Value를 각각 투영합니다.
+                                입력 출처가 같다는 것과 투영 결과의 값이 모두 같다는 것은 다릅니다.
+                            </p>
+
+                            <div class="formula">
+                                <span>Head 하나의 계산을 설명하는 보충 수식</span>
+                                <code>Attention(Q,K,V) = softmax(QKᵀ / √d_k + M) V</code>
+                                <small>
+                                    M은 금지 위치를 제외하는 효과의 수식 표현입니다.
+                                    원본은 이 덧셈을 직접 구현하지 않고 Boolean attention_mask를 전달합니다.
+                                </small>
+                            </div>
+
+                            <h3>원본에서 가장 중요한 설정: key_dim=512</h3>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>원본의 Attention 생성 방식</strong>
+                                    <span class="badge original">Cell 041, 043</span>
+                                </div>
+                                <pre tabindex="0"><code>layers.MultiHeadAttention(
+    num_heads=num_heads,
+    key_dim=embed_dim
+)</code></pre>
+                            </div>
+
+                            <div class="head-path">
+                                <div><strong>입력</strong><span>512차원</span></div>
+                                <b aria-hidden="true">→</b>
+                                <div><strong>원본 설정</strong><span>8 Heads × Head별 512</span></div>
+                                <b aria-hidden="true">→</b>
+                                <div><strong>내부 연결</strong><span>4,096차원</span></div>
+                                <b aria-hidden="true">→</b>
+                                <div><strong>출력 투영</strong><span>512차원</span></div>
+                            </div>
+
+                            <div class="callout important">
+                                <strong>512 ÷ 8 = 64가 자동으로 적용되지 않습니다.</strong>
+                                <p>
+                                    Keras의 key_dim은 Head 하나의 Query·Key 차원입니다.
+                                    원본은 key_dim=512를 전달합니다.
+                                    별도로 64를 지정하는 설계는 원본과 다른 모델이며
+                                    파라미터 Shape과 가중치 호환성도 달라집니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                output_shape를 별도 지정하지 않았기 때문에
+                                Keras MultiHeadAttention은 Query 입력의 마지막 차원으로 다시 투영합니다.
+                                따라서 Attention 출력과 잔차 입력은 모두 512차원입니다.
+                                원본 설정이 API상 불가능하다는 뜻이 아니라,
+                                실제 Head 차원을 정확하게 읽어야 한다는 뜻입니다.
+                                <a href="#ref-mha">공식 MultiHeadAttention 설명</a>
+                            </p>
+
+                            <h3>Head 수와 블록 수는 다르다</h3>
+
+                            <div class="grid-three">
+                                <article class="mini-card">
+                                    <h3>8 Heads</h3>
+                                    <p>Attention 연산 안의 Head 수</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>6 Layers</h3>
+                                    <p>Encoder와 Decoder에 각각 쌓는 블록 수</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>2,048 Units</h3>
+                                    <p>FFN 중간 Dense의 차원</p>
+                                </article>
+                            </div>
+
+                            <h3>FFN은 시간축이 아니라 Feature를 변환한다</h3>
+
+                            <div class="formula">
+                                <code>(B,T,512) → Dense(2048, relu) → (B,T,2048)</code>
+                                <code>(B,T,2048) → Dense(512) → (B,T,512)</code>
+                            </div>
+
+                            <p>
+                                문장을 Flatten하지 않습니다.
+                                각 토큰 위치에 같은 Dense 변환을 적용하며,
+                                시간축 T는 유지됩니다.
+                            </p>
+
+                            <h3>Add &amp; Norm</h3>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>원소별 Add</h3>
+                                    <code>(B,T,512) + (B,T,512)</code>
+                                    <p>결과도 (B,T,512)입니다. Concat이 아닙니다.</p>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>LayerNormalization</h3>
+                                    <p>원본 기본 설정에서는 토큰별 마지막 Feature 축을 정규화합니다.</p>
+                                    <p>배치 통계를 사용하는 BatchNormalization과 구분합니다.</p>
+                                </article>
+                            </div>
+
+                            <p>
+                                원본은 Add 후 Norm을 수행합니다.
+                                Encoder에는 두 번, Decoder에는 세 번의 Add &amp; Norm이 있습니다.
+                                <a href="#ref-layernorm">LayerNormalization 공식 문서</a>
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">원본</span> Cell 041~043
+                                <span class="badge analysis">보충 Shape 해석</span> MHA API 기준
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     10. Mask
+                =================================================== -->
+                        <section id="mask" class="lesson-card mask-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">10 · PADDING / CAUSAL MASK</p>
+                                <h2>Mask — 어떤 위치를 볼 수 있는가?</h2>
+                            </div>
+
+                            <p>
+                                이번 원본에는 mask_zero=True와 명시적인 Attention Mask가 있습니다.
+                                이전 단원의 “Attention Mask가 없다”는 설명을 그대로 적용하지 않습니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="마스크 목적과 Shape">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Mask</th>
+                                            <th scope="col">목적</th>
+                                            <th scope="col">Shape</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Encoder Padding</th>
+                                            <td>영어 PAD 식별</td>
+                                            <td>(B,S)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Encoder Attention용</th>
+                                            <td>Query 축으로 Broadcasting</td>
+                                            <td>(B,1,S)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Decoder Padding</th>
+                                            <td>한국어 PAD 식별</td>
+                                            <td>(B,T)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Look-Ahead</th>
+                                            <td>미래 위치 제한</td>
+                                            <td>(T,T)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Decoder Combined</th>
+                                            <td>미래와 PAD Key 조건 결합</td>
+                                            <td>(B,T,T)</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Cross-Attention</th>
+                                            <td>영어 PAD Key 제외</td>
+                                            <td>(B,1,S)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="callout">
+                                <strong>Keras Boolean Mask의 방향</strong>
+                                <p>
+                                    True는 참조 허용, False는 참조 금지입니다.
+                                    True가 “가린 위치”라고 해석하면 반대로 적용됩니다.
+                                    4차원 Mask를 항상 직접 만들어야 하는 것도 아닙니다.
+                                    공식 API는 (B,T,S)와 Broadcasting을 설명합니다.
+                                </p>
+                            </div>
+
+                            <figure class="mask-figure">
+                                <figcaption>
+                                    설명용 Decoder 입력: [SOS, 나, 학생, PAD]<br>
+                                    원본 make_combined_mask()의 명시적 생성 규칙을 적용한 예입니다.
+                                </figcaption>
+
+                                <div class="table-wrap" tabindex="0" role="region" aria-label="미래와 패딩 키를 제외한 마스크 예제">
+                                    <table class="mask-matrix">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Query \ Key</th>
+                                                <th scope="col">0 · SOS</th>
+                                                <th scope="col">1 · 나</th>
+                                                <th scope="col">2 · 학생</th>
+                                                <th scope="col">3 · PAD</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <th scope="row">0</th>
+                                                <td class="allow">1 · 허용</td>
+                                                <td class="deny">0</td>
+                                                <td class="deny">0</td>
+                                                <td class="deny">0</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">1</th>
+                                                <td class="allow">1</td>
+                                                <td class="allow">1</td>
+                                                <td class="deny">0</td>
+                                                <td class="deny">0</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">2</th>
+                                                <td class="allow">1</td>
+                                                <td class="allow">1</td>
+                                                <td class="allow">1</td>
+                                                <td class="deny">0</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row">3 · PAD Query</th>
+                                                <td class="allow">1</td>
+                                                <td class="allow">1</td>
+                                                <td class="allow">1</td>
+                                                <td class="deny">0</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </figure>
+
+                            <p>
+                                마지막 행이 모두 0이 아닌 이유는 원본 수동 결합이
+                                미래 Key와 PAD Key를 제한하기 때문입니다.
+                                PAD Query 행을 별도로 전부 가리는 식은 아닙니다.
+                                실제 Keras 내부에서는 자동 Mask와 명시적 Mask가 함께 처리될 수 있으므로,
+                                이 표를 최종 Attention 내부 처리 전체의 관찰 결과로 사용하지 않습니다.
+                            </p>
+
+                            <h3>대각선이 허용되는 이유</h3>
+                            <p>
+                                현재 Decoder 입력은 현재 예측할 정답보다 한 칸 이전 토큰입니다.
+                                현재 입력 위치를 보는 것과 현재 Target을 미리 보는 것은 다릅니다.
+                            </p>
+
+                            <div class="formula">
+                                <span>원본의 결합 논리</span>
+                                <code>Look-Ahead (T,T) AND Padding (B,1,T)</code>
+                                <code>→ Combined Mask (B,T,T)</code>
+                            </div>
+
+                            <dl class="definition-list">
+                                <dt>supports_masking / compute_mask</dt>
+                                <dd>계층 사이에서 Mask 정보를 지원하고 생성·전달하는 기능입니다.</dd>
+                                <dt>attention_mask</dt>
+                                <dd>현재 Attention 연산에서 참조 가능한 위치 관계를 지정합니다.</dd>
+                                <dt>Target Loss Mask</dt>
+                                <dd>어떤 정답 위치를 손실·지표에 포함할지를 결정합니다. 입력 Mask와 같은 문제가 아닙니다.</dd>
+                            </dl>
+
+                            <p class="source">
+                                <span class="badge original">원본</span> Cell 039, 041, 045
+                                <span class="badge analysis">보충</span>
+                                <a href="#ref-mha">MHA Mask 계약</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     11. 전체 모델 코드
+                =================================================== -->
+                        <section id="model" class="lesson-card model-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">11 · MODEL ARCHITECTURE / CODE</p>
+                                <h2>모델 구조와 원본 핵심 클래스</h2>
+                            </div>
+
+                            <figure class="architecture">
+                                <div class="architecture-columns">
+
+                                    <div class="architecture-column">
+                                        <h3>ENCODER × 6</h3>
+                                        <div class="node">영어 입력<small>(B,S)</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">Embedding + Position<small>(B,S,512)</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">입력 Dropout</div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node blue">Self-Attention<small>8 Heads · key_dim=512</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">Add &amp; Norm</div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">FFN + Dropout<small>512 → 2048 → 512</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">Add &amp; Norm<small>각 블록 출력 (B,S,512)</small></div>
+                                    </div>
+
+                                    <div class="architecture-column">
+                                        <h3>DECODER × 6</h3>
+                                        <div class="node">한국어 입력<small>(B,T)</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">Embedding + Position + Dropout</div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node teal">Masked Self-Attention<small>미래·PAD Key 제한</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">Dropout → Add &amp; Norm</div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node teal">Cross-Attention<small>Encoder 최종 출력 참조</small></div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">Dropout → Add &amp; Norm</div>
+                                        <span class="arrow" aria-hidden="true">↓</span>
+                                        <div class="node">FFN + Dropout → Add &amp; Norm<small>(B,T,512)</small></div>
+                                    </div>
+
+                                </div>
+
+                                <div class="architecture-bridge">
+                                    Encoder 최종 출력 → 모든 Decoder 블록의 Cross-Attention
+                                </div>
+
+                                <div class="architecture-output">
+                                    Decoder 6번째 출력 → Dense(1947, softmax)
+                                    <strong>(B,T,1947)</strong>
+                                </div>
+
+                                <figcaption>
+                                    계층 연결을 정리한 도식입니다.
+                                    Encoder Self-Attention 뒤에는 Dropout 계산문이 있지만
+                                    원본 후속 Add가 그 결과를 사용하지 않습니다.
+                                    아래 원본 코드와 추가 분석에서 이 부분을 구분합니다.
+                                </figcaption>
+                            </figure>
+
+                            <div class="callout important">
+                                <strong>원본 코드의 연결과 속성명을 유지합니다.</strong>
+                                <p>
+                                    주석·빈 줄을 일부 생략하고 줄바꿈을 정리한 실행문입니다.
+                                    key_dim, 미사용 Dropout 결과, emd_dim,
+                                    dropout_emb_encorder 같은 원본 표현을 임의로 교체하지 않았습니다.
+                                    새 환경에서 바로 재실행을 보장하는 수정본은 아닙니다.
+                                </p>
+                            </div>
+
+                            <details class="lesson-details" open>
+                                <summary>① TransformerEncoder · 원본 Cell 041</summary>
+                                <div class="details-body">
+
+                                    <div class="code-box">
+                                        <pre tabindex="0"><code>class TransformerEncoder(layers.Layer):
+
+    def __init__(self, embed_dim, units, num_heads, drop_rate, **kwargs):
+        super().__init__(**kwargs)
+
+        self.supports_masking = True
+
+        self.attention = layers.MultiHeadAttention(
+            num_heads=num_heads,
+            key_dim=embed_dim
+        )
+
+        self.dropout_self_attention = layers.Dropout(drop_rate)
+        self.dropout_ffn = layers.Dropout(drop_rate)
+
+        self.dense_1 = layers.Dense(units, activation="relu")
+        self.dense_2 = layers.Dense(embed_dim)
+
+        self.layernorm_1 = layers.LayerNormalization()
+        self.layernorm_2 = layers.LayerNormalization()
+
+    def call(self, enc_inputs, mask=None, training=False):
+        attention_mask = None
+
+        if mask is not None:
+            attention_mask = mask[:, tf.newaxis, :]
+
+        attention_output = self.attention(
+            query=enc_inputs,
+            value=enc_inputs,
+            key=enc_inputs,
+            attention_mask=attention_mask
+        )
+
+        attention_output_1 = self.dropout_self_attention(
+            attention_output,
+            training=training
+        )
+
+        norm_1 = self.layernorm_1(
+            enc_inputs + attention_output
+        )
+
+        x = self.dense_1(norm_1)
+        dense_output = self.dense_2(x)
+
+        dense_output = self.dropout_ffn(
+            dense_output,
+            training=training
+        )
+
+        return self.layernorm_2(norm_1 + dense_output)
+
+    def compute_mask(self, inputs, mask=None):
+        return mask</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>무엇·왜?</dt>
+                                        <dd>영어 토큰을 영어 전체 문맥이 반영된 표현으로 바꿉니다.</dd>
+                                        <dt>입력 → 출력</dt>
+                                        <dd>(B,S,512) → (B,S,512)</dd>
+                                        <dt>실행 후 변화</dt>
+                                        <dd>현재 토큰 표현이 갱신되어 다음 Encoder 블록에 전달됩니다.</dd>
+                                    </dl>
+
+                                    <div class="callout important">
+                                        <strong>attention_output_1이 다음 Add에 사용되지 않습니다.</strong>
+                                        <p>
+                                            Dropout 결과는 attention_output_1에 저장되지만
+                                            잔차 연결에서는 원래 attention_output을 더합니다.
+                                            해당 Dropout 계산이 후속 출력 경로에 반영되지 않는다는 분석입니다.
+                                            모든 Dropout이 작동하지 않거나 학습 중단 원인이라고 단정하지 않습니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <details class="lesson-details" open>
+                                <summary>② TransformerDecoder · 원본 Cell 043</summary>
+                                <div class="details-body">
+                                    <div class="code-box">
+                                        <pre tabindex="0"><code>class TransformerDecoder(layers.Layer):
+
+    def __init__(
+        self, embed_dim, units, time_steps,
+        num_heads, drop_rate, **kwargs
+    ):
+        super().__init__(**kwargs)
+
+        self.supports_masking = True
+        self.time_steps = time_steps
+
+        self.self_attention = layers.MultiHeadAttention(
+            num_heads=num_heads,
+            key_dim=embed_dim
+        )
+
+        self.cross_attention = layers.MultiHeadAttention(
+            num_heads=num_heads,
+            key_dim=embed_dim
+        )
+
+        self.dropout_self_attention = layers.Dropout(drop_rate)
+        self.dropout_ed_attention = layers.Dropout(drop_rate)
+        self.dropout_ffn = layers.Dropout(drop_rate)
+
+        self.dense_1 = layers.Dense(units, activation="relu")
+        self.dense_2 = layers.Dense(embed_dim)
+
+        self.layernorm_1 = layers.LayerNormalization()
+        self.layernorm_2 = layers.LayerNormalization()
+        self.layernorm_3 = layers.LayerNormalization()
+
+    def call(
+        self, dec_inputs, encoder_outputs,
+        self_mask=None, cross_mask=None, training=False
+    ):
+        attention_output_1 = self.self_attention(
+            query=dec_inputs,
+            value=dec_inputs,
+            key=dec_inputs,
+            attention_mask=self_mask
+        )
+
+        attention_output_1 = self.dropout_self_attention(
+            attention_output_1,
+            training=training
+        )
+
+        norm_1 = self.layernorm_1(
+            dec_inputs + attention_output_1
+        )
+
+        attention_output_2 = self.cross_attention(
+            query=norm_1,
+            value=encoder_outputs,
+            key=encoder_outputs,
+            attention_mask=cross_mask
+        )
+
+        attention_output_2 = self.dropout_ed_attention(
+            attention_output_2,
+            training=training
+        )
+
+        norm_2 = self.layernorm_2(
+            norm_1 + attention_output_2
+        )
+
+        x = self.dense_1(norm_2)
+        dense_output = self.dense_2(x)
+
+        dense_output = self.dropout_ffn(
+            dense_output,
+            training=training
+        )
+
+        return self.layernorm_3(norm_2 + dense_output)
+
+    def compute_mask(self, inputs, mask=None):
+        return mask</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>무엇·왜?</dt>
+                                        <dd>이전 한국어 문맥과 영어 원문을 함께 반영합니다.</dd>
+                                        <dt>입력</dt>
+                                        <dd>Decoder (B,T,512), Encoder (B,S,512), 두 Attention Mask</dd>
+                                        <dt>출력</dt>
+                                        <dd>(B,T,512)</dd>
+                                        <dt>실행 후 변화</dt>
+                                        <dd>번역 표현이 갱신되어 다음 Decoder 블록에 전달됩니다.</dd>
+                                    </dl>
+
+                                    <p>
+                                        Cross-Attention의 Query는 norm_1입니다.
+                                        Key와 Value는 Encoder 최종 출력입니다.
+                                        Decoder는 세 하위 연산에 각각 Add &amp; Norm을 사용합니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <details class="lesson-details" open>
+                                <summary>③ Transformer · 원본 Cell 045의 전체 연결</summary>
+                                <div class="details-body">
+                                    <div class="code-box">
+                                        <pre tabindex="0"><code>class Transformer(tf.keras.Model):
+
+    def __init__(
+        self, units, voca_size, embed_dim, time_steps,
+        num_heads, drop_rate, num_layers, **kwargs
+    ):
+        super(Transformer, self).__init__(**kwargs)
+
+        self.num_heads = num_heads
+
+        self.encoder_embedding = PositionalEmbedding(
+            time_steps, voca_size, embed_dim,
+            name="enc_inputs"
+        )
+
+        self.decoder_embedding = PositionalEmbedding(
+            time_steps, voca_size, embed_dim,
+            name="dec_inputs"
+        )
+
+        self.dropout_emb_encorder = layers.Dropout(drop_rate)
+        self.dropout_emb_decorder = layers.Dropout(drop_rate)
+
+        self.encoders = [
+            TransformerEncoder(
+                embed_dim, units, num_heads, drop_rate
+            )
+            for _ in range(num_layers)
+        ]
+
+        self.decoders = [
+            TransformerDecoder(
+                embed_dim, units, time_steps, num_heads, drop_rate
+            )
+            for _ in range(num_layers)
+        ]
+
+        self.dense = layers.Dense(
+            voca_size,
+            activation="softmax"
+        )
+
+    def call(self, inputs, training=False):
+        encoder_inputs_embed = self.encoder_embedding(
+            inputs['enc_inputs']
+        )
+
+        encoder_inputs_embed = self.dropout_emb_encorder(
+            encoder_inputs_embed,
+            training=training
+        )
+
+        decoder_inputs_embed = self.decoder_embedding(
+            inputs['dec_inputs']
+        )
+
+        decoder_inputs_embed = self.dropout_emb_decorder(
+            decoder_inputs_embed,
+            training=training
+        )
+
+        encoder_padding_mask = self.encoder_embedding.compute_mask(
+            inputs['enc_inputs']
+        )
+
+        decoder_padding_mask = self.decoder_embedding.compute_mask(
+            inputs['dec_inputs']
+        )
+
+        decoder_combined_mask = self.make_combined_mask(
+            inputs['dec_inputs'],
+            decoder_padding_mask
+        )
+
+        encoder_outputs = encoder_inputs_embed
+
+        for enc in self.encoders:
+            encoder_outputs = enc(
+                encoder_outputs,
+                mask=encoder_padding_mask
+            )
+
+        encoder_decoder_cross_mask = (
+            encoder_padding_mask[:, tf.newaxis, :]
+        )
+
+        decoder_outputs = decoder_inputs_embed
+
+        for dec in self.decoders:
+            decoder_outputs = dec(
+                decoder_outputs,
+                encoder_outputs,
+                self_mask=decoder_combined_mask,
+                cross_mask=encoder_decoder_cross_mask
+            )
+
+        logits = self.dense(decoder_outputs)
+        return logits
+
+    def make_combined_mask(self, dec_inputs, dec_padding_mask):
+        time_steps = tf.shape(dec_inputs)[1]
+
+        look_ahead_mask = self.make_look_attention_mask(time_steps)
+        padding_mask = dec_padding_mask[:, tf.newaxis, :]
+
+        combined_mask = tf.logical_and(
+            look_ahead_mask,
+            padding_mask
+        )
+
+        return combined_mask
+
+    def make_look_attention_mask(self, time_steps):
+        lower_triangular = tf.linalg.band_part(
+            tf.ones((time_steps, time_steps)),
+            -1,
+            0
+        )
+
+        return tf.cast(lower_triangular, tf.bool)</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>무엇·왜?</dt>
+                                        <dd>임베딩, Mask, 블록 Stack, 최종 분류를 한 모델 호출로 연결합니다.</dd>
+                                        <dt>입력</dt>
+                                        <dd>enc_inputs와 dec_inputs를 담은 Dictionary</dd>
+                                        <dt>출력</dt>
+                                        <dd>(B,T,1947)의 확률 Tensor</dd>
+                                        <dt>실행 후 변화</dt>
+                                        <dd>현재 입력 쌍에 대한 위치별 예측 확률을 계산합니다.</dd>
+                                    </dl>
+
+                                    <div class="callout">
+                                        <strong>logits라는 이름과 실제 값을 구분합니다.</strong>
+                                        <p>
+                                            최종 Dense에 Softmax가 있으므로 반환값은 확률입니다.
+                                            학습·검증·추론에서도 같은 의미의 확률 Tensor를 반환하며,
+                                            번역 토큰 선택 반복은 모델 바깥의 translation()이 담당합니다.
+                                        </p>
+                                    </div>
+
+                                    <p>
+                                        각 Decoder 블록은 같은 Encoder 최종 출력을 참고합니다.
+                                        Encoder 1과 Decoder 1을 층 번호별로 일대일 연결하는 구조가 아닙니다.
+                                        두 PositionalEmbedding도 별도 객체이므로
+                                        공통 단어 사전을 쓴다고 Token Embedding 가중치까지 공유하는 것은 아닙니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <p class="source">
+                                <span class="badge original">원본 실행문 발췌</span>
+                                Cell 041~045 · PDF 688~692페이지
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     12. 학습
+                =================================================== -->
+                        <section id="flow" class="lesson-card flow-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">12 · COMPILE / FIT</p>
+                                <h2>학습 흐름 — Dataset에서 val_loss까지</h2>
+                            </div>
+
+                            <h3>학습·검증 Dataset 구성</h3>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>cache → shuffle → batch → prefetch</strong>
+                                    <span class="badge original">Cell 035 실행문 발췌</span>
+                                </div>
+                                <pre tabindex="0"><code>BATCH_SIZE = 32
+BUFFER_SIZE = 10000
+
+train_dataset = tf.data.Dataset.from_tensor_slices(
+    (
+        {
+            'enc_inputs': enc_train,
+            'dec_inputs': dec_in_train
+        },
+        dec_out_train
+    )
+)
+
+train_dataset = train_dataset.cache()
+train_dataset = train_dataset.shuffle(BUFFER_SIZE)
+train_dataset = train_dataset.batch(BATCH_SIZE)
+train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+val_dataset = tf.data.Dataset.from_tensor_slices(
+    (
+        {
+            'enc_inputs': enc_val,
+            'dec_inputs': dec_in_val
+        },
+        dec_out_val
+    )
+).batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)</code></pre>
+                            </div>
+
+                            <dl class="code-contract">
+                                <dt>무엇·왜?</dt>
+                                <dd>같은 샘플의 영어·Decoder 입력·Target을 배치로 공급합니다.</dd>
+                                <dt>입력 → 출력</dt>
+                                <dd>분할된 정수 배열 → ({입력 두 개}, Target) Dataset</dd>
+                                <dt>실행 후 변화</dt>
+                                <dd>데이터 공급 구조가 생성됩니다. 이 단계는 가중치 학습이 아닙니다.</dd>
+                            </dl>
+
+                            <p>
+                                먼저 한 샘플로 묶은 뒤 Shuffle하므로 질문과 정답의 짝이 깨지지 않습니다.
+                                원본 검증 Dataset은 Shuffle과 Cache를 사용하지 않지만,
+                                검증 데이터에는 Cache를 사용할 수 없다는 규칙을 뜻하지 않습니다.
+                            </p>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>학습 배치 수</h3>
+                                    <code>900 = 28 × 32 + 4</code>
+                                    <p>한 Epoch에 29개 배치입니다.</p>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>검증 배치 수</h3>
+                                    <code>100 = 3 × 32 + 4</code>
+                                    <p>검증 Dataset은 4개 배치입니다.</p>
+                                </article>
+                            </div>
+
+                            <h3>모델 생성·Compile·학습</h3>
+
+                            <div class="code-box">
+                                <div class="code-title">
+                                    <strong>원본 설정과 fit()</strong>
+                                    <span class="badge original">Cell 047, 049, 050</span>
+                                </div>
+                                <pre tabindex="0"><code>VOCABULARY_SIZE = voca_size
+EMBEDDING_DIM = 512
+TIME_STEPS = time_steps
+UNITS = 2048
+EPOCHS = 100
+
+DROP_RATE = 0.1
+NUM_HEADS = 8
+NUM_LAYERS = 6
+
+transformer = Transformer(
+    UNITS,
+    VOCABULARY_SIZE,
+    EMBEDDING_DIM,
+    TIME_STEPS,
+    NUM_HEADS,
+    DROP_RATE,
+    NUM_LAYERS
+)
+
+learning_rate = 0.0001
+optimizer = tf.keras.optimizers.Adam(
+    learning_rate=learning_rate
+)
+
+transformer.compile(
+    optimizer=optimizer,
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+checkpoint_path = './seqtoseq/seq2seq-translation-transformer-checkpoint.weights.h5'
+
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_path,
+    save_weights_only=True,
+    save_best_only=True,
+    monitor='val_loss',
+    verbose=1
+)
+
+earlystopping = tf.keras.callbacks.EarlyStopping(
+    monitor='val_loss',
+    patience=5,
+    verbose=1
+)
+
+transformer.fit(
+    train_dataset,
+    validation_data=val_dataset,
+    epochs=EPOCHS,
+    callbacks=[checkpoint, earlystopping]
+)</code></pre>
+                            </div>
+
+                            <dl class="code-contract">
+                                <dt>무엇·왜?</dt>
+                                <dd>번역 정답 손실을 줄일 모델과 학습 규칙을 설정합니다.</dd>
+                                <dt>입력</dt>
+                                <dd>영어·Decoder 입력 (B,10), Target (B,10)</dd>
+                                <dt>출력</dt>
+                                <dd>모델 확률 (B,10,1947), fit()은 정상 실행 시 History 반환</dd>
+                                <dt>실행 후 변화</dt>
+                                <dd>학습 가능한 파라미터가 업데이트되고, 조건 충족 시 가중치를 저장합니다.</dd>
+                            </dl>
+
+                            <ol class="step-flow">
+                                <li><strong>Train 배치 학습</strong><span>확률 → Loss → 기울기 → Adam 업데이트</span></li>
+                                <li><strong>Epoch 종료 후 검증</strong><span>Validation의 Shift된 정답 입력으로 지표 계산</span></li>
+                                <li><strong>val_loss 비교</strong><span>체크포인트 저장·조기 종료 조건 판단</span></li>
+                                <li><strong>다음 Epoch</strong><span>최대 100 Epoch 설정 범위에서 반복</span></li>
+                            </ol>
+
+                            <div class="callout important">
+                                <strong>설정과 실제 실행 결과를 구분합니다.</strong>
+                                <p>
+                                    monitor='val_loss', patience=5로 설정되어 있습니다.
+                                    restore_best_weights=True는 지정하지 않았습니다.
+                                    현재 로그에는 검증 완료나 가중치 저장 메시지가 없으므로,
+                                    최적 체크포인트가 실제 생성되었다고 확인한 것은 아닙니다.
+                                </p>
+                            </div>
+
+                            <p>
+                                원본 주석에는 블록 수를 늘린 뒤 학습률을 0.001에서 0.0001로 낮춰
+                                개선되었다는 메모가 있습니다.
+                                현재 파일에는 두 학습률의 전체 비교 로그가 없으므로
+                                작성자의 실험 메모와 재검증된 결과를 구분합니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">원본</span> Cell 035, 047~050
+                                · <a href="#ref-adam">Adam</a>
+                                · <a href="#ref-earlystop">EarlyStopping</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     13. 결과
+                =================================================== -->
+                        <section id="result" class="lesson-card result-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">13 · SAVED OUTPUT</p>
+                                <h2>저장 출력 — 첫 Epoch 초반까지만 확인된다</h2>
+                            </div>
+
+                            <div class="callout review">
+                                <strong>통합 교안의 검토 메모</strong>
+                                <p>
+                                    학습 셀의 execution_count는 비어 있는데 Stream 출력이 남아 있어,
+                                    중단되었거나 비정상적인 순서로 실행되었을 가능성이 있습니다.
+                                    정확한 중단 원인이 확정된 것은 아닙니다.
+                                </p>
+                            </div>
+
+                            <div class="code-box output">
+                                <div class="code-title">
+                                    <strong>원본 Cell 050의 저장 Stream</strong>
+                                    <span class="badge original">최종 결과가 아님</span>
+                                </div>
+                                <pre tabindex="0"><code>Epoch 1/100
+3/29 ━━━━━━━━━━━━━━━━━━━━ 6:02 14s/step - accuracy: 0.0418 - loss: 7.2547</code></pre>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="초기 학습 로그 해석">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">표시</th>
+                                            <th scope="col">해석</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Epoch 1/100</td>
+                                            <td>최대 100 Epoch 설정 중 첫 Epoch</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3/29</td>
+                                            <td>첫 Epoch의 일부 학습 진행 표시</td>
+                                        </tr>
+                                        <tr>
+                                            <td>accuracy: 0.0418</td>
+                                            <td>해당 진행 시점에 표시된 학습 정확도</td>
+                                        </tr>
+                                        <tr>
+                                            <td>loss: 7.2547</td>
+                                            <td>해당 진행 시점의 학습 손실</td>
+                                        </tr>
+                                        <tr>
+                                            <td>14s/step</td>
+                                            <td>당시 진행 표시의 Step당 시간</td>
+                                        </tr>
+                                        <tr>
+                                            <td>6:02</td>
+                                            <td>당시 남은 시간의 추정 표시</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>이 자료로 확인되는 것과 확인되지 않는 것</h3>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="원본 실행 증거의 범위">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">항목</th>
+                                            <th scope="col">상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>말뭉치 로딩·Vocabulary·정수 배열</td>
+                                            <td>저장 출력 있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Train/Validation 분할·모델·학습 설정</td>
+                                            <td>코드 있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>첫 Epoch의 초기 학습</td>
+                                            <td>3/29 Stream 있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>학습 완료 지표</td>
+                                            <td>저장되어 있지 않음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Validation 결과</td>
+                                            <td>저장되어 있지 않음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>최적 가중치 저장·복원 확인</td>
+                                            <td>현재 로그로 확인되지 않음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>실제 번역문</td>
+                                            <td>저장되어 있지 않음</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="concept-highlight">
+                                epochs=100은 설정입니다.<br>
+                                3/29는 저장된 진행 표시입니다.<br>
+                                4.18%는 최종 번역 정확도가 아닙니다.
+                            </div>
+
+                            <p>
+                                6분 2초를 전체 학습 시간으로 기록하거나
+                                다른 단원의 “Go → 가” 결과를 이번 모델의 출력으로 옮기지 않습니다.
+                                추론 코드가 작성되어 있다는 사실과 실제 번역 성공은 구분합니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge review">교안 메모</span> PDF 681페이지
+                                <span class="badge original">실행 상태·출력</span> Cell 050~053 · PDF 693~694페이지
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     14. Metric
+                =================================================== -->
+                        <section id="metric" class="lesson-card metric-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">14 · LOSS / METRIC INTERPRETATION</p>
+                                <h2>Metric 해석 — 토큰 예측과 문장 번역은 다르다</h2>
+                            </div>
+
+                            <h3>Sparse Categorical Crossentropy</h3>
+
+                            <div class="formula">
+                                <code>Target: (B,T) 정수 ID</code>
+                                <code>Prediction: (B,T,1947) 확률</code>
+                                <code>한 토큰의 기본 손실: L = −log(P(정답 토큰))</code>
+                            </div>
+
+                            <p>
+                                정답이 One-Hot이 아닌 정수 ID이므로 Sparse Loss를 사용합니다.
+                                학습에서는 argmax로 선택한 ID가 아니라 전체 확률 분포를 Loss에 전달합니다.
+                                원본의 Softmax 출력을 Logit으로 오해해 from_logits=True를 추가하지 않습니다.
+                                <a href="#ref-loss">Loss 공식 문서</a>
+                            </p>
+
+                            <h3>Accuracy와 Validation의 의미</h3>
+
+                            <p>
+                                원본 accuracy는 이 출력·Target 구조에 맞는 토큰 위치의 일치율로 읽습니다.
+                                Validation에도 이전 정답을 담은 dec_in_val을 전달합니다.
+                                이는 Teacher-Forced 평가이며,
+                                영어만 주고 한국어를 자유 생성하는 평가와 다릅니다.
+                            </p>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>Teacher-Forced 평가</h3>
+                                    <p>이전 정답을 입력받은 상태에서 다음 토큰을 맞히는가?</p>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>자유 생성 평가</h3>
+                                    <p>이전 예측을 이어서 만든 문장 전체가 의미적으로 적절한가?</p>
+                                </article>
+                            </div>
+
+                            <h3>입력 Mask와 Target 지표 Mask</h3>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="마스킹 평가 구분">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">구분</th>
+                                            <th scope="col">질문</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">Attention Mask</th>
+                                            <td>어떤 입력 위치를 참고할 수 있는가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Target Loss Mask</th>
+                                            <td>어떤 정답 위치를 Loss에 포함할 것인가?</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Metric Mask</th>
+                                            <td>어떤 위치와 분모로 정확도를 집계할 것인가?</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                이번 원본에는 입력 Mask가 있지만, 별도 Target 기반 마스킹 Loss나
+                                명시적인 토큰별 sample_weight는 없습니다.
+                                자동 Mask가 최종 출력·Loss·Metric까지 어떻게 전달되는지 확인해야 합니다.
+                                “PAD를 확실히 모두 포함한다” 또는 “유효 토큰만 확실히 평가한다”고
+                                저장 로그 없이 단정하지 않습니다.
+                            </p>
+
+                            <div class="formula">
+                                <span>설명용 가상 사례 · 원본 PAD 비율이 아님</span>
+                                <code>10개 Target 위치 = 유효 3개 + PAD 7개</code>
+                                <code>모든 위치를 평가하며 전부 PAD로 예측하면 7/10 = 70%</code>
+                            </div>
+
+                            <p>
+                                이 가상 예는 PAD 포함 여부가 지표 해석에 중요하다는 뜻입니다.
+                                원본 모델의 실제 기준 정확도나 성능 왜곡을 측정한 값은 아닙니다.
+                            </p>
+
+                            <h3>가중치와 평균의 분모</h3>
+
+                            <p>
+                                PAD 손실을 0으로 만들고 전체 위치 수로 나누는 것과,
+                                유효 토큰 손실을 유효 토큰 수로 나누는 것은 다를 수 있습니다.
+                                sample_weight를 추가해도 metrics=['accuracy']가
+                                의도한 가중 Metric으로 자동 바뀐다고 가정하지 않습니다.
+                                weighted_metrics와 Reduction 설정을 구분합니다.
+                                <a href="#ref-training">학습 API의 Metric 설명</a>
+                            </p>
+
+                            <h3>R²가 이 문제의 중심 지표가 아닌 이유</h3>
+
+                            <p>
+                                Token ID는 임의의 식별 번호입니다.
+                                ID 10과 11이 ID 10과 500보다 의미적으로 가깝다고 볼 수 없습니다.
+                                사전 번호를 바꾸면 같은 번역도 숫자 거리가 바뀌므로,
+                                ID를 연속 회귀값처럼 평가하는 R²는 이 작업의 의미와 맞지 않습니다.
+                            </p>
+
+                            <div class="callout important">
+                                <strong>현재 자료로 확정할 수 없는 판단</strong>
+                                <p>
+                                    최종 성능, 과적합·과소적합, 학습률의 적정성,
+                                    LSTM보다 좋거나 나쁘다는 결론은 현재 초기 로그만으로 확정할 수 없습니다.
+                                    독립적인 진행 곡선과 생성 평가가 필요합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ==================================================
+                     15. Evaluate
+                =================================================== -->
+                        <section id="evaluate" class="lesson-card evaluate-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">15 · EVALUATE / DIAGNOSTICS</p>
+                                <h2>Evaluate — 원본에 없는 추가 평가 단계</h2>
+                            </div>
+
+                            <p>
+                                이번 Transformer.call()은 학습·추론 모두 확률 Tensor를 반환합니다.
+                                모델·데이터 계약과 학습 상태를 확인한 뒤
+                                평가 API를 연결할 수 있는 구조입니다.
+                                다만 원본에는 별도 evaluate() 실행 셀과 결과가 없습니다.
+                            </p>
+
+                            <div class="code-box added">
+                                <div class="code-title">
+                                    <strong>추가 평가 호출 예</strong>
+                                    <span class="badge added">원본에 없음 · 미실행</span>
+                                </div>
+                                <pre tabindex="0"><code># 모델·데이터가 정상 준비되고 학습 상태가 확인된 뒤 사용합니다.
+evaluation = transformer.evaluate(
+    val_dataset,
+    return_dict=True
+)
+print(evaluation)</code></pre>
+                            </div>
+
+                            <dl class="code-contract">
+                                <dt>목적</dt>
+                                <dd>현재 모델을 원본 Validation Dataset으로 평가합니다.</dd>
+                                <dt>입력 → 출력</dt>
+                                <dd>Dataset → 설정된 Loss·Metric Dictionary</dd>
+                                <dt>실행 후 변화</dt>
+                                <dd>평가값을 계산하며 Optimizer로 가중치를 학습하지 않습니다.</dd>
+                            </dl>
+
+                            <p>
+                                이 호출은 이전 정답이 포함된 Decoder 입력을 사용하는 평가입니다.
+                                자유 생성 번역문의 의미 평가가 아니며,
+                                원본의 사전 구축 순서로 인한 평가상의 한계도 그대로 남습니다.
+                            </p>
+
+                            <details class="lesson-details" open>
+                                <summary>보충 진단 · PAD가 아닌 Target 위치를 직접 집계</summary>
+                                <div class="details-body">
+                                    <p>
+                                        Step 2의 별도 평가 예제입니다.
+                                        원본 모델의 마스킹 구조는 수정하지 않고,
+                                        출력 확률을 NumPy로 받아 지정한 평가식으로 집계합니다.
+                                        Keras의 자동 Mask·Reduction과 같은 결과를 보장하는 함수는 아닙니다.
+                                    </p>
+
+                                    <div class="code-box added">
+                                        <pre tabindex="0"><code>import numpy as np
+
+
+def evaluate_non_pad_tokens(model, dataset, pad_id: int = 0) -&gt; dict:
+    """Eager 진단용. 모델 가중치를 업데이트하지 않습니다."""
+    loss_sum = 0.0
+    correct_sum = 0
+    token_count = 0
+
+    for inputs, targets in dataset:
+        probabilities = np.asarray(
+            model(inputs, training=False).numpy()
+        )
+        target_ids = np.asarray(targets.numpy())
+
+        if target_ids.ndim != 2 or probabilities.ndim != 3:
+            raise ValueError("Target은 (B,T), 확률은 (B,T,V)여야 합니다.")
+
+        if probabilities.shape[:2] != target_ids.shape:
+            raise ValueError("Target과 예측의 배치·시점 크기가 다릅니다.")
+
+        if not np.issubdtype(target_ids.dtype, np.integer):
+            raise TypeError("Target은 정수 Token ID여야 합니다.")
+
+        vocab_size = probabilities.shape[-1]
+
+        if target_ids.size == 0:
+            continue
+
+        if target_ids.min() &lt; 0 or target_ids.max() &gt;= vocab_size:
+            raise ValueError("Target ID가 출력 어휘 범위를 벗어났습니다.")
+
+        if not np.isfinite(probabilities).all():
+            raise ValueError("예측에 NaN 또는 Inf가 있습니다.")
+
+        if (probabilities &lt; 0).any():
+            raise ValueError("확률에 음수가 있습니다.")
+
+        if not np.allclose(
+            probabilities.sum(axis=-1), 1.0, atol=1e-4
+        ):
+            raise ValueError("출력이 Softmax 확률인지 확인하세요.")
+
+        valid = target_ids != pad_id
+
+        selected_probs = np.take_along_axis(
+            probabilities,
+            target_ids[..., None],
+            axis=-1
+        )[..., 0]
+
+        token_losses = -np.log(
+            np.clip(selected_probs.astype(np.float64), 1e-12, 1.0)
+        )
+
+        predicted_ids = probabilities.argmax(axis=-1)
+
+        loss_sum += float(token_losses[valid].sum())
+        correct_sum += int(
+            ((predicted_ids == target_ids) &amp; valid).sum()
+        )
+        token_count += int(valid.sum())
+
+    if token_count == 0:
+        raise ValueError("평가할 유효 Target 토큰이 없습니다.")
+
+    return {
+        "non_pad_loss": loss_sum / token_count,
+        "non_pad_accuracy": correct_sum / token_count,
+        "valid_tokens": token_count
+    }</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>입력</dt>
+                                        <dd>확률을 반환하는 모델과 TensorFlow Dataset</dd>
+                                        <dt>출력</dt>
+                                        <dd>non_pad_loss, non_pad_accuracy, valid_tokens</dd>
+                                        <dt>집계</dt>
+                                        <dd>유효 손실 총합 / 유효 토큰 총수</dd>
+                                        <dt>상태 변화</dt>
+                                        <dd>지표만 계산하며 모델·사전·Mask를 변경하지 않습니다.</dd>
+                                    </dl>
+
+                                    <p>
+                                        마지막 배치와 다른 배치의 크기, 유효 토큰 수가 다를 수 있으므로
+                                        배치 평균을 다시 단순 평균하지 않습니다.
+                                        EOS는 문장 종료를 학습하는 유효 Target이므로 PAD와 구분합니다.
+                                        위 진단 코드를 실행하여 새 점수를 산출한 것은 아닙니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <p class="source">
+                                <span class="badge added">Step 2 보충 평가 예제</span>
+                                <a href="#ref-training">evaluate API</a>
+                                · <a href="#ref-loss">Loss 집계</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     16. Predict
+                =================================================== -->
+                        <section id="predict" class="lesson-card predict-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">16 · AUTOREGRESSIVE TRANSLATION</p>
+                                <h2>Predict — 확률에서 번역 토큰을 하나씩 선택하기</h2>
+                            </div>
+
+                            <p>
+                                아래는 작성된 추론 코드의 해석입니다.
+                                Cell 051~053에는 실행 번호와 저장 출력이 없으므로,
+                                번역 성공 결과를 관찰한 것처럼 설명하지 않습니다.
+                            </p>
+
+                            <div class="grid-two">
+                                <article class="mini-card">
+                                    <h3>Transformer.call()</h3>
+                                    <p>영어·한국어 입력을 받아 모든 위치의 어휘 확률을 반환합니다.</p>
+                                    <code>(1,10,1947)</code>
+                                </article>
+                                <article class="mini-card accent">
+                                    <h3>translation()</h3>
+                                    <p>현재 위치의 argmax를 선택하고 Prefix에 추가하여 반복합니다.</p>
+                                    <code>문자열 → 생성 문자열</code>
+                                </article>
+                            </div>
+
+                            <details class="lesson-details" open>
+                                <summary>원본 추론 코드 · 문자열 복원, 전처리, 번역 루프</summary>
+                                <div class="details-body">
+                                    <div class="code-box">
+                                        <div class="code-title">
+                                            <strong>Cell 051~053 실행문 발췌</strong>
+                                            <span class="badge original">디버그 출력 일부 생략</span>
+                                        </div>
+                                        <pre tabindex="0"><code>def index_to_word(indexs, end_token, tokenizer):
+    sentence = ' '.join(
+        [
+            tokenizer.index_word[index]
+            for index in indexs
+            if index != end_token and tokenizer.index_word.get(index)
+        ]
+    )
+    return sentence
+
+
+def predict_preprocessing(sentence, is_will_delete_stopword=False):
+    if not is_will_delete_stopword:
+        sentence = word_tokenizer.preprocess_korean(
+            sentence,
+            True
+        )
+
+    encoding_vector = word_tokenizer.make_integer_encoding(sentence)
+    return encoding_vector
+
+
+print(predict_preprocessing(['Go.'], False))
+
+
+def translation(question):
+    tokenized_input_sentence = predict_preprocessing([question])
+    decoded_sentence = "&lt;SOS&gt;"
+
+    for i in range(TIME_STEPS):
+        tokenized_target_sentence = predict_preprocessing(
+            [decoded_sentence],
+            True
+        )
+
+        predictions = transformer(
+            {
+                'enc_inputs': tokenized_input_sentence,
+                'dec_inputs': tokenized_target_sentence
+            }
+        )
+
+        sampled_token_index = np.argmax(
+            predictions[0, i, :]
+        )
+
+        sampled_token = tokenizer.index_word[sampled_token_index]
+        decoded_sentence += " " + sampled_token
+
+        if sampled_token == "&lt;EOS&gt;":
+            break
+
+    return ' '.join(decoded_sentence.split()[1:-1])
+
+
+while True:
+    eng = input('대화를 입력하세요\n')
+    if eng.upper() == 'EXIT':
+        break
+    print('번역어: {}'.format(translation(eng)))</code></pre>
+                                    </div>
+
+                                    <dl class="code-contract">
+                                        <dt>무엇·왜?</dt>
+                                        <dd>현재까지 생성한 한국어를 조건으로 다음 토큰을 반복 선택합니다.</dd>
+                                        <dt>입력</dt>
+                                        <dd>영어 문장 문자열 한 개</dd>
+                                        <dt>중간 출력</dt>
+                                        <dd>고정 길이 가정하에 (1,10,1947) 확률</dd>
+                                        <dt>최종 출력</dt>
+                                        <dd>생성 문자열. 학습 가중치는 업데이트하지 않습니다.</dd>
+                                    </dl>
+                                </div>
+                            </details>
+
+                            <h3>predictions[0, i, :]를 읽는 법</h3>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="출력 인덱싱의 의미">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">인덱스</th>
+                                            <th scope="col">의미</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>0</td>
+                                            <td>현재 한 문장</td>
+                                        </tr>
+                                        <tr>
+                                            <td>i</td>
+                                            <td>이번에 생성할 토큰 위치</td>
+                                        </tr>
+                                        <tr>
+                                            <td>:</td>
+                                            <td>그 위치의 전체 1,947개 어휘 확률</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="shape-path">
+                                <span>SOS</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>SOS + 첫 번째 예측</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>SOS + 첫 번째 + 두 번째 예측</span>
+                                <b aria-hidden="true">↓</b>
+                                <strong>EOS 또는 최대 길이까지 반복</strong>
+                            </div>
+
+                            <p>
+                                원본은 매 반복마다 Prefix를 다시 인코딩하고 Transformer 전체를 호출합니다.
+                                Encoder 출력 캐시나 KV Cache를 구현하지 않았습니다.
+                                현재 한 문장의 인덱스 0을 사용하는 구조이며 일반적인 배치 생성기는 아닙니다.
+                            </p>
+
+                            <h3>원본 추론에서 확인할 문제</h3>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="추론 코드 점검 사항">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">원본 코드</th>
+                                            <th scope="col">확인할 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>preprocess_korean(sentence, True)</td>
+                                            <td>영어 학습의 re.sub()와 추론 전처리가 다릅니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>is_will_delete_stopword=True</td>
+                                            <td>이 함수에서는 if 블록을 건너뜁니다. 이름만 보고 해석하지 않습니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>split()[1:-1]</td>
+                                            <td>EOS가 없어도 마지막 실제 토큰을 삭제할 수 있습니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>index_word[sampled_token_index]</td>
+                                            <td>PAD 등 매핑이 없는 ID를 선택하면 조회 오류가 날 수 있습니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>“206어휘 중”이라는 주석</td>
+                                            <td>실제 저장 Vocabulary는 1,947입니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Target 출력용 원본 print()</td>
+                                            <td>그 줄은 Target이 아니라 Encoder 입력 배열을 출력합니다.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>index_to_word() 정의</td>
+                                            <td>이 번역 루프는 해당 함수를 호출하지 않고 문자열 누적·Slice로 반환합니다.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="callout important">
+                                <strong>Go.의 실제 인코딩 결과도 이 장에는 없습니다.</strong>
+                                <p>
+                                    테스트 호출문은 작성되어 있지만 저장 출력은 없습니다.
+                                    이전 단원의 ID 333이나 전부 0인 결과를
+                                    이번 Notebook의 실행 결과로 가져오지 않습니다.
+                                </p>
+                            </div>
+
+                            <p class="source">
+                                <span class="badge original">작성된 코드</span>
+                                Cell 051~053 · PDF 693~694페이지
+                                <span class="badge analysis">추가 코드 분석</span>
+                                실제 발생 오류를 관찰한 것은 아님
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     17. 실수
+                =================================================== -->
+                        <section id="mistake" class="lesson-card mistake-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">17 · COMMON MISTAKES</p>
+                                <h2>자주 하는 실수 — 선언, 연결, 실행, 평가를 나누어 읽기</h2>
+                            </div>
+
+                            <h3>교안 메모와 추가 분석</h3>
+
+                            <div class="grid-two">
+                                <article class="mini-card warm">
+                                    <h3>통합 교안의 검토 메모</h3>
+                                    <p>학습 실행 번호가 비었지만 Stream이 남아 있어 중단 또는 비정상 실행 순서 가능성이 있습니다.</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>추가 코드 분석</h3>
+                                    <p>key_dim, 미사용 Dropout 결과, 사전 분할 순서, logits 이름, 고정 길이와 추론 후처리를 검토합니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="원본 표현과 실제 코드 의미">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">혼동하기 쉬운 표현</th>
+                                            <th scope="col">정확히 읽을 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>10을 임베딩 차원처럼 설명</td>
+                                            <td>10은 길이, 512는 기본 표현 차원</td>
+                                        </tr>
+                                        <tr>
+                                            <td>num_heads가 어텐션 층 수</td>
+                                            <td>각 MHA의 Head 수. 블록 수는 num_layers</td>
+                                        </tr>
+                                        <tr>
+                                            <td>key_dim은 전체 차원</td>
+                                            <td>Head 하나의 Query·Key 차원</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Encoder Dropout 선언</td>
+                                            <td>출력 결과가 다음 계산에 실제 사용되는지 확인</td>
+                                        </tr>
+                                        <tr>
+                                            <td>logits 변수</td>
+                                            <td>원본 Dense가 Softmax이므로 확률</td>
+                                        </tr>
+                                        <tr>
+                                            <td>4D Mask가 항상 필요</td>
+                                            <td>원본은 3D 형태와 Broadcasting 사용</td>
+                                        </tr>
+                                        <tr>
+                                            <td>mask_zero=True</td>
+                                            <td>PAD 벡터 값을 전부 0으로 보장한다는 뜻이 아님</td>
+                                        </tr>
+                                        <tr>
+                                            <td>epochs=100</td>
+                                            <td>최대 설정이지 완료 증거가 아님</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>Data Leakage 두 종류</h3>
+                            <dl class="definition-list">
+                                <dt>평가 정보의 전처리 반영</dt>
+                                <dd>Validation에만 들어갈 어휘 정보가 전체 사전 구축에 반영될 수 있습니다.</dd>
+                                <dt>미래 Target 참조</dt>
+                                <dd>잘못된 Causal Mask로 Decoder가 아직 예측할 정답 위치를 미리 보는 문제입니다.</dd>
+                                <dt>정상적인 Teacher Forcing</dt>
+                                <dd>이전 정답 입력 자체와 위 두 문제를 혼동하지 않습니다.</dd>
+                            </dl>
+
+                            <h3>training과 실행 방식</h3>
+                            <p>
+                                training=False는 Dropout 등 계층의 동작 선택이고,
+                                Eager/Graph는 Tensor 실행 방식입니다.
+                                NumPy를 Graph 안에 넣어도 된다는 뜻이 아닙니다.
+                                하위 블록 호출에 training을 매번 쓰지 않았다고
+                                모든 Dropout이 반드시 꺼진다고 단정하지도 않습니다.
+                                Keras 호출 문맥을 확인합니다.
+                            </p>
+
+                            <h3>설정을 바꿀 때의 주의</h3>
+                            <p>
+                                key_dim을 64로 바꾸거나 위치 인코딩을 동적 길이로 바꾸는 것은
+                                실제 모델 변경입니다.
+                                개선 코드로 명확히 구분하고 기존 가중치와의 호환성을 확인합니다.
+                                사전이나 전처리를 바꾼 뒤 기존 모델을 그대로 사용하는 것도 점검 대상입니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge review">교안 메모</span> PDF 681페이지
+                                <span class="badge analysis">Step 2 코드 분석</span>
+                                <a href="#ref-subclassing">Keras 호출 문맥</a>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     18. 오류
+                =================================================== -->
+                        <section id="error" class="lesson-card error-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">18 · ERROR READING</p>
+                                <h2>오류 메시지와 Shape·Mask 진단</h2>
+                            </div>
+
+                            <p>
+                                아래는 재실행하거나 확장할 때 참고할 대표적인 오류 유형입니다.
+                                원본에서 모두 발생한 Traceback 목록이 아니며,
+                                실제 문구는 Python·TensorFlow·Keras 버전에 따라 다릅니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="대표 오류 메시지와 점검 대상">
+                                <table class="error-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">메시지 예</th>
+                                            <th scope="col">먼저 점검할 내용</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>FileNotFoundError</td>
+                                            <td>kor.txt 경로·현재 작업 폴더</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ModuleNotFoundError: util</td>
+                                            <td>외부 모듈 파일·검색 경로</td>
+                                        </tr>
+                                        <tr>
+                                            <td>AttributeError ... preprocessing.text</td>
+                                            <td>레거시 API 호환성</td>
+                                        </tr>
+                                        <tr>
+                                            <td>KeyError: '&lt;SOS&gt;'</td>
+                                            <td>필터·대소문자·사전 구축</td>
+                                        </tr>
+                                        <tr>
+                                            <td>indices ... not in [0,1947)</td>
+                                            <td>Embedding input_dim과 Token ID 범위</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Incompatible shapes</td>
+                                            <td>위치 정보·잔차·Mask의 축 크기</td>
+                                        </tr>
+                                        <tr>
+                                            <td>could not broadcast input array ...</td>
+                                            <td>위치 인코딩의 짝·홀수 Feature Slice</td>
+                                        </tr>
+                                        <tr>
+                                            <td>expected ... dtype ...</td>
+                                            <td>정수 토큰·실수 표현·Boolean Mask</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Cannot convert a symbolic Tensor ...</td>
+                                            <td>Graph 안의 NumPy 연산</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ResourceExhaustedError / OOM</td>
+                                            <td>Batch·Head 차원·블록 수·길이</td>
+                                        </tr>
+                                        <tr>
+                                            <td>loss: nan</td>
+                                            <td>입력값·Loss 계약·학습률·전부 가려진 위치</td>
+                                        </tr>
+                                        <tr>
+                                            <td>KeyError: 0</td>
+                                            <td>PAD ID의 문자열 매핑 유무</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Unable to save/load weights</td>
+                                            <td>경로·권한·가중치와 모델 구조</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mask가 폐기된다는 경고</td>
+                                            <td>compute_mask와 실제 Mask 전달 경로</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>Shape / Dimension / dtype</h3>
+
+                            <div class="grid-three">
+                                <article class="mini-card">
+                                    <h3>Shape</h3>
+                                    <p>(10,)과 (1,10)은 다릅니다. 한 문장에도 배치 축이 필요합니다.</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>Dimension</h3>
+                                    <p>512와 1024의 잔차 덧셈처럼 특정 축 크기가 맞는지 확인합니다.</p>
+                                </article>
+                                <article class="mini-card">
+                                    <h3>dtype</h3>
+                                    <p>ID는 정수, 벡터·확률은 실수, 원본 Attention Mask는 Boolean입니다.</p>
+                                </article>
+                            </div>
+
+                            <div class="callout important">
+                                <strong>오류 없이 Broadcasting되어도 잘못된 의미일 수 있습니다.</strong>
+                                <p>
+                                    원본 위치 정보는 길이 10입니다.
+                                    입력 길이가 7이면 충돌할 수 있고,
+                                    입력 길이가 1이면 Broadcasting으로 10개 위치가 될 수도 있습니다.
+                                    단순히 실행된다는 사실만으로 가변 길이 처리가 맞다고 판단하지 않습니다.
+                                </p>
+                            </div>
+
+                            <details class="lesson-details" open>
+                                <summary>진단 ① 정수 배열, ID 범위, SOS/EOS, Shift</summary>
+                                <div class="details-body">
+                                    <div class="code-box added">
+                                        <div class="code-title">
+                                            <strong>원본 전처리 완료 후 사용하는 검사</strong>
+                                            <span class="badge added">Step 2 보충 · 미실행</span>
+                                        </div>
+                                        <pre tabindex="0"><code>import numpy as np
+
+arrays = {
+    "encoder": np.asarray(encoder_in_pad),
+    "decoder_input": np.asarray(decoder_in_pad),
+    "decoder_target": np.asarray(decoder_out_pad),
+}
+
+vocab_size = int(voca_size)
+pad_id = 0
+
+for name, arr in arrays.items():
+    print(name, arr.shape, arr.dtype)
+
+    if arr.ndim != 2:
+        raise ValueError(f"{name}: (N,T) 형태여야 합니다.")
+
+    if arr.size == 0:
+        raise ValueError(f"{name}: 빈 배열입니다.")
+
+    if not np.issubdtype(arr.dtype, np.integer):
+        raise TypeError(f"{name}: 정수 Token ID가 필요합니다.")
+
+    if arr.min() &lt; 0 or arr.max() &gt;= vocab_size:
+        raise ValueError(f"{name}: ID가 어휘 범위를 벗어났습니다.")
+
+enc = arrays["encoder"]
+dec = arrays["decoder_input"]
+target = arrays["decoder_target"]
+
+if not (len(enc) == len(dec) == len(target)):
+    raise ValueError("세 배열의 샘플 수가 다릅니다.")
+
+if dec.shape != target.shape:
+    raise ValueError("Decoder Input과 Target Shape이 다릅니다.")
+
+sos_id = tokenizer.word_index['&lt;SOS&gt;']
+eos_id = tokenizer.word_index['&lt;EOS&gt;']
+
+for row_index, (dec_row, target_row) in enumerate(zip(dec, target)):
+    dec_tokens = dec_row[dec_row != pad_id]
+    target_tokens = target_row[target_row != pad_id]
+
+    if len(dec_tokens) == 0 or len(target_tokens) == 0:
+        raise ValueError(f"{row_index}번: 빈 응답 시퀀스입니다.")
+
+    if dec_tokens[0] != sos_id:
+        raise ValueError(f"{row_index}번: SOS가 없습니다.")
+
+    if target_tokens[-1] != eos_id:
+        raise ValueError(f"{row_index}번: EOS가 없습니다.")
+
+    if not np.array_equal(dec_tokens[1:], target_tokens[:-1]):
+        raise ValueError(f"{row_index}번: 한 칸 Shift가 맞지 않습니다.")
+
+print("Target PAD 비율:", float(np.mean(target == pad_id)))
+print("입력 전체가 PAD인 행:", int(np.all(enc == pad_id, axis=1).sum()))</code></pre>
+                                    </div>
+
+                                    <p>
+                                        PAD ID가 0인 원본 계약을 검사합니다.
+                                        영어와 한국어의 길이가 항상 같다고 강제하지 않고,
+                                        Decoder Input과 Target의 관계를 따로 검사합니다.
+                                        잘못된 배열을 자동 수정하는 코드가 아닙니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <details class="lesson-details" open>
+                                <summary>진단 ② Mask의 방향과 PAD Key 제한</summary>
+                                <div class="details-body">
+                                    <div class="code-box added">
+                                        <pre tabindex="0"><code>import numpy as np
+import tensorflow as tf
+
+# 설명용 ID입니다. 실제 단어의 사전 매핑을 뜻하지 않습니다.
+toy_decoder = tf.constant([[1, 7, 9, 0]], dtype=tf.int32)
+toy_padding_mask = tf.not_equal(toy_decoder, 0)
+
+combined = transformer.make_combined_mask(
+    toy_decoder,
+    toy_padding_mask
+)
+
+expected = np.array(
+    [[
+        [True, False, False, False],
+        [True, True,  False, False],
+        [True, True,  True,  False],
+        [True, True,  True,  False],
+    ]]
+)
+
+np.testing.assert_array_equal(combined.numpy(), expected)
+print(combined.numpy().astype(int))</code></pre>
+                                    </div>
+
+                                    <p>
+                                        원본 Transformer 객체가 생성되어 있어야 합니다.
+                                        길이 4의 Mask 메서드 검사이며,
+                                        모델 전체가 길이 4 입력을 정상 처리한다는 뜻은 아닙니다.
+                                        위치 인코딩은 별도의 길이 10 가정을 갖습니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <details class="lesson-details" open>
+                                <summary>진단 ③ 한 문장의 순방향 출력 계약</summary>
+                                <div class="details-body">
+                                    <div class="code-box added">
+                                        <pre tabindex="0"><code>import tensorflow as tf
+
+inputs, targets = next(iter(val_dataset.take(1)))
+
+one_input = {
+    key: value[:1]
+    for key, value in inputs.items()
+}
+one_target = targets[:1]
+
+probabilities = transformer(one_input, training=False)
+
+tf.debugging.assert_rank(probabilities, 3)
+tf.debugging.assert_equal(
+    tf.shape(probabilities)[:2],
+    tf.shape(one_target)
+)
+tf.debugging.assert_equal(
+    tf.shape(probabilities)[-1],
+    VOCABULARY_SIZE
+)
+tf.debugging.assert_all_finite(
+    probabilities,
+    "예측에 NaN 또는 Inf가 있습니다."
+)
+
+print("입력:", one_input['enc_inputs'].shape)
+print("Target:", one_target.shape)
+print("Prediction:", probabilities.shape)</code></pre>
+                                    </div>
+
+                                    <p>
+                                        정상 준비된 모델과 Validation Dataset이 필요합니다.
+                                        한 문장이어도 모델 파라미터 메모리는 필요합니다.
+                                        통과해도 번역 품질이나 Causal Mask의 의미까지 검증한 것은 아닙니다.
+                                    </p>
+                                </div>
+                            </details>
+
+                            <p class="source">
+                                <span class="badge added">Step 2 진단 예제</span>
+                                이 페이지 작성 과정에서 TensorFlow 재실행 결과를 산출하지 않음
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     19. 개선
+                =================================================== -->
+                        <section id="performance" class="lesson-card performance-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">19 · PERFORMANCE IMPROVEMENT</p>
+                                <h2>성능 개선 — 데이터·연결·평가부터 확인하기</h2>
+                            </div>
+
+                            <p>
+                                다음은 개선 제안이며 원본에서 효과를 검증한 결과가 아닙니다.
+                                첫 Epoch의 낮은 정확도만 보고 과소적합이라고 판단하거나,
+                                6개 블록이라는 이유만으로 과적합이라고 단정하지 않습니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="과적합 과소적합 학습 문제">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">관찰</th>
+                                            <th scope="col">가능성</th>
+                                            <th scope="col">확인할 것</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Train 감소, Val 증가</td>
+                                            <td>Overfitting 가능성</td>
+                                            <td>분포·중복·모델 규모</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Train/Val 모두 높은 손실</td>
+                                            <td>Underfitting 또는 구현 문제</td>
+                                            <td>Shift·Mask·학습률·학습 시간</td>
+                                        </tr>
+                                        <tr>
+                                            <td>손실 진동·NaN</td>
+                                            <td>수치 불안정 가능성</td>
+                                            <td>입력값·Loss 계약·기울기</td>
+                                        </tr>
+                                        <tr>
+                                            <td>토큰 지표와 번역 품질 불일치</td>
+                                            <td>평가·생성 차이</td>
+                                            <td>Teacher Forcing·EOS·전처리</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3>학습률만 바꾸기 전에</h3>
+
+                            <div class="shape-path">
+                                <span>입력·Target·Mask 계약</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>작은 배치의 순방향 계산</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>유효한 Loss·기울기 확인</span>
+                                <b aria-hidden="true">↓</b>
+                                <strong>학습률·모델 크기 비교</strong>
+                            </div>
+
+                            <p>
+                                원본의 0.0001은 명시된 설정값입니다.
+                                현재 자료에서 최적 학습률로 검증된 값은 아닙니다.
+                                Gradient Clipping이나 다른 값을 추가하면 원본과 별도의 실험으로 기록합니다.
+                            </p>
+
+                            <ol class="priority-list">
+                                <li><strong>실행 의존성 확인</strong><span>kor.txt, WordTokenizer, 환경 버전을 맞춥니다.</span></li>
+                                <li><strong>원문 분할과 사전 구축 순서</strong><span>평가 정보가 전처리에 들어오지 않도록 검토합니다.</span></li>
+                                <li><strong>Shift·EOS·ID 검사</strong><span>Target이 유효한 다음 토큰을 의미하는지 확인합니다.</span></li>
+                                <li><strong>Head 차원과 모델 규모</strong><span>실제 key_dim=512와 메모리 사용 조건을 이해합니다.</span></li>
+                                <li><strong>계산 경로 연결 확인</strong><span>Encoder의 사용되지 않는 Dropout 결과를 검토합니다.</span></li>
+                                <li><strong>Mask와 지표 분리 검증</strong><span>입력 참조와 Target 평가를 따로 확인합니다.</span></li>
+                                <li><strong>학습·검증 기록 확보</strong><span>최종 성능을 말하기 전에 완료 로그를 확보합니다.</span></li>
+                                <li><strong>가중치 복원 절차</strong><span>모델 구조와 저장된 최적 파일을 확인합니다.</span></li>
+                                <li><strong>추론 전처리·EOS 후처리</strong><span>학습과 생성의 규칙을 일치시킵니다.</span></li>
+                                <li><strong>독립 Test와 실제 번역문 평가</strong><span>Teacher-Forced 숫자와 생성 품질을 함께 봅니다.</span>
+                                </li>
+                            </ol>
+
+                            <div class="callout">
+                                <strong>“작은 데이터에서 Transformer 성능이 좋지 않다”는 원본 문장</strong>
+                                <p>
+                                    이 교안의 주의사항으로 읽습니다.
+                                    현재 짧은 로그만으로 모든 Transformer와 모든 작은 Dataset에 대한
+                                    절대 법칙을 증명한 것은 아닙니다.
+                                </p>
+                            </div>
+
+                            <p class="source">
+                                <span class="badge original">원본 주석</span> Cell 001, 047
+                                <span class="badge added">Step 2 개선 제안</span>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     20. 실무
+                =================================================== -->
+                        <section id="practice" class="lesson-card practice-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">20 · PRACTICAL CONNECTION</p>
+                                <h2>실무 연결 — 번역 계산을 서비스로 연결할 때</h2>
+                            </div>
+
+                            <ol class="step-flow">
+                                <li><strong>사용자 영어 입력</strong><span>빈 문장·길이·입력 형식을 검증합니다.</span></li>
+                                <li><strong>같은 전처리와 Tokenizer</strong><span>학습 당시 토큰·ID 의미를 유지합니다.</span></li>
+                                <li><strong>Transformer 확률 계산</strong><span>원문과 생성 Prefix를 전달합니다.</span></li>
+                                <li><strong>생성 정책</strong><span>다음 토큰 선택, EOS, 최대 길이를 관리합니다.</span></li>
+                                <li><strong>한국어 복원·응답</strong><span>특수 토큰과 종료 상태를 확인해 반환합니다.</span></li>
+                            </ol>
+
+                            <p class="caption">
+                                서비스 확장의 제안 흐름입니다.
+                                원본은 API, 세션 관리, 운영용 검증까지 구현한 프로젝트가 아닙니다.
+                            </p>
+
+                            <h3>가중치와 함께 관리할 자료</h3>
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="배포 시 함께 관리할 정보">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">자료</th>
+                                            <th scope="col">필요한 이유</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row">모델 구조·가중치</th>
+                                            <td>같은 계산 경로 재현</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">key_dim·Heads·블록 수</th>
+                                            <td>파라미터 Shape과 계산 규모 유지</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">토큰↔ID 사전</th>
+                                            <td>숫자 ID의 언어적 의미 유지</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">영어·한국어 전처리</th>
+                                            <td>학습·추론의 규칙 일치</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">SOS/EOS/PAD 정책</th>
+                                            <td>생성 시작·종료·패딩 처리</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">길이·잘림 정책</th>
+                                            <td>위치 인코딩·생성 위치 계약 유지</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">라이브러리 버전</th>
+                                            <td>API·Mask 전달 재현</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">평가 데이터·규칙</th>
+                                            <td>버전 간 성능 비교</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <p>
+                                save_weights_only=True는 위 정보를 모두 하나의 파일에 저장하지 않습니다.
+                                특히 사전만 바뀌어도 같은 정수 ID가 다른 단어를 의미할 수 있습니다.
+                            </p>
+
+                            <h3>캐시를 적용하는 것은 별도 최적화다</h3>
+                            <p>
+                                원본은 토큰마다 모델 전체를 다시 호출합니다.
+                                Encoder 출력 재사용이나 Decoder 캐시를 도입하려면
+                                위치 인덱스, Mask, Prefix 길이, 배치별 종료 상태도 함께 설계해야 합니다.
+                                반복문을 단순히 줄이는 것만으로 같은 결과가 보장되는 변경은 아닙니다.
+                            </p>
+
+                            <p class="source">
+                                <span class="badge original">원본 범위</span> Cell 049, 053
+                                <span class="badge added">Step 2 서비스 확장 제안</span>
+                            </p>
+                        </section>
+
+                        <!-- ==================================================
+                     21. 면접
+                =================================================== -->
+                        <section id="interview" class="lesson-card interview-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">21 · INTERVIEW / REVIEW</p>
+                                <h2>면접 포인트와 복습 질문</h2>
+                            </div>
+
+                            <p>
+                                답변을 접고 질문부터 설명해 보세요.
+                                용어뿐 아니라 원본 코드의 설정과 Shape,
+                                실제 저장 출력의 범위까지 연결하는 것이 복습 기준입니다.
+                            </p>
+
+                            <div class="qa-list">
+                                <details open>
+                                    <summary>Q01. Transformer에서도 왜 Seq2Seq라고 합니까?</summary>
+                                    <p>영어 입력 시퀀스를 조건으로 한국어 출력 시퀀스를 생성하기 때문입니다. 내부 계산을 바꾸어도 입력·출력 관계는 유지됩니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q02. 위치 인코딩은 왜 필요합니까?</summary>
+                                    <p>토큰 벡터에 위치 정보를 제공하기 위해서입니다. 원본은 사인·코사인 Tensor를 Token Embedding에 더합니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q03. 원본의 위치 정보도 학습됩니까?</summary>
+                                    <p>위치 Tensor는 함수로 계산한 고정값입니다. Token Embedding은 학습되지만 위치 정보가 별도의 학습 가능한 테이블은 아닙니다.
+                                    </p>
+                                </details>
+                                <details open>
+                                    <summary>Q04. 두 제곱근 스케일은 어떻게 다릅니까?</summary>
+                                    <p>Embedding에는 √D를 곱하고, Attention 내적 Score에는 √d_k로 나누는 연산을 사용합니다. 적용 위치와 의미가 다릅니다.
+                                    </p>
+                                </details>
+                                <details open>
+                                    <summary>Q05. num_heads=8, key_dim=512는 Head당 64차원입니까?</summary>
+                                    <p>아닙니다. Keras key_dim은 Head 하나의 Query·Key 차원이므로 원본은 Head당 512차원입니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q06. MHA의 출력이 512차원인 이유는 무엇입니까?</summary>
+                                    <p>output_shape를 지정하지 않아 Query 입력의 마지막 차원으로 출력 투영하기 때문입니다. 내부 Head 연결 차원과 반환 차원을
+                                        구분합니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q07. Encoder Self와 Decoder Cross-Attention은 어떻게 다릅니까?</summary>
+                                    <p>Encoder Self는 영어 표현에서 Q/K/V 입력을 만듭니다. Cross는 Decoder 중간 표현이 Q, Encoder 출력이
+                                        K/V입니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q08. Causal Mask가 필요한 이유는 무엇입니까?</summary>
+                                    <p>Teacher Forcing 입력 전체에서 현재 위치가 미래 정답 토큰을 미리 보지 못하게 하기 위해서입니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q09. Mask의 대각선을 허용하는 이유는 무엇입니까?</summary>
+                                    <p>현재 Decoder 입력은 현재 예측할 Target보다 한 칸 이전 토큰입니다. 현재 입력을 보는 것이 현재 정답을 미리 보는 것과 같지
+                                        않습니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q10. 원본 Boolean Mask의 True는 무엇입니까?</summary>
+                                    <p>참조 허용입니다. 참조 금지를 뜻하지 않습니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q11. UNITS=2048은 무엇입니까?</summary>
+                                    <p>FFN의 중간 Dense 차원입니다. 512차원 입력을 2048로 확장한 뒤 다시 512로 줄입니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q12. 잔차 덧셈은 Concat과 어떻게 다릅니까?</summary>
+                                    <p>같은 Shape의 원소를 더해 512차원을 유지합니다. Feature를 이어 붙여 차원을 늘리는 Concat과 다릅니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q13. logits 변수는 실제 Logit입니까?</summary>
+                                    <p>원본의 최종 Dense에 Softmax가 있으므로 확률입니다. 변수명보다 실제 연산을 기준으로 읽습니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q14. 원본의 최종 번역 정확도는 얼마입니까?</summary>
+                                    <p>확인할 수 없습니다. 첫 Epoch의 3/29 진행 출력만 있으므로 0.0418을 최종 정확도로 사용하지 않습니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q15. Validation이 있으므로 누수 문제도 해결되었습니까?</summary>
+                                    <p>원본은 전체 사전 구축 뒤에 분할합니다. 평가 정보가 전처리에 들어갈 수 있는 점을 별도로 검토해야 합니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q16. Attention Mask가 있으면 PAD Loss도 올바르게 제외됩니까?</summary>
+                                    <p>그렇게 단정할 수 없습니다. 입력 참조와 Target 손실·지표 집계는 다른 확인 지점입니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q17. 원본 Encoder Dropout에서 확인한 점은 무엇입니까?</summary>
+                                    <p>attention_output_1을 계산하지만 후속 Add가 원래 attention_output을 사용합니다. 해당 Dropout 결과가 출력
+                                        경로에 반영되지 않습니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q18. EOS가 나오지 않으면 추론 후처리에 어떤 문제가 있습니까?</summary>
+                                    <p>[1:-1]이 마지막 요소를 무조건 제거하므로 마지막 실제 번역 토큰이 삭제될 수 있습니다.</p>
+                                </details>
+                                <details open>
+                                    <summary>Q19. 같은 Tokenizer를 쓰면 Embedding도 공유합니까?</summary>
+                                    <p>원본은 Encoder와 Decoder에 PositionalEmbedding 객체를 각각 만듭니다. 공통 사전과 공유 가중치는 다른 개념입니다.
+                                    </p>
+                                </details>
+                                <details open>
+                                    <summary>Q20. 다음 단원은 무엇입니까?</summary>
+                                    <p>ML 63. Transformer 챗봇입니다. 번역 문장 쌍 대신 질문·응답 시퀀스를 처리합니다.</p>
+                                </details>
+                            </div>
+
+                            <div class="callout success">
+                                <strong>ML 62 복습 완료 기준</strong>
+                                <p>
+                                    데이터 → Shift → 위치 인코딩 → 세 Attention →
+                                    FFN·잔차·정규화 → Mask → Loss·검증 → 자유 생성의 흐름을,
+                                    원본 코드와 저장 결과의 한계까지 포함해 설명할 수 있어야 합니다.
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- ==================================================
+                     22. 출처
+                =================================================== -->
+                        <section id="references" class="lesson-card references-card">
+                            <div class="section-heading">
+                                <p class="section-kicker">22 · SOURCE GUIDE</p>
+                                <h2>출처와 학습 자료의 경계</h2>
+                            </div>
+
+                            <h3>수업 원본</h3>
+                            <p>
+                                <cite>97_케라스_Seq2Seq_트랜스포머_기계번역62.ipynb</cite><br>
+                                <cite>AI_MachineLearning_통합교안_36-100</cite>
+                                · Notebook 97 · PDF 681~694페이지
+                            </p>
+
+                            <p>
+                                원본 실행문은 주석·빈 줄·디버그 출력 일부를 생략한 경우를 표시했습니다.
+                                모델 연결과 설정을 수정 코드로 대체하지 않았습니다.
+                                중간 Shape, 수식, Mask 예제는 Step 1·2의 보충 해설입니다.
+                                진단 함수는 원본에 없는 코드이며 이 페이지에서 실행한 결과가 아닙니다.
+                            </p>
+
+                            <h3>보충 API 설명의 공식 문서</h3>
+
+                            <dl class="reference-list">
+                                <dt id="ref-mha">MultiHeadAttention</dt>
+                                <dd><a href="https://keras.io/api/layers/attention_layers/multi_head_attention/">Head별
+                                        key_dim, 출력 투영, Mask와 Broadcasting</a></dd>
+
+                                <dt id="ref-embedding">Embedding</dt>
+                                <dd><a href="https://keras.io/api/layers/core_layers/embedding/">정수 ID 입력과 mask_zero</a>
+                                </dd>
+
+                                <dt id="ref-layernorm">LayerNormalization</dt>
+                                <dd><a href="https://keras.io/api/layers/normalization_layers/layer_normalization/">정규화
+                                        축과 Feature 처리</a></dd>
+
+                                <dt id="ref-training">Model training APIs</dt>
+                                <dd><a href="https://keras.io/api/models/model_training_apis/">compile, fit, evaluate,
+                                        run_eagerly, weighted_metrics</a></dd>
+
+                                <dt id="ref-loss">Probabilistic losses</dt>
+                                <dd><a href="https://keras.io/api/losses/probabilistic_losses/">Sparse Crossentropy와
+                                        from_logits, Reduction</a></dd>
+
+                                <dt id="ref-adam">Adam</dt>
+                                <dd><a href="https://keras.io/api/optimizers/adam/">학습률과 Optimizer 설정</a></dd>
+
+                                <dt id="ref-earlystop">EarlyStopping</dt>
+                                <dd><a href="https://keras.io/api/callbacks/early_stopping/">monitor, patience,
+                                        restore_best_weights</a></dd>
+
+                                <dt id="ref-subclassing">Model Subclassing</dt>
+                                <dd><a href="https://keras.io/guides/making_new_layers_and_models_via_subclassing/">call과
+                                        training 인수</a></dd>
+
+                                <dt id="ref-tokenizer">Legacy Tokenizer</dt>
+                                <dd><a
+                                        href="https://www.tensorflow.org/api_docs/python/tf/keras/preprocessing/text/Tokenizer">Deprecated
+                                        안내</a></dd>
+
+                                <dt id="ref-leakage">데이터 누수</dt>
+                                <dd><a href="https://scikit-learn.org/stable/common_pitfalls.html">학습·평가 분할과 전처리 원칙</a>
+                                </dd>
+                            </dl>
+
+                            <p class="caption">
+                                공식 API 설명은 원본 코드의 의미를 확인하기 위한 보충 자료입니다.
+                                현재 문서가 원본 Notebook의 작성·실행 환경과 동일하다고 가정하지 않습니다.
+                            </p>
+                        </section>
+
+                    </main>
+
+                    <!-- ==================================================
+                 ASIDE
+            =================================================== -->
+                    <aside class="side-note" aria-label="ML 62 보충 학습 노트">
+
+                        <section class="note-card memory-note">
+                            <p class="note-number">MEMORY</p>
+                            <h2>오늘의 암기 포인트</h2>
+
+                            <dl class="memory-list">
+                                <dt>작업</dt>
+                                <dd>영어 → 한국어 번역</dd>
+                                <dt>선택 데이터</dt>
+                                <dd>1,000쌍</dd>
+                                <dt>Train / Validation</dt>
+                                <dd>900 / 100</dd>
+                                <dt>독립 Test</dt>
+                                <dd>원본에 없음</dd>
+                                <dt>시퀀스 길이</dt>
+                                <dd>10</dd>
+                                <dt>Vocabulary</dt>
+                                <dd>1,947</dd>
+                                <dt>기본 표현 차원</dt>
+                                <dd>512</dd>
+                                <dt>FFN</dt>
+                                <dd>512 → 2048 → 512</dd>
+                                <dt>Head 수</dt>
+                                <dd>8</dd>
+                                <dt>원본 key_dim</dt>
+                                <dd>Head별 512</dd>
+                                <dt>블록 수</dt>
+                                <dd>Encoder 6 / Decoder 6</dd>
+                                <dt>최종 확률</dt>
+                                <dd>(B,T,1947)</dd>
+                                <dt>Learning Rate</dt>
+                                <dd>0.0001</dd>
+                                <dt>Callback</dt>
+                                <dd>val_loss / patience 5</dd>
+                            </dl>
+
+                            <div class="note-emphasis">
+                                epochs=100은 설정.<br>
+                                저장 로그는 Epoch 1의 3/29.<br>
+                                최종 번역 성능은 미확인.
+                            </div>
+                        </section>
+
+                        <section class="note-card confusion-note">
+                            <p class="note-number">CONFUSION</p>
+                            <h2>헷갈리기 쉬운 개념</h2>
+
+                            <dl class="definition-list">
+                                <dt>길이 / Feature</dt>
+                                <dd>10은 길이, 512는 기본 벡터 차원입니다.</dd>
+
+                                <dt>Heads / Layers</dt>
+                                <dd>8은 한 MHA의 Head 수, 6은 Stack의 블록 수입니다.</dd>
+
+                                <dt>key_dim / 출력 차원</dt>
+                                <dd>Head별 차원과 최종 출력 투영 차원은 다릅니다.</dd>
+
+                                <dt>고정 위치 정보 / 학습 Embedding</dt>
+                                <dd>사인·코사인 Tensor와 Token Embedding 가중치를 구분합니다.</dd>
+
+                                <dt>Add / Concat</dt>
+                                <dd>원소별 덧셈과 Feature 연결은 다릅니다.</dd>
+
+                                <dt>Shift / Causal Mask</dt>
+                                <dd>정답 이동과 참조 범위 제한입니다.</dd>
+
+                                <dt>입력 Mask / Target Mask</dt>
+                                <dd>원문 참조와 손실·지표 집계는 별도입니다.</dd>
+
+                                <dt>logits / probabilities</dt>
+                                <dd>원본 변수명은 logits지만 값은 Softmax 확률입니다.</dd>
+
+                                <dt>검증 / 자유 생성</dt>
+                                <dd>이전 정답을 받는 평가와 이전 예측을 잇는 생성입니다.</dd>
+                            </dl>
+                        </section>
+
+                        <section class="note-card next-note">
+                            <p class="note-number">NEXT</p>
+                            <h2>다음 단원 연결</h2>
+
+                            <p class="next-title">ML 63. Transformer 챗봇</p>
+
+                            <p>
+                                번역 말뭉치 대신 질문·답변 쌍을 사용합니다.
+                                위치 인코딩, Mask, Self/Cross-Attention,
+                                Teacher Forcing과 자기회귀 응답 생성이 이어집니다.
+                            </p>
+
+                            <div class="mini-flow">
+                                <span>Transformer 번역</span>
+                                <b aria-hidden="true">↓</b>
+                                <span>질문·답변 Dataset</span>
+                                <b aria-hidden="true">↓</b>
+                                <strong>Transformer 챗봇</strong>
+                            </div>
+
+                            <p>
+                                다음 교안에는 Decoder 일부 변수의 Gradient 경고를
+                                점검하라는 메모가 있습니다.
+                                다음 장의 경고를 현재 ML 62에서 발생한 오류로 옮겨 설명하지 않습니다.
+                            </p>
+
+                            <div class="note-emphasis">
+                                선언했는가?<br>
+                                호출되는가?<br>
+                                결과가 실제 사용되는가?<br>
+                                Loss까지 연결되는가?<br>
+                                실행 출력이 있는가?
+                            </div>
+
+                            <!-- 다음 단원의 실제 파일명이 다르면 경로를 맞추세요. -->
+                            <a class="next-link" href="./63_transformer_chatbot.html">
+                                ML 63으로 이동 →
+                            </a>
+                        </section>
+
+                        <section class="note-card source-note">
+                            <p class="note-number">READING GUIDE</p>
+                            <h2>출처 표시 읽기</h2>
+
+                            <p><span class="badge original">원본</span> Notebook 실행문·저장 출력</p>
+                            <p><span class="badge review">교안 메모</span> 통합 PDF의 검토 사항</p>
+                            <p><span class="badge analysis">보충 해설</span> 코드 분석·수식·Shape 계산</p>
+                            <p><span class="badge added">추가 예제</span> 원본에 없는 진단·개선 제안</p>
+
+                            <p class="small">
+                                Python 코드는 브라우저에서 실행되지 않습니다.
+                                외부 모듈과 TensorFlow 환경이 준비된 Notebook에서 사용하는 학습 자료입니다.
+                            </p>
+
+                            <p class="small">
+                                코드·문답은 기본적으로 펼쳐져 있습니다.
+                                인쇄할 때 닫은 항목이 있다면 다시 펼쳐 주세요.
+                            </p>
+
+                            <a href="#references">원본과 보충 문서 확인</a>
+                        </section>
+
+                    </aside>
+
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
+                <!-- ==================================================
+             PAGINATION
+        =================================================== -->
+                <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 7. RNN &#183; Attention &#183; Transformer</span>
-                    <span>ML 62</span>
-                    <span>Skeleton</span>
-                </div>
+                    <a class="lesson-prev" href="./61_attention_seq2seq_chatbot.html">
+                        <span>이전 단원</span>
+                        <strong>ML 61. Attention 챗봇</strong>
+                    </a>
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-62">
-                    <h2 id="goals-machine-learning-62">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
+                    <a class="lesson-course-index" href="#nav-machine-learning">
+                        <span>과목 목차</span>
+                        <strong>AI Machine Learning</strong>
+                    </a>
 
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
-                        </div>
+                    <!-- 실제 프로젝트의 다음 단원 파일명과 일치하는지 확인하세요. -->
+                    <a class="lesson-next" href="./63_transformer_chatbot.html">
+                        <span>다음 단원</span>
+                        <strong>ML 63. Transformer 챗봇</strong>
+                    </a>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                </nav>
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
-                        </div>
+                <footer class="lesson-footer">
+                    <p>
+                        AI Machine Learning · PART 7 · ML 62<br>
+                        데이터 → 위치 정보 → Attention → Mask → 학습·검증 → 번역 생성
+                    </p>
+                    <a href="#goals-ml62">학습 목표로 돌아가기 ↑</a>
+                </footer>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="ML 62. Transformer 기계번역 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./61_attention_seq2seq_chatbot.html">
-                    <span>이전 단원</span>
-                    <strong>ML 61. Attention Seq2Seq 챗봇</strong>
-                </a>
-
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./63_transformer_chatbot.html">
-                    <span>다음 단원</span>
-                    <strong>ML 63. Transformer 챗봇</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+
+    </body>
+
 </html>
