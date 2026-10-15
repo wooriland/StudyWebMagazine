@@ -1,266 +1,4562 @@
 <!DOCTYPE html>
 <html lang="ko" class="theme-ai-ml-root">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        name="description"
-        content="ML 64. RAG 개념과 문서 기반 챗봇 Skeleton 페이지. 향후 Step 1, Step 2, Step 3 학습을 통해 완성합니다."
-    >
-    <title>ML 64. RAG 개념과 문서 기반 챗봇 | AI Machine Learning | AI &amp; Machine Learning</title>
 
-    <link rel="stylesheet" href="../../css/00_nav.css">
-    <link rel="stylesheet" href="../../css/study-theme.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/ai-machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/machine-learning-common.css">
-    <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/64_rag_document_chatbot.css">
-    <script src="../../js/00_nav.js" defer></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page skeleton-page"
-      data-nav-category="ai-machine-learning"
-      data-course="machine-learning"
-      data-lesson="64"
-      data-step="0"
-      data-status="skeleton" data-part="part-8-rag-langchain">
-    <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+        <meta name="description"
+            content="ML 64. RAG 개념과 문서 챗봇. PDF Loader, Chunking, Embedding, FAISS, Retriever, LCEL, Prompt, OpenAI LLM, Streamlit을 연결하는 문서 기반 RAG 학습 매거진.">
 
-    <div class="layout">
-        <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션"></nav>
+        <title>ML 64. RAG 개념과 문서 챗봇 | AI Machine Learning</title>
 
-        <div class="page-content">
-            <header class="ai-ml-hero lesson-hero">
-                <div class="header-topline">
-                    <p class="series-label">AI &amp; MACHINE LEARNING · COURSE 02</p>
-                    <p class="reading-time">Skeleton · Step 1 → Step 2 → Step 3</p>
-                </div>
+        <!-- ==================================================
+         공통 학습 매거진 CSS
+    =================================================== -->
+        <link rel="stylesheet" href="../../css/00_nav.css">
+        <link rel="stylesheet" href="../../css/study-theme.css">
 
-                <div class="hero-copy">
-                    <div>
-                        <p class="eyebrow">AI Machine Learning · PART 8. RAG와 LangChain · ML 64</p>
-                        <h1>ML 64. RAG 개념과 문서 기반 챗봇</h1>
+        <!-- ==================================================
+         ML 64 전용 CSS
+    =================================================== -->
+        <link rel="stylesheet" href="../../css/AIMachineLearning/MachineLearning/64_rag_document_chatbot.css">
+
+        <!-- 공통 네비게이션 -->
+        <script src="../../js/00_nav.js" defer></script>
+    </head>
+
+    <body class="theme-ai-ml study-page ai-ml-page machine-learning-page lesson-page ml64-page"
+        data-nav-category="ai-machine-learning" data-course="machine-learning" data-lesson="64" data-step="3"
+        data-status="complete" data-part="part-8-rag-langchain">
+
+        <a class="skip-link" href="#lesson-main">본문 바로가기</a>
+
+        <div class="layout">
+
+            <nav class="side-nav" id="sideNav" data-root="../../" aria-label="전체 학습 매거진 네비게이션">
+            </nav>
+
+            <div class="page-content">
+
+                <!-- ==================================================
+             HEADER
+        =================================================== -->
+                <header class="ai-ml-hero lesson-hero">
+
+                    <div class="header-topline">
+                        <p class="series-label">
+                            AI &amp; MACHINE LEARNING · COURSE 02
+                        </p>
+
+                        <p class="reading-time">
+                            PART 8 · NOTEBOOK 99 · STEP 3
+                        </p>
                     </div>
 
-                    <div class="lesson-status" aria-label="현재 작성 상태">준비 중</div>
+                    <div class="hero-copy">
+
+                        <div>
+                            <p class="eyebrow">
+                                AI Machine Learning · Generative AI · RAG
+                            </p>
+
+                            <h1>ML 64. RAG 개념과 문서 챗봇</h1>
+
+                            <p class="hero-subtitle">
+                                모델을 다시 학습하지 않고,
+                                외부 문서를 검색해 근거 기반 답변 만들기
+                            </p>
+                        </div>
+
+                        <span class="lesson-status">
+                            Step 3 학습 자료
+                        </span>
+
+                    </div>
+
+                    <p class="hero-summary">
+                        이번 단원부터 AI Machine Learning의 흐름이
+                        <strong>Loss → Gradient → Optimizer → fit()</strong> 중심에서
+                        <strong>Document → Chunk → Embedding → Vector DB → Retrieval →
+                            Prompt → LLM</strong> 중심으로 바뀝니다.
+                        PDF 문서를 작은 Chunk로 나누고,
+                        각 Chunk를 Embedding하여 FAISS에 저장한 뒤,
+                        사용자의 질문과 관련된 문서 Top-k를 검색해
+                        LLM의 Context로 전달하는
+                        <strong>Retrieval-Augmented Generation</strong> 구조를 학습합니다.
+                    </p>
+
+                    <div class="hero-keywords" aria-label="ML 64 핵심 키워드">
+                        <span>RAG</span>
+                        <span>Document Corpus</span>
+                        <span>Chunking</span>
+                        <span>Embedding</span>
+                        <span>FAISS</span>
+                        <span>Retriever</span>
+                        <span>Top-k</span>
+                        <span>LCEL</span>
+                        <span>Prompt Context</span>
+                        <span>Streamlit</span>
+                    </div>
+
+                    <section class="learning-goals" aria-labelledby="goals-ml64">
+
+                        <h2 id="goals-ml64">이번 단원의 학습 목표</h2>
+
+                        <ol class="goal-list">
+
+                            <li>
+                                <span>01</span>
+                                <p>
+                                    RAG가 왜 필요한지
+                                    기본 LLM의 한계와 연결해 설명한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>02</span>
+                                <p>
+                                    PDF → Page → Chunk → Embedding → FAISS의
+                                    문서 준비 흐름을 이해한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>03</span>
+                                <p>
+                                    사용자 질문이 Embedding되어
+                                    관련 Chunk Top-k를 찾는 과정을 설명한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>04</span>
+                                <p>
+                                    Retriever와 LLM의 역할을 분리하고
+                                    검색 실패와 생성 실패를 구분한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>05</span>
+                                <p>
+                                    이번 Notebook에 Loss·Optimizer·fit이
+                                    존재하지 않는 이유를 설명한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>06</span>
+                                <p>
+                                    LCEL에서 context와 question이
+                                    Prompt에 어떻게 전달되는지 이해한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>07</span>
+                                <p>
+                                    Streamlit의 UI History와
+                                    실제 LLM Conversation Memory를 구분한다.
+                                </p>
+                            </li>
+
+                            <li>
+                                <span>08</span>
+                                <p>
+                                    작성된 코드와 저장 실행 결과의
+                                    PDF Source 불일치를 정확하게 읽는다.
+                                </p>
+                            </li>
+
+                        </ol>
+
+                    </section>
+
+                    <div class="hero-source">
+
+                        <strong>학습 자료 기준</strong>
+
+                        <p>
+                            원본: <code>99_Rag.ipynb</code><br>
+                            통합 교안: 715~730페이지<br>
+                            총 27개 셀 · Markdown 21개 · Code 6개 · 저장 출력 1개
+                        </p>
+
+                    </div>
+
+                    <div class="hero-alert">
+
+                        <strong>원본 재현 시 주의</strong>
+
+                        <p>
+                            통합 교안의 검토 메모에 따르면
+                            원본이 참조하는 PDF 2개와 Markdown 이미지 2개가
+                            제공된 교안 폴더에는 없어,
+                            현재 자료만으로 원본 RAG 실행과 해당 그림 표시를
+                            완전히 재현할 수 없습니다.
+                        </p>
+
+                    </div>
+
+                    <div class="hero-alert source-mismatch">
+
+                        <strong>코드와 저장 출력의 PDF Source가 다릅니다.</strong>
+
+                        <p>
+                            현재 Cell 008 코드는
+                            <code>data/company_policy_rag.pdf</code>를 읽도록 작성되어 있지만,
+                            저장된 Document 출력의 metadata는
+                            <code>data/Samsung_Card_Manual_Korean_1.3.pdf</code>를 가리킵니다.
+                            어느 시점에 코드가 바뀌었는지는 현재 자료만으로 확정하지 않습니다.
+                        </p>
+
+                    </div>
+
+                </header>
+
+
+                <!-- ==================================================
+             TABLE OF CONTENTS
+        =================================================== -->
+                <nav class="lesson-toc" aria-label="ML 64 학습 목차">
+
+                    <h2>학습 목차</h2>
+
+                    <div class="toc-links">
+                        <a href="#goal">01. 실습 목표</a>
+                        <a href="#concept">02. 핵심 개념</a>
+                        <a href="#visual">03. 그림처럼 이해</a>
+                        <a href="#environment">04. 실행 환경</a>
+                        <a href="#dataset">05. Dataset 구조</a>
+                        <a href="#xy">06. X / y 구조</a>
+                        <a href="#shape">07. Shape 흐름</a>
+                        <a href="#preprocess">08. 문서 전처리</a>
+                        <a href="#embedding">09. Embedding / FAISS</a>
+                        <a href="#retriever">10. Retriever</a>
+                        <a href="#prompt">11. Prompt / LCEL</a>
+                        <a href="#model">12. Model 구조</a>
+                        <a href="#training">13. Train 대신 Indexing</a>
+                        <a href="#result">14. 저장 출력</a>
+                        <a href="#metric">15. Metric 해석</a>
+                        <a href="#evaluate">16. Evaluate</a>
+                        <a href="#predict">17. Predict / invoke</a>
+                        <a href="#streamlit">18. Streamlit</a>
+                        <a href="#practice-problems">19. 실습 문제</a>
+                        <a href="#mistake">20. 자주 하는 실수</a>
+                        <a href="#error">21. 오류 메시지</a>
+                        <a href="#performance">22. 성능 개선</a>
+                        <a href="#practice">23. 실무 연결</a>
+                        <a href="#interview">24. 면접 포인트</a>
+                        <a href="#references">25. 출처 안내</a>
+                    </div>
+
+                </nav>
+
+
+                <div class="content-layout">
+
+                    <!-- ==================================================
+                 MAIN
+            =================================================== -->
+                    <main id="lesson-main" class="lesson-main" tabindex="-1">
+
+
+                        <!-- ==================================================
+                     01. GOAL
+                =================================================== -->
+                        <section id="goal" class="lesson-card goal-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    01 · PROBLEM DEFINITION
+                                </p>
+
+                                <h2>
+                                    실습 목표 — 모델을 다시 학습하지 않고 문서를 찾아 답하게 하기
+                                </h2>
+                            </div>
+
+                            <p class="lead">
+                                ML 63까지는 Dataset으로 모델 Weight를 직접 학습했습니다.
+                                ML 64부터는 이미 학습된 Embedding Model과 LLM을 사용하고,
+                                외부 문서를 검색해 답변 Context로 제공하는
+                                <strong>RAG 애플리케이션 구조</strong>를 학습합니다.
+                            </p>
+
+                            <div class="grid-two">
+
+                                <article class="mini-card">
+
+                                    <p class="mini-kicker">PART 7</p>
+
+                                    <h3>직접 학습한 Transformer 챗봇</h3>
+
+                                    <div class="mini-flow">
+                                        <span>Q / A Dataset</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Loss</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Gradient</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Optimizer</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <strong>Weight 학습</strong>
+                                    </div>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <p class="mini-kicker">PART 8</p>
+
+                                    <h3>RAG 문서 챗봇</h3>
+
+                                    <div class="mini-flow">
+                                        <span>PDF / 문서</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Embedding</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Vector Search</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <span>Prompt Context</span>
+                                        <b aria-hidden="true">↓</b>
+                                        <strong>기존 LLM 호출</strong>
+                                    </div>
+
+                                </article>
+
+                            </div>
+
+
+                            <div class="concept-highlight">
+                                RAG의 핵심은
+                                “새로운 지식을 모델 Weight에 다시 학습한다”가 아니라
+                                “질문할 때 필요한 지식을 찾아 LLM에게 참고자료로 제공한다”입니다.
+                            </div>
+
+
+                            <h3>언제 필요한가?</h3>
+
+                            <div class="grid-three">
+
+                                <article class="mini-card">
+                                    <h3>최신 정보</h3>
+                                    <p>
+                                        최근 변경된 정책, 가격, 장애 대응 절차처럼
+                                        모델 학습 이후 생긴 정보
+                                    </p>
+                                </article>
+
+                                <article class="mini-card">
+                                    <h3>비공개 정보</h3>
+                                    <p>
+                                        사내 규정, 내부 기술문서,
+                                        개인 문서처럼 공개되지 않은 정보
+                                    </p>
+                                </article>
+
+                                <article class="mini-card accent">
+                                    <h3>전문 문서</h3>
+                                    <p>
+                                        논문, 매뉴얼, 표준서, 계약서처럼
+                                        특정 도메인의 상세한 근거
+                                    </p>
+                                </article>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>RAG가 최신 정보를 자동으로 수집하는 것은 아닙니다.</strong>
+
+                                <p>
+                                    새로운 문서를 Corpus에 추가하고
+                                    Embedding·Vector Index를 갱신해야
+                                    그 정보를 검색할 수 있습니다.
+                                </p>
+
+                            </div>
+
+
+                            <div class="callout">
+
+                                <strong>RAG가 Hallucination을 100% 제거하는 것도 아닙니다.</strong>
+
+                                <p>
+                                    검색 실패, 잘못된 Chunk, 문서 자체의 오류,
+                                    Prompt 문제, LLM의 Context 오해가 남을 수 있습니다.
+                                    RAG는 문서 근거를 제공해
+                                    근거 기반 답변 가능성을 높이는 구조입니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     02. CORE CONCEPTS
+                =================================================== -->
+                        <section id="concept" class="lesson-card concept-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    02 · CORE CONCEPTS
+                                </p>
+
+                                <h2>
+                                    핵심 개념 — Retrieval과 Generation을 분리해서 이해하기
+                                </h2>
+                            </div>
+
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="RAG 핵심 개념">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">개념</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <th scope="row">Corpus</th>
+                                            <td>검색 대상으로 사용할 외부 문서 집합</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Document</th>
+                                            <td>본문 page_content와 metadata를 가진 문서 객체</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Chunk</th>
+                                            <td>검색하기 좋게 작은 단위로 나눈 문서 조각</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Embedding</th>
+                                            <td>텍스트를 의미 비교가 가능한 숫자 Vector로 변환</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Vector Store</th>
+                                            <td>Embedding Vector를 검색 가능한 구조로 관리</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">FAISS</th>
+                                            <td>이번 원본에서 사용하는 Vector 검색 Index</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Retriever</th>
+                                            <td>질문과 관련된 Document Chunk를 검색</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Top-k</th>
+                                            <td>검색 결과 중 상위 몇 개를 사용할지 결정</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Context</th>
+                                            <td>Retriever가 찾아 Prompt에 넣는 참고 문서</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">Generation</th>
+                                            <td>검색 Context와 질문을 보고 LLM이 답변 생성</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row">LCEL</th>
+                                            <td>LangChain Runnable을 파이프처럼 연결하는 구성 방식</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <h3>RAG와 Fine-tuning</h3>
+
+                            <div class="grid-two">
+
+                                <article class="mini-card warm">
+
+                                    <h3>Fine-tuning</h3>
+
+                                    <div class="mini-flow">
+                                        <span>Dataset</span>
+                                        <b>↓</b>
+                                        <span>Loss</span>
+                                        <b>↓</b>
+                                        <span>Gradient</span>
+                                        <b>↓</b>
+                                        <strong>Model Weight 변경</strong>
+                                    </div>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <h3>RAG</h3>
+
+                                    <div class="mini-flow">
+                                        <span>External Documents</span>
+                                        <b>↓</b>
+                                        <span>Search</span>
+                                        <b>↓</b>
+                                        <span>Prompt Context</span>
+                                        <b>↓</b>
+                                        <strong>기존 LLM 사용</strong>
+                                    </div>
+
+                                </article>
+
+                            </div>
+
+
+                            <div class="formula">
+
+                                <span>RAG를 한 문장으로</span>
+
+                                <code>
+                            Answer = LLM(Question + Retrieved Context)
+                        </code>
+
+                            </div>
+
+
+                            <h3>RAG 시스템의 두 단계</h3>
+
+                            <div class="grid-two">
+
+                                <article class="mini-card">
+
+                                    <h3>Offline · Ingestion</h3>
+
+                                    <div class="mini-flow">
+                                        <span>PDF</span>
+                                        <b>↓</b>
+                                        <span>Chunk</span>
+                                        <b>↓</b>
+                                        <span>Embedding</span>
+                                        <b>↓</b>
+                                        <strong>Vector DB</strong>
+                                    </div>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <h3>Online · Query</h3>
+
+                                    <div class="mini-flow">
+                                        <span>Question</span>
+                                        <b>↓</b>
+                                        <span>Retrieval</span>
+                                        <b>↓</b>
+                                        <span>Context</span>
+                                        <b>↓</b>
+                                        <strong>LLM Answer</strong>
+                                    </div>
+
+                                </article>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     03. VISUAL
+                =================================================== -->
+                        <section id="visual" class="lesson-card visual-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    03 · VISUAL PIPELINE
+                                </p>
+
+                                <h2>
+                                    그림처럼 이해 — RAG 전체 파이프라인
+                                </h2>
+                            </div>
+
+
+                            <figure class="rag-architecture">
+
+                                <div class="rag-stage offline-stage">
+
+                                    <p class="stage-label">
+                                        OFFLINE · DOCUMENT INGESTION
+                                    </p>
+
+                                    <div class="pipeline-node document-node">
+                                        PDF / Manual / Policy
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node">
+                                        PyPDFLoader
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node">
+                                        Page Documents
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node">
+                                        RecursiveCharacterTextSplitter
+                                        <small>
+                                            chunk_size=500 · overlap=100
+                                        </small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node">
+                                        Chunk Documents
+                                        <small>N개</small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node embedding-node">
+                                        OpenAIEmbeddings
+                                        <small>text-embedding-3-small</small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node vector-node">
+                                        FAISS Vector Index
+                                        <small>개념적으로 (N,d)</small>
+                                    </div>
+
+                                </div>
+
+
+                                <div class="rag-divider">
+                                    문서 준비 완료
+                                </div>
+
+
+                                <div class="rag-stage online-stage">
+
+                                    <p class="stage-label">
+                                        ONLINE · RETRIEVAL + GENERATION
+                                    </p>
+
+                                    <div class="pipeline-node question-node">
+                                        사용자 Question
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node embedding-node">
+                                        Query Embedding
+                                        <small>(d,)</small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node retrieval-node">
+                                        Retriever
+                                        <small>Top-k = 3</small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node">
+                                        Relevant Document Chunks
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node prompt-node">
+                                        Prompt
+                                        <small>{context} + {question}</small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node llm-node">
+                                        ChatOpenAI
+                                        <small>gpt-4o-mini</small>
+                                    </div>
+
+                                    <span class="pipeline-arrow">↓</span>
+
+                                    <div class="pipeline-node answer-node">
+                                        Document-grounded Answer
+                                    </div>
+
+                                </div>
+
+                                <figcaption>
+                                    원본의 핵심 코드 흐름을 시각화한 학습 도식입니다.
+                                    실제 Vector 값을 출력한 그림이 아닙니다.
+                                </figcaption>
+
+                            </figure>
+
+
+                            <h3>도서관 비유</h3>
+
+                            <div class="analogy-grid">
+
+                                <div>
+                                    <strong>LLM</strong>
+                                    <span>글을 잘 쓰는 전문가</span>
+                                </div>
+
+                                <div>
+                                    <strong>FAISS</strong>
+                                    <span>도서관 색인</span>
+                                </div>
+
+                                <div>
+                                    <strong>Embedding</strong>
+                                    <span>내용의 의미 좌표</span>
+                                </div>
+
+                                <div>
+                                    <strong>Retriever</strong>
+                                    <span>관련 책을 찾아주는 사서</span>
+                                </div>
+
+                                <div>
+                                    <strong>Prompt</strong>
+                                    <span>사서가 찾아온 자료 + 질문</span>
+                                </div>
+
+                                <div>
+                                    <strong>RAG</strong>
+                                    <span>자료를 찾아보고 답하는 전문가</span>
+                                </div>
+
+                            </div>
+
+
+                            <h3>답이 틀렸을 때의 디버깅 흐름</h3>
+
+                            <div class="debug-tree">
+
+                                <div class="debug-question">
+                                    답변이 틀렸다
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="debug-question">
+                                    올바른 Chunk를 검색했는가?
+                                </div>
+
+                                <div class="debug-branches">
+
+                                    <div class="debug-branch bad">
+                                        <strong>NO</strong>
+                                        <span>Retrieval 문제</span>
+                                    </div>
+
+                                    <div class="debug-branch good">
+                                        <strong>YES</strong>
+                                        <span>LLM이 Context를 올바르게 사용했는가?</span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     04. ENVIRONMENT
+                =================================================== -->
+                        <section id="environment" class="lesson-card environment-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    04 · DEVELOPMENT ENVIRONMENT
+                                </p>
+
+                                <h2>
+                                    개발 환경과 주요 Library
+                                </h2>
+                            </div>
+
+
+                            <div class="code-box">
+
+                                <div class="code-title">
+                                    <strong>원본 RAG 핵심 Import</strong>
+                                    <span class="badge original">Cell 008</span>
+                                </div>
+
+                                <pre tabindex="0"><code>from langchain_community.document_loaders import PyPDFLoader
+
+from langchain_text_splitters import (
+    RecursiveCharacterTextSplitter
+)
+
+from langchain_community.vectorstores import FAISS
+
+from langchain_openai import (
+    OpenAIEmbeddings,
+    ChatOpenAI
+)
+
+from langchain_core.runnables import (
+    RunnablePassthrough,
+    RunnableParallel
+)
+
+from langchain_core.prompts import (
+    ChatPromptTemplate
+)
+
+from dotenv import load_dotenv
+
+load_dotenv()</code></pre>
+
+                            </div>
+
+
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="RAG Library 역할">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Library / Class</th>
+                                            <th scope="col">역할</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <th>PyPDFLoader</th>
+                                            <td>PDF를 LangChain Document로 변환</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>RecursiveCharacterTextSplitter</th>
+                                            <td>긴 문서를 Chunk로 분할</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>OpenAIEmbeddings</th>
+                                            <td>텍스트를 의미 Vector로 변환</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>FAISS</th>
+                                            <td>Vector Index와 유사 문서 검색</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Retriever</th>
+                                            <td>사용자 질문과 관련된 Chunk 검색</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>ChatPromptTemplate</th>
+                                            <td>Context와 Question을 LLM Prompt로 조립</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>RunnablePassthrough</th>
+                                            <td>원래 질문을 그대로 다음 단계에 전달</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>ChatOpenAI</th>
+                                            <td>자연어 Answer 생성</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>python-dotenv</th>
+                                            <td>.env에서 API Key 등 환경변수 로드</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Streamlit</th>
+                                            <td>최종 문서 챗봇 UI</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <div class="callout review">
+
+                                <strong>외부 자료가 모두 포함된 상태가 아닙니다.</strong>
+
+                                <p>
+                                    원본 Markdown이 참조하는 그림과 PDF 일부가
+                                    제공 교안 폴더에 없다는 검토 메모가 있습니다.
+                                    파일이 없어서 발생하는 오류를
+                                    RAG 알고리즘 자체의 오류로 오해하지 않습니다.
+                                </p>
+
+                            </div>
+
+
+                            <details class="lesson-details">
+
+                                <summary>
+                                    보충 진단 · 실행 전 파일 확인
+                                </summary>
+
+                                <div class="details-body">
+
+                                    <div class="code-box added">
+
+                                        <pre tabindex="0"><code>from pathlib import Path
+
+pdf_path = Path(
+    "data/company_policy_rag.pdf"
+)
+
+print(
+    "PDF 존재:",
+    pdf_path.is_file()
+)
+
+print(
+    "현재 폴더:",
+    Path.cwd()
+)</code></pre>
+
+                                    </div>
+
+                                </div>
+
+                            </details>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     05. DATASET
+                =================================================== -->
+                        <section id="dataset" class="lesson-card dataset-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    05 · DATASET / CORPUS
+                                </p>
+
+                                <h2>
+                                    Dataset — 이번에는 X/y 표가 아니라 문서 Corpus
+                                </h2>
+                            </div>
+
+
+                            <p class="lead">
+                                RAG에서 Dataset은
+                                정답 Label이 있는 학습표가 아니라
+                                <strong>검색 가능한 외부 문서 집합</strong>입니다.
+                            </p>
+
+
+                            <div class="grid-three">
+
+                                <article class="mini-card">
+                                    <h3>원본 코드의 문서</h3>
+                                    <code>company_policy_rag.pdf</code>
+                                </article>
+
+                                <article class="mini-card warm">
+                                    <h3>저장 출력의 문서</h3>
+                                    <code>Samsung_Card_Manual_Korean_1.3.pdf</code>
+                                </article>
+
+                                <article class="mini-card accent">
+                                    <h3>RAG 관점</h3>
+                                    <p>PDF / Manual / Policy / Report가 Corpus</p>
+                                </article>
+
+                            </div>
+
+
+                            <div class="source-mismatch-card">
+
+                                <p class="mismatch-title">
+                                    SOURCE MISMATCH
+                                </p>
+
+                                <div class="mismatch-row">
+                                    <span>현재 코드</span>
+                                    <code>data/company_policy_rag.pdf</code>
+                                </div>
+
+                                <div class="mismatch-symbol">
+                                    ≠
+                                </div>
+
+                                <div class="mismatch-row">
+                                    <span>저장 Document metadata</span>
+                                    <code>data/Samsung_Card_Manual_Korean_1.3.pdf</code>
+                                </div>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>원인을 조용히 만들어 설명하지 않습니다.</strong>
+
+                                <p>
+                                    이전 실행의 출력이 남았을 수도 있고
+                                    Cell 코드가 나중에 변경되었을 수도 있지만,
+                                    현재 자료만으로 실행 이력을 확정할 수 없습니다.
+                                    따라서 코드와 저장 출력을 별도 증거로 취급합니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>문서의 내부 구조</h3>
+
+                            <div class="code-box neutral">
+
+                                <pre tabindex="0"><code>Document(
+    page_content="문서 본문...",
+    metadata={
+        "source": "문서 경로",
+        "page": 0,
+        ...
+    }
+)</code></pre>
+
+                            </div>
+
+
+                            <p>
+                                RAG에서는 본문뿐 아니라
+                                source, page 등의 Metadata를 함께 유지해야
+                                실제 서비스에서 출처와 페이지를 답변에 연결할 수 있습니다.
+                            </p>
+
+
+                            <p class="source">
+                                <span class="badge original">원본</span>
+                                Cell 008 · PDF 718~719페이지
+                            </p>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     06. X/Y
+                =================================================== -->
+                        <section id="xy" class="lesson-card xy-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    06 · X / y CONTRACT
+                                </p>
+
+                                <h2>
+                                    X / y 구조 — 전통적인 지도학습 Target이 없다
+                                </h2>
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>
+                                    이번 Notebook에는 X_train / y_train 학습 구조가 없습니다.
+                                </strong>
+
+                                <p>
+                                    사용자 Question은 검색과 생성의 입력이지만,
+                                    정답 y를 사용해 LLM Weight를 업데이트하지 않습니다.
+                                </p>
+
+                            </div>
+
+
+                            <div class="grid-two">
+
+                                <article class="mini-card">
+
+                                    <h3>Retrieval 입력</h3>
+
+                                    <p>
+                                        사용자 Query 문자열
+                                    </p>
+
+                                    <code>"Sev1은 무엇인가요?"</code>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <h3>Retrieval 출력</h3>
+
+                                    <p>
+                                        관련성이 높은 Document Chunk 목록
+                                    </p>
+
+                                    <code>List[Document]</code>
+
+                                </article>
+
+                            </div>
+
+
+                            <h3>Generation 입력</h3>
+
+                            <div class="formula">
+                                <code>
+                            LLM Input =
+                            Prompt Rules
+                            + Retrieved Context
+                            + User Question
+                        </code>
+                            </div>
+
+
+                            <h3>기존 Machine Learning 형식과 대응</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>기존 항목</th>
+                                            <th>ML 64 대응</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>X</td>
+                                            <td>User Question</td>
+                                        </tr>
+                                        <tr>
+                                            <td>y</td>
+                                            <td>학습용 Target 없음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Train Dataset</td>
+                                            <td>Document Corpus</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Predict Output</td>
+                                            <td>LLM Answer</td>
+                                        </tr>
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <p>
+                                LLM의 Answer는 미리 준비된 y와 Loss를 계산하기 위한 값이 아니라
+                                검색 Context를 바탕으로 그때그때 생성되는 자연어 결과입니다.
+                            </p>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     07. SHAPE
+                =================================================== -->
+                        <section id="shape" class="lesson-card shape-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    07 · SHAPE / DATA STRUCTURE
+                                </p>
+
+                                <h2>
+                                    Shape 흐름 — Sequence Tensor에서 Vector Matrix로
+                                </h2>
+                            </div>
+
+
+                            <p>
+                                이번 단원에서는 `(batch, timestep, feature)`보다
+                                <strong>문서 Chunk 수 N과 Embedding Dimension d</strong>가 중요합니다.
+                            </p>
+
+
+                            <div class="shape-path">
+
+                                <span>PDF Pages<br>P개</span>
+                                <b>↓</b>
+
+                                <span>Document Chunks<br>N개</span>
+                                <b>↓</b>
+
+                                <span>Chunk Embeddings<br>(N,d)</span>
+                                <b>↔</b>
+
+                                <span>Query Embedding<br>(d,)</span>
+                                <b>↓</b>
+
+                                <strong>Top-k Documents<br>최대 3개</strong>
+
+                            </div>
+
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>데이터</th>
+                                            <th>개념 구조</th>
+                                            <th>원본 저장 여부</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <td>Page Documents</td>
+                                            <td>P개</td>
+                                            <td>개수 출력 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Chunk Documents</td>
+                                            <td>N개</td>
+                                            <td>목록은 출력됨</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Document Embeddings</td>
+                                            <td>(N,d)</td>
+                                            <td>Shape 출력 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Query Embedding</td>
+                                            <td>(d,)</td>
+                                            <td>Shape 출력 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Retrieved Documents</td>
+                                            <td>Top-k, 원본 k=3</td>
+                                            <td>질의 결과 저장 없음</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>Embedding Dimension d는 원본에서 출력하지 않습니다.</strong>
+
+                                <p>
+                                    사용한 모델 이름은
+                                    text-embedding-3-small이지만,
+                                    Notebook에는 실제 Vector Shape 출력이 없습니다.
+                                    따라서 학습 자료에서는 d로 표현하고
+                                    원본이 제시하지 않은 숫자를 임의로 삽입하지 않습니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>객체 구조도 Shape만큼 중요하다</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>값</th>
+                                            <th>형태</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Question</td>
+                                            <td>str</td>
+                                        </tr>
+                                        <tr>
+                                            <td>pages</td>
+                                            <td>List[Document]</td>
+                                        </tr>
+                                        <tr>
+                                            <td>docs</td>
+                                            <td>List[Document]</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Embedding</td>
+                                            <td>float vector</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Metadata</td>
+                                            <td>dict</td>
+                                        </tr>
+                                        <tr>
+                                            <td>기본 LLM 출력</td>
+                                            <td>AIMessage</td>
+                                        </tr>
+                                        <tr>
+                                            <td>StrOutputParser 이후</td>
+                                            <td>str</td>
+                                        </tr>
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     08. PREPROCESS
+                =================================================== -->
+                        <section id="preprocess" class="lesson-card preprocess-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    08 · DOCUMENT PREPROCESSING
+                                </p>
+
+                                <h2>
+                                    전처리 — PDF를 검색 가능한 Chunk로 만들기
+                                </h2>
+                            </div>
+
+
+                            <ol class="step-flow">
+
+                                <li>
+                                    <strong>PDF Load</strong>
+                                    <span>PyPDFLoader로 Page Document 생성</span>
+                                </li>
+
+                                <li>
+                                    <strong>Chunk Split</strong>
+                                    <span>긴 Page를 검색 가능한 작은 단위로 분할</span>
+                                </li>
+
+                                <li>
+                                    <strong>Overlap</strong>
+                                    <span>Chunk 경계의 문맥 단절을 줄이기 위해 일부 내용 반복</span>
+                                </li>
+
+                                <li>
+                                    <strong>Embedding</strong>
+                                    <span>각 Chunk를 Vector로 변환</span>
+                                </li>
+
+                                <li>
+                                    <strong>Vector Index</strong>
+                                    <span>FAISS에 검색 가능한 형태로 저장</span>
+                                </li>
+
+                            </ol>
+
+
+                            <details class="lesson-details" open>
+
+                                <summary>
+                                    원본 코드 · PDF Load → Chunk Split
+                                </summary>
+
+                                <div class="details-body">
+
+                                    <div class="code-box">
+
+                                        <pre tabindex="0"><code># 1. PDF 로드
+loader = PyPDFLoader(
+    "data/company_policy_rag.pdf"
+)
+
+pages = loader.load()
+
+
+# 2. 텍스트 분할
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=100
+)
+
+docs = splitter.split_documents(
+    pages
+)
+
+print(docs)</code></pre>
+
+                                    </div>
+
+
+                                    <dl class="code-contract">
+
+                                        <dt>무엇?</dt>
+                                        <dd>PDF를 읽고 Page를 작은 Chunk로 분리합니다.</dd>
+
+                                        <dt>왜?</dt>
+                                        <dd>질문과 관련된 문서 일부만 검색하기 위해서입니다.</dd>
+
+                                        <dt>입력</dt>
+                                        <dd>PDF File</dd>
+
+                                        <dt>출력</dt>
+                                        <dd>List[Document] 형태의 Chunk 목록</dd>
+
+                                    </dl>
+
+                                </div>
+
+                            </details>
+
+
+                            <h3>Chunk Size = 500</h3>
+
+                            <p>
+                                원본의 500은 한 Chunk의 목표 문자 길이 규모입니다.
+                                모든 문서에서 최적이라는 의미는 아닙니다.
+                            </p>
+
+
+                            <h3>Chunk Overlap = 100</h3>
+
+                            <div class="chunk-overlap">
+
+                                <div class="chunk chunk-a">
+                                    <span>Chunk A</span>
+                                    앞 내용 · 핵심 문장 ·
+                                    <mark>경계 문맥</mark>
+                                </div>
+
+                                <div class="chunk chunk-b">
+                                    <span>Chunk B</span>
+                                    <mark>경계 문맥</mark> ·
+                                    다음 내용 · 다음 문단
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                의미가 Chunk 경계에서 완전히 끊어지는 문제를 줄이는 역할을 합니다.
+                            </p>
+
+
+                            <div class="callout">
+
+                                <strong>
+                                    RecursiveCharacterTextSplitter와 Semantic Chunking은 같지 않습니다.
+                                </strong>
+
+                                <p>
+                                    교안은 의미 단위 분할의 필요성을 설명하지만,
+                                    실제 사용 클래스는 문자 기반 경계를 재귀적으로 찾는 Text Splitter입니다.
+                                    문서 의미를 완벽하게 이해해 자동 분할한다고 설명하지 않습니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     09. EMBEDDING / FAISS
+                =================================================== -->
+                        <section id="embedding" class="lesson-card embedding-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    09 · EMBEDDING / VECTOR STORE
+                                </p>
+
+                                <h2>
+                                    Embedding과 FAISS — 문장의 의미를 검색 가능한 좌표로
+                                </h2>
+                            </div>
+
+
+                            <div class="code-box">
+
+                                <div class="code-title">
+                                    <strong>원본 Embedding / FAISS</strong>
+                                    <span class="badge original">Cell 008</span>
+                                </div>
+
+                                <pre tabindex="0"><code>embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small"
+)
+
+vectordb = FAISS.from_documents(
+    docs,
+    embeddings
+)</code></pre>
+
+                            </div>
+
+
+                            <h3>Embedding</h3>
+
+                            <div class="embedding-example">
+
+                                <div class="embedding-text">
+                                    “Sev1 장애는 전체 서비스 중단을 의미한다.”
+                                </div>
+
+                                <b>↓</b>
+
+                                <div class="embedding-vector">
+                                    [v₁, v₂, v₃, ..., v<sub>d</sub>]
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                텍스트를 의미 비교가 가능한 수치 Vector로 바꿉니다.
+                            </p>
+
+
+                            <h3>FAISS</h3>
+
+                            <div class="formula">
+                                <code>
+                            docs + embeddings
+                            → FAISS.from_documents(...)
+                            → Vector Search Index
+                        </code>
+                            </div>
+
+
+                            <dl class="code-contract">
+
+                                <dt>무엇?</dt>
+                                <dd>
+                                    모든 Chunk의 Embedding을 계산하고
+                                    검색 Index를 구성합니다.
+                                </dd>
+
+                                <dt>왜?</dt>
+                                <dd>
+                                    Query와 의미적으로 가까운 Chunk를
+                                    빠르게 찾기 위해서입니다.
+                                </dd>
+
+                                <dt>개념 Shape</dt>
+                                <dd>
+                                    N개의 Chunk → `(N,d)`
+                                </dd>
+
+                                <dt>상태 변화</dt>
+                                <dd>
+                                    검색 가능한 Vector Store가 메모리에 생성됩니다.
+                                </dd>
+
+                            </dl>
+
+
+                            <div class="callout">
+
+                                <strong>FAISS.from_documents()는 model.fit()이 아닙니다.</strong>
+
+                                <p>
+                                    정답과 예측을 비교해 Loss를 최소화하거나
+                                    Model Weight를 Gradient로 업데이트하지 않습니다.
+                                    Embedding 계산과 검색 Index 구축 과정입니다.
+                                </p>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>원본 핵심 예제에는 Vector DB 영구 저장이 없습니다.</strong>
+
+                                <p>
+                                    save_local()과 같은 영구 저장 코드는
+                                    이 기본 RAG Cell에 포함되어 있지 않습니다.
+                                    Notebook 재시작 후 Index를 자동 복원한다고 가정하지 않습니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     10. RETRIEVER
+                =================================================== -->
+                        <section id="retriever" class="lesson-card retriever-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    10 · RETRIEVAL
+                                </p>
+
+                                <h2>
+                                    Retriever — 질문과 가까운 Chunk Top-3 찾기
+                                </h2>
+                            </div>
+
+
+                            <div class="code-box">
+
+                                <pre tabindex="0"><code>retriever = vectordb.as_retriever(
+    search_kwargs={
+        "k": 3
+    }
+)</code></pre>
+
+                            </div>
+
+
+                            <div class="retrieval-flow">
+
+                                <div class="retrieval-query">
+                                    Question
+                                    <small>“Sev1은 무엇인가요?”</small>
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="retrieval-vector">
+                                    Query Embedding
+                                    <small>(d,)</small>
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="retrieval-db">
+                                    FAISS
+                                    <small>N Document Vectors</small>
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="retrieval-topk">
+                                    Top-3 Documents
+                                </div>
+
+                            </div>
+
+
+                            <h3>k가 크면 무조건 좋은가?</h3>
+
+                            <div class="grid-two">
+
+                                <article class="mini-card">
+
+                                    <h3>큰 k</h3>
+
+                                    <p>
+                                        정답 근거를 포함할 가능성이 늘지만
+                                        Noise와 Prompt 길이도 증가할 수 있습니다.
+                                    </p>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <h3>작은 k</h3>
+
+                                    <p>
+                                        Context는 간결하지만
+                                        필요한 근거를 놓칠 수 있습니다.
+                                    </p>
+
+                                </article>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>검색 Metric을 원본에서 임의로 Cosine이라고 확정하지 않습니다.</strong>
+
+                                <p>
+                                    원본은 Vector Search를 구성하지만
+                                    별도의 Distance Strategy를 코드에서 지정하지 않습니다.
+                                    따라서 이 페이지에서는
+                                    “Embedding 기반 유사 문서 검색”으로 표현합니다.
+                                </p>
+
+                            </div>
+
+
+                            <details class="lesson-details">
+
+                                <summary>
+                                    보충 진단 · 검색된 Chunk 직접 확인
+                                </summary>
+
+                                <div class="details-body">
+
+                                    <div class="code-box added">
+
+                                        <pre tabindex="0"><code># 원본에 없는 디버깅 예제입니다.
+
+retrieved_docs = retriever.invoke(
+    "Sev1은 무엇인가요?"
+)
+
+for index, doc in enumerate(
+    retrieved_docs,
+    start=1
+):
+    print(
+        f"--- Result {index} ---"
+    )
+
+    print(
+        doc.metadata
+    )
+
+    print(
+        doc.page_content
+    )</code></pre>
+
+                                    </div>
+
+                                    <p>
+                                        답변이 틀렸을 때 LLM을 먼저 바꾸기보다,
+                                        Retriever가 실제로 어떤 문서를 가져왔는지 확인합니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     11. PROMPT / LCEL
+                =================================================== -->
+                        <section id="prompt" class="lesson-card prompt-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    11 · PROMPT / LCEL
+                                </p>
+
+                                <h2>
+                                    검색 문서와 질문을 LLM 입력으로 연결하기
+                                </h2>
+                            </div>
+
+
+                            <h3>Prompt의 역할</h3>
+
+                            <p>
+                                RAG에서는 검색된 Chunk를 그대로 가져오는 것만으로 끝나지 않습니다.
+                                LLM에게 어떤 자료를 참고하고,
+                                문서에 정보가 없을 때 어떻게 행동할지도 알려줘야 합니다.
+                            </p>
+
+
+                            <div class="prompt-box">
+
+                                <p class="prompt-role">
+                                    기업 내부 지식 지원 센터 AI
+                                </p>
+
+                                <ul>
+                                    <li>제공된 참고 문서에 명시된 내용만 답변</li>
+                                    <li>숫자와 절차를 구체적으로 답변</li>
+                                    <li>문서 이름이나 규정 번호를 근거로 제시</li>
+                                    <li>문서에 없으면 관련 부서 문의 안내</li>
+                                </ul>
+
+                                <div class="prompt-variable">
+                                    <strong>[참고 문서]</strong>
+                                    <code>{context}</code>
+                                </div>
+
+                                <div class="prompt-variable">
+                                    <strong>[사용자 질문]</strong>
+                                    <code>{question}</code>
+                                </div>
+
+                            </div>
+
+
+                            <h3>LCEL Chain</h3>
+
+                            <div class="code-box">
+
+                                <div class="code-title">
+                                    <strong>원본 RAG Chain</strong>
+                                    <span class="badge original">Cell 009</span>
+                                </div>
+
+                                <pre tabindex="0"><code>rag_chain = (
+    {
+        "context": retriever,
+        "question": RunnablePassthrough()
+    }
+    | prompt
+    | ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0
+    )
+)</code></pre>
+
+                            </div>
+
+
+                            <div class="lcel-flow">
+
+                                <div class="lcel-input">
+                                    사용자 입력
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="lcel-split">
+
+                                    <div>
+                                        <strong>context</strong>
+                                        <span>Retriever</span>
+                                    </div>
+
+                                    <div>
+                                        <strong>question</strong>
+                                        <span>RunnablePassthrough</span>
+                                    </div>
+
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="lcel-prompt">
+                                    Prompt
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="lcel-model">
+                                    ChatOpenAI
+                                </div>
+
+                                <span>↓</span>
+
+                                <div class="lcel-output">
+                                    AIMessage
+                                </div>
+
+                            </div>
+
+
+                            <h3>RunnablePassthrough</h3>
+
+                            <p>
+                                사용자의 원래 질문 문자열을 변형하지 않고
+                                Prompt의 question 값으로 전달합니다.
+                                같은 입력은 Retriever에도 들어가 context를 만듭니다.
+                            </p>
+
+
+                            <h3>Context Formatting</h3>
+
+                            <div class="callout">
+
+                                <strong>원본 핵심 Chain에는 별도 format_docs()가 없습니다.</strong>
+
+                                <p>
+                                    Retriever가 반환하는 Document 목록을
+                                    context 변수에 직접 연결합니다.
+                                    실무에서는 출처와 페이지를 명시적으로 정리해
+                                    Prompt에 넣는 구조를 검토할 수 있습니다.
+                                </p>
+
+                            </div>
+
+
+                            <details class="lesson-details">
+
+                                <summary>
+                                    보충 개선 예제 · Document Context 명시적 Formatting
+                                </summary>
+
+                                <div class="details-body">
+
+                                    <div class="code-box added">
+
+                                        <pre tabindex="0"><code>def format_docs(
+    docs
+):
+    return "\n\n".join(
+        (
+            "[source="
+            f"{doc.metadata.get('source')}, "
+            "page="
+            f"{doc.metadata.get('page')}]\n"
+            f"{doc.page_content}"
+        )
+        for doc in docs
+    )</code></pre>
+
+                                    </div>
+
+                                    <p>
+                                        원본을 수정한 코드가 아니라
+                                        출처·페이지 추적을 쉽게 만들기 위한
+                                        별도 확장 예제입니다.
+                                    </p>
+
+                                </div>
+
+                            </details>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     12. MODEL
+                =================================================== -->
+                        <section id="model" class="lesson-card model-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    12 · MODEL ARCHITECTURE
+                                </p>
+
+                                <h2>
+                                    Model — 하나의 학습 모델이 아니라 세 구성 요소의 조합
+                                </h2>
+                            </div>
+
+
+                            <div class="model-triplet">
+
+                                <article>
+
+                                    <span class="model-number">01</span>
+
+                                    <h3>Embedding Model</h3>
+
+                                    <code>text-embedding-3-small</code>
+
+                                    <p>
+                                        문서와 질문을 Vector로 변환합니다.
+                                    </p>
+
+                                </article>
+
+
+                                <article>
+
+                                    <span class="model-number">02</span>
+
+                                    <h3>Retriever</h3>
+
+                                    <code>FAISS + k=3</code>
+
+                                    <p>
+                                        관련 Document Chunk를 검색합니다.
+                                    </p>
+
+                                </article>
+
+
+                                <article>
+
+                                    <span class="model-number">03</span>
+
+                                    <h3>Generation Model</h3>
+
+                                    <code>gpt-4o-mini</code>
+
+                                    <p>
+                                        Context와 질문을 보고 답변을 생성합니다.
+                                    </p>
+
+                                </article>
+
+                            </div>
+
+
+                            <div class="concept-highlight">
+                                Retriever는 문서를 찾고,
+                                LLM은 그 문서를 읽고 문장을 생성합니다.
+                                두 역할을 하나의 “모델”이라고 뭉뚱그리지 않습니다.
+                            </div>
+
+
+                            <h3>기존 Deep Learning과의 비교</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>항목</th>
+                                            <th>ML 63</th>
+                                            <th>ML 64</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <td>모델 생성</td>
+                                            <td>Transformer 직접 구성</td>
+                                            <td>기존 Embedding / LLM API 사용</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Weight 학습</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Loss</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Optimizer</td>
+                                            <td>Adam</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>중심 문제</td>
+                                            <td>다음 Token 예측</td>
+                                            <td>검색 + 문맥 기반 생성</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     13. TRAINING
+                =================================================== -->
+                        <section id="training" class="lesson-card training-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    13 · TRAIN / FIT / INDEXING
+                                </p>
+
+                                <h2>
+                                    Train 대신 Indexing — Loss와 Optimizer가 없는 이유
+                                </h2>
+                            </div>
+
+
+                            <div class="not-applicable-grid">
+
+                                <div>
+                                    <span>Loss</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>Optimizer</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>compile()</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>fit()</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>Gradient</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>Weight Update</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                            </div>
+
+
+                            <h3>대신 무엇을 하는가?</h3>
+
+                            <div class="shape-path">
+
+                                <span>문서</span>
+                                <b>↓</b>
+
+                                <span>Chunk</span>
+                                <b>↓</b>
+
+                                <span>Embedding</span>
+                                <b>↓</b>
+
+                                <strong>FAISS Index 구축</strong>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>
+                                    FAISS.from_documents()를 fit()이라고 부르지 않습니다.
+                                </strong>
+
+                                <p>
+                                    정답과 Prediction의 Loss를 계산하거나
+                                    Backpropagation으로 Model Weight를 변경하지 않습니다.
+                                    문서 Vector를 생성하고 검색 가능한 Index를 구성합니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>Train / Validation / Test도 다르게 본다</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>기존 학습</th>
+                                            <th>이번 RAG</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>Train</td>
+                                            <td>문서 Corpus 구축</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Validation</td>
+                                            <td>원본에 별도 없음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Test</td>
+                                            <td>질문 4개의 정성 비교 코드</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Model Selection</td>
+                                            <td>원본에 수치 기준 없음</td>
+                                        </tr>
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <h3>Data Leakage는 어떻게 달라지는가?</h3>
+
+                            <p>
+                                전통적인 Train/Validation 누수는 이번 핵심 이슈가 아닙니다.
+                                하지만 평가용 질문과 정답이
+                                검색 Corpus에 그대로 들어 있다면
+                                현실적인 Retrieval 능력을 과대평가할 수 있습니다.
+                            </p>
+
+                            <div class="callout">
+
+                                <strong>보충 개념 · Evaluation Leakage</strong>
+
+                                <p>
+                                    Benchmark Q/A 자체를 검색 문서에 그대로 넣어 놓고
+                                    “Retriever가 정답을 잘 찾았다”고 평가하면
+                                    실제 문서 검색 성능을 과대평가할 수 있습니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     14. RESULT
+                =================================================== -->
+                        <section id="result" class="lesson-card result-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    14 · SAVED OUTPUT
+                                </p>
+
+                                <h2>
+                                    저장 출력 — 실제 RAG 답변이 아니라 Chunk Document 목록
+                                </h2>
+                            </div>
+
+
+                            <div class="stat-grid">
+
+                                <div class="stat">
+                                    <span>Notebook Code Cell</span>
+                                    <strong>6</strong>
+                                </div>
+
+                                <div class="stat">
+                                    <span>저장 Output</span>
+                                    <strong>1</strong>
+                                </div>
+
+                                <div class="stat muted">
+                                    <span>저장 RAG Answer</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                            </div>
+
+
+                            <div class="callout review">
+
+                                <strong>저장된 유일한 출력은 print(docs)입니다.</strong>
+
+                                <p>
+                                    PDF Loader와 Text Splitter로 생성된
+                                    Document Chunk 목록이 저장되어 있습니다.
+                                    “Sev1은 무엇인가요?”에 대한
+                                    RAG 답변 결과는 저장되어 있지 않습니다.
+                                </p>
+
+                            </div>
+
+
+                            <div class="code-box output">
+
+                                <div class="code-title">
+                                    <strong>저장 Document metadata의 핵심</strong>
+                                    <span class="badge original">실제 저장 출력</span>
+                                </div>
+
+                                <pre tabindex="0"><code>Document(
+    metadata={
+        ...
+        'source':
+            'data/Samsung_Card_Manual_Korean_1.3.pdf',
+        'total_pages': 6,
+        'page': 0,
+        'page_label': '1'
+    },
+    page_content='삼성 제품은 ...'
+)</code></pre>
+
+                            </div>
+
+
+                            <h3>작성되어 있지만 저장 출력이 없는 테스트</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>테스트</th>
+                                            <th>코드</th>
+                                            <th>저장 결과</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <td>Sev1 질문</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>연차 질문</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>VPN 질문</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>데이터 삭제 처리 기간</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>일반 LLM vs RAG 비교</td>
+                                            <td>있음</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <div class="concept-highlight">
+                                “코드가 작성되어 있다”와
+                                “실제로 실행되어 결과가 저장되어 있다”를
+                                반드시 구분합니다.
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     15. METRIC
+                =================================================== -->
+                        <section id="metric" class="lesson-card metric-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    15 · METRIC INTERPRETATION
+                                </p>
+
+                                <h2>
+                                    Metric 해석 — Accuracy 대신 Retrieval과 Generation을 분리하기
+                                </h2>
+                            </div>
+
+
+                            <div class="not-applicable-grid">
+
+                                <div>
+                                    <span>Training Accuracy</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>Validation Accuracy</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>Loss</span>
+                                    <strong>없음</strong>
+                                </div>
+
+                                <div>
+                                    <span>R²</span>
+                                    <strong>해당 없음</strong>
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                원본의 “일반 ChatGPT vs RAG 챗봇 성능 비교” 코드는
+                                두 답변을 나란히 출력하는 정성 비교입니다.
+                                정답 Label이나 수치 Score는 없습니다.
+                            </p>
+
+
+                            <h3>보충 평가 ① Retrieval</h3>
+
+                            <div class="metric-card-grid">
+
+                                <article>
+                                    <strong>Hit@k</strong>
+                                    <p>정답 근거가 Top-k 안에 존재하는가?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Recall@k</strong>
+                                    <p>필요한 관련 문서를 얼마나 회수했는가?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Precision@k</strong>
+                                    <p>검색한 문서 중 실제 관련 문서의 비율은?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Context Relevance</strong>
+                                    <p>검색 문맥이 질문과 얼마나 관련 있는가?</p>
+                                </article>
+
+                            </div>
+
+
+                            <h3>보충 평가 ② Generation</h3>
+
+                            <div class="metric-card-grid">
+
+                                <article>
+                                    <strong>Answer Correctness</strong>
+                                    <p>답 자체가 사실적으로 맞는가?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Faithfulness</strong>
+                                    <p>답의 주장이 검색 Context에서 근거를 찾을 수 있는가?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Citation Correctness</strong>
+                                    <p>표시한 출처가 실제 근거와 일치하는가?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Answer Relevance</strong>
+                                    <p>질문에 직접 답하고 있는가?</p>
+                                </article>
+
+                            </div>
+
+
+                            <h3>보충 평가 ③ 운영</h3>
+
+                            <div class="metric-card-grid">
+
+                                <article>
+                                    <strong>Latency</strong>
+                                    <p>검색부터 답변까지 얼마나 걸리는가?</p>
+                                </article>
+
+                                <article>
+                                    <strong>API Cost</strong>
+                                    <p>Embedding과 LLM 호출 비용은?</p>
+                                </article>
+
+                                <article>
+                                    <strong>Retrieval Failure</strong>
+                                    <p>관련 문서를 찾지 못하는 비율은?</p>
+                                </article>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>
+                                    RAG 답변이 틀렸을 때 LLM부터 교체하지 않습니다.
+                                </strong>
+
+                                <p>
+                                    먼저 Retriever가 올바른 Chunk를 가져왔는지 확인한 뒤,
+                                    Context가 맞다면 Prompt와 Generation을 확인합니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     16. EVALUATE
+                =================================================== -->
+                        <section id="evaluate" class="lesson-card evaluate-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    16 · EVALUATION
+                                </p>
+
+                                <h2>
+                                    Evaluate — Retrieval과 Answer를 따로 검증하기
+                                </h2>
+                            </div>
+
+
+                            <p>
+                                원본에는 evaluate() API나 수치 평가 루틴이 없습니다.
+                                아래 코드는 학습용 보충 진단 흐름입니다.
+                            </p>
+
+
+                            <details class="lesson-details" open>
+
+                                <summary>
+                                    보충 평가 ① Retriever 결과 직접 확인
+                                </summary>
+
+                                <div class="details-body">
+
+                                    <div class="code-box added">
+
+                                        <pre tabindex="0"><code>query = "Sev1은 무엇인가요?"
+
+retrieved_docs = retriever.invoke(
+    query
+)
+
+for index, doc in enumerate(
+    retrieved_docs,
+    start=1
+):
+    print(
+        f"--- Result {index} ---"
+    )
+
+    print(
+        "metadata:",
+        doc.metadata
+    )
+
+    print(
+        "content:",
+        doc.page_content
+    )</code></pre>
+
+                                    </div>
+
+
+                                    <dl class="code-contract">
+
+                                        <dt>목적</dt>
+                                        <dd>
+                                            LLM 호출 전에 Retrieval이 맞는지 확인합니다.
+                                        </dd>
+
+                                        <dt>입력</dt>
+                                        <dd>User Question</dd>
+
+                                        <dt>출력</dt>
+                                        <dd>Top-k Document 목록</dd>
+
+                                        <dt>상태 변화</dt>
+                                        <dd>검색만 수행하며 모델 Weight를 변경하지 않습니다.</dd>
+
+                                    </dl>
+
+                                </div>
+
+                            </details>
+
+
+                            <details class="lesson-details">
+
+                                <summary>
+                                    보충 평가 ② 질문과 검색 Context를 함께 로그로 남기기
+                                </summary>
+
+                                <div class="details-body">
+
+                                    <div class="code-box added">
+
+                                        <pre tabindex="0"><code>def inspect_retrieval(
+    query
+):
+    docs = retriever.invoke(
+        query
+    )
+
+    print(
+        "QUESTION:",
+        query
+    )
+
+    for index, doc in enumerate(
+        docs,
+        start=1
+    ):
+        print(
+            f"\n[CHUNK {index}]"
+        )
+
+        print(
+            "SOURCE:",
+            doc.metadata.get(
+                "source"
+            )
+        )
+
+        print(
+            "PAGE:",
+            doc.metadata.get(
+                "page"
+            )
+        )
+
+        print(
+            doc.page_content
+        )
+
+    return docs</code></pre>
+
+                                    </div>
+
+                                </div>
+
+                            </details>
+
+
+                            <h3>평가 데이터 설계</h3>
+
+                            <p>
+                                실무에서는 질문마다 다음 정보를 준비할 수 있습니다.
+                            </p>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>필드</th>
+                                            <th>예시</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>question</td>
+                                            <td>Sev1은 무엇인가요?</td>
+                                        </tr>
+                                        <tr>
+                                            <td>expected_source</td>
+                                            <td>incident_policy.pdf</td>
+                                        </tr>
+                                        <tr>
+                                            <td>expected_page</td>
+                                            <td>5</td>
+                                        </tr>
+                                        <tr>
+                                            <td>reference_answer</td>
+                                            <td>...</td>
+                                        </tr>
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <p>
+                                이렇게 해야 Retrieval 실패와 Generation 실패를
+                                각각 평가할 수 있습니다.
+                            </p>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     17. PREDICT
+                =================================================== -->
+                        <section id="predict" class="lesson-card predict-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    17 · PREDICT / INVOKE
+                                </p>
+
+                                <h2>
+                                    Predict — rag_chain.invoke(query)
+                                </h2>
+                            </div>
+
+
+                            <div class="code-box">
+
+                                <div class="code-title">
+                                    <strong>원본 질의 코드</strong>
+                                    <span class="badge original">Cell 009</span>
+                                </div>
+
+                                <pre tabindex="0"><code>query = "Sev1은 무엇인가요?"
+
+answer = rag_chain.invoke(
+    query
+)
+
+print(
+    "질문:",
+    query
+)
+
+print(
+    "답변:",
+    answer.content
+)</code></pre>
+
+                            </div>
+
+
+                            <dl class="code-contract">
+
+                                <dt>무엇?</dt>
+                                <dd>
+                                    질문을 Retriever와 LLM Pipeline에 전달합니다.
+                                </dd>
+
+                                <dt>왜?</dt>
+                                <dd>
+                                    관련 문서를 검색한 뒤 그 근거를 이용해 답변하기 위해서입니다.
+                                </dd>
+
+                                <dt>입력</dt>
+                                <dd>질문 문자열 str</dd>
+
+                                <dt>출력</dt>
+                                <dd>기본 Chain에서는 Chat Model Message 객체</dd>
+
+                            </dl>
+
+
+                            <div class="invoke-flow">
+
+                                <div>Query</div>
+                                <b>↓</b>
+                                <div>Retriever</div>
+                                <b>↓</b>
+                                <div>Top-3 Context</div>
+                                <b>↓</b>
+                                <div>Prompt</div>
+                                <b>↓</b>
+                                <div>ChatOpenAI</div>
+                                <b>↓</b>
+                                <strong>answer.content</strong>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>
+                                    이 질문의 실제 Answer는 Notebook에 저장되어 있지 않습니다.
+                                </strong>
+
+                                <p>
+                                    코드가 존재한다는 사실과
+                                    해당 질문의 실행 결과가 저장되었다는 사실을 구분합니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>일반 LLM vs RAG 비교</h3>
+
+                            <div class="comparison-flow">
+
+                                <div class="comparison-question">
+                                    같은 Question
+                                </div>
+
+                                <div class="comparison-branches">
+
+                                    <article>
+                                        <strong>Base LLM</strong>
+                                        <code>llm_base.invoke(q)</code>
+                                        <p>사전 학습 지식에 의존</p>
+                                    </article>
+
+                                    <article class="rag-side">
+                                        <strong>RAG</strong>
+                                        <code>rag_chain.invoke(q)</code>
+                                        <p>검색 문서를 Context로 사용</p>
+                                    </article>
+
+                                </div>
+
+                            </div>
+
+
+                            <p>
+                                원본에는 연차·VPN·데이터 삭제·Sev1 네 질문을 비교하는 코드가 있지만,
+                                비교 결과는 저장되어 있지 않습니다.
+                            </p>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     18. STREAMLIT
+                =================================================== -->
+                        <section id="streamlit" class="lesson-card streamlit-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    18 · STREAMLIT WEB CHATBOT
+                                </p>
+
+                                <h2>
+                                    Streamlit — RAG Pipeline을 웹 챗봇으로 확장하기
+                                </h2>
+                            </div>
+
+
+                            <h3>기본 실행</h3>
+
+                            <div class="code-box neutral">
+
+                                <pre tabindex="0"><code>streamlit run app.py</code></pre>
+
+                            </div>
+
+
+                            <p>
+                                원본 교안은 기본적으로 localhost:8501에서
+                                Streamlit 애플리케이션을 확인하도록 안내합니다.
+                            </p>
+
+
+                            <h3>RAG Resource Cache</h3>
+
+                            <div class="code-box">
+
+                                <pre tabindex="0"><code>@st.cache_resource
+def prepare_rag_chain():
+
+    pdf_path = (
+        "data/company_policy_rag.pdf"
+    )
+
+    if not os.path.exists(
+        pdf_path
+    ):
+        return None
+
+    loader = PyPDFLoader(
+        pdf_path
+    )
+
+    pages = loader.load()
+
+    splitter = (
+        RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=100
+        )
+    )
+
+    docs = splitter.split_documents(
+        pages
+    )
+
+    embeddings = OpenAIEmbeddings(
+        model="text-embedding-3-small"
+    )
+
+    vectordb = FAISS.from_documents(
+        docs,
+        embeddings
+    )
+
+    retriever = vectordb.as_retriever(
+        search_kwargs={
+            "k": 3
+        }
+    )
+
+    # Prompt / Model / Chain 구성
+    # ...
+</code></pre>
+
+                            </div>
+
+
+                            <div class="callout">
+
+                                <strong>왜 cache_resource인가?</strong>
+
+                                <p>
+                                    Streamlit이 재실행될 때마다
+                                    PDF를 다시 읽고 Embedding API를 다시 호출하고
+                                    FAISS를 다시 만들지 않도록
+                                    RAG Resource를 캐싱합니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>대화 기록 UI</h3>
+
+                            <div class="code-box">
+
+                                <pre tabindex="0"><code>if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for message in st.session_state.messages:
+
+    with st.chat_message(
+        message["role"]
+    ):
+        st.markdown(
+            message["content"]
+        )
+
+
+if prompt := st.chat_input(
+    "기업 내부 지식에 대해 궁금한 점을 물어보세요."
+):
+
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    response = rag_chain.invoke(
+        prompt
+    )
+
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": response
+    })</code></pre>
+
+                            </div>
+
+
+                            <div class="callout important">
+
+                                <strong>UI History ≠ LLM Conversation Memory</strong>
+
+                                <p>
+                                    session_state.messages에는 과거 대화가 저장되어 화면에 표시되지만,
+                                    실제 rag_chain.invoke()에는 현재 prompt만 전달됩니다.
+                                    이전 대화를 LLM Context로 사용하려면
+                                    별도의 History Prompt 구성이 필요합니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>기본 Chain과 Streamlit Chain의 출력 차이</h3>
+
+                            <div class="grid-two">
+
+                                <article class="mini-card">
+
+                                    <h3>기본 RAG Chain</h3>
+
+                                    <code>ChatOpenAI</code>
+
+                                    <p>
+                                        Message 객체를 반환하므로
+                                        <code>answer.content</code>를 사용합니다.
+                                    </p>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <h3>Streamlit Chain</h3>
+
+                                    <code>ChatOpenAI | StrOutputParser()</code>
+
+                                    <p>
+                                        최종 결과를 문자열로 변환합니다.
+                                    </p>
+
+                                </article>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     19. PRACTICE PROBLEMS
+                =================================================== -->
+                        <section id="practice-problems" class="lesson-card problems-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    19 · PRACTICE PROBLEMS
+                                </p>
+
+                                <h2>
+                                    Notebook 후반 실습 — Prompt, Memory, Multi-PDF
+                                </h2>
+                            </div>
+
+
+                            <div class="problem-grid">
+
+                                <article class="problem-card">
+
+                                    <span class="problem-number">
+                                        PROBLEM 01
+                                    </span>
+
+                                    <h3>Prompt 설계</h3>
+
+                                    <p>
+                                        시스템 역할을 “바이브 코딩 전문가”로 설정하고,
+                                        Manus·Codex·Claude Code 등의 Skill을
+                                        기술적으로 설명하는 Chain을 구성합니다.
+                                    </p>
+
+                                    <div class="mini-flow">
+                                        <span>System Prompt</span>
+                                        <b>↓</b>
+                                        <span>User Question</span>
+                                        <b>↓</b>
+                                        <span>ChatOpenAI</span>
+                                        <b>↓</b>
+                                        <strong>StrOutputParser</strong>
+                                    </div>
+
+                                </article>
+
+
+                                <article class="problem-card">
+
+                                    <span class="problem-number">
+                                        PROBLEM 02
+                                    </span>
+
+                                    <h3>Multi-turn 대화</h3>
+
+                                    <p>
+                                        “방금 추천한 것 중...”처럼
+                                        이전 답변을 참조하는 질문을 처리하도록
+                                        MessagesPlaceholder와 History를 이용합니다.
+                                    </p>
+
+                                    <div class="concept-highlight compact">
+                                        반복 입력 ≠ 대화 기억
+                                    </div>
+
+                                </article>
+
+
+                                <article class="problem-card">
+
+                                    <span class="problem-number">
+                                        PROBLEM 03
+                                    </span>
+
+                                    <h3>여러 PDF 문서 검색</h3>
+
+                                    <p>
+                                        여러 문서를 하나의 검색 Corpus로 구성하고
+                                        FAISS에서 관련 Chunk를 찾는 챗봇으로 확장합니다.
+                                    </p>
+
+                                    <div class="mini-flow">
+                                        <span>PDF 1 + PDF 2 + ...</span>
+                                        <b>↓</b>
+                                        <span>Chunks</span>
+                                        <b>↓</b>
+                                        <span>FAISS</span>
+                                        <b>↓</b>
+                                        <strong>Multi-document RAG</strong>
+                                    </div>
+
+                                </article>
+
+                            </div>
+
+
+                            <h3>최종 프로젝트</h3>
+
+                            <div class="grid-three">
+
+                                <article class="mini-card">
+                                    <h3>전공 Q&amp;A</h3>
+                                    <p>
+                                        전공 분야 문서를 검색해 답하는 챗봇
+                                    </p>
+                                </article>
+
+                                <article class="mini-card">
+                                    <h3>문서 검색 챗봇</h3>
+                                    <p>
+                                        보고서·매뉴얼 기반 정보 검색 서비스
+                                    </p>
+                                </article>
+
+                                <article class="mini-card accent">
+                                    <h3>FAQ 자동응답</h3>
+                                    <p>
+                                        고객지원용 자주 묻는 질문 서비스
+                                    </p>
+                                </article>
+
+                            </div>
+
+
+                            <p>
+                                결과물은 실제 동작 가능한 웹 애플리케이션과
+                                코드·실행 방법을 포함한 GitHub 저장소 또는 압축파일 형태를 요구합니다.
+                            </p>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     20. MISTAKES
+                =================================================== -->
+                        <section id="mistake" class="lesson-card mistake-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    20 · COMMON MISTAKES
+                                </p>
+
+                                <h2>
+                                    자주 하는 실수 — 딥러닝 학습 개념을 RAG에 억지로 적용하지 않기
+                                </h2>
+                            </div>
+
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>실수</th>
+                                            <th>정확한 이해</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <td>FAISS.from_documents()가 fit이다</td>
+                                            <td>Embedding 계산 + Vector Index 구축</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>RAG와 Fine-tuning은 같다</td>
+                                            <td>Weight 변경과 Context 검색은 다름</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>RAG면 최신 정보가 자동 반영된다</td>
+                                            <td>Corpus와 Index가 갱신되어야 함</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>RAG면 Hallucination이 사라진다</td>
+                                            <td>검색·Prompt·문서 오류 가능성이 남음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>500 / 100은 최적 공식이다</td>
+                                            <td>문서 종류별로 실험할 Hyperparameter</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Recursive Splitter = Semantic Chunking</td>
+                                            <td>같은 개념이 아님</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>k는 클수록 좋다</td>
+                                            <td>Recall과 Noise의 Trade-off</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Vector Search는 무조건 Cosine이다</td>
+                                            <td>원본에 특정 Distance Strategy 설정 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>print(docs)는 RAG 답변이다</td>
+                                            <td>Chunk Document 목록 출력</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>질의 코드가 있으니 답도 실행됐다</td>
+                                            <td>질의 Cell의 저장 출력은 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>session_state = LLM Memory</td>
+                                            <td>원본은 UI History만 저장</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>현재 PDF 코드와 저장 출력은 같은 실행이다</td>
+                                            <td>Source가 서로 달라 실행 이력 확인 필요</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <h3>Data Leakage</h3>
+
+                            <p>
+                                전통적인 Train/Validation Leakage보다
+                                RAG 평가 Corpus의 오염을 생각하는 편이 적절합니다.
+                            </p>
+
+                            <div class="example-pair">
+
+                                <p>
+                                    <span>평가 Question</span>
+                                    우리 회사 연차는 몇 일인가요?
+                                </p>
+
+                                <p>
+                                    <span>Corpus 안</span>
+                                    Q: 우리 회사 연차는 몇 일인가요? A: 15일
+                                </p>
+
+                            </div>
+
+                            <p>
+                                Benchmark Q/A를 문서에 그대로 넣어 놓고
+                                검색 성능이 좋다고 평가하면
+                                실제 문서 Retrieval 능력을 과대평가할 수 있습니다.
+                            </p>
+
+
+                            <h3>Shape Error</h3>
+
+                            <div class="grid-three">
+
+                                <article class="mini-card">
+                                    <h3>String / Document</h3>
+                                    <code>str ≠ Document</code>
+                                </article>
+
+                                <article class="mini-card">
+                                    <h3>Document Collection</h3>
+                                    <code>List[Document]</code>
+                                </article>
+
+                                <article class="mini-card">
+                                    <h3>Embedding</h3>
+                                    <code>(N,d) ↔ (d,)</code>
+                                </article>
+
+                            </div>
+
+
+                            <h3>Dimension Error</h3>
+
+                            <p>
+                                Index를 만들 때 사용한 Embedding Model과
+                                Query를 Vector로 만들 때 사용하는 Model이 달라
+                                Dimension이나 Vector 공간이 호환되지 않으면
+                                올바른 검색을 기대할 수 없습니다.
+                            </p>
+
+
+                            <h3>dtype / Object Type Error</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>값</th>
+                                            <th>종류</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>질문</td>
+                                            <td>str</td>
+                                        </tr>
+                                        <tr>
+                                            <td>문서</td>
+                                            <td>Document</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Embedding</td>
+                                            <td>float vector</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Metadata</td>
+                                            <td>dict</td>
+                                        </tr>
+                                        <tr>
+                                            <td>기본 LLM Output</td>
+                                            <td>AIMessage</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Parser 이후</td>
+                                            <td>str</td>
+                                        </tr>
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <h3>Overfitting / Underfitting / Learning Rate</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>개념</th>
+                                            <th>이번 Notebook</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <td>Weight Overfitting</td>
+                                            <td>전통적 의미로 해당 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Underfitting</td>
+                                            <td>대신 Retrieval Recall 부족 등으로 표현</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Learning Rate</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Loss</td>
+                                            <td>없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Accuracy</td>
+                                            <td>원본에 없음</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>R²</td>
+                                            <td>해당 없음</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     21. ERROR
+                =================================================== -->
+                        <section id="error" class="lesson-card error-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    21 · ERROR READING
+                                </p>
+
+                                <h2>
+                                    오류 메시지 읽는 법 — 파일, API, 검색, 생성 단계를 분리하기
+                                </h2>
+                            </div>
+
+
+                            <div class="error-reading-flow">
+
+                                <span>파일을 읽었는가?</span>
+                                <b>↓</b>
+
+                                <span>Chunk가 생성됐는가?</span>
+                                <b>↓</b>
+
+                                <span>Embedding이 성공했는가?</span>
+                                <b>↓</b>
+
+                                <span>Retriever가 맞는 문서를 찾았는가?</span>
+                                <b>↓</b>
+
+                                <strong>LLM이 Context를 올바르게 사용했는가?</strong>
+
+                            </div>
+
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table class="error-table">
+
+                                    <thead>
+                                        <tr>
+                                            <th>오류·증상 예</th>
+                                            <th>먼저 확인할 것</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        <tr>
+                                            <td>PDF file not found</td>
+                                            <td>data 폴더와 파일명</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>PyPDFLoader import error</td>
+                                            <td>LangChain Community·PDF 의존성</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>FAISS import error</td>
+                                            <td>faiss-cpu 설치</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Embedding API error</td>
+                                            <td>OPENAI_API_KEY·API 연결</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>LLM API error</td>
+                                            <td>API Key·Model 이름·호출 설정</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>검색 문서가 엉뚱함</td>
+                                            <td>Corpus·Chunk·Embedding·k</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>답변이 문서를 무시함</td>
+                                            <td>Retrieved Context와 Prompt</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Streamlit 재실행이 느림</td>
+                                            <td>cache_resource 적용 여부</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>이전 대화를 기억하지 못함</td>
+                                            <td>History가 실제 Prompt에 들어가는지</td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>AIMessage를 문자열처럼 사용</td>
+                                            <td>.content 또는 StrOutputParser</td>
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+
+                            <h3>원본 Streamlit의 파일 검사</h3>
+
+                            <div class="code-box">
+
+                                <pre tabindex="0"><code>pdf_path = (
+    "data/company_policy_rag.pdf"
+)
+
+if not os.path.exists(
+    pdf_path
+):
+    return None</code></pre>
+
+                            </div>
+
+
+                            <p>
+                                실제 서비스에서는 모델 문제보다 먼저
+                                필요한 문서가 존재하는지 검사하는 것이 중요합니다.
+                            </p>
+
+
+                            <div class="callout important">
+
+                                <strong>답변이 이상하면 Retrieval 결과부터 출력하세요.</strong>
+
+                                <p>
+                                    LLM Model을 바꾸기 전에
+                                    어떤 Chunk가 검색되었는지 먼저 확인해야
+                                    Retrieval 문제와 Generation 문제를 분리할 수 있습니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     22. PERFORMANCE
+                =================================================== -->
+                        <section id="performance" class="lesson-card performance-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    22 · PERFORMANCE IMPROVEMENT
+                                </p>
+
+                                <h2>
+                                    성능 개선 — RAG에서는 검색 품질과 생성 품질을 따로 개선하기
+                                </h2>
+                            </div>
+
+
+                            <ol class="priority-list">
+
+                                <li>
+                                    <strong>문서 Coverage 확인</strong>
+                                    <span>
+                                        질문에 답할 정보가 Corpus 자체에 존재하는지 먼저 확인합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>PDF Parsing 품질</strong>
+                                    <span>
+                                        표·머리글·페이지 구성이 제대로 Text로 추출되는지 봅니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Chunk 전략</strong>
+                                    <span>
+                                        문서 종류에 맞게 Size와 Overlap을 조정합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Embedding 일관성</strong>
+                                    <span>
+                                        Index와 Query가 같은 Embedding 공간을 사용하도록 합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Top-k 비교</strong>
+                                    <span>
+                                        Recall과 Noise 사이의 균형을 실험합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Retrieved Context 관찰</strong>
+                                    <span>
+                                        LLM 이전에 검색 문서가 맞는지 직접 확인합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Prompt 정책</strong>
+                                    <span>
+                                        문서에 없는 내용은 추측하지 않도록 명확하게 지시합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Metadata / Citation</strong>
+                                    <span>
+                                        문서 이름·페이지·버전을 답변 근거와 연결합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>평가 Set</strong>
+                                    <span>
+                                        질문·기대 근거·Reference Answer를 별도로 준비합니다.
+                                    </span>
+                                </li>
+
+                                <li>
+                                    <strong>Latency / Cost</strong>
+                                    <span>
+                                        Embedding·검색·LLM 호출 비용과 시간을 함께 측정합니다.
+                                    </span>
+                                </li>
+
+                            </ol>
+
+
+                            <h3>Chunk Size / k는 모델 Hyperparameter처럼 실험한다</h3>
+
+                            <div class="comparison-table-grid">
+
+                                <article>
+                                    <h3>Chunk가 너무 작음</h3>
+                                    <p>
+                                        필요한 문맥이 여러 Chunk로 잘려
+                                        답변 근거가 부족할 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <h3>Chunk가 너무 큼</h3>
+                                    <p>
+                                        관련 없는 문장이 함께 포함되어
+                                        검색 정밀도가 떨어질 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <h3>k가 너무 작음</h3>
+                                    <p>
+                                        필요한 근거를 놓칠 수 있습니다.
+                                    </p>
+                                </article>
+
+                                <article>
+                                    <h3>k가 너무 큼</h3>
+                                    <p>
+                                        Noise와 Context 길이·비용이 증가할 수 있습니다.
+                                    </p>
+                                </article>
+
+                            </div>
+
+
+                            <div class="callout">
+
+                                <strong>
+                                    이번 단원의 “튜닝”은 Learning Rate 튜닝과 다릅니다.
+                                </strong>
+
+                                <p>
+                                    모델 Weight를 최적화하는 것이 아니라
+                                    Corpus, Chunking, Retrieval, Prompt,
+                                    Context 구성과 운영 설정을 개선합니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     23. PRACTICAL
+                =================================================== -->
+                        <section id="practice" class="lesson-card practice-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    23 · PRACTICAL CONNECTION
+                                </p>
+
+                                <h2>
+                                    실무 연결 — RAG를 서비스로 운영한다면
+                                </h2>
+                            </div>
+
+
+                            <h3>두 서비스로 분리해서 생각하기</h3>
+
+                            <div class="grid-two">
+
+                                <article class="mini-card">
+
+                                    <h3>Document Ingestion Service</h3>
+
+                                    <div class="mini-flow">
+                                        <span>문서 업로드</span>
+                                        <b>↓</b>
+                                        <span>Parsing</span>
+                                        <b>↓</b>
+                                        <span>Chunk</span>
+                                        <b>↓</b>
+                                        <span>Embedding</span>
+                                        <b>↓</b>
+                                        <strong>Vector Store Update</strong>
+                                    </div>
+
+                                </article>
+
+
+                                <article class="mini-card accent">
+
+                                    <h3>Query Service</h3>
+
+                                    <div class="mini-flow">
+                                        <span>User Question</span>
+                                        <b>↓</b>
+                                        <span>Retriever</span>
+                                        <b>↓</b>
+                                        <span>Context</span>
+                                        <b>↓</b>
+                                        <span>LLM</span>
+                                        <b>↓</b>
+                                        <strong>Answer</strong>
+                                    </div>
+
+                                </article>
+
+                            </div>
+
+
+                            <h3>문서 Metadata</h3>
+
+                            <p>
+                                실무에서는 단순 본문뿐 아니라 다음 정보도 중요합니다.
+                            </p>
+
+                            <div class="metadata-chips">
+                                <span>source</span>
+                                <span>page</span>
+                                <span>title</span>
+                                <span>section</span>
+                                <span>version</span>
+                                <span>effective_date</span>
+                                <span>department</span>
+                            </div>
+
+
+                            <h3>문서 Version</h3>
+
+                            <div class="version-example">
+
+                                <div>
+                                    <span>2025 규정</span>
+                                    <strong>연차 14일</strong>
+                                </div>
+
+                                <b>↔</b>
+
+                                <div class="new-version">
+                                    <span>2026 규정</span>
+                                    <strong>연차 15일</strong>
+                                </div>
+
+                            </div>
+
+                            <p>
+                                여러 Version이 동시에 Vector Store에 있으면
+                                오래된 규정과 최신 규정이 함께 검색될 수 있습니다.
+                                Metadata Filter와 Version 정책이 중요합니다.
+                            </p>
+
+
+                            <h3>접근 권한</h3>
+
+                            <div class="callout important">
+
+                                <strong>사내 RAG는 권한 필터가 필요합니다.</strong>
+
+                                <p>
+                                    모든 사용자가 모든 문서를 검색할 수 있게 하면
+                                    인사·보안·계약 문서가 잘못 노출될 수 있습니다.
+                                    사용자 권한에 따라 검색 가능한 Corpus를 제한하는 구조가 필요합니다.
+                                </p>
+
+                            </div>
+
+
+                            <h3>실무 RAG 운영 흐름</h3>
+
+                            <ol class="step-flow">
+
+                                <li>
+                                    <strong>문서 등록</strong>
+                                    <span>Version과 접근 권한을 Metadata에 기록</span>
+                                </li>
+
+                                <li>
+                                    <strong>Parsing / Chunking</strong>
+                                    <span>표·문단·제목 구조를 가능한 한 보존</span>
+                                </li>
+
+                                <li>
+                                    <strong>Embedding / Indexing</strong>
+                                    <span>Vector Store 갱신</span>
+                                </li>
+
+                                <li>
+                                    <strong>Retrieval Logging</strong>
+                                    <span>질문마다 검색된 Chunk와 Score를 기록</span>
+                                </li>
+
+                                <li>
+                                    <strong>Generation</strong>
+                                    <span>문서 Context와 질문을 LLM에 전달</span>
+                                </li>
+
+                                <li>
+                                    <strong>Citation</strong>
+                                    <span>답변에 근거 문서·페이지 표시</span>
+                                </li>
+
+                                <li>
+                                    <strong>Feedback / Evaluation</strong>
+                                    <span>검색 실패와 답변 오류를 수집</span>
+                                </li>
+
+                            </ol>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     24. INTERVIEW
+                =================================================== -->
+                        <section id="interview" class="lesson-card interview-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    24 · INTERVIEW / REVIEW
+                                </p>
+
+                                <h2>
+                                    면접 포인트와 복습 질문
+                                </h2>
+                            </div>
+
+
+                            <p>
+                                답을 먼저 보지 말고
+                                Document → Retrieval → Generation 순서로 설명해 보세요.
+                            </p>
+
+
+                            <div class="qa-list">
+
+
+                                <details open>
+                                    <summary>
+                                        Q01. RAG란 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        외부 정보 Retrieval과 LLM Generation을 결합해,
+                                        검색된 문서를 Context로 제공한 뒤
+                                        문서 근거 기반 답변을 생성하는 구조입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q02. RAG와 Fine-tuning은 어떻게 다릅니까?
+                                    </summary>
+                                    <p>
+                                        Fine-tuning은 Model Weight를 변경하지만,
+                                        RAG는 외부 문서를 검색하여 Prompt Context로 제공합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q03. RAG가 최신 정보를 활용할 수 있는 이유는 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        새 문서를 Corpus와 Vector Index에 반영하면
+                                        모델 자체를 다시 학습하지 않고도
+                                        검색 Context로 사용할 수 있기 때문입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q04. 새 문서가 생기면 RAG가 자동으로 아는 것입니까?
+                                    </summary>
+                                    <p>
+                                        아닙니다.
+                                        문서를 Chunk하고 Embedding하여
+                                        Index에 반영해야 검색 가능합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q05. Chunking을 왜 합니까?
+                                    </summary>
+                                    <p>
+                                        긴 문서 전체 대신 질문과 관련된 작은 문서 조각을
+                                        검색하기 위해서입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q06. chunk_overlap의 역할은 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        Chunk 경계에서 문맥이 완전히 끊기는 문제를 줄이기 위해
+                                        일부 내용을 다음 Chunk에 반복합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q07. 이번 원본 Chunk 설정은 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        chunk_size=500,
+                                        chunk_overlap=100입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q08. Embedding이란 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        텍스트의 의미적 특징을
+                                        비교 가능한 숫자 Vector로 표현하는 방식입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q09. 이번 실습의 Vector Store는 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        FAISS입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q10. Retriever는 무엇을 합니까?
+                                    </summary>
+                                    <p>
+                                        질문과 의미적으로 가까운 Document Chunk를
+                                        Vector Store에서 검색합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q11. 원본 Retriever의 k는 얼마입니까?
+                                    </summary>
+                                    <p>
+                                        3입니다.
+                                        상위 세 개의 관련 Chunk를 검색하도록 설정합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q12. k는 클수록 항상 좋습니까?
+                                    </summary>
+                                    <p>
+                                        아닙니다.
+                                        관련 문서 Recall은 높아질 수 있지만
+                                        Noise와 Prompt 길이·비용도 증가할 수 있습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q13. 이번 Notebook에서 Loss는 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        없습니다.
+                                        LLM Weight를 새로 학습하지 않습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q14. Optimizer는 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        없습니다.
+                                        Backpropagation이나 Weight Update를 수행하지 않습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q15. FAISS.from_documents()는 fit()입니까?
+                                    </summary>
+                                    <p>
+                                        아닙니다.
+                                        Document Embedding을 만들고
+                                        Vector 검색 Index를 구축합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q16. RAG에서 X와 y는 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        전통적인 supervised X_train/y_train은 없습니다.
+                                        사용자 Query가 입력이며,
+                                        답변은 검색 Context를 이용해 LLM이 생성합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q17. Embedding의 Shape은 어떻게 이해합니까?
+                                    </summary>
+                                    <p>
+                                        N개의 Chunk와 d차원 Embedding이라면
+                                        Document Matrix는 개념적으로 (N,d),
+                                        Query Vector는 (d,)입니다.
+                                        원본 Notebook은 d를 실제 출력하지 않습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q18. RAG면 Hallucination이 사라집니까?
+                                    </summary>
+                                    <p>
+                                        아닙니다.
+                                        검색 실패, 잘못된 문서,
+                                        Prompt 오류, 문서 해석 오류 등이 남을 수 있습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q19. 답변이 틀렸을 때 가장 먼저 무엇을 확인합니까?
+                                    </summary>
+                                    <p>
+                                        Retriever가 올바른 Chunk를 가져왔는지 확인합니다.
+                                        Context가 맞으면 그 다음 Prompt와 Generation을 봅니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q20. 원본에서 실제 RAG Answer가 저장되어 있습니까?
+                                    </summary>
+                                    <p>
+                                        없습니다.
+                                        저장된 한 개의 출력은 print(docs)의
+                                        Document Chunk 목록입니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q21. 코드와 저장 출력의 PDF Source에서 주의할 점은 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        현재 코드는 company_policy_rag.pdf를 읽지만,
+                                        저장 metadata는 Samsung_Card_Manual_Korean_1.3.pdf를 가리킵니다.
+                                        실행 이력을 현재 자료만으로 단정하지 않습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q22. RunnablePassthrough는 무엇을 합니까?
+                                    </summary>
+                                    <p>
+                                        입력 질문을 그대로 Prompt의 question 값으로 전달합니다.
+                                        같은 입력은 Retriever가 context를 만드는 데도 사용합니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q23. 기본 RAG Chain과 Streamlit Chain의 출력 차이는 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        기본 Chain은 AIMessage 형태를 반환해
+                                        answer.content를 사용하고,
+                                        Streamlit 확장에서는 StrOutputParser를 통해
+                                        문자열을 반환하도록 구성할 수 있습니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q24. st.session_state.messages는 LLM Memory입니까?
+                                    </summary>
+                                    <p>
+                                        원본 코드에서는 UI에 이전 메시지를 저장·표시하지만,
+                                        rag_chain에는 현재 질문만 전달하므로
+                                        그 자체가 Multi-turn LLM Memory는 아닙니다.
+                                    </p>
+                                </details>
+
+
+                                <details open>
+                                    <summary>
+                                        Q25. 다음 단원은 무엇입니까?
+                                    </summary>
+                                    <p>
+                                        ML 65. LangChain 문서 챗봇 구현입니다.
+                                        Loader, Vector Store, Retriever,
+                                        Memory, Streamlit을 더 체계적으로 연결합니다.
+                                    </p>
+                                </details>
+
+
+                            </div>
+
+
+                            <div class="callout success">
+
+                                <strong>복습 완료 기준</strong>
+
+                                <p>
+                                    PDF → Chunk → Embedding → FAISS →
+                                    Retriever → Context → Prompt → LLM → Answer를 설명하고,
+                                    Loss·Optimizer·fit이 없는 이유와
+                                    Retrieval / Generation 평가를 분리해서 설명할 수 있어야 합니다.
+                                </p>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- ==================================================
+                     25. REFERENCES
+                =================================================== -->
+                        <section id="references" class="lesson-card references-card">
+
+                            <div class="section-heading">
+                                <p class="section-kicker">
+                                    25 · SOURCE GUIDE
+                                </p>
+
+                                <h2>
+                                    출처와 내용 구분
+                                </h2>
+                            </div>
+
+
+                            <h3>수업 원본</h3>
+
+                            <p>
+                                <cite>99_Rag.ipynb</cite><br>
+                                <cite>AI_MachineLearning_통합교안_36-100</cite>
+                                · Notebook 99 · PDF 715~730페이지
+                            </p>
+
+
+                            <h3>이 페이지의 표시 기준</h3>
+
+                            <div class="source-guide-grid">
+
+                                <div>
+                                    <span class="badge original">원본</span>
+                                    <p>Notebook의 실제 코드·저장 출력</p>
+                                </div>
+
+                                <div>
+                                    <span class="badge review">교안 메모</span>
+                                    <p>누락 파일·이미지와 원본 검토 사항</p>
+                                </div>
+
+                                <div>
+                                    <span class="badge analysis">보충 해설</span>
+                                    <p>RAG Shape·평가·디버깅 구조 분석</p>
+                                </div>
+
+                                <div>
+                                    <span class="badge added">추가 예제</span>
+                                    <p>Retrieval 검사·Formatting·실무 확장 코드</p>
+                                </div>
+
+                            </div>
+
+
+                            <h3>원본 실행 증거 범위</h3>
+
+                            <div class="table-wrap" tabindex="0">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>항목</th>
+                                            <th>상태</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>RAG 개념 설명</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>PDF Loader 코드</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Chunk 코드</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Chunk Document 저장 출력</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>FAISS / Retriever 코드</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>RAG 질의 코드</td>
+                                            <td>있음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>RAG Answer 저장 출력</td>
+                                            <td>없음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Base LLM vs RAG 저장 결과</td>
+                                            <td>없음</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Streamlit 확장 코드</td>
+                                            <td>있음</td>
+                                        </tr>
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+                    </main>
+
+
+                    <!-- ==================================================
+                 ASIDE
+            =================================================== -->
+                    <aside class="side-note" aria-label="ML 64 보충 학습 노트">
+
+
+                        <!-- MEMORY -->
+                        <section class="note-card memory-note">
+
+                            <p class="note-number">
+                                MEMORY
+                            </p>
+
+                            <h2>
+                                오늘의 암기 포인트
+                            </h2>
+
+
+                            <dl class="memory-list">
+
+                                <dt>Task</dt>
+                                <dd>문서 검색 + 근거 기반 생성</dd>
+
+                                <dt>Notebook</dt>
+                                <dd>99_Rag.ipynb</dd>
+
+                                <dt>Cell</dt>
+                                <dd>27</dd>
+
+                                <dt>저장 Output</dt>
+                                <dd>1개</dd>
+
+                                <dt>Chunk Size</dt>
+                                <dd>500</dd>
+
+                                <dt>Chunk Overlap</dt>
+                                <dd>100</dd>
+
+                                <dt>Embedding</dt>
+                                <dd>text-embedding-3-small</dd>
+
+                                <dt>Vector Store</dt>
+                                <dd>FAISS</dd>
+
+                                <dt>Retriever</dt>
+                                <dd>Top-k 3</dd>
+
+                                <dt>LLM</dt>
+                                <dd>gpt-4o-mini</dd>
+
+                                <dt>Loss</dt>
+                                <dd>없음</dd>
+
+                                <dt>Optimizer</dt>
+                                <dd>없음</dd>
+
+                                <dt>fit()</dt>
+                                <dd>없음</dd>
+
+                                <dt>Accuracy / R²</dt>
+                                <dd>원본에 없음</dd>
+
+                            </dl>
+
+
+                            <div class="note-emphasis">
+                                RAG = 새 Weight 학습
+                                <br>
+                                X
+                                <br><br>
+                                RAG = Retrieval + Generation
+                            </div>
+
+                        </section>
+
+
+                        <!-- CONFUSION -->
+                        <section class="note-card confusion-note">
+
+                            <p class="note-number">
+                                CONFUSION
+                            </p>
+
+                            <h2>
+                                헷갈리기 쉬운 개념
+                            </h2>
+
+
+                            <dl class="definition-list">
+
+                                <dt>RAG / Fine-tuning</dt>
+                                <dd>Context 검색 / Weight 변경</dd>
+
+                                <dt>Corpus / Train Dataset</dt>
+                                <dd>검색 문서 / 지도학습 데이터</dd>
+
+                                <dt>Chunk / Page</dt>
+                                <dd>검색 조각 / PDF 페이지</dd>
+
+                                <dt>Embedding / LLM</dt>
+                                <dd>Vector 표현 / 자연어 생성</dd>
+
+                                <dt>Retriever / Generator</dt>
+                                <dd>문서 검색 / 답변 생성</dd>
+
+                                <dt>Top-k / Accuracy</dt>
+                                <dd>검색 개수 / 분류 정확도</dd>
+
+                                <dt>UI History / LLM Memory</dt>
+                                <dd>화면 기록 / Prompt 대화 문맥</dd>
+
+                                <dt>Indexing / Training</dt>
+                                <dd>검색 구조 생성 / Weight 최적화</dd>
+
+                                <dt>Document / str</dt>
+                                <dd>LangChain 객체 / 문자열</dd>
+
+                                <dt>AIMessage / str</dt>
+                                <dd>기본 모델 반환 / Parser 이후</dd>
+
+                            </dl>
+
+                        </section>
+
+
+                        <!-- NEXT -->
+                        <section class="note-card next-note">
+
+                            <p class="note-number">
+                                NEXT
+                            </p>
+
+                            <h2>
+                                다음 단원 연결
+                            </h2>
+
+                            <p class="next-title">
+                                ML 65. LangChain 문서 챗봇 구현
+                            </p>
+
+                            <p>
+                                다음 단원에서는 이번 RAG 파이프라인을 기반으로
+                                LangChain 환경 설정,
+                                Prompt,
+                                Document Loader,
+                                Vector Store,
+                                Retriever,
+                                Memory,
+                                Streamlit을 더 체계적으로 연결합니다.
+                            </p>
+
+
+                            <div class="mini-flow">
+
+                                <span>ML 64</span>
+                                <b>↓</b>
+
+                                <span>RAG 개념과 첫 문서 챗봇</span>
+                                <b>↓</b>
+
+                                <strong>ML 65 · LangChain 문서 챗봇 구현</strong>
+
+                            </div>
+
+
+                            <div class="note-emphasis">
+                                모델 내부 Weight만 사용
+                                <br>
+                                ↓
+                                <br>
+                                외부 문서 검색 + LLM
+                                <br>
+                                ↓
+                                <br>
+                                LangChain 앱 구조화
+                            </div>
+
+
+                            <!-- 실제 ML 65 파일명과 맞춰 확인하세요. -->
+                            <a class="next-link" href="./65_langchain_document_chatbot.html">
+                                ML 65로 이동 →
+                            </a>
+
+                        </section>
+
+
+                        <!-- READING GUIDE -->
+                        <section class="note-card source-note">
+
+                            <p class="note-number">
+                                READING GUIDE
+                            </p>
+
+                            <h2>
+                                페이지 읽는 기준
+                            </h2>
+
+                            <p>
+                                <span class="badge original">원본</span>
+                                Notebook 실제 코드·저장 출력
+                            </p>
+
+                            <p>
+                                <span class="badge review">교안 메모</span>
+                                누락 파일·Source 불일치 등 검토 사항
+                            </p>
+
+                            <p>
+                                <span class="badge analysis">보충 해설</span>
+                                Shape·평가·RAG 디버깅
+                            </p>
+
+                            <p>
+                                <span class="badge added">추가 예제</span>
+                                Retrieval 관찰·Formatting·실무 확장
+                            </p>
+
+                            <p class="small">
+                                보충 코드는 원본을 조용히 수정한 것이 아니라,
+                                원본의 상태를 확인하거나
+                                실무 확장 방향을 설명하기 위한 별도 예제입니다.
+                            </p>
+
+                            <a href="#references">
+                                출처 안내 확인
+                            </a>
+
+                        </section>
+
+                    </aside>
+
                 </div>
 
-                <p class="hero-summary">
-                    이 페이지는 Step 1 → Step 2 → Step 3 학습을 통해 순차적으로 완성합니다.
-                </p>
 
-                <div class="hero-keywords" aria-label="현재 페이지 정보">
-                    <span>AI &amp; Machine Learning</span>
-                    <span>AI Machine Learning</span>
-                    <span>PART 8. RAG와 LangChain</span>
-                    <span>ML 64</span>
-                    <span>Skeleton</span>
-                </div>
+                <!-- ==================================================
+             PAGINATION
+        =================================================== -->
+                <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
 
-                <section class="learning-goals skeleton-goals" aria-labelledby="goals-machine-learning-64">
-                    <h2 id="goals-machine-learning-64">작성 예정 흐름</h2>
-                    <ol class="goal-list">
-                        <li><span>01</span><p>Step 1에서 왜 필요한지와 기본 개념을 정리합니다.</p></li>
-                        <li><span>02</span><p>Step 2에서 핵심 구조, 흐름, 실수, 면접 포인트를 정리합니다.</p></li>
-                        <li><span>03</span><p>Step 3에서 학습 매거진 형식으로 본문을 완성합니다.</p></li>
-                    </ol>
-                </section>
-            </header>
+                    <a class="lesson-prev" href="./63_transformer_chatbot.html">
 
-            <div class="content-layout">
-                <main id="lesson-main" class="lesson-main">
-                    <section id="goal" class="lesson-card goal-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실습 목표</h2>
-                        </div>
+                        <span>이전 단원</span>
+                        <strong>ML 63. Transformer 챗봇</strong>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    </a>
 
-                    <section id="dataset" class="lesson-card dataset-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Dataset</h2>
-                        </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <a class="lesson-course-index" href="#nav-machine-learning">
 
-                    <section id="shape" class="lesson-card shape-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>X / y와 Shape</h2>
-                        </div>
+                        <span>과목 목차</span>
+                        <strong>AI Machine Learning</strong>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    </a>
 
-                    <section id="preprocess" class="lesson-card preprocess-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>전처리</h2>
-                        </div>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <!-- 실제 프로젝트의 다음 파일명에 맞춰 확인하세요. -->
+                    <a class="lesson-next" href="./65_langchain_document_chatbot.html">
 
-                    <section id="split" class="lesson-card split-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Train / Validation / Test</h2>
-                        </div>
+                        <span>다음 단원</span>
+                        <strong>ML 65. LangChain 문서 챗봇 구현</strong>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    </a>
 
-                    <section id="model" class="lesson-card model-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Model Architecture</h2>
-                        </div>
+                </nav>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
 
-                    <section id="code" class="lesson-card code-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>주요 코드</h2>
-                        </div>
+                <footer class="lesson-footer">
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                    <p>
+                        AI Machine Learning · PART 8 · ML 64<br>
+                        Document → Chunk → Embedding → FAISS → Retrieval → Prompt → LLM
+                    </p>
 
-                    <section id="flow" class="lesson-card flow-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>학습 흐름</h2>
-                        </div>
+                    <a href="#goals-ml64">
+                        학습 목표로 돌아가기 ↑
+                    </a>
 
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
+                </footer>
 
-                    <section id="result" class="lesson-card result-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실행 결과</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="metric" class="lesson-card metric-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>Metric 해석</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="mistake" class="lesson-card mistake-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>자주 하는 실수</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="error" class="lesson-card error-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>오류 메시지</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="performance" class="lesson-card performance-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>성능 개선</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="practice" class="lesson-card practice-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>실무 연결</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section id="interview" class="lesson-card interview-card">
-                        <div class="section-heading">
-                            <p class="section-kicker">Skeleton · Step 3 작성 위치</p>
-                            <h2>면접 포인트</h2>
-                        </div>
-
-                        <!-- STEP 1 + STEP 2 정리 후 STEP 3에서 내용을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                </main>
-
-                <aside class="side-note" aria-label="ML 64. RAG 개념과 문서 기반 챗봇 보충 노트">
-                    <section class="note-card memory-note">
-                        <p class="note-number">MEMORY</p>
-                        <h2>오늘의 암기 포인트</h2>
-                        <!-- STEP 3에서 암기 포인트를 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card">
-                        <p class="note-number">CONFUSION</p>
-                        <h2>헷갈리기 쉬운 개념</h2>
-                        <!-- STEP 3에서 혼동 개념을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-
-                    <section class="note-card next-note">
-                        <p class="note-number">NEXT</p>
-                        <h2>다음 단원 연결</h2>
-                        <!-- STEP 3에서 다음 단원 연결을 작성합니다. -->
-                        <p class="skeleton-placeholder">Step 3에서 내용을 채웁니다.</p>
-                    </section>
-                </aside>
             </div>
-
-            <nav class="lesson-pagination" aria-label="AI Machine Learning 단원 이동">
-                <a class="lesson-prev" href="./63_transformer_chatbot.html">
-                    <span>이전 단원</span>
-                    <strong>ML 63. Transformer 챗봇</strong>
-                </a>
-
-                <a class="lesson-course-index" href="#nav-machine-learning">
-                    <span>과목 목차</span>
-                    <strong>AI Machine Learning 목차</strong>
-                </a>
-
-                <a class="lesson-next" href="./65_langchain_document_chatbot.html">
-                    <span>다음 단원</span>
-                    <strong>ML 65. LangChain 문서 챗봇</strong>
-                </a>
-            </nav>
         </div>
-    </div>
-</body>
+
+    </body>
+
 </html>
