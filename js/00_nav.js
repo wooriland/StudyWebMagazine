@@ -448,9 +448,9 @@
                 },
                 {
                     label: 'Roboflow',
+                    id: 'nav-roboflow',
                     folder: 'AIMachineLearning',
                     children: [
-                        { label: '00. Roboflow Course Index', path: 'AIMachineLearning/Roboflow/00_roboflow_index.html', folder: 'AIMachineLearning', navItem: 'course-roboflow', match: 'page' },
                         { label: '01. Roboflow란?', path: 'AIMachineLearning/Roboflow/01_roboflow_concept.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '02. Project 생성', path: 'AIMachineLearning/Roboflow/02_project_creation.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '03. 이미지 Upload', path: 'AIMachineLearning/Roboflow/03_image_upload.html', folder: 'AIMachineLearning', match: 'page' },
@@ -578,7 +578,7 @@
 
     // Deleted index pages now lead to the existing, expandable course menus.
     function bindNavigationShortcuts() {
-        const menuIds = ['nav-ai-machine-learning', 'nav-machine-learning'];
+        const menuIds = ['nav-ai-machine-learning', 'nav-machine-learning', 'nav-roboflow'];
 
         function openMenu(hash) {
             const id = hash.slice(1);
