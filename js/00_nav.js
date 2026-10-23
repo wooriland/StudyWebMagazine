@@ -463,9 +463,9 @@
                 },
                 {
                     label: 'Recommendation System / 추천시스템',
+                    id: 'nav-recommendation',
                     folder: 'AIMachineLearning',
                     children: [
-                        { label: '00. Recommendation System / 추천시스템 Course Index', path: 'AIMachineLearning/RecommendationSystem/00_recommendation_system_index.html', folder: 'AIMachineLearning', navItem: 'course-recommendation', match: 'page' },
                         { label: '01. 추천시스템이란?', path: 'AIMachineLearning/RecommendationSystem/01_recommendation_concept.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '02. Content-Based Recommendation', path: 'AIMachineLearning/RecommendationSystem/02_content_based.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '03. Collaborative Filtering', path: 'AIMachineLearning/RecommendationSystem/03_collaborative_filtering.html', folder: 'AIMachineLearning', match: 'page' },
@@ -578,7 +578,7 @@
 
     // Deleted index pages now lead to the existing, expandable course menus.
     function bindNavigationShortcuts() {
-        const menuIds = ['nav-ai-machine-learning', 'nav-machine-learning', 'nav-roboflow'];
+        const menuIds = ['nav-ai-machine-learning', 'nav-machine-learning', 'nav-roboflow', 'nav-recommendation'];
 
         function openMenu(hash) {
             const id = hash.slice(1);
