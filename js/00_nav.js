@@ -473,7 +473,7 @@
                         { label: '05. Item-Based Filtering', path: 'AIMachineLearning/RecommendationSystem/05_item_based_filtering.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '06. User-Based와 Item-Based 비교', path: 'AIMachineLearning/RecommendationSystem/06_user_item_comparison.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '07. Hybrid Recommendation', path: 'AIMachineLearning/RecommendationSystem/07_hybrid_recommendation.html', folder: 'AIMachineLearning', match: 'page' },
-                        { label: '08. Hybrid 결합 전략', path: 'AIMachineLearning/RecommendationSystem/08_hybrid_strategy.html', folder: 'AIMachineLearning', match: 'page' },
+                        { label: '08. Hybrid 결합 방법', path: 'AIMachineLearning/RecommendationSystem/08_hybrid_strategy.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '09. Model-Based Recommendation', path: 'AIMachineLearning/RecommendationSystem/09_model_based_recommendation.html', folder: 'AIMachineLearning', match: 'page' },
                         { label: '10. Deep Learning Hybrid Recommendation', path: 'AIMachineLearning/RecommendationSystem/10_deep_hybrid_recommendation.html', folder: 'AIMachineLearning', match: 'page' }
                     ]
